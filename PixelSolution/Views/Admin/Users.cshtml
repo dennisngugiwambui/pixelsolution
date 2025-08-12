@@ -1,0 +1,1561 @@
+@model List<PixelSolution.ViewModels.UserListViewModel>
+@{
+    ViewData["Title"] = "Users Management - PixelSolution";
+    Layout = "_AdminLayout";
+}
+
+@section Styles {
+    <link href="~/css/dashboard.css" rel="stylesheet">
+    <style>
+        /* Compact User Card Styles */
+        .user-card {
+            background: white;
+            border-radius: 8px;
+            padding: 1rem;
+            box-shadow: 0 1px 6px rgba(0,0,0,0.08);
+            transition: all 0.3s ease;
+            border-left: 3px solid #3b82f6;
+            position: relative;
+            overflow: hidden;
+            min-height: 200px;
+        }
+
+            .user-card:hover {
+                transform: translateY(-1px);
+                box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+            }
+
+            .user-card.inactive {
+                border-left-color: #6b7280;
+                opacity: 0.7;
+            }
+
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
+        }
+
+        .user-info h3 {
+            margin: 0 0 0.3rem 0;
+            color: #1e293b;
+            font-size: 0.95rem;
+            font-weight: 600;
+            line-height: 1.2;
+        }
+
+        .user-email {
+            color: #64748b;
+            font-size: 0.75rem;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            word-break: break-word;
+        }
+
+        .user-role {
+            display: inline-block;
+            padding: 0.15rem 0.5rem;
+            border-radius: 12px;
+            font-size: 0.65rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .role-admin {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .role-manager {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .role-employee {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .status-indicator {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            padding: 0.15rem 0.4rem;
+            border-radius: 10px;
+            font-size: 0.6rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-active {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .status-inactive {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .user-details {
+            font-size: 0.7rem;
+            color: #64748b;
+            margin-bottom: 0.3rem;
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+            .user-details i {
+                width: 10px;
+                font-size: 0.65rem;
+            }
+
+        .user-actions {
+            display: flex;
+            gap: 0.3rem;
+            margin-top: 0.75rem;
+            justify-content: center;
+        }
+
+        .btn-icon {
+            padding: 0.3rem 0.5rem;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.2rem;
+            font-size: 0.7rem;
+            font-weight: 500;
+            min-width: 50px;
+            min-height: 24px;
+        }
+
+            .btn-icon i {
+                font-size: 0.7rem;
+            }
+
+        .btn-edit {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+            .btn-edit:hover {
+                background: #bfdbfe;
+                transform: translateY(-1px);
+            }
+
+        .btn-delete {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+        }
+
+            .btn-delete:hover {
+                background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+                transform: translateY(-1px);
+                box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+            }
+
+        .btn-toggle {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: white;
+        }
+
+            .btn-toggle:hover {
+                background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+                transform: translateY(-1px);
+                box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+            }
+
+        .filters-bar {
+            background: white;
+            border: 1px solid #e2e8f0;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .filter-controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 0.75rem;
+            align-items: end;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(4px);
+        }
+
+            .modal.show {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 1rem;
+            }
+
+        .modal-content {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            width: 100%;
+            max-width: 480px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            max-height: 85vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.25rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 2px solid #f1f5f9;
+        }
+
+        .modal-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        .close-btn {
+            background: #fee2e2;
+            color: #dc2626;
+            border: none;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.8rem;
+        }
+
+            .close-btn:hover {
+                background: #fecaca;
+                transform: rotate(90deg);
+            }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .form-group {
+            margin-bottom: 0.75rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.4rem;
+            font-weight: 500;
+            color: #374151;
+            font-size: 0.8rem;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.6rem;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            transition: all 0.3s ease;
+            box-sizing: border-box;
+        }
+
+            .form-input:focus {
+                outline: none;
+                border-color: #3b82f6;
+                box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+            }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: white;
+            padding: 0.6rem 1.2rem;
+            border: none;
+            border-radius: 6px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.8rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+            .btn-primary:hover {
+                background: linear-gradient(135deg, #1d4ed8, #1e40af);
+                transform: translateY(-1px);
+            }
+
+            .btn-primary:disabled {
+                background: #9ca3af;
+                cursor: not-allowed;
+                transform: none;
+            }
+
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+            padding: 0.6rem 1.2rem;
+            border: none;
+            border-radius: 6px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-right: 0.5rem;
+            font-size: 0.8rem;
+        }
+
+            .btn-secondary:hover {
+                background: #4b5563;
+                transform: translateY(-1px);
+            }
+
+        .password-strength {
+            font-size: 0.7rem;
+            margin-top: 0.3rem;
+            padding: 0.3rem;
+            border-radius: 4px;
+            display: none;
+        }
+
+            .password-strength.weak {
+                background: #fee2e2;
+                color: #dc2626;
+                display: block;
+            }
+
+            .password-strength.medium {
+                background: #fef3c7;
+                color: #d97706;
+                display: block;
+            }
+
+            .password-strength.strong {
+                background: #dcfce7;
+                color: #16a34a;
+                display: block;
+            }
+
+        /* Responsive Design */
+        @@media (max-width: 768px) {
+            .user-card {
+                padding: 0.875rem;
+                min-height: 180px;
+            }
+
+            .user-avatar {
+                width: 32px;
+                height: 32px;
+                font-size: 0.8rem;
+            }
+
+            .modal-content {
+                padding: 1.25rem;
+                max-height: 90vh;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .filter-controls {
+                grid-template-columns: 1fr;
+            }
+
+            .user-actions {
+                gap: 0.25rem;
+            }
+
+            .btn-icon {
+                font-size: 0.65rem;
+                padding: 0.25rem 0.4rem;
+                min-width: 45px;
+                min-height: 22px;
+            }
+
+                .btn-icon i {
+                    font-size: 0.65rem;
+                }
+        }
+
+        @@media (max-width: 480px) {
+            .filters-bar {
+                padding: 0.75rem;
+            }
+
+            .user-card {
+                padding: 0.75rem;
+                min-height: 160px;
+            }
+
+            .user-info h3 {
+                font-size: 0.9rem;
+            }
+
+            .user-email {
+                font-size: 0.7rem;
+            }
+
+            .modal-content {
+                padding: 1rem;
+            }
+
+            .btn-secondary {
+                margin-right: 0;
+                margin-bottom: 0.5rem;
+            }
+        }
+
+        /* Toast Notifications */
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 10000;
+            padding: 0.75rem 1rem;
+            border-radius: 6px;
+            color: white;
+            font-weight: 500;
+            opacity: 0;
+            transform: translateX(100%);
+            transition: all 0.3s ease;
+            max-width: 280px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            font-size: 0.8rem;
+        }
+
+            .toast.success {
+                background: linear-gradient(135deg, #10b981, #059669);
+            }
+
+            .toast.error {
+                background: linear-gradient(135deg, #ef4444, #dc2626);
+            }
+
+            .toast.warning {
+                background: linear-gradient(135deg, #f59e0b, #d97706);
+            }
+
+            .toast.info {
+                background: linear-gradient(135deg, #3b82f6, #2563eb);
+            }
+    </style>
+}
+
+<!-- Sidebar -->
+<div class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+        <div class="logo-container">
+            <div class="logo-icon">
+                <i class="fas fa-bolt"></i>
+            </div>
+            <div class="logo-text">PixelSolution</div>
+        </div>
+        <div class="user-info">
+            <div class="user-avatar">@(User.Identity.Name?.Length >= 2 ? User.Identity.Name.Substring(0, 2).ToUpper() : "U")</div>
+            <div class="user-details">
+                <h4>@User.Identity.Name</h4>
+                <p>@(User.IsInRole("Admin") ? "System Administrator" : User.IsInRole("Manager") ? "Manager" : "Employee")</p>
+            </div>
+        </div>
+    </div>
+
+    <nav class="nav-menu">
+        <div class="nav-section">
+            <div class="nav-section-title">Main</div>
+            <div class="nav-item">
+                <a href="@Url.Action("Dashboard", "Admin")" class="nav-link">
+                    <i class="fas fa-chart-pie"></i>
+                    Dashboard
+                </a>
+            </div>
+            @if (User.IsInRole("Admin") || User.IsInRole("Manager") || User.IsInRole("Employee"))
+            {
+                <div class="nav-item">
+                    <a href="@Url.Action("Sales", "Admin")" class="nav-link">
+                        <i class="fas fa-shopping-cart"></i>
+                        Sales
+                    </a>
+                </div>
+            }
+            @if (User.IsInRole("Admin") || User.IsInRole("Manager"))
+            {
+                <div class="nav-item">
+                    <a href="@Url.Action("Inventory", "Admin")" class="nav-link">
+                        <i class="fas fa-box"></i>
+                        Inventory
+                    </a>
+                </div>
+            }
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-section-title">Management</div>
+            @if (User.IsInRole("Admin") || User.IsInRole("Manager"))
+            {
+                <div class="nav-item">
+                    <a href="@Url.Action("Users", "Admin")" class="nav-link active">
+                        <i class="fas fa-users"></i>
+                        Employees
+                    </a>
+                </div>
+            }
+            @if (User.IsInRole("Admin"))
+            {
+                <div class="nav-item">
+                    <a href="@Url.Action("Departments", "Admin")" class="nav-link">
+                        <i class="fas fa-building"></i>
+                        Departments
+                    </a>
+                </div>
+            }
+            @if (User.IsInRole("Admin") || User.IsInRole("Manager"))
+            {
+                <div class="nav-item">
+                    <a href="@Url.Action("Suppliers", "Admin")" class="nav-link">
+                        <i class="fas fa-truck"></i>
+                        Suppliers
+                    </a>
+                </div>
+                <div class="nav-item">
+                    <a href="@Url.Action("Categories", "Admin")" class="nav-link">
+                        <i class="fas fa-tags"></i>
+                        Categories
+                    </a>
+                </div>
+                <div class="nav-item">
+                    <a href="@Url.Action("Products", "Admin")" class="nav-link">
+                        <i class="fas fa-cube"></i>
+                        Products
+                    </a>
+                </div>
+            }
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-section-title">Operations</div>
+            @if (User.IsInRole("Admin") || User.IsInRole("Manager"))
+            {
+                <div class="nav-item">
+                    <a href="@Url.Action("PurchaseRequests", "Admin")" class="nav-link">
+                        <i class="fas fa-file-invoice"></i>
+                        Purchase Requests
+                    </a>
+                </div>
+            }
+            <div class="nav-item">
+                <a href="@Url.Action("Messages", "Admin")" class="nav-link">
+                    <i class="fas fa-envelope"></i>
+                    Messages
+                </a>
+            </div>
+            @if (User.IsInRole("Admin") || User.IsInRole("Manager"))
+            {
+                <div class="nav-item">
+                    <a href="@Url.Action("Reports", "Admin")" class="nav-link">
+                        <i class="fas fa-chart-bar"></i>
+                        Reports
+                    </a>
+                </div>
+            }
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-section-title">System</div>
+            <div class="nav-item">
+                <a href="@Url.Action("Settings", "Admin")" class="nav-link">
+                    <i class="fas fa-cog"></i>
+                    Settings
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Logout", "Auth")" class="nav-link">
+                    <i class="fas fa-sign-out-alt"></i>
+                    Logout
+                </a>
+            </div>
+        </div>
+    </nav>
+</div>
+
+<!-- Main Content -->
+<div class="main-content" id="mainContent">
+    <!-- Header -->
+    <header class="header">
+        <div class="header-left">
+            <button class="sidebar-toggle" id="sidebarToggle">
+                <i class="fas fa-bars"></i>
+            </button>
+            <h1 class="page-title">Users Management</h1>
+        </div>
+        <div class="header-right">
+            <div class="header-actions">
+                <button class="action-btn" title="Notifications">
+                    <i class="fas fa-bell"></i>
+                    <span class="notification-badge">3</span>
+                </button>
+                <button class="action-btn" title="Messages">
+                    <i class="fas fa-envelope"></i>
+                    <span class="notification-badge">8</span>
+                </button>
+                <button class="action-btn" title="Profile">
+                    <i class="fas fa-user-circle"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <div class="dashboard-content">
+        <!-- Filters and Actions Bar -->
+        <div class="filters-bar">
+            <div class="filter-controls">
+                <div class="form-group">
+                    <label class="form-label">Role</label>
+                    <select id="roleFilter" class="form-input">
+                        <option value="">All Roles</option>
+                        <option value="Admin">Admin</option>
+                        <option value="Manager">Manager</option>
+                        <option value="Employee">Employee</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Status</label>
+                    <select id="statusFilter" class="form-input">
+                        <option value="">All Status</option>
+                        <option value="Active">Active</option>
+                        <option value="Inactive">Inactive</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Search</label>
+                    <input type="text" id="searchUsers" class="form-input" placeholder="Search users...">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">&nbsp;</label>
+                    @if (User.IsInRole("Admin"))
+                    {
+                        <button class="btn-primary" onclick="openCreateUserModal()">
+                            <i class="fas fa-plus"></i> Add User
+                        </button>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Users Grid -->
+        @if (Model != null && Model.Any())
+        {
+            <div id="usersGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1rem;">
+                @foreach (var user in Model)
+                {
+                    <div class="user-card @(!user.Status.Equals("Active", StringComparison.OrdinalIgnoreCase) ? "inactive" : "")"
+                         data-user-id="@user.UserId">
+
+                        <div class="status-indicator status-@(user.Status.ToLower())">@user.Status</div>
+
+                        <div class="user-avatar">@(user.FullName.Length >= 2 ? user.FullName.Substring(0, 2).ToUpper() : "U")</div>
+
+                        <div class="user-info">
+                            <h3>@user.FullName</h3>
+                            <div class="user-email">@user.Email</div>
+                            <div class="user-role role-@user.UserType.ToLower()">@user.UserType</div>
+
+                            @if (!string.IsNullOrEmpty(user.DepartmentNames))
+                            {
+                                <div class="user-details">
+                                    <i class="fas fa-building"></i> @user.DepartmentNames
+                                </div>
+                            }
+
+                            @if (!string.IsNullOrEmpty(user.Phone))
+                            {
+                                <div class="user-details">
+                                    <i class="fas fa-phone"></i> @user.Phone
+                                </div>
+                            }
+
+                            <div class="user-details">
+                                <i class="fas fa-calendar"></i> @user.CreatedAt.ToString("MMM dd, yyyy")
+                            </div>
+                        </div>
+
+                        @if (User.IsInRole("Admin"))
+                        {
+                            <div class="user-actions">
+                                <button class="btn-icon btn-edit" onclick="editUser(@user.UserId)" title="Edit">
+                                    <i class="fas fa-edit"></i> Edit
+                                </button>
+                                @if (user.Status.Equals("Active", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    <button class="btn-icon btn-toggle" onclick="toggleUserStatus(@user.UserId, '@user.FullName', 'Active')" title="Deactivate">
+                                        <i class="fas fa-ban"></i> Deactivate
+                                    </button>
+                                }
+                                else
+                                {
+                                    <button class="btn-icon btn-toggle" onclick="toggleUserStatus(@user.UserId, '@user.FullName', 'Inactive')" title="Activate">
+                                        <i class="fas fa-check"></i> Activate
+                                    </button>
+                                }
+                                <button class="btn-icon btn-delete" onclick="deleteUser(@user.UserId, '@user.FullName')" title="Delete">
+                                    <i class="fas fa-trash"></i> Del
+                                </button>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <!-- Empty State -->
+            <div style="text-align: center; padding: 2rem; color: #64748b;">
+                <i class="fas fa-users" style="font-size: 2.5rem; margin-bottom: 1rem; opacity: 0.3;"></i>
+                <h3>No users found</h3>
+                <p>No users are currently available in the system.</p>
+                @if (User.IsInRole("Admin"))
+                {
+                    <button class="btn-primary" onclick="openCreateUserModal()" style="margin-top: 1rem;">
+                        <i class="fas fa-plus"></i>
+                        Add Your First User
+                    </button>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Create/Edit User Modal -->
+<div id="userModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 id="modalTitle" class="modal-title">Add New User</h2>
+            <button class="close-btn" onclick="closeUserModal()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <form id="userForm">
+            @Html.AntiForgeryToken()
+            <input type="hidden" id="userId" name="UserId">
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label" for="firstName">First Name *</label>
+                    <input type="text" id="firstName" name="FirstName" class="form-input" required maxlength="100">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="lastName">Last Name *</label>
+                    <input type="text" id="lastName" name="LastName" class="form-input" required maxlength="100">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="email">Email Address *</label>
+                <input type="email" id="email" name="Email" class="form-input" required maxlength="255">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="phone">Phone Number</label>
+                <input type="tel" id="phone" name="Phone" class="form-input" maxlength="20">
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label" for="userType">User Type *</label>
+                    <select id="userType" name="UserType" class="form-input" required>
+                        <option value="">Select Role</option>
+                        <option value="Admin">Admin</option>
+                        <option value="Manager">Manager</option>
+                        <option value="Employee">Employee</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="isActive">Status</label>
+                    <select id="isActive" name="IsActive" class="form-input">
+                        <option value="true">Active</option>
+                        <option value="false">Inactive</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group" id="passwordGroup">
+                <label class="form-label" for="password">Password *</label>
+                <input type="password" id="password" name="Password" class="form-input" minlength="6">
+                <div id="passwordStrength" class="password-strength"></div>
+            </div>
+
+            <div class="form-group" id="confirmPasswordGroup">
+                <label class="form-label" for="confirmPassword">Confirm Password *</label>
+                <input type="password" id="confirmPassword" name="ConfirmPassword" class="form-input" minlength="6">
+            </div>
+
+            <div class="form-group" id="newPasswordGroup" style="display: none;">
+                <label class="form-label" for="newPassword">New Password</label>
+                <input type="password" id="newPassword" name="NewPassword" class="form-input" minlength="6">
+                <div id="newPasswordStrength" class="password-strength"></div>
+            </div>
+
+            <div class="form-group" id="confirmNewPasswordGroup" style="display: none;">
+                <label class="form-label" for="confirmNewPassword">Confirm New Password</label>
+                <input type="password" id="confirmNewPassword" name="ConfirmNewPassword" class="form-input" minlength="6">
+            </div>
+
+            <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1.25rem;">
+                <button type="button" class="btn-secondary" onclick="closeUserModal()">Cancel</button>
+                <button type="submit" class="btn-primary" id="submitBtn">
+                    <i class="fas fa-save"></i> Save User
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/dashboard.js"></script>
+    <script type="text/javascript">
+        var allUsers = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model ?? new List<PixelSolution.ViewModels.UserListViewModel>()));
+        var isEditMode = false;
+        var currentEditUserId = null;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Initializing Users Management...');
+            setupFilters();
+            setupPasswordValidation();
+            setupFormSubmission();
+            setupModalEventListeners();
+            setupFilterListeners();
+        });
+
+        function setupFilterListeners() {
+            // Add event listeners for filters
+            var roleFilter = document.getElementById('roleFilter');
+            var statusFilter = document.getElementById('statusFilter');
+            var searchInput = document.getElementById('searchUsers');
+
+            if (roleFilter) {
+                roleFilter.addEventListener('change', applyFilters);
+            }
+
+            if (statusFilter) {
+                statusFilter.addEventListener('change', applyFilters);
+            }
+
+            if (searchInput) {
+                searchInput.addEventListener('input', applyFilters);
+            }
+        }
+
+        function setupModalEventListeners() {
+            window.addEventListener('click', function(event) {
+                var modal = document.getElementById('userModal');
+                if (event.target === modal) {
+                    closeUserModal();
+                }
+            });
+
+            document.addEventListener('keydown', function(event) {
+                if (event.key === 'Escape') {
+                    closeUserModal();
+                }
+            });
+        }
+
+        function setupFilters() {
+            var roleFilter = document.getElementById('roleFilter');
+            var statusFilter = document.getElementById('statusFilter');
+            var searchUsers = document.getElementById('searchUsers');
+
+            if (roleFilter) roleFilter.addEventListener('change', applyFilters);
+            if (statusFilter) statusFilter.addEventListener('change', applyFilters);
+            if (searchUsers) searchUsers.addEventListener('input', applyFilters);
+        }
+
+        function setupPasswordValidation() {
+            var password = document.getElementById('password');
+            var newPassword = document.getElementById('newPassword');
+
+            if (password) {
+                password.addEventListener('input', function() {
+                    validatePasswordStrength(this.value, 'passwordStrength');
+                });
+            }
+
+            if (newPassword) {
+                newPassword.addEventListener('input', function() {
+                    validatePasswordStrength(this.value, 'newPasswordStrength');
+                });
+            }
+        }
+
+        function validatePasswordStrength(password, strengthId) {
+            var strengthIndicator = document.getElementById(strengthId);
+            if (!strengthIndicator) return;
+
+            var strength = 0;
+            var message = '';
+
+            if (password.length >= 6) strength++;
+            if (password.match(/[a-z]/)) strength++;
+            if (password.match(/[A-Z]/)) strength++;
+            if (password.match(/[0-9]/)) strength++;
+            if (password.match(/[^a-zA-Z0-9]/)) strength++;
+
+            strengthIndicator.className = 'password-strength';
+
+            if (password.length === 0) {
+                strengthIndicator.style.display = 'none';
+                return;
+            }
+
+            if (strength < 2) {
+                strengthIndicator.classList.add('weak');
+                message = '⚠️ Weak password';
+            } else if (strength < 4) {
+                strengthIndicator.classList.add('medium');
+                message = '⚡ Medium strength';
+            } else {
+                strengthIndicator.classList.add('strong');
+                message = '✅ Strong password';
+            }
+
+            strengthIndicator.textContent = message;
+        }
+
+        function applyFilters() {
+            var roleFilter = document.getElementById('roleFilter') ? document.getElementById('roleFilter').value : '';
+            var statusFilter = document.getElementById('statusFilter') ? document.getElementById('statusFilter').value : '';
+            var searchTerm = document.getElementById('searchUsers') ? document.getElementById('searchUsers').value.toLowerCase() : '';
+
+            var userCards = document.querySelectorAll('.user-card');
+
+            userCards.forEach(function(card) {
+                var userId = parseInt(card.dataset.userId);
+                var user = allUsers.find(function(u) { return u.UserId === userId; });
+
+                if (!user) {
+                    card.style.display = 'none';
+                    return;
+                }
+
+                var shouldShow = true;
+
+                // Filter by role (using PascalCase UserType)
+                if (roleFilter && user.UserType !== roleFilter) {
+                    shouldShow = false;
+                }
+
+                // Filter by status (using PascalCase Status)
+                if (statusFilter && user.Status !== statusFilter) {
+                    shouldShow = false;
+                }
+
+                // Filter by search term (using PascalCase properties)
+                if (searchTerm) {
+                    var searchableText = (
+                        (user.FullName || '') + ' ' +
+                        (user.Email || '') + ' ' +
+                        (user.UserType || '') + ' ' +
+                        (user.DepartmentNames || '')
+                    ).toLowerCase();
+
+                    if (searchableText.indexOf(searchTerm) === -1) {
+                        shouldShow = false;
+                    }
+                }
+
+                card.style.display = shouldShow ? 'block' : 'none';
+            });
+        }
+
+        function openUserModal() {
+            console.log('📝 Opening create user modal');
+            isEditMode = false;
+            currentEditUserId = null;
+
+            document.getElementById('modalTitle').textContent = 'Add New User';
+            document.getElementById('userForm').reset();
+            document.getElementById('userId').value = '';
+
+            // Show password fields for creation
+            document.getElementById('passwordGroup').style.display = 'block';
+            document.getElementById('confirmPasswordGroup').style.display = 'block';
+            document.getElementById('newPasswordGroup').style.display = 'none';
+            document.getElementById('confirmNewPasswordGroup').style.display = 'none';
+
+            // Make passwords required
+            document.getElementById('password').required = true;
+            document.getElementById('confirmPassword').required = true;
+
+            // Reset password strength indicators
+            var passwordStrength = document.getElementById('passwordStrength');
+            var newPasswordStrength = document.getElementById('newPasswordStrength');
+            if (passwordStrength) passwordStrength.style.display = 'none';
+            if (newPasswordStrength) newPasswordStrength.style.display = 'none';
+
+            document.getElementById('userModal').classList.add('show');
+        }
+
+        function openCreateUserModal() {
+            openUserModal();
+        }
+
+        function openCreateUserModal() {
+            console.log('➕ Opening create user modal');
+            isEditMode = false;
+            currentEditUserId = null;
+
+            // Reset form
+            var form = document.getElementById('userForm');
+            if (form) {
+                form.reset();
+            }
+
+            // Set modal title
+            document.getElementById('modalTitle').textContent = 'Add New User';
+            
+            // Clear hidden userId field
+            document.getElementById('userId').value = '';
+
+            // Show creation password fields, hide edit password fields
+            document.getElementById('passwordGroup').style.display = 'block';
+            document.getElementById('confirmPasswordGroup').style.display = 'block';
+            document.getElementById('newPasswordGroup').style.display = 'none';
+            document.getElementById('confirmNewPasswordGroup').style.display = 'none';
+
+            // Make creation passwords required
+            document.getElementById('password').required = true;
+            document.getElementById('confirmPassword').required = true;
+
+            // Set default values
+            document.getElementById('userType').value = 'Employee';
+            document.getElementById('isActive').value = 'true';
+
+            // Reset password strength indicators
+            var passwordStrength = document.getElementById('passwordStrength');
+            var newPasswordStrength = document.getElementById('newPasswordStrength');
+            if (passwordStrength) passwordStrength.style.display = 'none';
+            if (newPasswordStrength) newPasswordStrength.style.display = 'none';
+
+            // Show modal
+            document.getElementById('userModal').classList.add('show');
+        }
+
+        function editUser(userId) {
+            console.log('✏️ Opening edit user modal for userId:', userId);
+            isEditMode = true;
+            currentEditUserId = userId;
+
+            // Find user from allUsers array
+            var user = allUsers.find(function(u) { return u.UserId === userId || u.userId === userId; });
+            if (!user) {
+                showToast('User data not found. Please refresh the page.', 'error');
+                return;
+            }
+
+            console.log('Found user for editing:', user);
+
+            // Split full name into first and last name
+            var fullName = user.FullName || user.fullName || '';
+            var nameParts = fullName.split(' ');
+            var firstName = nameParts[0] || '';
+            var lastName = nameParts.slice(1).join(' ') || '';
+
+            document.getElementById('modalTitle').textContent = 'Edit User';
+            document.getElementById('userId').value = user.UserId || user.userId;
+            document.getElementById('firstName').value = firstName;
+            document.getElementById('lastName').value = lastName;
+            document.getElementById('email').value = user.Email || user.email || '';
+            
+            // Fix phone number population - check all possible property names
+            var phoneValue = user.Phone || user.phone || user.PhoneNumber || user.phoneNumber || '';
+            document.getElementById('phone').value = phoneValue;
+            console.log('📱 Setting phone value:', phoneValue);
+            
+            document.getElementById('userType').value = user.UserType || user.userType || 'Employee';
+            document.getElementById('isActive').value = (user.Status === 'Active' || user.status === 'Active') ? 'true' : 'false';
+
+            // Hide creation password fields, show edit password fields
+            document.getElementById('passwordGroup').style.display = 'none';
+            document.getElementById('confirmPasswordGroup').style.display = 'none';
+            document.getElementById('newPasswordGroup').style.display = 'block';
+            document.getElementById('confirmNewPasswordGroup').style.display = 'block';
+
+            // Make creation passwords not required
+            document.getElementById('password').required = false;
+            document.getElementById('confirmPassword').required = false;
+
+            // Clear password fields (don't show encrypted password)
+            // Add placeholder text to indicate password won't be changed unless filled
+            var newPasswordField = document.getElementById('newPassword');
+            var confirmNewPasswordField = document.getElementById('confirmNewPassword');
+            
+            newPasswordField.value = '';
+            confirmNewPasswordField.value = '';
+            newPasswordField.placeholder = 'Leave blank to keep current password';
+            confirmNewPasswordField.placeholder = 'Confirm new password';
+
+            // Reset password strength indicators
+            var passwordStrength = document.getElementById('passwordStrength');
+            var newPasswordStrength = document.getElementById('newPasswordStrength');
+            if (passwordStrength) passwordStrength.style.display = 'none';
+            if (newPasswordStrength) newPasswordStrength.style.display = 'none';
+
+            document.getElementById('userModal').classList.add('show');
+        }
+
+        function closeUserModal() {
+            var modal = document.getElementById('userModal');
+            if (modal) {
+                modal.classList.remove('show');
+            }
+            
+            var form = document.getElementById('userForm');
+            if (form) {
+                form.reset();
+            }
+
+            // Reset password field placeholders
+            var newPasswordField = document.getElementById('newPassword');
+            var confirmNewPasswordField = document.getElementById('confirmNewPassword');
+            if (newPasswordField) newPasswordField.placeholder = '';
+            if (confirmNewPasswordField) confirmNewPasswordField.placeholder = '';
+
+            // Reset password strength indicators
+            var passwordStrength = document.getElementById('passwordStrength');
+            var newPasswordStrength = document.getElementById('newPasswordStrength');
+            if (passwordStrength) passwordStrength.style.display = 'none';
+            if (newPasswordStrength) newPasswordStrength.style.display = 'none';
+
+            // Reset password field visibility to default (creation mode)
+            document.getElementById('passwordGroup').style.display = 'block';
+            document.getElementById('confirmPasswordGroup').style.display = 'block';
+            document.getElementById('newPasswordGroup').style.display = 'none';
+            document.getElementById('confirmNewPasswordGroup').style.display = 'none';
+
+            // Reset password requirements
+            document.getElementById('password').required = true;
+            document.getElementById('confirmPassword').required = true;
+
+            // Reset form state
+            isEditMode = false;
+            currentEditUserId = null;
+
+            // Reset submit button
+            var submitBtn = document.getElementById('submitBtn');
+            if (submitBtn) {
+                submitBtn.innerHTML = '<i class="fas fa-save"></i> Save User';
+                submitBtn.disabled = false;
+            }
+
+            // Reset modal title
+            document.getElementById('modalTitle').textContent = 'Add New User';
+        }
+
+        function deleteUser(userId, userName) {
+            if (confirm('Are you sure you want to delete user "' + userName + '"? This action cannot be undone.')) {
+                var token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+
+                fetch('@Url.Action("DeleteUser", "Admin")', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': token
+                    },
+                    body: JSON.stringify({ userId: userId })
+                })
+                .then(function(response) {
+                    return response.json();
+                })
+                .then(function(data) {
+                    if (data.success) {
+                        showToast('User deleted successfully!', 'success');
+                        setTimeout(function() {
+                            location.reload();
+                        }, 1000);
+                    } else {
+                        showToast('Error: ' + (data.message || 'Failed to delete user'), 'error');
+                    }
+                })
+                .catch(function(error) {
+                    console.error('Error:', error);
+                    showToast('An error occurred while deleting the user.', 'error');
+                });
+            }
+        }
+
+        function setupFormSubmission() {
+            var userForm = document.getElementById('userForm');
+            if (userForm) {
+                userForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+
+                    var submitBtn = document.getElementById('submitBtn');
+                    var originalText = submitBtn.innerHTML;
+
+                    // Validate form
+                    if (!validateForm()) {
+                        return;
+                    }
+
+                    // Show loading state
+                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ' + (isEditMode ? 'Updating...' : 'Creating...');
+                    submitBtn.disabled = true;
+
+                    var formData = new FormData(userForm);
+
+                    // Prepare data in the exact format expected by your controller
+                    var userData;
+
+                    if (isEditMode) {
+                        // UpdateUserRequest format
+                        userData = {
+                            UserId: parseInt(formData.get('UserId')),
+                            FirstName: formData.get('FirstName').trim(),
+                            LastName: formData.get('LastName').trim(),
+                            Email: formData.get('Email').trim(),
+                            Phone: formData.get('Phone') ? formData.get('Phone').trim() : null,
+                            UserType: formData.get('UserType'),
+                            IsActive: formData.get('IsActive') === 'true'
+                        };
+
+                        var newPassword = formData.get('NewPassword');
+                        var confirmNewPassword = formData.get('ConfirmNewPassword');
+
+                        if (newPassword && newPassword.trim()) {
+                            if (newPassword !== confirmNewPassword) {
+                                showToast('New passwords do not match.', 'error');
+                                submitBtn.innerHTML = originalText;
+                                submitBtn.disabled = false;
+                                return;
+                            }
+                            userData.NewPassword = newPassword;
+                            userData.ConfirmNewPassword = confirmNewPassword;
+                        }
+                    } else {
+                        // CreateUserRequest format
+                        var password = formData.get('Password');
+                        var confirmPassword = formData.get('ConfirmPassword');
+
+                        if (password !== confirmPassword) {
+                            showToast('Passwords do not match.', 'error');
+                            submitBtn.innerHTML = originalText;
+                            submitBtn.disabled = false;
+                            return;
+                        }
+
+                        userData = {
+                            FirstName: formData.get('FirstName').trim(),
+                            LastName: formData.get('LastName').trim(),
+                            Email: formData.get('Email').trim(),
+                            Phone: formData.get('Phone') ? formData.get('Phone').trim() : null,
+                            Password: password,
+                            ConfirmPassword: confirmPassword,
+                            UserType: formData.get('UserType'),
+                            IsActive: formData.get('IsActive') === 'true'
+                        };
+                    }
+
+                    console.log('📤 Sending user data:', userData);
+
+                    var url = isEditMode ? '@Url.Action("UpdateUser", "Admin")' : '@Url.Action("CreateUser", "Admin")';
+                    var token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+
+                    console.log('📍 Posting to URL:', url);
+                    console.log('📋 Request data:', JSON.stringify(userData));
+
+                    fetch(url, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'RequestVerificationToken': token
+                        },
+                        body: JSON.stringify(userData)
+                    })
+                    .then(function(response) {
+                        console.log('📥 Response status:', response.status);
+
+                        if (!response.ok) {
+                            return response.text().then(function(errorText) {
+                                console.error('❌ HTTP Error:', response.status, errorText);
+                                throw new Error('Server error: ' + response.status);
+                            });
+                        }
+
+                        return response.json();
+                    })
+                    .then(function(result) {
+                        console.log('📊 Response result:', result);
+
+                        if (result.success) {
+                            showToast(isEditMode ? 'User updated successfully!' : 'User created successfully!', 'success');
+                            closeUserModal();
+                            setTimeout(function() {
+                                location.reload();
+                            }, 1000);
+                        } else {
+                            showToast('Error: ' + (result.message || 'Failed to save user'), 'error');
+                        }
+                    })
+                    .catch(function(error) {
+                        console.error('❌ Error:', error);
+                        showToast('An error occurred while saving the user.', 'error');
+                    })
+                    .finally(function() {
+                        submitBtn.innerHTML = originalText;
+                        submitBtn.disabled = false;
+                    });
+                });
+            }
+        }
+
+        function validateForm() {
+            var firstName = document.getElementById('firstName').value.trim();
+            var lastName = document.getElementById('lastName').value.trim();
+            var email = document.getElementById('email').value.trim();
+            var userType = document.getElementById('userType').value;
+
+            if (!firstName || !lastName || !email || !userType) {
+                showToast('Please fill in all required fields.', 'error');
+                return false;
+            }
+
+            // Email validation using indexOf method to avoid regex issues
+            if (email.indexOf('@@') === -1 || email.indexOf('.') === -1 || email.length < 5) {
+                showToast('Please enter a valid email address.', 'error');
+                return false;
+            }
+
+            if (!isEditMode) {
+                var password = document.getElementById('password').value;
+                var confirmPassword = document.getElementById('confirmPassword').value;
+
+                if (!password || password.length < 6) {
+                    showToast('Password must be at least 6 characters long.', 'error');
+                    return false;
+                }
+
+                if (password !== confirmPassword) {
+                    showToast('Passwords do not match.', 'error');
+                    return false;
+                }
+            } else {
+                // For edit mode, validate new password only if provided
+                var newPassword = document.getElementById('newPassword').value;
+                var confirmNewPassword = document.getElementById('confirmNewPassword').value;
+
+                if (newPassword && newPassword.length < 6) {
+                    showToast('New password must be at least 6 characters long.', 'error');
+                    return false;
+                }
+
+                if (newPassword !== confirmNewPassword) {
+                    showToast('New passwords do not match.', 'error');
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        function deleteUser(userId, userName) {
+            console.log('🗑️ Attempting to delete user:', userId, userName);
+            
+            if (!confirm('Are you sure you want to delete user "' + userName + '"? This action cannot be undone.')) {
+                return;
+            }
+
+            var token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+            
+            fetch('/Admin/DeleteUser', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': token
+                },
+                body: JSON.stringify({ UserId: userId })
+            })
+            .then(function(response) {
+                console.log('🔄 Delete response status:', response.status);
+                return response.json();
+            })
+            .then(function(result) {
+                console.log('📊 Delete result:', result);
+                
+                if (result.success) {
+                    showToast('User "' + userName + '" deleted successfully!', 'success');
+                    
+                    // Remove user from allUsers array
+                    allUsers = allUsers.filter(function(user) {
+                        return user.UserId !== userId;
+                    });
+                    
+                    // Remove user card from DOM
+                    var userCard = document.querySelector('.user-card[data-user-id="' + userId + '"]');
+                    if (userCard) {
+                        userCard.remove();
+                    }
+                    
+                    // Check if no users left and show empty state
+                    if (allUsers.length === 0) {
+                        location.reload();
+                    }
+                } else {
+                    showToast('Error deleting user: ' + (result.message || 'Unknown error'), 'error');
+                }
+            })
+            .catch(function(error) {
+                console.error('❌ Delete error:', error);
+                showToast('Error deleting user. Please try again.', 'error');
+            });
+        }
+
+        function toggleUserStatus(userId, userName, currentStatus) {
+            console.log('🔄 Toggling user status:', userId, userName, currentStatus);
+            
+            var newStatus = currentStatus === 'Active' ? 'Inactive' : 'Active';
+            var action = newStatus === 'Active' ? 'activate' : 'deactivate';
+            
+            if (!confirm('Are you sure you want to ' + action + ' user "' + userName + '"?')) {
+                return;
+            }
+
+            var token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+            
+            fetch('/Admin/ToggleUserStatus', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': token
+                },
+                body: JSON.stringify({ 
+                    UserId: userId,
+                    Status: newStatus
+                })
+            })
+            .then(function(response) {
+                console.log('🔄 Toggle status response:', response.status);
+                return response.json();
+            })
+            .then(function(result) {
+                console.log('📊 Toggle status result:', result);
+                
+                if (result.success) {
+                    showToast('User "' + userName + '" ' + action + 'd successfully!', 'success');
+                    
+                    // Update user in allUsers array
+                    var userIndex = allUsers.findIndex(function(user) {
+                        return user.UserId === userId;
+                    });
+                    
+                    if (userIndex !== -1) {
+                        allUsers[userIndex].Status = newStatus;
+                    }
+                    
+                    // Update user card in DOM
+                    var userCard = document.querySelector('.user-card[data-user-id="' + userId + '"]');
+                    if (userCard) {
+                        var statusIndicator = userCard.querySelector('.status-indicator');
+                        if (statusIndicator) {
+                            statusIndicator.textContent = newStatus;
+                            statusIndicator.className = 'status-indicator status-' + newStatus.toLowerCase();
+                        }
+                        
+                        // Update card class
+                        if (newStatus === 'Active') {
+                            userCard.classList.remove('inactive');
+                        } else {
+                            userCard.classList.add('inactive');
+                        }
+                        
+                        // Update toggle button
+                        var toggleBtn = userCard.querySelector('.btn-toggle');
+                        if (toggleBtn) {
+                            if (newStatus === 'Active') {
+                                toggleBtn.innerHTML = '<i class="fas fa-ban"></i> Deactivate';
+                                toggleBtn.onclick = function() { toggleUserStatus(userId, userName, 'Active'); };
+                            } else {
+                                toggleBtn.innerHTML = '<i class="fas fa-check"></i> Activate';
+                                toggleBtn.onclick = function() { toggleUserStatus(userId, userName, 'Inactive'); };
+                            }
+                        }
+                    }
+                    
+                    // Reapply filters to show/hide based on new status
+                    applyFilters();
+                } else {
+                    showToast('Error updating user status: ' + (result.message || 'Unknown error'), 'error');
+                }
+            })
+            .catch(function(error) {
+                console.error('❌ Toggle status error:', error);
+                showToast('Error updating user status. Please try again.', 'error');
+            });
+        }
+
+        function showToast(message, type) {
+            // Remove existing toasts
+            var existingToasts = document.querySelectorAll('.toast');
+            existingToasts.forEach(function(toast) {
+                toast.remove();
+            });
+
+            var toast = document.createElement('div');
+            toast.className = 'toast ' + type;
+
+            var iconClass = 'info-circle';
+            if (type === 'success') iconClass = 'check-circle';
+            else if (type === 'error') iconClass = 'exclamation-circle';
+
+            toast.innerHTML = '<div style="display: flex; align-items: center; gap: 0.4rem;"><i class="fas fa-' + iconClass + '"></i><span>' + message + '</span></div>';
+
+            document.body.appendChild(toast);
+
+            setTimeout(function() {
+                toast.style.opacity = '1';
+                toast.style.transform = 'translateX(0)';
+            }, 100);
+
+            setTimeout(function() {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateX(100%)';
+                setTimeout(function() {
+                    if (toast.parentNode) {
+                        toast.remove();
+                    }
+                }, 300);
+            }, 4000);
+        }
+
+    </script>
+}

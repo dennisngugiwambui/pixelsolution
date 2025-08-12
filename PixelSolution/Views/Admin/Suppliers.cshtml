@@ -1,0 +1,1014 @@
+@model List<PixelSolution.ViewModels.SupplierListViewModel>
+@{
+    ViewData["Title"] = "Suppliers Management - PixelSolution";
+    Layout = "_AdminLayout";
+}
+
+@section Styles {
+    <link href="~/css/dashboard.css" rel="stylesheet">
+    <style>
+        .supplier-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            border-left: 4px solid #10b981;
+            position: relative;
+            overflow: hidden;
+        }
+
+            .supplier-card:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            }
+
+            .supplier-card.inactive {
+                border-left-color: #6b7280;
+                opacity: 0.7;
+            }
+
+        .supplier-header {
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .supplier-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #10b981, #059669);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.5rem;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        .supplier-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .company-name {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin: 0 0 0.25rem 0;
+            line-height: 1.3;
+        }
+
+        .contact-person {
+            font-size: 0.875rem;
+            color: #64748b;
+            font-weight: 500;
+            margin: 0 0 0.5rem 0;
+        }
+
+        .contact-details {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .contact-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.75rem;
+            color: #6b7280;
+        }
+
+            .contact-item i {
+                width: 12px;
+                color: #10b981;
+            }
+
+        .supplier-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+            gap: 1rem;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid #f1f5f9;
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #1e293b;
+            display: block;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: #64748b;
+            font-weight: 500;
+            margin-top: 0.25rem;
+        }
+
+        .status-indicator {
+            position: absolute;
+            top: 0.75rem;
+            right: 0.75rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+            .status-indicator.active {
+                background: #dcfce7;
+                color: #166534;
+            }
+
+            .status-indicator.inactive {
+                background: #fee2e2;
+                color: #991b1b;
+            }
+
+        .quick-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .filters-bar {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 0;
+            border: none;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 12px 12px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-body {
+            padding: 2rem;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            transition: all 0.3s ease;
+        }
+
+            .form-control:focus {
+                outline: none;
+                border-color: #10b981;
+                box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+            }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+        }
+
+            .btn-primary:hover {
+                transform: translateY(-1px);
+                box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+            }
+
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-warning {
+            background: #f59e0b;
+            color: white;
+        }
+
+        .btn-sm {
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+        }
+
+        .details-section {
+            background: #f8fafc;
+            padding: 1.5rem;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .detail-item {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 1rem;
+        }
+
+        .detail-label {
+            font-weight: 600;
+            color: #374151;
+            font-size: 0.875rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .detail-value {
+            color: #1f2937;
+            font-size: 0.9rem;
+            padding: 0.5rem 0;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+            .status-badge.active {
+                background: #dcfce7;
+                color: #166534;
+            }
+
+            .status-badge.inactive {
+                background: #fee2e2;
+                color: #991b1b;
+            }
+    </style>
+}
+
+<!-- Sidebar -->
+<div class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+        <div class="logo-container">
+            <div class="logo-icon">
+                <i class="fas fa-bolt"></i>
+            </div>
+            <div class="logo-text">PixelSolution</div>
+        </div>
+        <div class="user-info">
+            <div class="user-avatar">@User.Identity.Name?.Substring(0, 2).ToUpper()</div>
+            <div class="user-details">
+                <h4>@User.Identity.Name</h4>
+                <p>System Administrator</p>
+            </div>
+        </div>
+    </div>
+
+    <nav class="nav-menu">
+        <div class="nav-section">
+            <div class="nav-section-title">Main</div>
+            <div class="nav-item">
+                <a href="@Url.Action("Dashboard", "Admin")" class="nav-link">
+                    <i class="fas fa-chart-pie"></i>
+                    Dashboard
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Sales", "Admin")" class="nav-link">
+                    <i class="fas fa-shopping-cart"></i>
+                    Sales
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Inventory", "Admin")" class="nav-link">
+                    <i class="fas fa-box"></i>
+                    Inventory
+                </a>
+            </div>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-section-title">Management</div>
+            <div class="nav-item">
+                <a href="@Url.Action("Users", "Admin")" class="nav-link">
+                    <i class="fas fa-users"></i>
+                    Employees
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Departments", "Admin")" class="nav-link">
+                    <i class="fas fa-building"></i>
+                    Departments
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Suppliers", "Admin")" class="nav-link active">
+                    <i class="fas fa-truck"></i>
+                    Suppliers
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Categories", "Admin")" class="nav-link">
+                    <i class="fas fa-tags"></i>
+                    Categories
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Products", "Admin")" class="nav-link">
+                    <i class="fas fa-cube"></i>
+                    Products
+                </a>
+            </div>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-section-title">Operations</div>
+            <div class="nav-item">
+                <a href="@Url.Action("PurchaseRequests", "Admin")" class="nav-link">
+                    <i class="fas fa-file-invoice"></i>
+                    Purchase Requests
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Messages", "Admin")" class="nav-link">
+                    <i class="fas fa-envelope"></i>
+                    Messages
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Reports", "Admin")" class="nav-link">
+                    <i class="fas fa-chart-bar"></i>
+                    Reports
+                </a>
+            </div>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-section-title">System</div>
+            <div class="nav-item">
+                <a href="@Url.Action("Settings", "Admin")" class="nav-link">
+                    <i class="fas fa-cog"></i>
+                    Settings
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Logout", "Auth")" class="nav-link">
+                    <i class="fas fa-sign-out-alt"></i>
+                    Logout
+                </a>
+            </div>
+        </div>
+    </nav>
+</div>
+
+<!-- Main Content -->
+<div class="main-content" id="mainContent">
+    <!-- Header -->
+    <header class="header">
+        <div class="header-left">
+            <button class="sidebar-toggle" id="sidebarToggle">
+                <i class="fas fa-bars"></i>
+            </button>
+            <h1 class="page-title">Suppliers Management</h1>
+        </div>
+        <div class="header-right">
+            <div class="search-container">
+                <input type="text" class="search-input" placeholder="Search suppliers..." id="searchInput">
+                <i class="fas fa-search search-icon"></i>
+            </div>
+            <div class="header-actions">
+                <button class="action-btn" title="Notifications">
+                    <i class="fas fa-bell"></i>
+                    <span class="notification-badge">3</span>
+                </button>
+                <button class="action-btn" title="Messages">
+                    <i class="fas fa-envelope"></i>
+                    <span class="notification-badge">8</span>
+                </button>
+                <button class="action-btn" title="Profile">
+                    <i class="fas fa-user-circle"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Page Content -->
+    <div class="dashboard-content">
+        <!-- Filters and Actions Bar -->
+        <div class="filters-bar">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+                    <div style="position: relative;">
+                        <select id="statusFilter" class="form-control" style="width: 150px;">
+                            <option value="">All Status</option>
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                        </select>
+                    </div>
+                    <div style="position: relative;">
+                        <select id="sortBy" class="form-control" style="width: 150px;">
+                            <option value="name">Sort by Name</option>
+                            <option value="contact">Sort by Contact</option>
+                            <option value="products">Sort by Products</option>
+                            <option value="created">Sort by Date</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 1rem;">
+                    <button class="btn btn-secondary btn-sm" onclick="exportSuppliers()">
+                        <i class="fas fa-download"></i>
+                        Export
+                    </button>
+                    <button class="btn btn-primary" onclick="openCreateSupplierModal()">
+                        <i class="fas fa-plus"></i>
+                        Add Supplier
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Suppliers Grid -->
+        @if (Model != null && Model.Any())
+        {
+            <div id="suppliersGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(400px, 1fr)); gap: 1.5rem;">
+                @foreach (var supplier in Model)
+                {
+                    <div class="supplier-card @(!supplier.Status.Equals("Active", StringComparison.OrdinalIgnoreCase) ? "inactive" : "")" data-supplier-id="@supplier.SupplierId">
+                        <div class="status-indicator @(supplier.Status.ToLower())">
+                            @supplier.Status
+                        </div>
+
+                        <div class="supplier-header">
+                            <div class="supplier-avatar">
+                                @supplier.CompanyName.Substring(0, Math.Min(2, supplier.CompanyName.Length)).ToUpper()
+                            </div>
+                            <div class="supplier-info">
+                                <h3 class="company-name">@supplier.CompanyName</h3>
+                                <p class="contact-person">Contact: @supplier.ContactPerson</p>
+                                <div class="contact-details">
+                                    <div class="contact-item">
+                                        <i class="fas fa-envelope"></i>
+                                        <span>@supplier.Email</span>
+                                    </div>
+                                    <div class="contact-item">
+                                        <i class="fas fa-phone"></i>
+                                        <span>@supplier.Phone</span>
+                                    </div>
+                                    @if (!string.IsNullOrEmpty(supplier.Address))
+                                    {
+                                        <div class="contact-item">
+                                            <i class="fas fa-map-marker-alt"></i>
+                                            <span>@supplier.Address</span>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="supplier-stats">
+                            <div class="stat">
+                                <span class="stat-value">@supplier.ProductCount</span>
+                                <span class="stat-label">Products</span>
+                            </div>
+                            <div class="stat">
+                                <span class="stat-value">@supplier.PurchaseRequestCount</span>
+                                <span class="stat-label">Orders</span>
+                            </div>
+                            <div class="stat">
+                                <span class="stat-value">KSh @supplier.TotalPurchaseValue.ToString("N0")</span>
+                                <span class="stat-label">Total Value</span>
+                            </div>
+                            <div class="stat">
+                                <span class="stat-value">@supplier.CreatedAt.ToString("MMM yyyy")</span>
+                                <span class="stat-label">Since</span>
+                            </div>
+                        </div>
+
+                        <div class="quick-actions">
+                            <button class="btn btn-secondary btn-sm" onclick="viewSupplier(@supplier.SupplierId)" title="View Details">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button class="btn btn-primary btn-sm" onclick="editSupplier(@supplier.SupplierId)" title="Edit Supplier">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-warning btn-sm" onclick="toggleSupplierStatus(@supplier.SupplierId)" title="Toggle Status">
+                                <i class="fas fa-toggle-on"></i>
+                            </button>
+                            @if (User.IsInRole("Admin"))
+                            {
+                                <button class="btn btn-danger btn-sm" onclick="deleteSupplier(@supplier.SupplierId)" title="Delete Supplier">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <!-- Empty State -->
+            <div style="text-align: center; padding: 4rem; color: #64748b;">
+                <i class="fas fa-truck" style="font-size: 4rem; margin-bottom: 1rem; opacity: 0.3;"></i>
+                <h3>No suppliers found</h3>
+                <p>No suppliers are currently registered in the system. Click "Add Supplier" to register your first supplier.</p>
+                <button class="btn btn-primary" onclick="openCreateSupplierModal()" style="margin-top: 1rem;">
+                    <i class="fas fa-plus"></i>
+                    Add Your First Supplier
+                </button>
+            </div>
+        }
+
+        <!-- Empty State for Filtered Results -->
+        <div id="emptyState" style="display: none; text-align: center; padding: 4rem; color: #64748b;">
+            <i class="fas fa-truck" style="font-size: 4rem; margin-bottom: 1rem; opacity: 0.3;"></i>
+            <h3>No suppliers found</h3>
+            <p>Try adjusting your search criteria or add a new supplier.</p>
+        </div>
+    </div>
+</div>
+
+<!-- Create/Edit Supplier Modal -->
+<div id="supplierModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 id="modalTitle">Add New Supplier</h2>
+            <button style="background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer;" onclick="closeSupplierModal()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <form id="supplierForm">
+                <input type="hidden" id="supplierId" name="SupplierId" value="">
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label" for="companyName">Company Name *</label>
+                        <input type="text" id="companyName" name="CompanyName" class="form-control" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="contactPerson">Contact Person *</label>
+                        <input type="text" id="contactPerson" name="ContactPerson" class="form-control" required>
+                    </div>
+                </div>
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label" for="supplierEmail">Email Address *</label>
+                        <input type="email" id="supplierEmail" name="Email" class="form-control" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="supplierPhone">Phone Number *</label>
+                        <input type="tel" id="supplierPhone" name="Phone" class="form-control" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="supplierAddress">Address</label>
+                    <textarea id="supplierAddress" name="Address" class="form-control" rows="3" placeholder="Physical address or location"></textarea>
+                </div>
+
+                <div class="form-group" id="statusGroup" style="display: none;">
+                    <label class="form-label" for="supplierStatus">Status</label>
+                    <select id="supplierStatus" name="Status" class="form-control">
+                        <option value="Active">Active</option>
+                        <option value="Inactive">Inactive</option>
+                    </select>
+                </div>
+
+                <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 2rem;">
+                    <button type="button" class="btn btn-secondary" onclick="closeSupplierModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i>
+                        Save Supplier
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Supplier Details Modal -->
+<div id="supplierDetailsModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 id="detailsModalTitle">Supplier Details</h2>
+            <button style="background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer;" onclick="closeSupplierDetailsModal()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 2rem;">
+                <div class="details-section">
+                    <h3 style="color: #10b981; margin-bottom: 1rem; font-size: 1.1rem;">Company Information</h3>
+                    <div class="detail-item">
+                        <label class="detail-label">Company Name:</label>
+                        <span id="detailsCompanyName" class="detail-value">-</span>
+                    </div>
+                    <div class="detail-item">
+                        <label class="detail-label">Contact Person:</label>
+                        <span id="detailsContactPerson" class="detail-value">-</span>
+                    </div>
+                    <div class="detail-item">
+                        <label class="detail-label">Status:</label>
+                        <span id="detailsStatus" class="detail-value status-badge">-</span>
+                    </div>
+                </div>
+                <div class="details-section">
+                    <h3 style="color: #10b981; margin-bottom: 1rem; font-size: 1.1rem;">Contact Information</h3>
+                    <div class="detail-item">
+                        <label class="detail-label">Email:</label>
+                        <span id="detailsEmail" class="detail-value">-</span>
+                    </div>
+                    <div class="detail-item">
+                        <label class="detail-label">Phone:</label>
+                        <span id="detailsPhone" class="detail-value">-</span>
+                    </div>
+                    <div class="detail-item">
+                        <label class="detail-label">Address:</label>
+                        <span id="detailsAddress" class="detail-value">-</span>
+                    </div>
+                    <div class="detail-item">
+                        <label class="detail-label">Created:</label>
+                        <span id="detailsCreatedAt" class="detail-value">-</span>
+                    </div>
+                </div>
+            </div>
+            <div style="display: flex; justify-content: flex-end; margin-top: 2rem;">
+                <button type="button" class="btn btn-secondary" onclick="closeSupplierDetailsModal()">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/dashboard.js"></script>
+    <script>
+        let allSuppliers = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model));
+
+        document.addEventListener('DOMContentLoaded', function() {
+            setupFilters();
+            setupSearch();
+        });
+
+        function setupFilters() {
+            const filters = ['statusFilter', 'sortBy'];
+            filters.forEach(filterId => {
+                document.getElementById(filterId).addEventListener('change', filterSuppliers);
+            });
+        }
+
+        function setupSearch() {
+            document.getElementById('searchInput').addEventListener('input', filterSuppliers);
+        }
+
+        function filterSuppliers() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const statusFilter = document.getElementById('statusFilter').value;
+            const sortBy = document.getElementById('sortBy').value;
+
+            let filteredSuppliers = allSuppliers.filter(supplier => {
+                const matchesSearch = !searchTerm ||
+                    supplier.companyName.toLowerCase().includes(searchTerm) ||
+                    supplier.contactPerson.toLowerCase().includes(searchTerm) ||
+                    supplier.email.toLowerCase().includes(searchTerm) ||
+                    supplier.phone.toLowerCase().includes(searchTerm);
+
+                const matchesStatus = !statusFilter || supplier.status.toLowerCase() === statusFilter;
+
+                return matchesSearch && matchesStatus;
+            });
+
+            // Sort suppliers
+            filteredSuppliers.sort((a, b) => {
+                switch (sortBy) {
+                    case 'name': return a.companyName.localeCompare(b.companyName);
+                    case 'contact': return a.contactPerson.localeCompare(b.contactPerson);
+                    case 'products': return b.productCount - a.productCount;
+                    case 'created': return new Date(b.createdAt) - new Date(a.createdAt);
+                    default: return a.companyName.localeCompare(b.companyName);
+                }
+            });
+
+            displaySuppliers(filteredSuppliers);
+        }
+
+        function displaySuppliers(suppliers) {
+            const grid = document.getElementById('suppliersGrid');
+            const emptyState = document.getElementById('emptyState');
+
+            if (suppliers.length === 0) {
+                if (grid) grid.style.display = 'none';
+                emptyState.style.display = 'block';
+                return;
+            }
+
+            if (grid) grid.style.display = 'grid';
+            emptyState.style.display = 'none';
+
+            // Update the grid with filtered suppliers
+            const supplierCards = document.querySelectorAll('.supplier-card');
+            supplierCards.forEach(card => {
+                const supplierId = parseInt(card.dataset.supplierId);
+                const supplierExists = suppliers.some(s => s.supplierId === supplierId);
+                card.style.display = supplierExists ? 'block' : 'none';
+            });
+        }
+
+        function openCreateSupplierModal() {
+            document.getElementById('modalTitle').textContent = 'Add New Supplier';
+            document.getElementById('supplierForm').reset();
+            document.getElementById('supplierId').value = '';
+            document.getElementById('statusGroup').style.display = 'none';
+            document.getElementById('supplierModal').style.display = 'block';
+        }
+
+        async function editSupplier(supplierId) {
+            try {
+                const response = await fetch(`/Admin/GetSupplierForEdit?supplierId=${supplierId}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    const supplier = result.supplier;
+                    document.getElementById('modalTitle').textContent = 'Edit Supplier';
+                    document.getElementById('supplierId').value = supplier.supplierId;
+                    document.getElementById('companyName').value = supplier.companyName;
+                    document.getElementById('contactPerson').value = supplier.contactPerson;
+                    document.getElementById('supplierEmail').value = supplier.email;
+                    document.getElementById('supplierPhone').value = supplier.phone;
+                    document.getElementById('supplierAddress').value = supplier.address || '';
+                    document.getElementById('supplierStatus').value = supplier.status;
+                    document.getElementById('statusGroup').style.display = 'block';
+                    document.getElementById('supplierModal').style.display = 'block';
+                } else {
+                    showToast(result.message, 'error');
+                }
+            } catch (error) {
+                console.error('Error loading supplier for edit:', error);
+                showToast('Error loading supplier details.', 'error');
+            }
+        }
+
+        function closeSupplierModal() {
+            document.getElementById('supplierModal').style.display = 'none';
+        }
+
+        async function viewSupplier(supplierId) {
+            try {
+                const response = await fetch(`/Admin/GetSupplier/${supplierId}`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to fetch supplier details');
+                }
+
+                const result = await response.json();
+
+                if (result.success) {
+                    const supplier = result.supplier;
+                    
+                    // Populate supplier details modal
+                    document.getElementById('detailsModalTitle').textContent = supplier.companyName;
+                    document.getElementById('detailsCompanyName').textContent = supplier.companyName;
+                    document.getElementById('detailsContactPerson').textContent = supplier.contactPerson;
+                    document.getElementById('detailsEmail').textContent = supplier.email;
+                    document.getElementById('detailsPhone').textContent = supplier.phone;
+                    document.getElementById('detailsAddress').textContent = supplier.address || 'Not provided';
+                    document.getElementById('detailsStatus').textContent = supplier.status;
+                    document.getElementById('detailsStatus').className = `status-badge ${supplier.status.toLowerCase()}`;
+                    document.getElementById('detailsCreatedAt').textContent = new Date(supplier.createdAt).toLocaleDateString();
+                    
+                    // Show the details modal
+                    document.getElementById('supplierDetailsModal').style.display = 'block';
+                } else {
+                    showToast(result.message || 'Failed to load supplier details', 'error');
+                }
+            } catch (error) {
+                console.error('Error loading supplier details:', error);
+                showToast('Error loading supplier details. Please try again.', 'error');
+            }
+        }
+
+        function closeSupplierDetailsModal() {
+            document.getElementById('supplierDetailsModal').style.display = 'none';
+        }
+
+        async function toggleSupplierStatus(supplierId) {
+            console.log('toggleSupplierStatus called with:', supplierId);
+            
+            if (!confirm('Are you sure you want to toggle this supplier\'s status?')) {
+                return;
+            }
+
+            try {
+                console.log('Sending request to toggle supplier status...');
+                
+                const requestData = { id: parseInt(supplierId) };
+                console.log('Request data:', requestData);
+                
+                const response = await fetch('/Admin/ToggleSupplierStatus', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestData)
+                });
+
+                console.log('Response status:', response.status);
+                console.log('Response ok:', response.ok);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                console.log('Response result:', result);
+
+                if (result.success) {
+                    showToast(result.message, 'success');
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showToast(result.message || 'Failed to update supplier status', 'error');
+                }
+            } catch (error) {
+                console.error('Error toggling supplier status:', error);
+                showToast('Error updating supplier status. Please try again.', 'error');
+            }
+        }
+
+        async function deleteSupplier(supplierId) {
+            console.log('deleteSupplier called with:', supplierId);
+            
+            if (!confirm('Are you sure you want to delete this supplier? This action cannot be undone.')) {
+                return;
+            }
+
+            try {
+                console.log('Sending request to delete supplier...');
+                
+                const requestData = { id: parseInt(supplierId) };
+                console.log('Request data:', requestData);
+                
+                const response = await fetch('/Admin/DeleteSupplier', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestData)
+                });
+
+                console.log('Response status:', response.status);
+                console.log('Response ok:', response.ok);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                console.log('Response result:', result);
+
+                if (result.success) {
+                    showToast(result.message, 'success');
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showToast(result.message || 'Failed to delete supplier', 'error');
+                }
+            } catch (error) {
+                console.error('Error deleting supplier:', error);
+                showToast('Error deleting supplier. Please try again.', 'error');
+            }
+        }
+
+        function exportSuppliers() {
+            showToast('Export functionality coming soon!', 'info');
+        }
+
+        // Form submission handler
+        document.getElementById('supplierForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const formData = new FormData(this);
+            const supplierId = formData.get('SupplierId');
+            const isEdit = supplierId && supplierId !== '';
+
+            const supplierData = {
+                supplierId: isEdit ? parseInt(supplierId) : 0,
+                companyName: formData.get('CompanyName'),
+                contactPerson: formData.get('ContactPerson'),
+                email: formData.get('Email'),
+                phone: formData.get('Phone'),
+                address: formData.get('Address') || '',
+                status: formData.get('Status') || 'Active'
+            };
+
+            try {
+                const url = isEdit ? '/Admin/UpdateSupplier' : '/Admin/CreateSupplier';
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                    },
+                    body: JSON.stringify(supplierData)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast(result.message, 'success');
+                    closeSupplierModal();
+                    location.reload();
+                } else {
+                    showToast(result.message, 'error');
+                }
+            } catch (error) {
+                console.error('Error saving supplier:', error);
+                showToast('Error saving supplier. Please try again.', 'error');
+            }
+        });
+
+        // Close modals when clicking outside
+        window.onclick = function(event) {
+            const supplierModal = document.getElementById('supplierModal');
+            if (event.target === supplierModal) {
+                closeSupplierModal();
+            }
+        }
+    </script>
+}
+
+@* Hidden form for CSRF token *@
+<form style="display: none;">
+    @Html.AntiForgeryToken()
+</form>

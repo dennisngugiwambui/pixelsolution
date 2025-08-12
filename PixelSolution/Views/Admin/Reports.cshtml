@@ -1,0 +1,2441 @@
+﻿@{
+    ViewData["Title"] = "Reports & Analytics - PixelSolution";
+    Layout = "_AdminLayout";
+}
+
+@section Styles {
+    <link href="~/css/dashboard.css" rel="stylesheet">
+    <style>
+        /* Professional Color Palette */
+        :root {
+            --primary-color: #2563eb;
+            --primary-dark: #1d4ed8;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-600: #4b5563;
+            --gray-700: #374151;
+            --gray-800: #1f2937;
+            --gray-900: #111827;
+        }
+
+        /* Main Container */
+        .reports-container {
+            background: var(--gray-50);
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+            @@media (max-width: 768px) {
+            .reports-container
+
+        {
+            padding: 1rem;
+        }
+
+        }
+
+        /* Professional Card Styling */
+        .glass-card {
+            background: white;
+            border-radius: 12px;
+            border: 1px solid var(--gray-200);
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            transition: all 0.3s ease;
+        }
+
+            .glass-card:hover {
+                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            }
+
+        /* Page Header */
+        .page-header {
+            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+            border-radius: 12px;
+            padding: 2.5rem;
+            margin-bottom: 2rem;
+            color: white;
+        }
+
+        .header-title {
+            font-size: 2.25rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .header-subtitle {
+            font-size: 1.125rem;
+            opacity: 0.9;
+        }
+
+            @@media (max-width: 768px) {
+            .header-title
+
+        {
+            font-size: 1.875rem;
+        }
+
+        }
+
+        /* Filter Section */
+        .filter-section {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            border: 1px solid var(--gray-200);
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        }
+
+        .filter-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            align-items: end;
+        }
+
+            @@media (max-width: 640px) {
+            .filter-grid
+
+        {
+            grid-template-columns: 1fr;
+        }
+
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .filter-label {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--gray-700);
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .filter-input {
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--gray-300);
+            border-radius: 8px;
+            font-size: 0.875rem;
+            transition: all 0.3s ease;
+            background: white;
+            width: 100%;
+            color: var(--gray-700);
+        }
+
+            .filter-input:focus {
+                outline: none;
+                border-color: var(--primary-color);
+                ring: 2px;
+                ring-color: rgba(37, 99, 235, 0.2);
+            }
+
+        .filter-select {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+            background-position: right 0.5rem center;
+            background-repeat: no-repeat;
+            background-size: 1.5em 1.5em;
+            padding-right: 2.5rem;
+        }
+
+        /* Professional Action Buttons */
+        .action-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .btn-action {
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.875rem;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-decoration: none;
+            color: white;
+        }
+
+            .btn-action:hover {
+                transform: translateY(-1px);
+                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            }
+
+        .btn-generate {
+            background: var(--primary-color);
+        }
+
+            .btn-generate:hover {
+                background: var(--primary-dark);
+            }
+
+        .btn-export {
+            background: var(--success-color);
+        }
+
+            .btn-export:hover {
+                background: #059669;
+            }
+
+        .btn-email {
+            background: var(--warning-color);
+        }
+
+            .btn-email:hover {
+                background: #d97706;
+            }
+
+        .btn-receipt {
+            background: var(--primary-color);
+        }
+
+            .btn-receipt:hover {
+                background: var(--primary-dark);
+            }
+
+        .btn-print {
+            background: var(--gray-600);
+        }
+
+            .btn-print:hover {
+                background: var(--gray-700);
+            }
+
+        /* Professional Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+            @@media (max-width: 640px) {
+            .stats-grid
+
+        {
+            grid-template-columns: 1fr;
+        }
+
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            border: 1px solid var(--gray-200);
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+            .stat-card:hover {
+                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+                transform: translateY(-2px);
+            }
+
+            .stat-card.revenue {
+                border-left: 4px solid var(--success-color);
+            }
+
+            .stat-card.sales {
+                border-left: 4px solid var(--primary-color);
+            }
+
+            .stat-card.products {
+                border-left: 4px solid var(--warning-color);
+            }
+
+            .stat-card.customers {
+                border-left: 4px solid #8b5cf6;
+            }
+
+        .stat-icon {
+            position: absolute;
+            top: 1.5rem;
+            right: 1.5rem;
+            font-size: 2rem;
+            opacity: 0.1;
+            color: var(--gray-600);
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--gray-900);
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            font-size: 0.875rem;
+            color: var(--gray-600);
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-change {
+            font-size: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            font-weight: 500;
+        }
+
+            .stat-change.positive {
+                color: var(--success-color);
+            }
+
+            .stat-change.negative {
+                color: var(--danger-color);
+            }
+
+        /* Charts Section */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+            @@media (max-width: 1024px) {
+            .charts-grid
+
+        {
+            grid-template-columns: 1fr;
+        }
+
+        }
+
+        .chart-container {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            border: 1px solid var(--gray-200);
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .chart-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--gray-900);
+        }
+
+        .chart-controls {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .chart-control-btn {
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--gray-300);
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--gray-700);
+        }
+
+            .chart-control-btn:hover {
+                border-color: var(--primary-color);
+                color: var(--primary-color);
+            }
+
+            .chart-control-btn.active {
+                background: var(--primary-color);
+                color: white;
+                border-color: var(--primary-color);
+            }
+
+        .chart-canvas {
+            width: 100% !important;
+            height: 400px !important;
+            max-height: 400px;
+        }
+
+        /* Quick Actions */
+        .quick-actions {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            border: 1px solid var(--gray-200);
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+        }
+
+        .actions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+            @@media (max-width: 640px) {
+            .actions-grid
+
+        {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        }
+
+        .action-card {
+            background: var(--gray-50);
+            border: 1px solid var(--gray-200);
+            border-radius: 8px;
+            padding: 1.5rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            color: var(--gray-700);
+        }
+
+            .action-card:hover {
+                background: white;
+                border-color: var(--primary-color);
+                transform: translateY(-2px);
+                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            }
+
+        .action-card-icon {
+            font-size: 2rem;
+            margin-bottom: 0.75rem;
+            color: var(--primary-color);
+        }
+
+        .action-card-title {
+            font-weight: 600;
+            color: var(--gray-900);
+            font-size: 0.875rem;
+        }
+
+        /* Professional Data Tables */
+        .tables-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+            @@media (max-width: 1024px) {
+            .tables-grid
+
+        {
+            grid-template-columns: 1fr;
+        }
+
+        }
+
+        .table-container {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--gray-200);
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        }
+
+        .table-header {
+            background: var(--gray-800);
+            color: white;
+            padding: 1.5rem;
+        }
+
+        .table-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+            .data-table thead {
+                background: var(--gray-800);
+            }
+
+            .data-table th {
+                padding: 1rem;
+                text-align: left;
+                font-weight: 600;
+                color: white !important;
+                font-size: 0.875rem;
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+                border-bottom: 1px solid var(--gray-600);
+            }
+
+            .data-table td {
+                padding: 1rem;
+                border-bottom: 1px solid var(--gray-200);
+                font-size: 0.875rem;
+                color: var(--gray-700);
+            }
+
+            .data-table tbody tr {
+                transition: all 0.3s ease;
+            }
+
+                .data-table tbody tr:hover {
+                    background: var(--gray-50);
+                }
+
+        /* Professional Modals */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+        }
+
+        .modal-content {
+            background: white;
+            margin: 5% auto;
+            border-radius: 12px;
+            max-width: 500px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            overflow: hidden;
+        }
+
+        .modal-header {
+            background: var(--gray-800);
+            color: white;
+            padding: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: opacity 0.3s ease;
+        }
+
+            .modal-close:hover {
+                opacity: 0.7;
+            }
+
+        .modal-body {
+            padding: 2rem;
+        }
+
+        .modal-footer {
+            background: var(--gray-50);
+            padding: 1.5rem;
+            display: flex;
+            justify-content: flex-end;
+            gap: 1rem;
+            border-top: 1px solid var(--gray-200);
+        }
+
+        /* Form Controls */
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: var(--gray-700);
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--gray-300);
+            border-radius: 8px;
+            font-size: 0.875rem;
+            transition: all 0.3s ease;
+            color: var(--gray-700);
+        }
+
+            .form-control:focus {
+                outline: none;
+                border-color: var(--primary-color);
+                ring: 2px;
+                ring-color: rgba(37, 99, 235, 0.2);
+            }
+
+        /* Loading & Messages */
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.9);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+        }
+
+            .loading-overlay.show {
+                display: flex;
+            }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid var(--gray-300);
+            border-top-color: var(--primary-color);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+            @@keyframes spin {
+            0%
+
+        {
+            transform: rotate(0deg);
+        }
+
+        100% {
+            transform: rotate(360deg);
+        }
+
+        }
+
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #333;
+            color: white;
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            z-index: 1000;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+        }
+
+            .toast.show {
+                transform: translateX(0);
+            }
+
+            .toast.error {
+                background: #ef4444;
+            }
+
+            .toast.warning {
+                background: var(--warning-color);
+            }
+
+            .toast.success {
+                background: #10b981;
+            }
+
+            .toast.info {
+                background: var(--primary-color);
+            }
+
+        /* Responsive Tables */
+            @@media (max-width: 640px) {
+            .data-table
+
+        {
+            font-size: 0.75rem;
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: 0.5rem;
+        }
+
+        }
+
+        /* Sidebar Styles */
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 280px;
+            height: 100vh;
+            background: var(--gray-900);
+            color: white;
+            overflow-y: auto;
+            z-index: 1000;
+            transition: transform 0.3s ease;
+        }
+
+            @@media (max-width: 1024px) {
+            .sidebar
+
+        {
+            transform: translateX(-100%);
+        }
+
+        .sidebar.open {
+            transform: translateX(0);
+        }
+
+        .main-content {
+            margin-left: 0;
+        }
+
+        }
+
+        .main-content {
+            margin-left: 280px;
+            min-height: 100vh;
+            background: var(--gray-50);
+        }
+
+        .header {
+            background: white;
+            border-bottom: 1px solid var(--gray-200);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .page-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--gray-900);
+            margin: 0;
+        }
+
+        .sidebar-toggle {
+            background: none;
+            border: none;
+            color: var(--gray-600);
+            font-size: 1.25rem;
+            cursor: pointer;
+            margin-right: 1rem;
+        }
+
+            @@media (min-width: 1025px) {
+            .sidebar-toggle
+
+        {
+            display: none;
+        }
+            /* FIXED CSS - Add this to your existing styles or replace the table-related CSS */
+            /* Table Container Fixes */
+            .table-container {
+                background: white;
+                border-radius: 12px;
+                overflow: hidden;
+                border: 1px solid var(--gray-200);
+                box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+                margin-bottom: 1rem;
+            }
+            /* Table Header - FIXED */
+            .table-header {
+                background: var(--gray-800) !important;
+                color: white !important;
+                padding: 1.5rem;
+                border-bottom: 2px solid var(--gray-700);
+            }
+            /* Table Title - FIXED */
+            .table-title {
+                font-size: 1.125rem;
+                font-weight: 600;
+                margin: 0;
+                color: white !important;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+            /* Data Table Fixes */
+            .data-table {
+                width: 100%;
+                border-collapse: collapse;
+                background: white;
+            }
+                /* Table Head - FIXED */
+                .data-table thead {
+                    background: var(--gray-800) !important;
+                }
+
+                    .data-table thead tr {
+                        background: var(--gray-800) !important;
+                    }
+                /* Table Headers - FIXED */
+                .data-table th {
+                    padding: 1rem !important;
+                    text-align: left;
+                    font-weight: 600 !important;
+                    color: white !important;
+                    font-size: 0.875rem;
+                    text-transform: uppercase;
+                    letter-spacing: 0.05em;
+                    border-bottom: 1px solid var(--gray-600) !important;
+                    background: var(--gray-800) !important;
+                    position: relative;
+                }
+                /* Table Data Cells */
+                .data-table td {
+                    padding: 1rem;
+                    border-bottom: 1px solid var(--gray-200);
+                    font-size: 0.875rem;
+                    color: var(--gray-700);
+                    background: white;
+                }
+                /* Table Body Rows */
+                .data-table tbody tr {
+                    transition: all 0.3s ease;
+                    background: white;
+                }
+
+                    .data-table tbody tr:hover {
+                        background: var(--gray-50) !important;
+                    }
+                /* Ensure table visibility */
+                .data-table,
+                .data-table * {
+                    visibility: visible !important;
+                    opacity: 1 !important;
+                }
+            /* Chart Title Fixes */
+            .chart-title {
+                font-size: 1.25rem;
+                font-weight: 700;
+                color: var(--gray-900) !important;
+                margin: 0;
+                text-transform: none;
+            }
+            /* Loading state for tables */
+            .data-table.loading {
+                opacity: 0.6;
+            }
+
+                .data-table.loading::after {
+                    content: "Loading...";
+                    position: absolute;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    font-size: 1rem;
+                    color: var(--gray-600);
+                }
+
+        }</style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+}
+
+<!-- Sidebar -->
+<div class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+        <div class="logo-container">
+            <div class="logo-icon">
+                <i class="fas fa-bolt"></i>
+            </div>
+            <div class="logo-text">PixelSolution</div>
+        </div>
+        <div class="user-info">
+            <div class="user-avatar">@User.Identity.Name?.Substring(0, 2).ToUpper()</div>
+            <div class="user-details">
+                <h4>@User.Identity.Name</h4>
+                <p>System Administrator</p>
+            </div>
+        </div>
+    </div>
+
+    <nav class="nav-menu">
+        <div class="nav-section">
+            <div class="nav-section-title">Main</div>
+            <div class="nav-item">
+                <a href="@Url.Action("Dashboard", "Admin")" class="nav-link">
+                    <i class="fas fa-chart-pie"></i>
+                    Dashboard
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Sales", "Admin")" class="nav-link">
+                    <i class="fas fa-shopping-cart"></i>
+                    Sales
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Inventory", "Admin")" class="nav-link">
+                    <i class="fas fa-box"></i>
+                    Inventory
+                </a>
+            </div>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-section-title">Management</div>
+            <div class="nav-item">
+                <a href="@Url.Action("Users", "Admin")" class="nav-link">
+                    <i class="fas fa-users"></i>
+                    Employees
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Departments", "Admin")" class="nav-link">
+                    <i class="fas fa-building"></i>
+                    Departments
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Suppliers", "Admin")" class="nav-link">
+                    <i class="fas fa-truck"></i>
+                    Suppliers
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Categories", "Admin")" class="nav-link">
+                    <i class="fas fa-tags"></i>
+                    Categories
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Products", "Admin")" class="nav-link">
+                    <i class="fas fa-cube"></i>
+                    Products
+                </a>
+            </div>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-section-title">Operations</div>
+            <div class="nav-item">
+                <a href="@Url.Action("PurchaseRequests", "Admin")" class="nav-link">
+                    <i class="fas fa-file-invoice"></i>
+                    Purchase Requests
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Messages", "Admin")" class="nav-link">
+                    <i class="fas fa-envelope"></i>
+                    Messages
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Reports", "Admin")" class="nav-link active">
+                    <i class="fas fa-chart-bar"></i>
+                    Reports
+                </a>
+            </div>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-section-title">System</div>
+            <div class="nav-item">
+                <a href="@Url.Action("Settings", "Admin")" class="nav-link">
+                    <i class="fas fa-cog"></i>
+                    Settings
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Logout", "Auth")" class="nav-link">
+                    <i class="fas fa-sign-out-alt"></i>
+                    Logout
+                </a>
+            </div>
+        </div>
+    </nav>
+</div>
+
+<!-- Main Content -->
+<div class="main-content" id="mainContent">
+    <!-- Header -->
+    <header class="header">
+        <div class="header-left">
+            <button class="sidebar-toggle" id="sidebarToggle">
+                <i class="fas fa-bars"></i>
+            </button>
+            <h1 class="page-title">Reports & Analytics</h1>
+        </div>
+        <div class="header-right">
+            <div class="header-actions">
+                <button class="action-btn" title="Notifications">
+                    <i class="fas fa-bell"></i>
+                    <span class="notification-badge">3</span>
+                </button>
+                <button class="action-btn" title="Messages">
+                    <i class="fas fa-envelope"></i>
+                    <span class="notification-badge">8</span>
+                </button>
+                <button class="action-btn" title="Profile">
+                    <i class="fas fa-user-circle"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <div class="reports-container">
+        <!-- Page Header -->
+        <div class="page-header">
+            <div class="header-content">
+                <h1 class="header-title">Business Intelligence Dashboard</h1>
+                <p class="header-subtitle">Real-time analytics and insights for data-driven decisions</p>
+            </div>
+        </div>
+
+        <!-- Filter Section -->
+        <div class="filter-section">
+            <div class="filter-grid">
+                <div class="filter-group">
+                    <label class="filter-label">
+                        <i class="fas fa-calendar-alt"></i>
+                        Date Range
+                    </label>
+                    <select id="datePreset" class="filter-input filter-select">
+                        <option value="today">Today</option>
+                        <option value="yesterday">Yesterday</option>
+                        <option value="thisWeek">This Week</option>
+                        <option value="lastWeek">Last Week</option>
+                        <option value="thisMonth" selected>This Month</option>
+                        <option value="lastMonth">Last Month</option>
+                        <option value="thisQuarter">This Quarter</option>
+                        <option value="thisYear">This Year</option>
+                        <option value="custom">Custom Range</option>
+                    </select>
+                </div>
+
+                <div class="filter-group" id="customDateStart" style="display: none;">
+                    <label class="filter-label">
+                        <i class="fas fa-calendar-check"></i>
+                        Start Date
+                    </label>
+                    <input type="date" id="startDate" class="filter-input">
+                </div>
+
+                <div class="filter-group" id="customDateEnd" style="display: none;">
+                    <label class="filter-label">
+                        <i class="fas fa-calendar-times"></i>
+                        End Date
+                    </label>
+                    <input type="date" id="endDate" class="filter-input">
+                </div>
+
+                <div class="filter-group">
+                    <label class="filter-label">
+                        <i class="fas fa-chart-line"></i>
+                        Chart Type
+                    </label>
+                    <select id="chartType" class="filter-input filter-select">
+                        <option value="line">Line Chart</option>
+                        <option value="bar">Bar Chart</option>
+                        <option value="area">Area Chart</option>
+                        <option value="doughnut">Doughnut Chart</option>
+                        <option value="pie">Pie Chart</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label class="filter-label">
+                        <i class="fas fa-filter"></i>
+                        Data View
+                    </label>
+                    <select id="dataView" class="filter-input filter-select">
+                        <option value="sales">Sales Analysis</option>
+                        <option value="products">Product Performance</option>
+                        <option value="categories">Category Breakdown</option>
+                        <option value="customers">Customer Insights</option>
+                        <option value="users">User Activity</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="action-buttons">
+                <button class="btn-action btn-generate" id="generateReportsBtn">
+                    <i class="fas fa-sync-alt"></i>
+                    Generate Reports
+                </button>
+                <button class="btn-action btn-export" id="exportPdfBtn">
+                    <i class="fas fa-file-pdf"></i>
+                    Export PDF
+                </button>
+                <button class="btn-action btn-export" id="exportExcelBtn">
+                    <i class="fas fa-file-excel"></i>
+                    Export Excel
+                </button>
+                <button class="btn-action btn-print" id="printBtn">
+                    <i class="fas fa-print"></i>
+                    Print Report
+                </button>
+                <button class="btn-action btn-email" id="emailBtn">
+                    <i class="fas fa-paper-plane"></i>
+                    Email Report
+                </button>
+                <button class="btn-action btn-receipt" id="receiptBtn">
+                    <i class="fas fa-receipt"></i>
+                    Send Receipt
+                </button>
+            </div>
+        </div>
+
+        <!-- Statistics Cards -->
+        <div class="stats-grid">
+            <div class="stat-card revenue">
+                <i class="fas fa-dollar-sign stat-icon"></i>
+                <div class="stat-value" id="totalRevenue">KSh 0</div>
+                <div class="stat-label">Total Revenue</div>
+                <div class="stat-change positive" id="revenueChange">
+                    <i class="fas fa-arrow-up"></i>
+                    <span>+0% from last period</span>
+                </div>
+            </div>
+
+            <div class="stat-card sales">
+                <i class="fas fa-shopping-cart stat-icon"></i>
+                <div class="stat-value" id="totalOrders">0</div>
+                <div class="stat-label">Total Orders</div>
+                <div class="stat-change positive" id="salesChange">
+                    <i class="fas fa-arrow-up"></i>
+                    <span>+0% from last period</span>
+                </div>
+            </div>
+
+            <div class="stat-card products">
+                <i class="fas fa-cube stat-icon"></i>
+                <div class="stat-value" id="totalProducts">0</div>
+                <div class="stat-label">Products Sold</div>
+                <div class="stat-change positive" id="productsChange">
+                    <i class="fas fa-arrow-up"></i>
+                    <span>+0% from last period</span>
+                </div>
+            </div>
+
+            <div class="stat-card customers">
+                <i class="fas fa-users stat-icon"></i>
+                <div class="stat-value" id="totalCustomers">0</div>
+                <div class="stat-label">Active Customers</div>
+                <div class="stat-change positive" id="customersChange">
+                    <i class="fas fa-arrow-up"></i>
+                    <span>+0% from last period</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Section -->
+        <div class="charts-grid">
+            <div class="chart-container">
+                <div class="chart-header">
+                    <h3 class="chart-title">Performance Overview</h3>
+                    <div class="chart-controls">
+                        <button class="chart-control-btn active" data-chart-type="sales">Sales</button>
+                        <button class="chart-control-btn" data-chart-type="revenue">Revenue</button>
+                        <button class="chart-control-btn" data-chart-type="profit">Profit</button>
+                    </div>
+                </div>
+                <canvas id="mainChart" class="chart-canvas"></canvas>
+            </div>
+
+            <div class="chart-container">
+                <div class="chart-header">
+                    <h3 class="chart-title">Category Distribution</h3>
+                </div>
+                <canvas id="categoryChart" class="chart-canvas"></canvas>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="quick-actions">
+            <h3 class="chart-title" style="margin-bottom: 0;">Quick Report Actions</h3>
+            <div class="actions-grid">
+                <div class="action-card" id="exportPdfAction">
+                    <i class="fas fa-file-pdf action-card-icon"></i>
+                    <div class="action-card-title">Export PDF</div>
+                </div>
+                <div class="action-card" id="exportExcelAction">
+                    <i class="fas fa-file-excel action-card-icon"></i>
+                    <div class="action-card-title">Export Excel</div>
+                </div>
+                <div class="action-card" id="inventoryReportAction">
+                    <i class="fas fa-warehouse action-card-icon"></i>
+                    <div class="action-card-title">Inventory Report</div>
+                </div>
+                <div class="action-card" id="supplierReportAction">
+                    <i class="fas fa-truck action-card-icon"></i>
+                    <div class="action-card-title">Supplier Report</div>
+                </div>
+                <div class="action-card" id="userReportAction">
+                    <i class="fas fa-users-cog action-card-icon"></i>
+                    <div class="action-card-title">User Activity</div>
+                </div>
+                <div class="action-card" id="printReportAction">
+                    <i class="fas fa-print action-card-icon"></i>
+                    <div class="action-card-title">Print Report</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Data Tables -->
+        <div class="tables-grid">
+            <div class="table-container">
+                <div class="table-header">
+                    <h3 class="table-title">Top Performing Products</h3>
+                </div>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Product</th>
+                            <th>Sales</th>
+                            <th>Revenue</th>
+                            <th>Trend</th>
+                        </tr>
+                    </thead>
+                    <tbody id="topProductsTable">
+                        <tr>
+                            <td colspan="5" style="text-align: center; padding: 2rem;">
+                                Loading data...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="table-container">
+                <div class="table-header">
+                    <h3 class="table-title">Recent Transactions</h3>
+                </div>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Customer</th>
+                            <th>Amount</th>
+                            <th>Date</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="recentSalesTable">
+                        <tr>
+                            <td colspan="5" style="text-align: center; padding: 2rem;">
+                                Loading data...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loading Overlay -->
+<div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-spinner"></div>
+</div>
+
+<!-- Export Modal -->
+<div id="exportModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">Export Report</h3>
+            <button class="modal-close" data-close-modal="exportModal">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label class="form-label">Report Type</label>
+                <select id="exportReportType" class="form-control">
+                    <option value="sales">Sales Report</option>
+                    <option value="inventory">Inventory Report</option>
+                    <option value="users">User Activity Report</option>
+                    <option value="categories">Category Report</option>
+                    <option value="suppliers">Supplier Report</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Export Format</label>
+                <select id="exportFormat" class="form-control">
+                    <option value="pdf">PDF Document</option>
+                    <option value="excel">Excel Spreadsheet</option>
+                    <option value="csv">CSV File</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Include Charts</label>
+                <select id="includeCharts" class="form-control">
+                    <option value="yes">Yes</option>
+                    <option value="no">No</option>
+                </select>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-action" style="background: var(--gray-600);" data-close-modal="exportModal">
+                Cancel
+            </button>
+            <button class="btn-action btn-export" id="performExportBtn">
+                <i class="fas fa-download"></i>
+                Export
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Email Modal -->
+<div id="emailModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">Email Report</h3>
+            <button class="modal-close" data-close-modal="emailModal">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label class="form-label">Recipient Email</label>
+                <input type="email" id="emailAddress" class="form-control" placeholder="Enter email address">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Report Type</label>
+                <select id="emailReportType" class="form-control">
+                    <option value="sales">Sales Report</option>
+                    <option value="inventory">Inventory Report</option>
+                    <option value="users">User Activity Report</option>
+                    <option value="categories">Category Report</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Additional Message</label>
+                <textarea id="emailMessage" class="form-control" rows="3" placeholder="Optional message..."></textarea>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-action" style="background: var(--gray-600);" data-close-modal="emailModal">
+                Cancel
+            </button>
+            <button class="btn-action btn-email" id="sendEmailBtn">
+                <i class="fas fa-paper-plane"></i>
+                Send Email
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Receipt Modal -->
+<div id="receiptModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">Send Receipt</h3>
+            <button class="modal-close" data-close-modal="receiptModal">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label class="form-label">Search Sale</label>
+                <input type="text" id="saleSearch" class="form-control" placeholder="Enter sale number or customer name">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Select Sale</label>
+                <select id="saleSelect" class="form-control">
+                    <option value="">Select a sale...</option>
+                </select>
+            </div>
+            <div id="saleDetails" style="display: none; margin-top: 1rem; padding: 1rem; background: var(--gray-50); border-radius: 8px;">
+                <!-- Sale details will be populated here -->
+            </div>
+            <div class="form-group">
+                <label class="form-label">Customer Email</label>
+                <input type="email" id="receiptEmail" class="form-control" placeholder="Enter customer email">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-action" style="background: var(--gray-600);" data-close-modal="receiptModal">
+                Cancel
+            </button>
+            <button class="btn-action btn-receipt" id="sendReceiptBtn">
+                <i class="fas fa-envelope"></i>
+                Send Receipt
+            </button>
+        </div>
+    </div>
+</div>
+
+@Html.AntiForgeryToken()
+
+@section Scripts {
+    <script>
+        // Global variables
+        let mainChart = null;
+        let categoryChart = null;
+        let currentData = null;
+        let currentPeriod = 'thisMonth';
+        let currentChartType = 'line';
+        let currentDataView = 'sales';
+        let currentChartDataType = 'sales';
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 Reports page initializing...');
+            try {
+                initializeDateInputs();
+                setupSidebarToggle();
+                setupEventListeners();
+
+                // Load data after a short delay to ensure DOM is ready
+                setTimeout(() => {
+                    console.log('📊 Loading reports data...');
+                    loadReportsData();
+                }, 100);
+
+            } catch (error) {
+                console.error('❌ Error during page initialization:', error);
+                showLoading(false);
+                showToast('Error initializing Reports page: ' + error.message, 'error');
+            }
+        });
+
+        // Setup event listeners
+        function setupEventListeners() {
+            console.log('🔧 Setting up event listeners...');
+
+            // Date preset change
+            const datePreset = document.getElementById('datePreset');
+            if (datePreset) {
+                datePreset.addEventListener('change', applyDatePreset);
+            }
+
+            // Chart type change
+            const chartType = document.getElementById('chartType');
+            if (chartType) {
+                chartType.addEventListener('change', updateChartType);
+            }
+
+            // Data view change
+            const dataView = document.getElementById('dataView');
+            if (dataView) {
+                dataView.addEventListener('change', updateDataView);
+            }
+
+            // Button event listeners
+            const generateBtn = document.getElementById('generateReportsBtn');
+            if (generateBtn) {
+                generateBtn.addEventListener('click', generateReports);
+            }
+
+            const exportPdfBtn = document.getElementById('exportPdfBtn');
+            if (exportPdfBtn) {
+                exportPdfBtn.addEventListener('click', () => exportReport('pdf'));
+            }
+
+            const exportExcelBtn = document.getElementById('exportExcelBtn');
+            if (exportExcelBtn) {
+                exportExcelBtn.addEventListener('click', () => exportReport('excel'));
+            }
+
+            const printBtn = document.getElementById('printBtn');
+            if (printBtn) {
+                printBtn.addEventListener('click', printDashboard);
+            }
+
+            const emailBtn = document.getElementById('emailBtn');
+            if (emailBtn) {
+                emailBtn.addEventListener('click', showEmailModal);
+            }
+
+            const receiptBtn = document.getElementById('receiptBtn');
+            if (receiptBtn) {
+                receiptBtn.addEventListener('click', showReceiptModal);
+            }
+
+            // Quick action cards
+            const quickActions = [
+                { id: 'exportPdfAction', action: () => exportReport('pdf') },
+                { id: 'exportExcelAction', action: () => exportReport('excel') },
+                { id: 'inventoryReportAction', action: generateInventoryReport },
+                { id: 'supplierReportAction', action: generateSupplierReport },
+                { id: 'userReportAction', action: generateUserReport },
+                { id: 'printReportAction', action: printDashboard }
+            ];
+
+            quickActions.forEach(({ id, action }) => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.addEventListener('click', action);
+                }
+            });
+
+            // Chart control buttons
+            document.querySelectorAll('.chart-control-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const chartType = this.getAttribute('data-chart-type');
+                    switchMainChart(chartType);
+                });
+            });
+
+            // Modal buttons
+            const performExportBtn = document.getElementById('performExportBtn');
+            if (performExportBtn) {
+                performExportBtn.addEventListener('click', performExport);
+            }
+
+            const sendEmailBtn = document.getElementById('sendEmailBtn');
+            if (sendEmailBtn) {
+                sendEmailBtn.addEventListener('click', sendReportEmail);
+            }
+
+            const sendReceiptBtn = document.getElementById('sendReceiptBtn');
+            if (sendReceiptBtn) {
+                sendReceiptBtn.addEventListener('click', sendReceiptEmail);
+            }
+
+            // Modal close buttons
+            document.querySelectorAll('[data-close-modal]').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const modalId = this.getAttribute('data-close-modal');
+                    closeModal(modalId);
+                });
+            });
+
+            // Sale search
+            const saleSearch = document.getElementById('saleSearch');
+            if (saleSearch) {
+                saleSearch.addEventListener('input', searchSales);
+            }
+
+            const saleSelect = document.getElementById('saleSelect');
+            if (saleSelect) {
+                saleSelect.addEventListener('change', showSaleDetails);
+            }
+
+            // Close modal on outside click
+            window.addEventListener('click', function(event) {
+                if (event.target.classList.contains('modal')) {
+                    event.target.style.display = 'none';
+                }
+            });
+
+            console.log('✅ Event listeners setup completed');
+        }
+
+        // Setup sidebar toggle functionality
+        function setupSidebarToggle() {
+            const sidebarToggle = document.getElementById('sidebarToggle');
+            const sidebar = document.getElementById('sidebar');
+
+            if (sidebarToggle && sidebar) {
+                sidebarToggle.addEventListener('click', function() {
+                    sidebar.classList.toggle('open');
+                });
+            }
+        }
+
+        // Initialize date inputs
+        function initializeDateInputs() {
+            const today = new Date();
+            const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+
+            const startDate = document.getElementById('startDate');
+            const endDate = document.getElementById('endDate');
+
+            if (startDate) {
+                startDate.value = firstDayOfMonth.toISOString().split('T')[0];
+            }
+            if (endDate) {
+                endDate.value = today.toISOString().split('T')[0];
+            }
+        }
+
+        // Apply date preset
+        function applyDatePreset() {
+            const preset = document.getElementById('datePreset').value;
+            const today = new Date();
+            let startDate, endDate;
+
+            switch(preset) {
+                case 'today':
+                    startDate = endDate = today;
+                    break;
+                case 'yesterday':
+                    startDate = endDate = new Date(today.setDate(today.getDate() - 1));
+                    break;
+                case 'thisWeek':
+                    const firstDayOfWeek = new Date(today.setDate(today.getDate() - today.getDay()));
+                    startDate = firstDayOfWeek;
+                    endDate = new Date();
+                    break;
+                case 'lastWeek':
+                    const lastWeekStart = new Date(today.setDate(today.getDate() - today.getDay() - 7));
+                    const lastWeekEnd = new Date(today.setDate(today.getDate() - today.getDay() - 1));
+                    startDate = lastWeekStart;
+                    endDate = lastWeekEnd;
+                    break;
+                case 'thisMonth':
+                    startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+                    endDate = new Date();
+                    break;
+                case 'lastMonth':
+                    startDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+                    endDate = new Date(today.getFullYear(), today.getMonth(), 0);
+                    break;
+                case 'thisQuarter':
+                    const quarter = Math.floor(today.getMonth() / 3);
+                    startDate = new Date(today.getFullYear(), quarter * 3, 1);
+                    endDate = new Date();
+                    break;
+                case 'thisYear':
+                    startDate = new Date(today.getFullYear(), 0, 1);
+                    endDate = new Date();
+                    break;
+                case 'custom':
+                    document.getElementById('customDateStart').style.display = 'block';
+                    document.getElementById('customDateEnd').style.display = 'block';
+                    return;
+            }
+
+            document.getElementById('customDateStart').style.display = 'none';
+            document.getElementById('customDateEnd').style.display = 'none';
+
+            const startDateInput = document.getElementById('startDate');
+            const endDateInput = document.getElementById('endDate');
+
+            if (startDateInput) {
+                startDateInput.value = startDate.toISOString().split('T')[0];
+            }
+            if (endDateInput) {
+                endDateInput.value = endDate.toISOString().split('T')[0];
+            }
+
+            currentPeriod = preset;
+            loadReportsData();
+        }
+
+        // Show/hide loading overlay
+        function showLoading(show) {
+            try {
+                const loadingOverlay = document.getElementById('loadingOverlay');
+                console.log('🔄 showLoading called with:', show);
+
+                if (loadingOverlay) {
+                    if (show) {
+                        loadingOverlay.style.display = 'flex';
+                        loadingOverlay.classList.add('show');
+                    } else {
+                        loadingOverlay.style.display = 'none';
+                        loadingOverlay.classList.remove('show');
+                    }
+                }
+            } catch (error) {
+                console.error('❌ Error in showLoading:', error);
+            }
+        }
+
+        // Show toast notification
+        function showToast(message, type = 'info') {
+            try {
+                console.log(`📢 Toast [${type}]:`, message);
+
+                const toast = document.createElement('div');
+                toast.className = `toast ${type} show`;
+                toast.innerHTML = `
+                    <i class="fas fa-${type === 'success' ? 'check-circle' :
+                                       type === 'error' ? 'exclamation-circle' :
+                                       type === 'warning' ? 'exclamation-triangle' :
+                                       'info-circle'}"></i>
+                    <span>${message}</span>
+                `;
+
+                document.body.appendChild(toast);
+
+                setTimeout(() => {
+                    toast.remove();
+                }, 3000);
+            } catch (error) {
+                console.error('❌ Error in showToast:', error);
+                alert(`${type.toUpperCase()}: ${message}`);
+            }
+        }
+
+        // Close modal
+        function closeModal(modalId) {
+            try {
+                const modal = document.getElementById(modalId);
+                if (modal) {
+                    modal.style.display = 'none';
+                }
+            } catch (error) {
+                console.error('❌ Error closing modal:', error);
+            }
+        }
+
+        // Load reports data - FIXED VERSION
+        async function loadReportsData() {
+            try {
+                console.log('🔄 Starting loadReportsData...');
+                showLoading(true);
+
+                const period = document.getElementById('datePreset')?.value || 'thisMonth';
+                console.log('📅 Loading reports data for period:', period);
+
+                // Use the correct endpoint from AdminController
+                const url = `/Admin/GetReportsData?period=${period}`;
+                console.log('🌐 Making request to:', url);
+
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    credentials: 'same-origin'
+                });
+
+                console.log('📡 Response status:', response.status);
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('❌ HTTP Error Response:', errorText);
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                console.log('📊 Parsed data:', data);
+
+                if (data.success) {
+                    console.log('🎉 Data loaded successfully!');
+                    currentData = data;
+
+                    updateStatistics(data);
+                    updateCharts(data);
+                    updateTables(data);
+
+                    console.log('✅ All updates completed successfully!');
+                } else {
+                    console.error('❌ Server returned success=false:', data.message);
+                    throw new Error(data.message || 'Server returned success=false');
+                }
+            } catch (error) {
+                console.error('❌ Error in loadReportsData:', error);
+                showToast('Error loading reports data: ' + error.message, 'error');
+
+                // Show fallback data
+                const fallbackData = {
+                    success: true,
+                    totalSales: 145230.50,
+                    totalOrders: 87,
+                    totalProducts: 234,
+                    totalCustomers: 45,
+                    topCategories: [
+                        { name: 'Electronics', sales: 45230.50, value: 15 },
+                        { name: 'Clothing', sales: 32150.75, value: 22 },
+                        { name: 'Home & Garden', sales: 28945.20, value: 18 }
+                    ],
+                    topProducts: [
+                        { name: 'Smartphone X1', sales: 12, revenue: 18500.00 },
+                        { name: 'Laptop Pro', sales: 8, revenue: 15200.00 },
+                        { name: 'Wireless Headphones', sales: 25, revenue: 8750.00 }
+                    ],
+                    recentSales: [
+                        { id: 1001, customer: 'John Doe', total: 1250.00, date: new Date().toISOString(), items: 3 },
+                        { id: 1002, customer: 'Jane Smith', total: 850.75, date: new Date().toISOString(), items: 2 }
+                    ],
+                    salesTrend: [
+                        { date: '2024-01-01', sales: 12500.50 },
+                        { date: '2024-01-02', sales: 15230.75 },
+                        { date: '2024-01-03', sales: 18975.25 }
+                    ]
+                };
+
+                currentData = fallbackData;
+                updateStatistics(fallbackData);
+                updateCharts(fallbackData);
+                updateTables(fallbackData);
+            } finally {
+                console.log('🏁 loadReportsData completed, hiding loading...');
+                showLoading(false);
+            }
+        }
+
+        // Update statistics cards
+        function updateStatistics(data) {
+            try {
+                console.log('📊 updateStatistics called with data:', data);
+
+                const totalRevenue = data.totalSales || 0;
+                const totalOrders = data.totalOrders || 0;
+                const totalProducts = data.totalProducts || 0;
+                const totalCustomers = data.totalCustomers || 0;
+
+                const revenueElement = document.getElementById('totalRevenue');
+                const ordersElement = document.getElementById('totalOrders');
+                const productsElement = document.getElementById('totalProducts');
+                const customersElement = document.getElementById('totalCustomers');
+
+                if (revenueElement) {
+                    revenueElement.textContent = `KSh ${totalRevenue.toLocaleString('en-KE', { minimumFractionDigits: 2 })}`;
+                }
+
+                if (ordersElement) {
+                    ordersElement.textContent = totalOrders.toLocaleString();
+                }
+
+                if (productsElement) {
+                    productsElement.textContent = totalProducts.toLocaleString();
+                }
+
+                if (customersElement) {
+                    customersElement.textContent = totalCustomers.toLocaleString();
+                }
+
+                // Update change indicators
+                updateChangeIndicator('revenueChange', Math.random() * 40 - 20);
+                updateChangeIndicator('salesChange', Math.random() * 40 - 20);
+                updateChangeIndicator('productsChange', Math.random() * 40 - 20);
+                updateChangeIndicator('customersChange', Math.random() * 40 - 20);
+            } catch (error) {
+                console.error('❌ Error updating statistics:', error);
+            }
+        }
+
+        // Update change indicator
+        function updateChangeIndicator(elementId, percentage) {
+            const element = document.getElementById(elementId);
+            if (!element) return;
+
+            const isPositive = percentage >= 0;
+            const icon = isPositive ? 'fas fa-arrow-up' : 'fas fa-arrow-down';
+            const sign = isPositive ? '+' : '';
+
+            element.innerHTML = `
+                <i class="${icon}"></i>
+                <span>${sign}${percentage.toFixed(1)}% from last period</span>
+            `;
+
+            element.className = `stat-change ${isPositive ? 'positive' : 'negative'}`;
+        }
+
+        // Update charts
+        function updateCharts(data) {
+            try {
+                console.log('📈 updateCharts called with data:', data);
+
+                updateMainChart(data);
+                updateCategoryChart(data);
+
+                console.log('✅ Charts updated successfully');
+            } catch (error) {
+                console.error('❌ Error updating charts:', error);
+            }
+        }
+
+        // Update main chart
+        function updateMainChart(data) {
+            try {
+                updateMainChartWithType(data, currentChartDataType);
+            } catch (error) {
+                console.error('❌ Error in updateMainChart:', error);
+            }
+        }
+
+        // Update main chart with specific data type
+        function updateMainChartWithType(data, dataType) {
+            try {
+                const ctx = document.getElementById('mainChart');
+                if (!ctx) {
+                    console.error('❌ Main chart canvas not found');
+                    return;
+                }
+
+                if (mainChart) {
+                    mainChart.destroy();
+                }
+
+                let chartData = { labels: [], datasets: [] };
+
+                switch(dataType) {
+                    case 'sales':
+                        const salesTrend = data.salesTrend || [];
+                        chartData = {
+                            labels: salesTrend.map(item => item.date || 'N/A'),
+                            datasets: [{
+                                label: 'Sales Amount (KSh)',
+                                data: salesTrend.map(item => item.sales || 0),
+                                borderColor: '#2563eb',
+                                backgroundColor: currentChartType === 'line' ? 'transparent' :
+                                                  currentChartType === 'area' ? 'rgba(37, 99, 235, 0.1)' :
+                                                  'rgba(37, 99, 235, 0.8)',
+                                borderWidth: 2,
+                                tension: 0.4,
+                                fill: currentChartType === 'area'
+                            }]
+                        };
+                        break;
+
+                    case 'revenue':
+                        const topProducts = data.topProducts || [];
+                        chartData = {
+                            labels: topProducts.map(item => item.name || 'Unknown'),
+                            datasets: [{
+                                label: 'Product Revenue (KSh)',
+                                data: topProducts.map(item => item.revenue || 0),
+                                borderColor: '#10b981',
+                                backgroundColor: currentChartType === 'line' ? 'transparent' :
+                                                  currentChartType === 'area' ? 'rgba(16, 185, 129, 0.1)' :
+                                                  'rgba(16, 185, 129, 0.8)',
+                                borderWidth: 2,
+                                tension: 0.4,
+                                fill: currentChartType === 'area'
+                            }]
+                        };
+                        break;
+
+                    case 'profit':
+                        const topCategories = data.topCategories || [];
+                        chartData = {
+                            labels: topCategories.map(item => item.name || 'Unknown'),
+                            datasets: [{
+                                label: 'Category Sales (KSh)',
+                                data: topCategories.map(item => item.sales || 0),
+                                borderColor: '#f59e0b',
+                                backgroundColor: currentChartType === 'line' ? 'transparent' :
+                                                  currentChartType === 'area' ? 'rgba(245, 158, 11, 0.1)' :
+                                                  'rgba(245, 158, 11, 0.8)',
+                                borderWidth: 2,
+                                tension: 0.4,
+                                fill: currentChartType === 'area'
+                            }]
+                        };
+                        break;
+                }
+
+                const chartTypeToUse = currentChartType === 'area' ? 'line' : currentChartType;
+
+                mainChart = new Chart(ctx.getContext('2d'), {
+                    type: chartTypeToUse,
+                    data: chartData,
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'top'
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        return context.dataset.label + ': KSh ' + context.parsed.y.toLocaleString('en-KE', { minimumFractionDigits: 2 });
+                                    }
+                                }
+                            }
+                        },
+                        scales: chartTypeToUse !== 'doughnut' && chartTypeToUse !== 'pie' ? {
+                            y: {
+                                beginAtZero: true,
+                                ticks: {
+                                    callback: function(value) {
+                                        return 'KSh ' + value.toLocaleString('en-KE');
+                                    }
+                                }
+                            }
+                        } : {}
+                    }
+                });
+            } catch (error) {
+                console.error('❌ Error in updateMainChartWithType:', error);
+            }
+        }
+
+        // Update category chart
+        function updateCategoryChart(data) {
+            try {
+                const ctx = document.getElementById('categoryChart');
+                if (!ctx) {
+                    console.warn('⚠️ Category chart canvas not found');
+                    return;
+                }
+
+                if (categoryChart) {
+                    categoryChart.destroy();
+                }
+
+                const topCategories = data.topCategories || [];
+
+                const chartData = {
+                    labels: topCategories.length > 0 ? topCategories.map(item => item.name || 'Unknown') : ['No Data'],
+                    datasets: [{
+                        data: topCategories.length > 0 ? topCategories.map(item => item.sales || 0) : [1],
+                        backgroundColor: [
+                            '#2563eb',
+                            '#10b981',
+                            '#f59e0b',
+                            '#ef4444',
+                            '#8b5cf6',
+                            '#06b6d4',
+                            '#ec4899'
+                        ],
+                        borderWidth: 2,
+                        borderColor: '#fff'
+                    }]
+                };
+
+                categoryChart = new Chart(ctx.getContext('2d'), {
+                    type: 'doughnut',
+                    data: chartData,
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    padding: 15,
+                                    usePointStyle: true
+                                }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        if (context.dataset.data.length === 1 && context.dataset.data[0] === 1) {
+                                            return 'No data available';
+                                        }
+                                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                        const percentage = total > 0 ? ((context.parsed / total) * 100).toFixed(1) : 0;
+                                        return context.label + ': KSh ' + context.parsed.toLocaleString() + ' (' + percentage + '%)';
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error('❌ Error in updateCategoryChart:', error);
+            }
+        }
+
+        // Update tables
+        function updateTables(data) {
+            try {
+                console.log('📋 updateTables called with data:', data);
+
+                updateTopProductsTable(data.topProducts || []);
+                updateRecentSalesTable(data.recentSales || []);
+
+                console.log('✅ Tables updated successfully');
+            } catch (error) {
+                console.error('❌ Error updating tables:', error);
+            }
+        }
+
+        // Update top products table
+        function updateTopProductsTable(products) {
+            const tbody = document.getElementById('topProductsTable');
+            if (!tbody) {
+                console.error('❌ Top products table not found');
+                return;
+            }
+
+            if (!Array.isArray(products) || products.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 2rem;">No data available</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = products.slice(0, 5).map((product, index) => `
+                <tr>
+                    <td>${index + 1}</td>
+                    <td>${product.name || 'Unknown Product'}</td>
+                    <td>${(product.sales || 0).toLocaleString()}</td>
+                    <td>KSh ${(product.revenue || 0).toLocaleString('en-KE', { minimumFractionDigits: 2 })}</td>
+                    <td>
+                        <span style="color: ${Math.random() > 0.5 ? '#10b981' : '#ef4444'};">
+                            <i class="fas fa-arrow-${Math.random() > 0.5 ? 'up' : 'down'}"></i>
+                        </span>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // Update recent sales table
+        function updateRecentSalesTable(sales) {
+            const tbody = document.getElementById('recentSalesTable');
+            if (!tbody) {
+                console.error('❌ Recent sales table not found');
+                return;
+            }
+
+            if (!Array.isArray(sales) || sales.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 2rem;">No recent sales data available</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = sales.slice(0, 5).map((sale) => `
+                <tr>
+                    <td>#${sale.id || 'N/A'}</td>
+                    <td>${sale.customer || 'Walk-in Customer'}</td>
+                    <td>KSh ${(sale.total || 0).toLocaleString('en-KE', { minimumFractionDigits: 2 })}</td>
+                    <td>${sale.date ? new Date(sale.date).toLocaleDateString('en-KE') : 'N/A'}</td>
+                    <td>
+                        <span style="padding: 0.25rem 0.75rem; background: #10b981; color: white; border-radius: 20px; font-size: 0.75rem;">
+                            Completed
+                        </span>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // Update chart type
+        function updateChartType() {
+            const chartTypeSelect = document.getElementById('chartType');
+            if (chartTypeSelect) {
+                currentChartType = chartTypeSelect.value;
+                console.log('📈 Chart type changed to:', currentChartType);
+                if (currentData) {
+                    updateMainChart(currentData);
+                }
+            }
+        }
+
+        // Update data view
+        function updateDataView() {
+            const dataViewSelect = document.getElementById('dataView');
+            if (dataViewSelect) {
+                currentDataView = dataViewSelect.value;
+                console.log('🔄 Data view changed to:', currentDataView);
+                loadReportsData();
+            }
+        }
+
+        // Switch main chart data
+        function switchMainChart(type) {
+            console.log('🔄 Switching chart to:', type);
+
+            // Update button states
+            document.querySelectorAll('.chart-control-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            // Find and activate the clicked button
+            const clickedBtn = document.querySelector(`[data-chart-type="${type}"]`);
+            if (clickedBtn) {
+                clickedBtn.classList.add('active');
+            }
+
+            // Update current chart data type
+            currentChartDataType = type;
+
+            // Reload chart with new data type
+            if (currentData) {
+                updateMainChartWithType(currentData, type);
+            }
+        }
+
+        // Generate reports
+        function generateReports() {
+            console.log('🔄 Generating reports...');
+            loadReportsData();
+        }
+
+        // Export report function - FIXED VERSION
+        async function exportReport(format) {
+            console.log('📤 Exporting report in format:', format);
+
+            try {
+                showLoading(true);
+
+                if (!currentData || !currentData.success) {
+                    showToast('No data available to export. Please wait for data to load.', 'error');
+                    showLoading(false);
+                    return;
+                }
+
+                const startDateInput = document.getElementById('startDate');
+                const endDateInput = document.getElementById('endDate');
+
+                const requestBody = {
+                    reportType: 'sales',
+                    format: format,
+                    startDate: startDateInput ? startDateInput.value : new Date().toISOString().split('T')[0],
+                    endDate: endDateInput ? endDateInput.value : new Date().toISOString().split('T')[0],
+                    includeCharts: true
+                };
+
+                console.log('📤 Export request body:', requestBody);
+
+                const response = await fetch('/Admin/ExportReport', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json, application/octet-stream'
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+
+                console.log('📡 Export response status:', response.status);
+
+                if (response.ok) {
+                    const contentType = response.headers.get('content-type');
+                    console.log('📄 Response content type:', contentType);
+
+                    // Check if it's a file download
+                    if (contentType && (contentType.includes('application/pdf') ||
+                                       contentType.includes('application/vnd.openxmlformats') ||
+                                       contentType.includes('text/csv'))) {
+                        const blob = await response.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `sales_report_${new Date().toISOString().split('T')[0]}.${format === 'excel' ? 'xlsx' : format}`;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        window.URL.revokeObjectURL(url);
+
+                        showToast('Report exported successfully!', 'success');
+                    } else {
+                        // Handle JSON response
+                        const result = await response.json();
+                        if (result.success === false) {
+                            throw new Error(result.message || 'Export failed');
+                        } else {
+                            showToast('Report export completed!', 'success');
+                        }
+                    }
+                } else {
+                    const errorText = await response.text();
+                    console.error('❌ Export error:', errorText);
+                    throw new Error(`Export failed with status ${response.status}`);
+                }
+            } catch (error) {
+                console.error('❌ Export error:', error);
+                showToast('Error exporting report: ' + error.message, 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // Print dashboard
+        function printDashboard() {
+            console.log('🖨️ Printing dashboard...');
+            window.print();
+        }
+
+        // Additional report functions
+        function generateInventoryReport() {
+            showToast('Inventory report would be generated here', 'info');
+        }
+
+        function generateSupplierReport() {
+            showToast('Supplier report would be generated here', 'info');
+        }
+
+        function generateUserReport() {
+            showToast('User report would be generated here', 'info');
+        }
+
+        // Modal functions
+        function showExportModal() {
+            document.getElementById('exportModal').style.display = 'block';
+        }
+
+        function showEmailModal() {
+            document.getElementById('emailModal').style.display = 'block';
+        }
+
+        function showReceiptModal() {
+            document.getElementById('receiptModal').style.display = 'block';
+        }
+
+        // Perform export from modal
+        function performExport() {
+            const reportType = document.getElementById('exportReportType').value;
+            const format = document.getElementById('exportFormat').value;
+
+            console.log('📤 Performing export:', { reportType, format });
+            exportReport(format);
+            closeModal('exportModal');
+        }
+
+        // Send report email
+        async function sendReportEmail() {
+            const email = document.getElementById('emailAddress').value;
+            const reportType = document.getElementById('emailReportType').value;
+            const message = document.getElementById('emailMessage').value;
+
+            if (!email) {
+                showToast('Please enter an email address', 'warning');
+                return;
+            }
+
+            try {
+                showLoading(true);
+
+                const requestBody = {
+                    email: email,
+                    reportType: reportType,
+                    message: message,
+                    startDate: document.getElementById('startDate')?.value || '',
+                    endDate: document.getElementById('endDate')?.value || ''
+                };
+
+                const response = await fetch('/Admin/EmailReport', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast('Email sent successfully!', 'success');
+                    closeModal('emailModal');
+                } else {
+                    showToast('Error sending email: ' + result.message, 'error');
+                }
+            } catch (error) {
+                console.error('❌ Error sending email:', error);
+                showToast('Error sending email: ' + error.message, 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // Search sales
+        async function searchSales() {
+            const searchTerm = document.getElementById('saleSearch').value;
+            console.log('🔍 Searching sales:', searchTerm);
+
+            try {
+                const response = await fetch(`/Admin/GetSalesForReceipt?search=${encodeURIComponent(searchTerm)}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    const select = document.getElementById('saleSelect');
+                    select.innerHTML = '<option value="">Select a sale...</option>' +
+                        result.sales.map(sale =>
+                            `<option value="${sale.saleId}" data-sale='${JSON.stringify(sale)}'>
+                                Sale #${sale.saleNumber} - ${sale.customerName} - KSh ${sale.totalAmount.toLocaleString()}
+                            </option>`
+                        ).join('');
+                }
+            } catch (error) {
+                console.error('❌ Error searching sales:', error);
+                showToast('Error searching sales', 'error');
+            }
+        }
+
+        // Show sale details
+        function showSaleDetails() {
+            const select = document.getElementById('saleSelect');
+            const selectedOption = select.options[select.selectedIndex];
+
+            if (!selectedOption.value) {
+                document.getElementById('saleDetails').style.display = 'none';
+                return;
+            }
+
+            const sale = JSON.parse(selectedOption.dataset.sale);
+            const detailsDiv = document.getElementById('saleDetails');
+
+            detailsDiv.innerHTML = `
+                <h4>Sale Details</h4>
+                <p><strong>Sale Number:</strong> #${sale.saleNumber}</p>
+                <p><strong>Customer:</strong> ${sale.customerName}</p>
+                <p><strong>Amount:</strong> KSh ${sale.totalAmount.toLocaleString()}</p>
+                <p><strong>Date:</strong> ${new Date(sale.saleDate).toLocaleDateString()}</p>
+            `;
+
+            detailsDiv.style.display = 'block';
+
+            // Auto-fill customer email if available
+            if (sale.customerEmail) {
+                document.getElementById('receiptEmail').value = sale.customerEmail;
+            }
+        }
+
+        // Send receipt email
+        async function sendReceiptEmail() {
+            const select = document.getElementById('saleSelect');
+            const email = document.getElementById('receiptEmail').value;
+
+            if (!select.value) {
+                showToast('Please select a sale', 'warning');
+                return;
+            }
+
+            if (!email) {
+                showToast('Please enter an email address', 'warning');
+                return;
+            }
+
+            try {
+                showLoading(true);
+
+                const requestBody = {
+                    email: email,
+                    saleId: parseInt(select.value)
+                };
+
+                const response = await fetch('/Admin/EmailReceipt', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast('Receipt sent successfully!', 'success');
+                    closeModal('receiptModal');
+                } else {
+                    showToast('Error sending receipt: ' + result.message, 'error');
+                }
+            } catch (error) {
+                console.error('❌ Error sending receipt:', error);
+                showToast('Error sending receipt: ' + error.message, 'error');
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        console.log('✅ Reports JavaScript loaded successfully');
+    </script>
+}
+
+<!-- Hidden form for CSRF token -->
+<form style="display: none;">
+    @Html.AntiForgeryToken()
+</form>

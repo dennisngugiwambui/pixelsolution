@@ -1,0 +1,363 @@
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+
+namespace PixelSolution.Models
+{
+    public class Department
+    {
+        [Key]
+        public int DepartmentId { get; set; }
+
+        [Required]
+        [StringLength(100)]
+        public string Name { get; set; } = string.Empty;
+
+        [StringLength(500)]
+        public string Description { get; set; } = string.Empty;
+
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        // Navigation Properties
+        public virtual ICollection<UserDepartment> UserDepartments { get; set; } = new List<UserDepartment>();
+    }
+
+    public class Category
+    {
+        [Key]
+        public int CategoryId { get; set; }
+
+        [Required]
+        [StringLength(100)]
+        public string Name { get; set; } = string.Empty;
+
+        [StringLength(500)]
+        public string Description { get; set; } = string.Empty;
+
+        [StringLength(255)]
+        public string ImageUrl { get; set; } = string.Empty;
+
+        public bool IsActive { get; set; } = true;
+
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        // Navigation Properties
+        public virtual ICollection<Product> Products { get; set; } = new List<Product>();
+    }
+
+    public class Supplier
+    {
+        [Key]
+        public int SupplierId { get; set; }
+
+        [Required]
+        [StringLength(200)]
+        public string CompanyName { get; set; } = string.Empty;
+
+        [Required]
+        [StringLength(100)]
+        public string ContactPerson { get; set; } = string.Empty;
+
+        [Required]
+        [EmailAddress]
+        [StringLength(255)]
+        public string Email { get; set; } = string.Empty;
+
+        [Required]
+        [StringLength(20)]
+        public string Phone { get; set; } = string.Empty;
+
+        [StringLength(500)]
+        public string Address { get; set; } = string.Empty;
+
+        [StringLength(20)]
+        public string Status { get; set; } = "Active"; // Active, Inactive
+
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        // Navigation Properties
+        public virtual ICollection<Product> Products { get; set; } = new List<Product>();
+        public virtual ICollection<PurchaseRequest> PurchaseRequests { get; set; } = new List<PurchaseRequest>();
+    }
+
+    public class Product
+    {
+        [Key]
+        public int ProductId { get; set; }
+
+        [Required]
+        [StringLength(200)]
+        public string Name { get; set; } = string.Empty;
+
+        [StringLength(500)]
+        public string Description { get; set; } = string.Empty;
+
+        [Required]
+        [StringLength(50)]
+        public string SKU { get; set; } = string.Empty;
+
+        [Required]
+        public int CategoryId { get; set; }
+
+        public int? SupplierId { get; set; }
+
+        [Required]
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal BuyingPrice { get; set; }
+
+        [Required]
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal SellingPrice { get; set; }
+
+        [Required]
+        public int StockQuantity { get; set; }
+
+        public int MinStockLevel { get; set; } = 10;
+
+        [StringLength(255)]
+        public string ImageUrl { get; set; } = string.Empty;
+
+        public bool IsActive { get; set; } = true;
+
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
+        // Navigation Properties
+        [ForeignKey("CategoryId")]
+        public virtual Category Category { get; set; } = null!;
+
+        [ForeignKey("SupplierId")]
+        public virtual Supplier? Supplier { get; set; }
+
+        public virtual ICollection<SaleItem> SaleItems { get; set; } = new List<SaleItem>();
+        public virtual ICollection<PurchaseRequestItem> PurchaseRequestItems { get; set; } = new List<PurchaseRequestItem>();
+
+        // Computed Properties
+        [NotMapped]
+        public decimal ProfitMargin => SellingPrice - BuyingPrice;
+
+        [NotMapped]
+        public decimal ProfitPercentage => BuyingPrice > 0 ? ((SellingPrice - BuyingPrice) / BuyingPrice) * 100 : 0;
+
+        [NotMapped]
+        public bool IsLowStock => StockQuantity <= MinStockLevel;
+    }
+
+    public class Sale
+    {
+        [Key]
+        public int SaleId { get; set; }
+
+        [Required]
+        [StringLength(50)]
+        public string SaleNumber { get; set; } = string.Empty;
+
+        public int UserId { get; set; } // Sales person
+
+        [StringLength(200)]
+        public string CashierName { get; set; } = string.Empty; // Store cashier name directly
+
+        [StringLength(200)]
+        public string CustomerName { get; set; } = string.Empty;
+
+        [StringLength(20)]
+        public string CustomerPhone { get; set; } = string.Empty;
+
+        [EmailAddress]
+        [StringLength(255)]
+        public string CustomerEmail { get; set; } = string.Empty;
+
+        [Required]
+        [StringLength(20)]
+        public string PaymentMethod { get; set; } = string.Empty; // Cash, MPesa, Card
+
+        [Required]
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal TotalAmount { get; set; }
+
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal AmountPaid { get; set; }
+
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal ChangeGiven { get; set; }
+
+        [StringLength(20)]
+        public string Status { get; set; } = "Completed"; // Pending, Completed, Cancelled
+
+        public DateTime SaleDate { get; set; } = DateTime.UtcNow;
+
+        // Navigation Properties
+        [ForeignKey("UserId")]
+        public virtual User User { get; set; } = null!;
+
+        public virtual ICollection<SaleItem> SaleItems { get; set; } = new List<SaleItem>();
+    }
+
+    public class SaleItem
+    {
+        [Key]
+        public int SaleItemId { get; set; }
+
+        public int SaleId { get; set; }
+        public int ProductId { get; set; }
+
+        [Required]
+        public int Quantity { get; set; }
+
+        [Required]
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal UnitPrice { get; set; }
+
+        [Required]
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal TotalPrice { get; set; }
+
+        // Navigation Properties
+        [ForeignKey("SaleId")]
+        public virtual Sale Sale { get; set; } = null!;
+
+        [ForeignKey("ProductId")]
+        public virtual Product Product { get; set; } = null!;
+    }
+
+    public class PurchaseRequest
+    {
+        [Key]
+        public int PurchaseRequestId { get; set; }
+
+        [Required]
+        [StringLength(50)]
+        public string RequestNumber { get; set; } = string.Empty;
+
+        public int UserId { get; set; } // Requesting user
+
+        public int SupplierId { get; set; }
+
+        [Required]
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal TotalAmount { get; set; }
+
+        [StringLength(20)]
+        public string Status { get; set; } = "Pending"; // Pending, Approved, Completed, Cancelled
+
+        [StringLength(1000)]
+        public string Notes { get; set; } = string.Empty;
+
+        public DateTime RequestDate { get; set; } = DateTime.UtcNow;
+        public DateTime? ApprovedDate { get; set; }
+
+        // Navigation Properties
+        [ForeignKey("UserId")]
+        public virtual User User { get; set; } = null!;
+
+        [ForeignKey("SupplierId")]
+        public virtual Supplier Supplier { get; set; } = null!;
+
+        public virtual ICollection<PurchaseRequestItem> PurchaseRequestItems { get; set; } = new List<PurchaseRequestItem>();
+    }
+
+    public class PurchaseRequestItem
+    {
+        [Key]
+        public int PurchaseRequestItemId { get; set; }
+
+        public int PurchaseRequestId { get; set; }
+        public int ProductId { get; set; }
+
+        [Required]
+        public int Quantity { get; set; }
+
+        [Required]
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal UnitPrice { get; set; }
+
+        [Required]
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal TotalPrice { get; set; }
+
+        // Navigation Properties
+        [ForeignKey("PurchaseRequestId")]
+        public virtual PurchaseRequest PurchaseRequest { get; set; } = null!;
+
+        [ForeignKey("ProductId")]
+        public virtual Product Product { get; set; } = null!;
+    }
+
+    public class Message
+    {
+        [Key]
+        public int MessageId { get; set; }
+
+        public int FromUserId { get; set; }
+        public int ToUserId { get; set; }
+
+        [Required]
+        [StringLength(200)]
+        public string Subject { get; set; } = string.Empty;
+
+        [Required]
+        [StringLength(2000)]
+        public string Content { get; set; } = string.Empty;
+
+        [StringLength(50)]
+        public string MessageType { get; set; } = "General"; // General, Reminder, Promotion
+
+        public bool IsRead { get; set; } = false;
+
+        public DateTime SentDate { get; set; } = DateTime.UtcNow;
+        public DateTime? ReadDate { get; set; }
+
+        // Navigation Properties
+        [ForeignKey("FromUserId")]
+        public virtual User FromUser { get; set; } = null!;
+
+        [ForeignKey("ToUserId")]
+        public virtual User ToUser { get; set; } = null!;
+    }
+
+    public class MpesaTransaction
+    {
+        [Key]
+        public int MpesaTransactionId { get; set; }
+
+        [Required]
+        public int SaleId { get; set; }
+
+        [Required]
+        [StringLength(50)]
+        public string CheckoutRequestId { get; set; } = string.Empty;
+
+        [Required]
+        [StringLength(50)]
+        public string MerchantRequestId { get; set; } = string.Empty;
+
+        [Required]
+        [StringLength(15)]
+        public string PhoneNumber { get; set; } = string.Empty;
+
+        [Required]
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal Amount { get; set; }
+
+        [StringLength(20)]
+        public string Status { get; set; } = "Pending"; // Pending, Success, Failed, Cancelled
+
+        [StringLength(100)]
+        public string MpesaReceiptNumber { get; set; } = string.Empty;
+
+        [StringLength(100)]
+        public string TransactionId { get; set; } = string.Empty;
+
+        [StringLength(500)]
+        public string CallbackResponse { get; set; } = string.Empty;
+
+        [StringLength(200)]
+        public string ErrorMessage { get; set; } = string.Empty;
+
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime? CompletedAt { get; set; }
+
+        // Navigation Properties
+        [ForeignKey("SaleId")]
+        public virtual Sale Sale { get; set; } = null!;
+    }
+}

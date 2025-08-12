@@ -1,0 +1,1221 @@
+@model PixelSolution.ViewModels.ProductDetailsViewModel
+@{
+    ViewData["Title"] = $"Product Details - {Model.Name}";
+    Layout = "_AdminLayout";
+}
+
+@section Styles {
+    <link href="~/css/dashboard.css" rel="stylesheet">
+    <style>
+        .product-details-container {
+            padding: 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .product-header {
+            background: white;
+            border-radius: 16px;
+            padding: 2.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            border-left: 6px solid #10b981;
+            position: relative;
+            overflow: hidden;
+        }
+
+            .product-header::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                right: 0;
+                width: 200px;
+                height: 200px;
+                background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(5, 150, 105, 0.05));
+                border-radius: 50%;
+                transform: translate(50%, -50%);
+            }
+
+        .product-header-content {
+            display: grid;
+            grid-template-columns: auto 1fr auto;
+            gap: 2rem;
+            align-items: start;
+            position: relative;
+            z-index: 1;
+        }
+
+        .product-image-section {
+            text-align: center;
+        }
+
+        .product-image {
+            width: 150px;
+            height: 150px;
+            border-radius: 16px;
+            object-fit: cover;
+            border: 3px solid #e5e7eb;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            transition: transform 0.3s ease;
+        }
+
+            .product-image:hover {
+                transform: scale(1.05);
+            }
+
+        .product-image-placeholder {
+            width: 150px;
+            height: 150px;
+            border-radius: 16px;
+            background: linear-gradient(135deg, #10b981, #059669);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 3px solid #e5e7eb;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            color: white;
+            font-size: 4rem;
+        }
+
+        .product-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .product-title {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: #1e293b;
+            margin-bottom: 0.5rem;
+            line-height: 1.2;
+        }
+
+        .product-sku {
+            font-size: 1.1rem;
+            color: #64748b;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            font-family: 'Courier New', monospace;
+            background: #f1f5f9;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            display: inline-block;
+        }
+
+        .product-description {
+            font-size: 1.1rem;
+            color: #4b5563;
+            line-height: 1.6;
+            margin-bottom: 1.5rem;
+        }
+
+        .product-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+
+        .status-active {
+            background: #dcfce7;
+            color: #166534;
+            border: 2px solid #bbf7d0;
+        }
+
+        .status-inactive {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 2px solid #fecaca;
+        }
+
+        .status-low-stock {
+            background: #fef3c7;
+            color: #92400e;
+            border: 2px solid #fde68a;
+        }
+
+        .category-supplier-info {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .info-badge {
+            background: #f1f5f9;
+            color: #475569;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .product-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .stats-section {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+            .stat-card::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                height: 4px;
+                background: linear-gradient(90deg, #10b981, #059669);
+            }
+
+            .stat-card:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+                border-color: #10b981;
+            }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            font-size: 0.875rem;
+            color: #64748b;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .profit-card {
+            border-color: #10b981;
+        }
+
+            .profit-card::before {
+                background: linear-gradient(90deg, #10b981, #059669);
+            }
+
+        .profit-positive {
+            color: #059669;
+        }
+
+        .profit-negative {
+            color: #dc2626;
+        }
+
+        .actions-section {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+
+        .actions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .barcode-section {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+
+        .barcode-display {
+            background: #f8fafc;
+            border: 2px dashed #cbd5e1;
+            border-radius: 12px;
+            padding: 2rem;
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .barcode-preview {
+            font-family: 'Courier New', monospace;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #1e293b;
+            margin-bottom: 1rem;
+        }
+
+        .barcode-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .breadcrumb {
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+            .breadcrumb a {
+                color: #10b981;
+                text-decoration: none;
+                font-weight: 600;
+                transition: color 0.3s ease;
+            }
+
+                .breadcrumb a:hover {
+                    color: #059669;
+                    text-decoration: underline;
+                }
+
+        .breadcrumb-separator {
+            color: #64748b;
+            margin: 0 0.25rem;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+            cursor: pointer;
+            font-size: 0.875rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            border-color: #10b981;
+        }
+
+            .btn-primary:hover {
+                transform: translateY(-1px);
+                box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+            }
+
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+            border-color: #6b7280;
+        }
+
+            .btn-secondary:hover {
+                background: #4b5563;
+                border-color: #4b5563;
+                transform: translateY(-1px);
+            }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+            border-color: #ef4444;
+        }
+
+            .btn-danger:hover {
+                transform: translateY(-1px);
+                box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+            }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: white;
+            border-color: #f59e0b;
+        }
+
+            .btn-warning:hover {
+                transform: translateY(-1px);
+                box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+            }
+
+        .btn-success {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            border-color: #10b981;
+        }
+
+            .btn-success:hover {
+                transform: translateY(-1px);
+                box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+            }
+
+        .btn-sm {
+            padding: 0.5rem 1rem;
+            font-size: 0.8rem;
+        }
+
+        /* Stock Update Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            backdrop-filter: blur(8px);
+        }
+
+            .modal.show {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 1rem;
+            }
+
+        .modal-content {
+            background-color: white;
+            margin: 1rem;
+            padding: 0;
+            border: none;
+            border-radius: 16px;
+            width: 100%;
+            max-width: 500px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 16px 16px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-body {
+            padding: 2rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            transition: all 0.3s ease;
+        }
+
+            .form-control:focus {
+                outline: none;
+                border-color: #10b981;
+                box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+            }
+
+            .form-control:read-only {
+                background-color: #f9fafb;
+                cursor: not-allowed;
+            }
+
+        /* Mobile Responsive */
+           @@media (max-width: 768px) {
+            .product-details-container
+
+        {
+            padding: 1rem;
+        }
+
+        .product-header-content {
+            grid-template-columns: 1fr;
+            text-align: center;
+            gap: 1.5rem;
+        }
+
+        .product-title {
+            font-size: 2rem;
+        }
+
+        .product-actions {
+            flex-direction: row;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .actions-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .product-meta {
+            justify-content: center;
+        }
+
+        .category-supplier-info {
+            justify-content: center;
+        }
+
+        .barcode-actions {
+            flex-direction: column;
+            align-items: center;
+        }
+
+        }
+
+            @@media (max-width: 480px) {
+            .stats-grid
+
+        {
+            grid-template-columns: 1fr;
+        }
+
+        .btn {
+            padding: 0.6rem 1rem;
+            font-size: 0.8rem;
+        }
+
+        .product-header {
+            padding: 1.5rem;
+        }
+
+        .actions-grid {
+            grid-template-columns: 1fr;
+        }
+
+        }</style>
+}
+
+<!-- Sidebar -->
+<div class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+        <div class="logo-container">
+            <div class="logo-icon">
+                <i class="fas fa-bolt"></i>
+            </div>
+            <div class="logo-text">PixelSolution</div>
+        </div>
+        <div class="user-info">
+            <div class="user-avatar">@User.Identity.Name?.Substring(0, 2).ToUpper()</div>
+            <div class="user-details">
+                <h4>@User.Identity.Name</h4>
+                <p>System Administrator</p>
+            </div>
+        </div>
+    </div>
+
+    <nav class="nav-menu">
+        <div class="nav-section">
+            <div class="nav-section-title">Main</div>
+            <div class="nav-item">
+                <a href="@Url.Action("Dashboard", "Admin")" class="nav-link">
+                    <i class="fas fa-chart-pie"></i>
+                    Dashboard
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Sales", "Admin")" class="nav-link">
+                    <i class="fas fa-shopping-cart"></i>
+                    Sales
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Inventory", "Admin")" class="nav-link">
+                    <i class="fas fa-box"></i>
+                    Inventory
+                </a>
+            </div>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-section-title">Management</div>
+            <div class="nav-item">
+                <a href="@Url.Action("Users", "Admin")" class="nav-link">
+                    <i class="fas fa-users"></i>
+                    Employees
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Departments", "Admin")" class="nav-link">
+                    <i class="fas fa-building"></i>
+                    Departments
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Suppliers", "Admin")" class="nav-link">
+                    <i class="fas fa-truck"></i>
+                    Suppliers
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Categories", "Admin")" class="nav-link">
+                    <i class="fas fa-tags"></i>
+                    Categories
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Products", "Admin")" class="nav-link active">
+                    <i class="fas fa-cube"></i>
+                    Products
+                </a>
+            </div>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-section-title">Operations</div>
+            <div class="nav-item">
+                <a href="@Url.Action("PurchaseRequests", "Admin")" class="nav-link">
+                    <i class="fas fa-file-invoice"></i>
+                    Purchase Requests
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Messages", "Admin")" class="nav-link">
+                    <i class="fas fa-envelope"></i>
+                    Messages
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Reports", "Admin")" class="nav-link">
+                    <i class="fas fa-chart-bar"></i>
+                    Reports
+                </a>
+            </div>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-section-title">System</div>
+            <div class="nav-item">
+                <a href="@Url.Action("Settings", "Admin")" class="nav-link">
+                    <i class="fas fa-cog"></i>
+                    Settings
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Logout", "Auth")" class="nav-link">
+                    <i class="fas fa-sign-out-alt"></i>
+                    Logout
+                </a>
+            </div>
+        </div>
+    </nav>
+</div>
+
+<!-- Main Content -->
+<div class="main-content" id="mainContent">
+    <!-- Header -->
+    <header class="header">
+        <div class="header-left">
+            <button class="sidebar-toggle" id="sidebarToggle">
+                <i class="fas fa-bars"></i>
+            </button>
+            <h1 class="page-title">Product Details</h1>
+        </div>
+        <div class="header-right">
+            <div class="search-container">
+                <input type="text" class="search-input" placeholder="Search products..." id="searchInput">
+                <i class="fas fa-search search-icon"></i>
+            </div>
+            <div class="header-actions">
+                <button class="action-btn" title="Notifications">
+                    <i class="fas fa-bell"></i>
+                    <span class="notification-badge">3</span>
+                </button>
+                <button class="action-btn" title="Messages">
+                    <i class="fas fa-envelope"></i>
+                    <span class="notification-badge">8</span>
+                </button>
+                <button class="action-btn" title="Profile">
+                    <i class="fas fa-user-circle"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Page Content -->
+    <div class="product-details-container">
+        <!-- Breadcrumb -->
+        <div class="breadcrumb">
+            <a href="@Url.Action("Products", "Admin")">
+                <i class="fas fa-cube"></i>
+                Products
+            </a>
+            <span class="breadcrumb-separator">/</span>
+            <span>@Model.Name</span>
+        </div>
+
+        <!-- Product Header -->
+        <div class="product-header">
+            <div class="product-header-content">
+                <div class="product-image-section">
+                    @if (!string.IsNullOrEmpty(Model.ImageUrl))
+                    {
+                        <img src="@Model.ImageUrl" alt="@Model.Name" class="product-image" />
+                    }
+                    else
+                    {
+                        <div class="product-image-placeholder">
+                            <i class="fas fa-cube"></i>
+                        </div>
+                    }
+                </div>
+
+                <div class="product-info">
+                    <h1 class="product-title">@Model.Name</h1>
+                    <div class="product-sku">SKU: @Model.SKU</div>
+
+                    @if (!string.IsNullOrEmpty(Model.Description))
+                    {
+                        <div class="product-description">
+                            @Model.Description
+                        </div>
+                    }
+
+                    <div class="product-meta">
+                        <div class="status-badge @(Model.IsActive ? "status-active" : "status-inactive")">
+                            @if (Model.IsActive)
+                            {
+                                <i class="fas fa-check-circle"></i>
+                                <span>Active</span>
+                            }
+                            else
+                            {
+                                <i class="fas fa-times-circle"></i>
+                                <span>Inactive</span>
+                            }
+                        </div>
+
+                        @if (Model.IsLowStock)
+                        {
+                            <div class="status-badge status-low-stock">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                <span>Low Stock Alert</span>
+                            </div>
+                        }
+                    </div>
+
+                    <div class="category-supplier-info">
+                        @if (Model.Category != null)
+                        {
+                            <div class="info-badge">
+                                <i class="fas fa-tags"></i>
+                                Category: @Model.Category.Name
+                            </div>
+                        }
+                        @if (Model.Supplier != null)
+                        {
+                            <div class="info-badge">
+                                <i class="fas fa-truck"></i>
+                                Supplier: @Model.Supplier.CompanyName
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <div class="product-actions">
+                    <a href="@Url.Action("Products", "Admin")" class="btn btn-secondary btn-sm">
+                        <i class="fas fa-arrow-left"></i>
+                        Back to Products
+                    </a>
+                    <button onclick="editProduct(@Model.ProductId)" class="btn btn-primary btn-sm">
+                        <i class="fas fa-edit"></i>
+                        Edit Product
+                    </button>
+                    <button onclick="openStockModal(@Model.ProductId, '@Model.Name', @Model.StockQuantity)" class="btn btn-warning btn-sm">
+                        <i class="fas fa-boxes"></i>
+                        Update Stock
+                    </button>
+                    <button onclick="toggleProductStatus(@Model.ProductId, @Model.IsActive.ToString().ToLower())" class="btn @(Model.IsActive ? "btn-warning" : "btn-success") btn-sm">
+                        <i class="fas fa-@(Model.IsActive ? "pause" : "play")"></i>
+                        @(Model.IsActive ? "Deactivate" : "Activate")
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Product Statistics -->
+        
+
+        <!-- Product Actions -->
+        <div class="actions-section">
+            <h2 class="section-title">
+                <i class="fas fa-cogs"></i>
+                Quick Actions
+            </h2>
+            <div class="actions-grid">
+                <button onclick="generateBarcode(@Model.ProductId)" class="btn btn-secondary">
+                    <i class="fas fa-qrcode"></i>
+                    Generate Barcode
+                </button>
+                <button onclick="generateSticker(@Model.ProductId)" class="btn btn-secondary">
+                    <i class="fas fa-print"></i>
+                    Print Product Sticker
+                </button>
+                <button onclick="duplicateProduct(@Model.ProductId)" class="btn btn-primary">
+                    <i class="fas fa-copy"></i>
+                    Duplicate Product
+                </button>
+                <a href="@Url.Action("Sales", "Admin", new { productId = Model.ProductId })" class="btn btn-success">
+                    <i class="fas fa-shopping-cart"></i>
+                    Sell This Product
+                </a>
+                <a href="@Url.Action("CategoryDetails", "Admin", new { id = Model.CategoryId })" class="btn btn-secondary">
+                    <i class="fas fa-tags"></i>
+                    View Category
+                </a>
+                @if (Model.Supplier != null)
+                {
+                    <a href="@Url.Action("SupplierDetails", "Admin", new { id = Model.SupplierId })" class="btn btn-secondary">
+                        <i class="fas fa-truck"></i>
+                        View Supplier
+                    </a>
+                }
+                @if (User.IsInRole("Admin"))
+                {
+                    <button onclick="deleteProduct(@Model.ProductId)" class="btn btn-danger">
+                        <i class="fas fa-trash"></i>
+                        Delete Product
+                    </button>
+                }
+            </div>
+        </div>
+
+        <!-- Barcode Section -->
+        <div class="barcode-section">
+            <h2 class="section-title">
+                <i class="fas fa-qrcode"></i>
+                Product Barcode
+            </h2>
+            <div class="barcode-display">
+                <div class="barcode-preview">@Model.SKU</div>
+                <div style="display: flex; justify-content: center; margin-bottom: 1rem;">
+                    <div style="display: flex; gap: 1px;">
+                        @for (int i = 0; i < 20; i++)
+                        {
+                            <div style="width: @(new Random().Next(1, 4))px; height: 40px; background: #000;"></div>
+                        }
+                    </div>
+                </div>
+                <p style="color: #64748b; margin: 0; font-size: 0.875rem;">Barcode representation for @Model.SKU</p>
+            </div>
+            <div class="barcode-actions">
+                <button onclick="generateBarcode(@Model.ProductId)" class="btn btn-primary">
+                    <i class="fas fa-qrcode"></i>
+                    Generate QR Code
+                </button>
+                <button onclick="generateBarcode(@Model.ProductId, 'CODE128')" class="btn btn-secondary">
+                    <i class="fas fa-barcode"></i>
+                    Generate Barcode
+                </button>
+                <button onclick="printBarcode(@Model.ProductId)" class="btn btn-secondary">
+                    <i class="fas fa-print"></i>
+                    Print Barcode
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Stock Update Modal -->
+<div id="stockModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Update Stock</h2>
+            <button style="background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer;" onclick="closeStockModal()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <form id="stockForm">
+                <input type="hidden" id="stockProductId">
+                <input type="hidden" id="stockProductName">
+
+                <div class="form-group">
+                    <label class="form-label" for="currentStock">Current Stock</label>
+                    <input type="number" id="currentStock" class="form-control" readonly>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="newStock">New Stock Quantity *</label>
+                    <input type="number" id="newStock" class="form-control" min="0" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="stockReason">Reason for Change</label>
+                    <select id="stockReason" class="form-control">
+                        <option value="">Select Reason</option>
+                        <option value="restock">Restock</option>
+                        <option value="adjustment">Stock Adjustment</option>
+                        <option value="damaged">Damaged Goods</option>
+                        <option value="expired">Expired Items</option>
+                        <option value="transfer">Stock Transfer</option>
+                        <option value="sale_return">Sale Return</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+
+                <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 2rem;">
+                    <button type="button" class="btn btn-secondary" onclick="closeStockModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i>
+                        Update Stock
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/dashboard.js"></script>
+    <script>
+        let productData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model));
+
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('📦 Product Details Page Loaded:', productData);
+            setupStockForm();
+        });
+
+        function setupStockForm() {
+            document.getElementById('stockForm').addEventListener('submit', handleStockSubmit);
+        }
+
+        // Edit product - redirect to Products page with edit modal
+        function editProduct(productId) {
+            console.log(`🔧 Redirecting to edit product ${productId}`);
+            window.location.href = `/Admin/Products?edit=${productId}`;
+        }
+
+        // Stock management
+        function openStockModal(productId, productName, currentStock) {
+            document.getElementById('stockProductId').value = productId;
+            document.getElementById('stockProductName').value = productName;
+            document.getElementById('currentStock').value = currentStock;
+            document.getElementById('newStock').value = currentStock;
+            document.getElementById('stockModal').classList.add('show');
+
+            setTimeout(() => {
+                document.getElementById('newStock').focus();
+                document.getElementById('newStock').select();
+            }, 100);
+        }
+
+        function closeStockModal() {
+            document.getElementById('stockModal').classList.remove('show');
+        }
+
+        async function handleStockSubmit(e) {
+            e.preventDefault();
+
+            const productId = document.getElementById('stockProductId').value;
+            const newStock = parseInt(document.getElementById('newStock').value);
+            const reason = document.getElementById('stockReason').value;
+
+            if (newStock < 0) {
+                showToast('Stock quantity cannot be negative', 'error');
+                return;
+            }
+
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
+
+            try {
+                const response = await fetch('/Admin/UpdateStock', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': getCSRFToken()
+                    },
+                    body: JSON.stringify({
+                        productId: parseInt(productId),
+                        newQuantity: newStock,
+                        reason: reason
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast(result.message || 'Stock updated successfully!', 'success');
+                    closeStockModal();
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showToast(result.message || 'Error updating stock', 'error');
+                }
+            } catch (error) {
+                console.error('❌ Error updating stock:', error);
+                showToast('Error updating stock. Please try again.', 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            }
+        }
+
+        // Product status toggle
+        async function toggleProductStatus(productId, currentStatus) {
+            const action = currentStatus ? 'deactivate' : 'activate';
+
+            if (!confirm(`Are you sure you want to ${action} this product?`)) {
+                return;
+            }
+
+            try {
+                console.log(`🔄 ${action}ing product ${productId}`);
+                const response = await fetch('/Admin/ToggleProductStatus', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': getCSRFToken()
+                    },
+                    body: JSON.stringify({ productId: productId })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast(result.message || `Product ${action}d successfully!`, 'success');
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showToast(result.message || `Error ${action}ing product`, 'error');
+                }
+            } catch (error) {
+                console.error(`❌ Error ${action}ing product:`, error);
+                showToast(`Error ${action}ing product. Please try again.`, 'error');
+            }
+        }
+
+        // Delete product
+        async function deleteProduct(productId) {
+            if (!confirm('Are you sure you want to delete this product? This action cannot be undone.')) {
+                return;
+            }
+
+            try {
+                console.log(`🗑️ Deleting product ${productId}`);
+                const response = await fetch('/Admin/DeleteProduct', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': getCSRFToken()
+                    },
+                    body: JSON.stringify({ productId: productId })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast(result.message || 'Product deleted successfully!', 'success');
+                    setTimeout(() => {
+                        window.location.href = '/Admin/Products';
+                    }, 1000);
+                } else {
+                    showToast(result.message || 'Error deleting product', 'error');
+                }
+            } catch (error) {
+                console.error('❌ Error deleting product:', error);
+                showToast('Error deleting product. Please try again.', 'error');
+            }
+        }
+
+        // Barcode and printing functions
+        async function generateBarcode(productId, type = 'QR') {
+            try {
+                console.log(`🏷️ Generating ${type} barcode for product ${productId}`);
+                const newWindow = window.open(`/Admin/GenerateBarcode/${productId}?type=${type}`, '_blank', 'width=800,height=600,scrollbars=yes,resizable=yes');
+
+                if (!newWindow) {
+                    showToast('Please allow popups to generate barcode', 'warning');
+                    return;
+                }
+
+                showToast(`Opening ${type} barcode...`, 'info');
+            } catch (error) {
+                console.error('❌ Error generating barcode:', error);
+                showToast('Error generating barcode', 'error');
+            }
+        }
+
+        async function generateSticker(productId) {
+            try {
+                console.log(`🏷️ Generating sticker for product ${productId}`);
+                const newWindow = window.open(`/Admin/GenerateSticker/${productId}`, '_blank', 'width=800,height=600,scrollbars=yes,resizable=yes');
+
+                if (!newWindow) {
+                    showToast('Please allow popups to generate sticker', 'warning');
+                    return;
+                }
+
+                showToast('Opening product sticker...', 'info');
+            } catch (error) {
+                console.error('❌ Error generating sticker:', error);
+                showToast('Error generating sticker', 'error');
+            }
+        }
+
+        function printBarcode(productId) {
+            generateBarcode(productId, 'PRINT');
+        }
+
+        function duplicateProduct(productId) {
+            if (confirm('Create a copy of this product? You can edit the details after creation.')) {
+                window.location.href = `/Admin/Products?duplicate=${productId}`;
+            }
+        }
+
+        // Utility functions
+        function getCSRFToken() {
+            const tokenInput = document.querySelector('input[name="__RequestVerificationToken"]');
+            return tokenInput ? tokenInput.value : '';
+        }
+
+        // Close modal on outside click
+        document.querySelectorAll('.modal').forEach(modal => {
+            modal.addEventListener('click', function(e) {
+                if (e.target === this) {
+                    this.classList.remove('show');
+                }
+            });
+        });
+
+        // Toast notification system
+        function showToast(message, type) {
+            const existingToasts = document.querySelectorAll('.toast');
+            existingToasts.forEach(toast => toast.remove());
+
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
+            toast.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                z-index: 9999;
+                padding: 1rem 1.5rem;
+                border-radius: 12px;
+                color: white;
+                font-weight: 600;
+                opacity: 0;
+                transform: translateX(100%);
+                transition: all 0.3s ease;
+                max-width: 350px;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            `;
+
+            switch(type) {
+                case 'success':
+                    toast.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+                    break;
+                case 'error':
+                    toast.style.background = 'linear-gradient(135deg, #ef4444, #dc2626)';
+                    break;
+                case 'warning':
+                    toast.style.background = 'linear-gradient(135deg, #f59e0b, #d97706)';
+                    break;
+                case 'info':
+                    toast.style.background = 'linear-gradient(135deg, #3b82f6, #2563eb)';
+                    break;
+            }
+
+            document.body.appendChild(toast);
+
+            setTimeout(() => {
+                toast.style.opacity = '1';
+                toast.style.transform = 'translateX(0)';
+            }, 100);
+
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateX(100%)';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // Hide loading spinner since we're using server-side rendering
+        document.addEventListener('DOMContentLoaded', function() {
+            const loadingSpinner = document.getElementById('statsLoading');
+            if (loadingSpinner) {
+                loadingSpinner.style.display = 'none';
+            }
+            
+            // Update stock card styling based on low stock status
+            const stockCard = document.getElementById('stockCard');
+            const currentStockElement = document.getElementById('currentStock');
+            const currentStock = parseInt(currentStockElement.textContent);
+            const minStockLevel = parseInt(document.getElementById('minStockLevel').textContent);
+            
+            if (currentStock <= minStockLevel) {
+                stockCard.classList.add('low-stock-card');
+                currentStockElement.classList.add('text-warning');
+            }
+        });
+    </script>
+}
+
+@* Hidden form for CSRF token *@
+<form style="display: none;">
+    @Html.AntiForgeryToken()
+</form>

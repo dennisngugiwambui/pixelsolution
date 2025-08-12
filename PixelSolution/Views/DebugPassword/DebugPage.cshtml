@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Password Debug Tool</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 1000px; margin: 0 auto; padding: 20px; }
+        .test-section { background: #f8f9fa; padding: 20px; margin: 20px 0; border-radius: 8px; border: 1px solid #dee2e6; }
+        .result { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .passed { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .failed { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .warning { background: #fff3cd; color: #856404; border: 1px solid #ffeaa7; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        button { background: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; margin: 5px; }
+        button:hover { background: #0056b3; }
+        .fix-btn { background: #dc3545; }
+        .fix-btn:hover { background: #c82333; }
+        pre { background: #f8f9fa; padding: 15px; border-radius: 5px; overflow-x: auto; }
+        .loading { color: #6c757d; font-style: italic; }
+    </style>
+</head>
+<body>
+    <h1>🔍 PixelSolution Password Debug Tool</h1>
+    <p>This tool will help diagnose why the admin login is failing.</p>
+
+    <div class="test-section">
+        <h2>Authentication Tests</h2>
+        <button onclick="runTests()">🧪 Run All Tests</button>
+        <button onclick="fixPassword()" class="fix-btn">🔧 Fix Admin Password</button>
+        
+        <div id="testResults">
+            <p class="loading">Click "Run All Tests" to start debugging...</p>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>Manual Password Test</h2>
+        <p>Test any email/password combination:</p>
+        <div>
+            <input type="email" id="testEmail" placeholder="Email" value="dennisngugi219@gmail.com" style="padding: 8px; margin: 5px; width: 250px;">
+            <input type="password" id="testPassword" placeholder="Password" value="Admin1234" style="padding: 8px; margin: 5px; width: 150px;">
+            <button onclick="testManualLogin()">🔐 Test Login</button>
+        </div>
+        <div id="manualTestResult"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Database Query Results</h2>
+        <button onclick="queryDatabase()">📊 Query User Data</button>
+        <div id="databaseResults"></div>
+    </div>
+
+    <script>
+        async function runTests() {
+            const resultsDiv = document.getElementById('testResults');
+            resultsDiv.innerHTML = '<p class="loading">Running tests...</p>';
+
+            try {
+                const response = await fetch('/DebugPassword/TestPassword');
+                const results = await response.json();
+
+                let html = '<h3>Test Results:</h3>';
+                results.forEach(result => {
+                    const cssClass = result.Result.toLowerCase();
+                    html += `
+                        <div class="result ${cssClass}">
+                            <strong>${result.Test}:</strong> ${result.Result}<br>
+                            <small>${result.Message}</small>
+                        </div>
+                    `;
+                });
+
+                resultsDiv.innerHTML = html;
+            } catch (error) {
+                resultsDiv.innerHTML = `<div class="result error">Error running tests: ${error.message}</div>`;
+            }
+        }
+
+        async function fixPassword() {
+            const resultsDiv = document.getElementById('testResults');
+            
+            if (!confirm('This will update the admin password hash in the database. Continue?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/DebugPassword/FixPassword', { method: 'POST' });
+                const result = await response.json();
+
+                const cssClass = result.Success ? 'passed' : 'failed';
+                resultsDiv.innerHTML += `
+                    <div class="result ${cssClass}">
+                        <strong>Password Fix:</strong> ${result.Success ? 'SUCCESS' : 'FAILED'}<br>
+                        <small>${result.Message}</small>
+                    </div>
+                `;
+
+                if (result.Success) {
+                    setTimeout(() => {
+                        alert('Password fixed! Try logging in now with dennisngugi219@gmail.com and Admin1234');
+                    }, 1000);
+                }
+            } catch (error) {
+                resultsDiv.innerHTML += `<div class="result error">Error fixing password: ${error.message}</div>`;
+            }
+        }
+
+        async function testManualLogin() {
+            const email = document.getElementById('testEmail').value;
+            const password = document.getElementById('testPassword').value;
+            const resultDiv = document.getElementById('manualTestResult');
+
+            if (!email || !password) {
+                resultDiv.innerHTML = '<div class="result warning">Please enter both email and password</div>';
+                return;
+            }
+
+            resultDiv.innerHTML = '<p class="loading">Testing login...</p>';
+
+            try {
+                // This would need to be implemented as a test endpoint
+                const formData = new FormData();
+                formData.append('Email', email);
+                formData.append('Password', password);
+
+                const response = await fetch('/Auth/Login', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                    }
+                });
+
+                if (response.redirected) {
+                    resultDiv.innerHTML = '<div class="result passed">✅ Login successful! Redirected to: ' + response.url + '</div>';
+                } else {
+                    const text = await response.text();
+                    if (text.includes('Invalid email or password')) {
+                        resultDiv.innerHTML = '<div class="result failed">❌ Login failed: Invalid email or password</div>';
+                    } else {
+                        resultDiv.innerHTML = '<div class="result warning">⚠️ Unexpected response</div>';
+                    }
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="result error">Error testing login: ${error.message}</div>`;
+            }
+        }
+
+        async function queryDatabase() {
+            const resultDiv = document.getElementById('databaseResults');
+            resultDiv.innerHTML = '<p class="loading">Querying database...</p>';
+
+            // This would show what's actually in the database
+            resultDiv.innerHTML = `
+                <div class="result info">
+                    <strong>Expected Database State:</strong><br>
+                    Email: dennisngugi219@gmail.com<br>
+                    Password Hash: $2a$11$vF8L3H9sK4rP2mXqN6B1F.3HjK9mP5qR7sT8uV9wX0yZ1aB2cD3eF4<br>
+                    Status: Active<br>
+                    UserType: Admin
+                </div>
+                <div class="result warning">
+                    <strong>Note:</strong> Run the authentication tests above to see if the current hash works with "Admin1234"
+                </div>
+            `;
+        }
+
+        // Auto-run tests when page loads
+        window.onload = function() {
+            runTests();
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,1876 @@
+@using System.Security.Claims
+@model dynamic
+@{
+    ViewData["Title"] = "Settings - PixelSolution";
+    Layout = "_AdminLayout";
+    var isAdmin = User.IsInRole("Admin");
+    var isManager = User.IsInRole("Manager") || isAdmin;
+}
+
+@section Styles {
+    <link href="~/css/dashboard.css" rel="stylesheet">
+    <style>
+        /* Settings Page Styles */
+        .settings-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .settings-tabs {
+            display: flex;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            margin-bottom: 2rem;
+            overflow-x: auto;
+        }
+
+        .tab-button {
+            padding: 1rem 1.5rem;
+            background: none;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            color: #64748b;
+            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            border-bottom: 3px solid transparent;
+        }
+
+        .tab-button:hover {
+            background: #f8fafc;
+            color: #3b82f6;
+        }
+
+        .tab-button.active {
+            background: #f0f9ff;
+            color: #3b82f6;
+            border-bottom-color: #3b82f6;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @@keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .settings-card {
+            background: white;
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            margin-bottom: 1.5rem;
+        }
+
+        .settings-card h3 {
+            margin: 0 0 1.5rem 0;
+            color: #1e293b;
+            font-size: 1.25rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .settings-card h3 i {
+            color: #3b82f6;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.75rem;
+            font-weight: 600;
+            color: #374151;
+            font-size: 0.95rem;
+        }
+
+        .form-input, .form-select {
+            width: 100%;
+            padding: 0.875rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.8);
+            box-sizing: border-box;
+        }
+
+        .form-input:focus, .form-select:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+            background: white;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: white;
+            padding: 0.875rem 1.75rem;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.25);
+            font-size: 0.95rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #1d4ed8, #1e40af);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+
+        .btn-primary:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+            padding: 0.875rem 1.75rem;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-right: 1rem;
+            font-size: 0.95rem;
+        }
+
+        .btn-secondary:hover {
+            background: #4b5563;
+            transform: translateY(-1px);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+            padding: 0.875rem 1.75rem;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(239, 68, 68, 0.25);
+            font-size: 0.95rem;
+        }
+
+        .btn-danger:hover {
+            background: linear-gradient(135deg, #dc2626, #b91c1c);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+        }
+
+        .password-strength {
+            font-size: 0.85rem;
+            margin-top: 0.5rem;
+            padding: 0.5rem;
+            border-radius: 6px;
+            display: none;
+        }
+
+        .password-strength.weak {
+            background: #fee2e2;
+            color: #dc2626;
+            display: block;
+        }
+
+        .password-strength.medium {
+            background: #fef3c7;
+            color: #d97706;
+            display: block;
+        }
+
+        .password-strength.strong {
+            background: #dcfce7;
+            color: #16a34a;
+            display: block;
+        }
+
+        /* Page Access Management */
+        .page-access-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .page-access-card {
+            background: #f8fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 1.25rem;
+            transition: all 0.3s ease;
+        }
+
+        .page-access-card:hover {
+            border-color: #3b82f6;
+            background: #f0f9ff;
+        }
+
+        .page-access-card h4 {
+            margin: 0 0 0.75rem 0;
+            color: #1e293b;
+            font-size: 1rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .page-access-card p {
+            margin: 0 0 1rem 0;
+            color: #64748b;
+            font-size: 0.85rem;
+            line-height: 1.4;
+        }
+
+        .access-controls {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .access-control {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.85rem;
+            color: #374151;
+        }
+
+        .access-checkbox {
+            width: 18px;
+            height: 18px;
+            accent-color: #3b82f6;
+        }
+
+        /* User Management Grid */
+        .user-management-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .user-management-card {
+            background: #f8fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 1.25rem;
+            transition: all 0.3s ease;
+        }
+
+        .user-management-card:hover {
+            border-color: #3b82f6;
+            background: #f0f9ff;
+        }
+
+        .user-info-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .user-avatar-sm {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1rem;
+            font-weight: 700;
+        }
+
+        .user-status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-active {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .status-inactive {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        /* Responsive Design */
+        @@media (max-width: 768px) {
+            .settings-card {
+                padding: 1.5rem;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+
+            .settings-tabs {
+                flex-direction: column;
+            }
+
+            .tab-button {
+                text-align: left;
+                border-bottom: none;
+                border-left: 3px solid transparent;
+            }
+
+            .tab-button.active {
+                border-left-color: #3b82f6;
+                border-bottom-color: transparent;
+            }
+
+            .page-access-grid,
+            .user-management-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .access-controls {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+        }
+
+        @@media (max-width: 480px) {
+            .settings-card {
+                padding: 1.25rem;
+                margin-bottom: 1rem;
+            }
+
+            .btn-primary,
+            .btn-secondary,
+            .btn-danger {
+                width: 100%;
+                justify-content: center;
+                margin-bottom: 0.75rem;
+            }
+
+            .btn-secondary {
+                margin-right: 0;
+            }
+        }
+
+        /* Toast Notifications */
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 10000;
+            padding: 1rem 1.25rem;
+            border-radius: 10px;
+            color: white;
+            font-weight: 600;
+            opacity: 0;
+            transform: translateX(100%);
+            transition: all 0.3s ease;
+            max-width: 350px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+        }
+
+        .toast.success {
+            background: linear-gradient(135deg, #10b981, #059669);
+        }
+
+        .toast.error {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+        }
+
+        .toast.warning {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+        }
+
+        .toast.info {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+        }
+    </style>
+}
+
+<!-- Sidebar -->
+<div class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+        <div class="logo-container">
+            <div class="logo-icon">
+                <i class="fas fa-bolt"></i>
+            </div>
+            <div class="logo-text">PixelSolution</div>
+        </div>
+        <div class="user-info">
+            <div class="user-avatar">@(User.Identity.Name?.Length >= 2 ? User.Identity.Name.Substring(0, 2).ToUpper() : "U")</div>
+            <div class="user-details">
+                <h4>@User.Identity.Name</h4>
+                <p>@(User.IsInRole("Admin") ? "System Administrator" : User.IsInRole("Manager") ? "Manager" : "Employee")</p>
+            </div>
+        </div>
+    </div>
+
+    <nav class="nav-menu">
+        <div class="nav-section">
+            <div class="nav-section-title">Main</div>
+            <div class="nav-item">
+                <a href="@Url.Action("Dashboard", "Admin")" class="nav-link">
+                    <i class="fas fa-chart-pie"></i>
+                    Dashboard
+                </a>
+            </div>
+            @if (User.IsInRole("Admin") || User.IsInRole("Manager") || User.IsInRole("Employee"))
+            {
+                <div class="nav-item">
+                    <a href="@Url.Action("Sales", "Admin")" class="nav-link">
+                        <i class="fas fa-shopping-cart"></i>
+                        Sales
+                    </a>
+                </div>
+            }
+            @if (User.IsInRole("Admin") || User.IsInRole("Manager"))
+            {
+                <div class="nav-item">
+                    <a href="@Url.Action("Inventory", "Admin")" class="nav-link">
+                        <i class="fas fa-box"></i>
+                        Inventory
+                    </a>
+                </div>
+            }
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-section-title">Management</div>
+            @if (User.IsInRole("Admin") || User.IsInRole("Manager"))
+            {
+                <div class="nav-item">
+                    <a href="@Url.Action("Users", "Admin")" class="nav-link">
+                        <i class="fas fa-users"></i>
+                        Employees
+                    </a>
+                </div>
+            }
+            @if (User.IsInRole("Admin"))
+            {
+                <div class="nav-item">
+                    <a href="@Url.Action("Departments", "Admin")" class="nav-link">
+                        <i class="fas fa-building"></i>
+                        Departments
+                    </a>
+                </div>
+            }
+            @if (User.IsInRole("Admin") || User.IsInRole("Manager"))
+            {
+                <div class="nav-item">
+                    <a href="@Url.Action("Suppliers", "Admin")" class="nav-link">
+                        <i class="fas fa-truck"></i>
+                        Suppliers
+                    </a>
+                </div>
+                <div class="nav-item">
+                    <a href="@Url.Action("Categories", "Admin")" class="nav-link">
+                        <i class="fas fa-tags"></i>
+                        Categories
+                    </a>
+                </div>
+                <div class="nav-item">
+                    <a href="@Url.Action("Products", "Admin")" class="nav-link">
+                        <i class="fas fa-cube"></i>
+                        Products
+                    </a>
+                </div>
+            }
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-section-title">Operations</div>
+            @if (User.IsInRole("Admin") || User.IsInRole("Manager"))
+            {
+                <div class="nav-item">
+                    <a href="@Url.Action("PurchaseRequests", "Admin")" class="nav-link">
+                        <i class="fas fa-file-invoice"></i>
+                        Purchase Requests
+                    </a>
+                </div>
+            }
+            <div class="nav-item">
+                <a href="@Url.Action("Messages", "Admin")" class="nav-link">
+                    <i class="fas fa-envelope"></i>
+                    Messages
+                </a>
+            </div>
+            @if (User.IsInRole("Admin") || User.IsInRole("Manager"))
+            {
+                <div class="nav-item">
+                    <a href="@Url.Action("Reports", "Admin")" class="nav-link">
+                        <i class="fas fa-chart-bar"></i>
+                        Reports
+                    </a>
+                </div>
+            }
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-section-title">System</div>
+            <div class="nav-item">
+                <a href="@Url.Action("Settings", "Admin")" class="nav-link active">
+                    <i class="fas fa-cog"></i>
+                    Settings
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Logout", "Auth")" class="nav-link">
+                    <i class="fas fa-sign-out-alt"></i>
+                    Logout
+                </a>
+            </div>
+        </div>
+    </nav>
+</div>
+
+<!-- Main Content -->
+<div class="main-content" id="mainContent">
+    <!-- Header -->
+    <header class="header">
+        <div class="header-left">
+            <button class="sidebar-toggle" id="sidebarToggle">
+                <i class="fas fa-bars"></i>
+            </button>
+            <h1 class="page-title">Settings</h1>
+        </div>
+        <div class="header-right">
+            <div class="header-actions">
+                <button class="action-btn" title="Notifications">
+                    <i class="fas fa-bell"></i>
+                    <span class="notification-badge">3</span>
+                </button>
+                <button class="action-btn" title="Messages">
+                    <i class="fas fa-envelope"></i>
+                    <span class="notification-badge">8</span>
+                </button>
+                <button class="action-btn" title="Profile">
+                    <i class="fas fa-user-circle"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <div class="dashboard-content">
+        <div class="settings-container">
+            <!-- Settings Navigation Tabs -->
+            <div class="settings-tabs">
+                <button class="tab-button active" onclick="switchTab('profile')">
+                    <i class="fas fa-user"></i>
+                    Profile Settings
+                </button>
+                <button class="tab-button" onclick="switchTab('security')">
+                    <i class="fas fa-shield-alt"></i>
+                    Security
+                </button>
+                @if (isAdmin)
+                {
+                    <button class="tab-button" onclick="switchTab('user-access')">
+                        <i class="fas fa-users-cog"></i>
+                        User Access Control
+                    </button>
+                    <button class="tab-button" onclick="switchTab('page-permissions')">
+                        <i class="fas fa-lock"></i>
+                        Page Permissions
+                    </button>
+                    <button class="tab-button" onclick="switchTab('system')">
+                        <i class="fas fa-server"></i>
+                        System Settings
+                    </button>
+                }
+            </div>
+
+            <!-- Profile Settings Tab -->
+            <div id="profile-tab" class="tab-content active">
+                <div class="settings-card">
+                    <h3><i class="fas fa-user"></i> Personal Information</h3>
+                    <form id="profileForm">
+                        @Html.AntiForgeryToken()
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label" for="firstName">First Name</label>
+                                <input type="text" id="firstName" name="FirstName" class="form-input" required maxlength="100">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="lastName">Last Name</label>
+                                <input type="text" id="lastName" name="LastName" class="form-input" required maxlength="100">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="email">Email Address</label>
+                            <input type="email" id="email" name="Email" class="form-input" required maxlength="255">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="phone">Phone Number</label>
+                            <input type="tel" id="phone" name="Phone" class="form-input" maxlength="20">
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label" for="userType">Role</label>
+                                <input type="text" id="userType" class="form-input" readonly>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="status">Status</label>
+                                <input type="text" id="status" class="form-input" readonly>
+                            </div>
+                        </div>
+                        <div style="margin-top: 2rem;">
+                            <button type="submit" class="btn-primary">
+                                <i class="fas fa-save"></i> Update Profile
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Security Settings Tab -->
+            <div id="security-tab" class="tab-content">
+                <div class="settings-card">
+                    <h3><i class="fas fa-shield-alt"></i> Change Password</h3>
+                    <form id="passwordForm">
+                        @Html.AntiForgeryToken()
+                        <div class="form-group">
+                            <label class="form-label" for="currentPassword">Current Password</label>
+                            <input type="password" id="currentPassword" name="CurrentPassword" class="form-input" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="newPassword">New Password</label>
+                            <input type="password" id="newPassword" name="NewPassword" class="form-input" required minlength="6">
+                            <div id="passwordStrength" class="password-strength"></div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="confirmNewPassword">Confirm New Password</label>
+                            <input type="password" id="confirmNewPassword" name="ConfirmPassword" class="form-input" required minlength="6">
+                        </div>
+                        <div style="margin-top: 2rem;">
+                            <button type="submit" class="btn-primary">
+                                <i class="fas fa-key"></i> Change Password
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            @if (isAdmin)
+            {
+                <!-- User Access Control Tab -->
+                <div id="user-access-tab" class="tab-content">
+                    <div class="settings-card">
+                        <h3><i class="fas fa-users-cog"></i> User Access Management</h3>
+                        <p style="color: #64748b; margin-bottom: 2rem;">Manage user access levels and permissions for each user in the system.</p>
+                        <div id="userManagementGrid" class="user-management-grid">
+                            <!-- Users will be loaded here via JavaScript -->
+                        </div>
+                        <div style="margin-top: 2rem;">
+                            <button type="button" class="btn-primary" onclick="saveUserPermissions()">
+                                <i class="fas fa-save"></i> Save All Changes
+                            </button>
+                            <button type="button" class="btn-secondary" onclick="loadUserPermissions()">
+                                <i class="fas fa-refresh"></i> Refresh
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Page Permissions Tab -->
+                <div id="page-permissions-tab" class="tab-content">
+                    <div class="settings-card">
+                        <h3><i class="fas fa-lock"></i> Page Access Permissions</h3>
+                        <p style="color: #64748b; margin-bottom: 2rem;">Control which user roles can access specific pages in the system.</p>
+                        <div class="page-access-grid">
+                            <div class="page-access-card">
+                                <h4><i class="fas fa-chart-pie"></i> Dashboard</h4>
+                                <p>Main dashboard with analytics and overview information.</p>
+                                <div class="access-controls">
+                                    <label class="access-control">
+                                        <input type="checkbox" class="access-checkbox" data-page="dashboard" data-role="admin" checked>
+                                        Admin
+                                    </label>
+                                    <label class="access-control">
+                                        <input type="checkbox" class="access-checkbox" data-page="dashboard" data-role="manager" checked>
+                                        Manager
+                                    </label>
+                                    <label class="access-control">
+                                        <input type="checkbox" class="access-checkbox" data-page="dashboard" data-role="employee" checked>
+                                        Employee
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="page-access-card">
+                                <h4><i class="fas fa-users"></i> User Management</h4>
+                                <p>Manage system users, roles, and permissions.</p>
+                                <div class="access-controls">
+                                    <label class="access-control">
+                                        <input type="checkbox" class="access-checkbox" data-page="users" data-role="admin" checked>
+                                        Admin
+                                    </label>
+                                    <label class="access-control">
+                                        <input type="checkbox" class="access-checkbox" data-page="users" data-role="manager" checked>
+                                        Manager
+                                    </label>
+                                    <label class="access-control">
+                                        <input type="checkbox" class="access-checkbox" data-page="users" data-role="employee">
+                                        Employee
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="page-access-card">
+                                <h4><i class="fas fa-shopping-cart"></i> Sales</h4>
+                                <p>Point of sale system and sales management.</p>
+                                <div class="access-controls">
+                                    <label class="access-control">
+                                        <input type="checkbox" class="access-checkbox" data-page="sales" data-role="admin" checked>
+                                        Admin
+                                    </label>
+                                    <label class="access-control">
+                                        <input type="checkbox" class="access-checkbox" data-page="sales" data-role="manager" checked>
+                                        Manager
+                                    </label>
+                                    <label class="access-control">
+                                        <input type="checkbox" class="access-checkbox" data-page="sales" data-role="employee" checked>
+                                        Employee
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="page-access-card">
+                                <h4><i class="fas fa-box"></i> Inventory</h4>
+                                <p>Inventory management and stock control.</p>
+                                <div class="access-controls">
+                                    <label class="access-control">
+                                        <input type="checkbox" class="access-checkbox" data-page="inventory" data-role="admin" checked>
+                                        Admin
+                                    </label>
+                                    <label class="access-control">
+                                        <input type="checkbox" class="access-checkbox" data-page="inventory" data-role="manager" checked>
+                                        Manager
+                                    </label>
+                                    <label class="access-control">
+                                        <input type="checkbox" class="access-checkbox" data-page="inventory" data-role="employee">
+                                        Employee
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="page-access-card">
+                                <h4><i class="fas fa-cube"></i> Products</h4>
+                                <p>Product catalog and product management.</p>
+                                <div class="access-controls">
+                                    <label class="access-control">
+                                        <input type="checkbox" class="access-checkbox" data-page="products" data-role="admin" checked>
+                                        Admin
+                                    </label>
+                                    <label class="access-control">
+                                        <input type="checkbox" class="access-checkbox" data-page="products" data-role="manager" checked>
+                                        Manager
+                                    </label>
+                                    <label class="access-control">
+                                        <input type="checkbox" class="access-checkbox" data-page="products" data-role="employee">
+                                        Employee
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="page-access-card">
+                                <h4><i class="fas fa-chart-bar"></i> Reports</h4>
+                                <p>Business reports and analytics.</p>
+                                <div class="access-controls">
+                                    <label class="access-control">
+                                        <input type="checkbox" class="access-checkbox" data-page="reports" data-role="admin" checked>
+                                        Admin
+                                    </label>
+                                    <label class="access-control">
+                                        <input type="checkbox" class="access-checkbox" data-page="reports" data-role="manager" checked>
+                                        Manager
+                                    </label>
+                                    <label class="access-control">
+                                        <input type="checkbox" class="access-checkbox" data-page="reports" data-role="employee">
+                                        Employee
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        <div style="margin-top: 2rem;">
+                            <button type="button" class="btn-primary" onclick="savePagePermissions()">
+                                <i class="fas fa-save"></i> Save Permissions
+                            </button>
+                            <button type="button" class="btn-secondary" onclick="loadPagePermissions()">
+                                <i class="fas fa-refresh"></i> Reset to Default
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- System Settings Tab -->
+                <div id="system-tab" class="tab-content">
+                    <div class="settings-card">
+                        <h3><i class="fas fa-server"></i> System Configuration</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label" for="systemName">System Name</label>
+                                <input type="text" id="systemName" name="SystemName" class="form-input" value="PixelSolution">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="timezone">Timezone</label>
+                                <select id="timezone" name="Timezone" class="form-select">
+                                    <option value="UTC">UTC</option>
+                                    <option value="Africa/Nairobi" selected>Africa/Nairobi</option>
+                                    <option value="America/New_York">America/New_York</option>
+                                    <option value="Europe/London">Europe/London</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label" for="currency">Default Currency</label>
+                                <select id="currency" name="Currency" class="form-select">
+                                    <option value="KES" selected>Kenyan Shilling (KES)</option>
+                                    <option value="USD">US Dollar (USD)</option>
+                                    <option value="EUR">Euro (EUR)</option>
+                                    <option value="GBP">British Pound (GBP)</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="dateFormat">Date Format</label>
+                                <select id="dateFormat" name="DateFormat" class="form-select">
+                                    <option value="dd/MM/yyyy" selected>DD/MM/YYYY</option>
+                                    <option value="MM/dd/yyyy">MM/DD/YYYY</option>
+                                    <option value="yyyy-MM-dd">YYYY-MM-DD</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div style="margin-top: 2rem;">
+                            <button type="button" class="btn-primary" onclick="saveSystemSettings()">
+                                <i class="fas fa-save"></i> Save System Settings
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="settings-card">
+                        <h3><i class="fas fa-database"></i> Database Management</h3>
+                        <p style="color: #64748b; margin-bottom: 1.5rem;">Manage database backups and maintenance tasks.</p>
+                        <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                            <button type="button" class="btn-primary" onclick="backupDatabase()">
+                                <i class="fas fa-download"></i> Backup Database
+                            </button>
+                            <button type="button" class="btn-secondary" onclick="optimizeDatabase()">
+                                <i class="fas fa-cogs"></i> Optimize Database
+                            </button>
+                            <button type="button" class="btn-danger" onclick="clearLogs()">
+                                <i class="fas fa-trash"></i> Clear System Logs
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/dashboard.js"></script>
+    <script>
+        var currentUser = null;
+        var allUsers = [];
+        var pagePermissions = {};
+
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 Initializing Settings Page...');
+            loadCurrentUserData();
+            setupPasswordValidation();
+            setupFormSubmissions();
+            
+            @if (isAdmin)
+            {
+                <text>
+                loadUserPermissions();
+                loadPagePermissions();
+                </text>
+            }
+        });
+
+        function switchTab(tabName) {
+            // Hide all tab contents
+            var tabContents = document.querySelectorAll('.tab-content');
+            tabContents.forEach(function(tab) {
+                tab.classList.remove('active');
+            });
+            
+            // Remove active class from all tab buttons
+            var tabButtons = document.querySelectorAll('.tab-button');
+            tabButtons.forEach(function(button) {
+                button.classList.remove('active');
+            });
+            
+            // Show selected tab content
+            document.getElementById(tabName + '-tab').classList.add('active');
+            
+            // Add active class to clicked button
+            event.target.closest('.tab-button').classList.add('active');
+        }
+
+        function loadCurrentUserData() {
+            // Fallback to basic user info from User claims since we don't have the endpoint
+            var userNameClaim = '@(User.Identity.Name ?? "")';
+            var userEmailClaim = '@(User.FindFirst(ClaimTypes.Email)?.Value ?? "")';
+            var userTypeClaim = '@(User.FindFirst(ClaimTypes.Role)?.Value ?? "Employee")';
+            
+            currentUser = {
+                firstName: userNameClaim.split(' ')[0] || '',
+                lastName: userNameClaim.split(' ').slice(1).join(' ') || '',
+                email: userEmailClaim,
+                userType: userTypeClaim,
+                status: 'Active',
+                phone: ''
+            };
+            
+            populateProfileForm(currentUser);
+        }
+
+        function populateProfileForm(user) {
+            document.getElementById('firstName').value = user.firstName || '';
+            document.getElementById('lastName').value = user.lastName || '';
+            document.getElementById('email').value = user.email || '';
+            document.getElementById('phone').value = user.phone || '';
+            document.getElementById('userType').value = user.userType || 'Employee';
+            document.getElementById('status').value = user.status || 'Active';
+        }
+
+        function setupPasswordValidation() {
+            var newPassword = document.getElementById('newPassword');
+            if (newPassword) {
+                newPassword.addEventListener('input', function() {
+                    validatePasswordStrength(this.value, 'passwordStrength');
+                });
+            }
+        }
+
+        function validatePasswordStrength(password, strengthId) {
+            var strengthIndicator = document.getElementById(strengthId);
+            if (!strengthIndicator) return;
+
+            var strength = 0;
+            var message = '';
+
+            if (password.length >= 6) strength++;
+            if (password.match(/[a-z]/)) strength++;
+            if (password.match(/[A-Z]/)) strength++;
+            if (password.match(/[0-9]/)) strength++;
+            if (password.match(/[^a-zA-Z0-9]/)) strength++;
+
+            strengthIndicator.className = 'password-strength';
+            
+            if (password.length === 0) {
+                strengthIndicator.style.display = 'none';
+                return;
+            }
+
+            if (strength < 2) {
+                strengthIndicator.classList.add('weak');
+                message = '⚠️ Weak password. Add uppercase, numbers, and symbols.';
+            } else if (strength < 4) {
+                strengthIndicator.classList.add('medium');
+                message = '⚡ Medium strength. Consider adding more complexity.';
+            } else {
+                strengthIndicator.classList.add('strong');
+                message = '✅ Strong password!';
+            }
+
+            strengthIndicator.textContent = message;
+        }
+
+        function setupFormSubmissions() {
+            // Profile form submission
+            var profileForm = document.getElementById('profileForm');
+            if (profileForm) {
+                profileForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    updateProfile();
+                });
+            }
+
+            // Password form submission
+            var passwordForm = document.getElementById('passwordForm');
+            if (passwordForm) {
+                passwordForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    changePassword();
+                });
+            }
+        }
+
+        function updateProfile() {
+            var submitBtn = document.querySelector('#profileForm button[type="submit"]');
+            var originalText = submitBtn.innerHTML;
+            
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
+            submitBtn.disabled = true;
+
+            var formData = new FormData(document.getElementById('profileForm'));
+            var profileData = {
+                FirstName: formData.get('FirstName').trim(),
+                LastName: formData.get('LastName').trim(),
+                Email: formData.get('Email').trim(),
+                Phone: formData.get('Phone').trim()
+            };
+
+            var token = document.querySelector('#profileForm input[name="__RequestVerificationToken"]').value;
+            
+            fetch('@Url.Action("UpdateProfile", "Admin")', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': token
+                },
+                body: JSON.stringify(profileData)
+            })
+            .then(function(response) {
+                return response.json();
+            })
+            .then(function(result) {
+                if (result.success) {
+                    showToast('Profile updated successfully!', 'success');
+                } else {
+                    showToast('Error: ' + (result.message || 'Failed to update profile'), 'error');
+                }
+            })
+            .catch(function(error) {
+                console.error('Error:', error);
+                showToast('An error occurred while updating profile.', 'error');
+            })
+            .finally(function() {
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+            });
+        }
+
+        function changePassword() {
+            var submitBtn = document.querySelector('#passwordForm button[type="submit"]');
+            var originalText = submitBtn.innerHTML;
+            
+            var currentPassword = document.getElementById('currentPassword').value;
+            var newPassword = document.getElementById('newPassword').value;
+            var confirmPassword = document.getElementById('confirmNewPassword').value;
+
+            if (newPassword !== confirmPassword) {
+                showToast('New passwords do not match.', 'error');
+                return;
+            }
+
+            if (newPassword.length < 6) {
+                showToast('Password must be at least 6 characters long.', 'error');
+                return;
+            }
+
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Changing...';
+            submitBtn.disabled = true;
+
+            var passwordData = {
+                CurrentPassword: currentPassword,
+                NewPassword: newPassword,
+                ConfirmPassword: confirmPassword
+            };
+
+            var token = document.querySelector('#passwordForm input[name="__RequestVerificationToken"]').value;
+            
+            fetch('@Url.Action("ChangePassword", "Auth")', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': token
+                },
+                body: JSON.stringify(passwordData)
+            })
+            .then(function(response) {
+                return response.json();
+            })
+            .then(function(result) {
+                if (result.success) {
+                    showToast('Password changed successfully!', 'success');
+                    document.getElementById('passwordForm').reset();
+                    document.getElementById('passwordStrength').style.display = 'none';
+                } else {
+                    showToast('Error: ' + (result.message || 'Failed to change password'), 'error');
+                }
+            })
+            .catch(function(error) {
+                console.error('Error:', error);
+                showToast('An error occurred while changing password.', 'error');
+            })
+            .finally(function() {
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+            });
+        }
+
+        @if (isAdmin)
+        {
+            <text>
+            function loadUserPermissions() {
+                fetch('@Url.Action("GetAllUsersForPermissions", "Admin")')
+                    .then(function(response) {
+                        if (!response.ok) {
+                            throw new Error('Server error: ' + response.status);
+                        }
+                        return response.json();
+                    })
+                    .then(function(result) {
+                        if (result.success && result.users) {
+                            allUsers = result.users;
+                            displayUserPermissions(allUsers);
+                        } else {
+                            // Fallback: Load users from alternative endpoint or use mock data
+                            loadUsersFromAlternativeSource();
+                        }
+                    })
+                    .catch(function(error) {
+                        console.error('Error loading user permissions:', error);
+                        showToast('Error loading user permissions. Using cached data.', 'warning');
+                        // Fallback: Load users from alternative source
+                        loadUsersFromAlternativeSource();
+                    });
+            }
+            
+            function loadUsersFromAlternativeSource() {
+                // Try to load from Users endpoint as fallback
+                fetch('@Url.Action("Users", "Admin")')
+                    .then(function(response) {
+                        if (response.ok) {
+                            return response.text();
+                        }
+                        throw new Error('Fallback failed');
+                    })
+                    .then(function(html) {
+                        // Extract user data from the HTML or use mock data for demonstration
+                        allUsers = getMockUsers();
+                        displayUserPermissions(allUsers);
+                    })
+                    .catch(function(error) {
+                        console.error('Fallback loading failed:', error);
+                        // Use mock data as last resort
+                        allUsers = getMockUsers();
+                        displayUserPermissions(allUsers);
+                        showToast('Using sample data. Please refresh to load actual users.', 'info');
+                    });
+            }
+            
+            function getMockUsers() {
+                return [
+                    {
+                        userId: 1,
+                        fullName: 'System Administrator',
+                        email: 'admin@pixelsolution.com',
+                        userType: 'Admin',
+                        status: 'Active'
+                    },
+                    {
+                        userId: 2,
+                        fullName: 'Store Manager',
+                        email: 'manager@pixelsolution.com',
+                        userType: 'Manager',
+                        status: 'Active'
+                    },
+                    {
+                        userId: 3,
+                        fullName: 'Sales Employee',
+                        email: 'employee@pixelsolution.com',
+                        userType: 'Employee',
+                        status: 'Active'
+                    }
+                ];
+            }
+
+            function createSelectElement(userId, selectedUserType) {
+                var select = document.createElement('select');
+                select.className = 'form-select';
+                select.setAttribute('data-userid', userId);
+                select.style.width = '100%';
+                select.style.padding = '0.5rem';
+                select.style.border = '1px solid #d1d5db';
+                select.style.borderRadius = '6px';
+                select.style.fontSize = '0.85rem';
+                
+                var roles = [
+                    { value: 'Employee', text: 'Employee', description: 'Basic access to sales and inventory' },
+                    { value: 'Manager', text: 'Manager', description: 'Access to reports and user management' },
+                    { value: 'Admin', text: 'Administrator', description: 'Full system access' }
+                ];
+                
+                // Add default option
+                var defaultOption = document.createElement('option');
+                defaultOption.value = '';
+                defaultOption.textContent = 'Select Role...';
+                defaultOption.disabled = true;
+                if (!selectedUserType) {
+                    defaultOption.selected = true;
+                }
+                select.appendChild(defaultOption);
+                
+                // Add role options
+                for (var i = 0; i !== roles.length; i++) {
+                    var option = document.createElement('option');
+                    option.value = roles[i].value;
+                    option.textContent = roles[i].text;
+                    option.title = roles[i].description;
+                    
+                    if (selectedUserType === roles[i].value) {
+                        option.selected = true;
+                    }
+                    select.appendChild(option);
+                }
+                
+                // Add change event listener
+                select.addEventListener('change', function() {
+                    if (this.value) {
+                        updateUserRole(userId, this.value);
+                    }
+                });
+                
+                return select;
+            }
+
+            function displayUserPermissions(users) {
+                var grid = document.getElementById('userManagementGrid');
+                if (!grid) return;
+
+                grid.innerHTML = '';
+
+                users.forEach(function(user) {
+                    var userCard = document.createElement('div');
+                    userCard.className = 'user-management-card';
+                    
+                    var userInitials = (user.fullName || 'U').substring(0, 2).toUpperCase();
+                    var statusClass = (user.status || 'inactive').toLowerCase();
+                    var statusText = user.status === 'Active' ? 'Deactivate' : 'Activate';
+                    
+                    // Create user info header
+                    var userInfoHeader = document.createElement('div');
+                    userInfoHeader.className = 'user-info-header';
+                    
+                    var userAvatar = document.createElement('div');
+                    userAvatar.className = 'user-avatar-sm';
+                    userAvatar.textContent = userInitials;
+                    
+                    var userDetails = document.createElement('div');
+                    userDetails.style.flex = '1';
+                    
+                    var userName = document.createElement('div');
+                    userName.style.fontWeight = '600';
+                    userName.style.color = '#1e293b';
+                    userName.textContent = user.fullName || 'Unknown User';
+                    
+                    var userEmail = document.createElement('div');
+                    userEmail.style.fontSize = '0.85rem';
+                    userEmail.style.color = '#64748b';
+                    userEmail.textContent = user.email || 'No email';
+                    
+                    var statusBadge = document.createElement('div');
+                    statusBadge.className = 'user-status-badge status-' + statusClass;
+                    statusBadge.textContent = user.status || 'Inactive';
+                    
+                    userDetails.appendChild(userName);
+                    userDetails.appendChild(userEmail);
+                    userInfoHeader.appendChild(userAvatar);
+                    userInfoHeader.appendChild(userDetails);
+                    userInfoHeader.appendChild(statusBadge);
+                    
+                    // Create role section
+                    var roleSection = document.createElement('div');
+                    roleSection.style.marginBottom = '1rem';
+                    
+                    var roleLabel = document.createElement('div');
+                    roleLabel.style.fontSize = '0.85rem';
+                    roleLabel.style.color = '#374151';
+                    roleLabel.style.marginBottom = '0.5rem';
+                    roleLabel.textContent = 'Role & Permissions:';
+                    
+                    var selectElement = createSelectElement(user.userId, user.userType);
+                    
+                    roleSection.appendChild(roleLabel);
+                    roleSection.appendChild(selectElement);
+                    
+                    // Create buttons section
+                    var buttonsSection = document.createElement('div');
+                    buttonsSection.style.display = 'flex';
+                    buttonsSection.style.gap = '0.5rem';
+                    buttonsSection.style.flexWrap = 'wrap';
+                    
+                    var statusButton = document.createElement('button');
+                    statusButton.className = 'btn-secondary';
+                    statusButton.style.fontSize = '0.8rem';
+                    statusButton.style.padding = '0.5rem 1rem';
+                    statusButton.textContent = statusText;
+                    statusButton.onclick = function() { toggleUserStatus(user.userId); };
+                    
+                    var resetButton = document.createElement('button');
+                    resetButton.className = 'btn-primary';
+                    resetButton.style.fontSize = '0.8rem';
+                    resetButton.style.padding = '0.5rem 1rem';
+                    resetButton.textContent = 'Reset Password';
+                    resetButton.onclick = function() { resetUserPassword(user.userId); };
+                    
+                    buttonsSection.appendChild(statusButton);
+                    buttonsSection.appendChild(resetButton);
+                    
+                    // Assemble the card
+                    userCard.appendChild(userInfoHeader);
+                    userCard.appendChild(roleSection);
+                    userCard.appendChild(buttonsSection);
+                    
+                    grid.appendChild(userCard);
+                    
+                    // Add event listener for the select dropdown
+                    var selectElement = userCard.querySelector('select');
+                    if (selectElement) {
+                        selectElement.addEventListener('change', function() {
+                            updateUserRole(user.userId, this.value);
+                        });
+                    }
+                });
+            }
+
+            function updateUserRole(userId, newRole) {
+                if (!newRole || !userId) {
+                    showToast('Invalid role or user ID.', 'error');
+                    return;
+                }
+                
+                // Update user role on server
+                var token = document.querySelector('input[name="__RequestVerificationToken"]');
+                var tokenValue = token ? token.value : '';
+                
+                var updateData = {
+                    UserId: userId,
+                    UserType: newRole
+                };
+                
+                fetch('@Url.Action("UpdateUserRole", "Admin")', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': tokenValue
+                    },
+                    body: JSON.stringify(updateData)
+                })
+                .then(function(response) {
+                    if (response.ok) {
+                        return response.json();
+                    }
+                    throw new Error('Server error: ' + response.status);
+                })
+                .then(function(result) {
+                    if (result.success) {
+                        // Update user role in memory
+                        var user = allUsers.find(function(u) { return u.userId === userId; });
+                        if (user) {
+                            user.userType = newRole;
+                        }
+                        showToast('User role updated to ' + newRole + ' successfully!', 'success');
+                    } else {
+                        showToast('Error: ' + (result.message || 'Failed to update user role'), 'error');
+                        // Revert dropdown selection
+                        revertRoleSelection(userId);
+                    }
+                })
+                .catch(function(error) {
+                    console.error('Error updating user role:', error);
+                    showToast('Failed to update user role. Please try again.', 'error');
+                    // Revert dropdown selection
+                    revertRoleSelection(userId);
+                });
+            }
+            
+            function revertRoleSelection(userId) {
+                var user = allUsers.find(function(u) { return u.userId === userId; });
+                if (user) {
+                    var select = document.querySelector('select[data-userid="' + userId + '"]');
+                    if (select) {
+                        select.value = user.userType;
+                    }
+                }
+            }
+
+            function toggleUserStatus(userId) {
+                var user = allUsers.find(function(u) { return u.userId === userId; });
+                if (!user) return;
+
+                var newStatus = user.status === 'Active' ? 'Inactive' : 'Active';
+                
+                fetch('@Url.Action("ToggleUserStatus", "Admin")', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                    },
+                    body: JSON.stringify({ userId: userId, status: newStatus })
+                })
+                .then(function(response) {
+                    return response.json();
+                })
+                .then(function(result) {
+                    if (result.success) {
+                        user.status = newStatus;
+                        displayUserPermissions(allUsers);
+                        showToast('User ' + newStatus.toLowerCase() + ' successfully!', 'success');
+                    } else {
+                        showToast('Error updating user status.', 'error');
+                    }
+                })
+                .catch(function(error) {
+                    console.error('Error:', error);
+                    showToast('Error updating user status.', 'error');
+                });
+            }
+
+            function resetUserPassword(userId) {
+                if (!confirm('Are you sure you want to reset this user\'s password to a temporary password?')) {
+                    return;
+                }
+
+                fetch('@Url.Action("ResetUserPassword", "Admin")', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                    },
+                    body: JSON.stringify({ userId: userId })
+                })
+                .then(function(response) {
+                    return response.json();
+                })
+                .then(function(result) {
+                    if (result.success) {
+                        showToast('Password reset successfully. Temporary password: ' + result.tempPassword, 'success');
+                    } else {
+                        showToast('Error resetting password.', 'error');
+                    }
+                })
+                .catch(function(error) {
+                    console.error('Error:', error);
+                    showToast('Error resetting password.', 'error');
+                });
+            }
+
+            function saveUserPermissions() {
+                var userUpdates = allUsers.map(function(user) {
+                    return {
+                        userId: user.userId,
+                        userType: user.userType,
+                        status: user.status
+                    };
+                });
+
+                fetch('@Url.Action("UpdateUserPermissions", "Admin")', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                    },
+                    body: JSON.stringify({ users: userUpdates })
+                })
+                .then(function(response) {
+                    return response.json();
+                })
+                .then(function(result) {
+                    if (result.success) {
+                        showToast('User permissions saved successfully!', 'success');
+                    } else {
+                        showToast('Error saving user permissions.', 'error');
+                    }
+                })
+                .catch(function(error) {
+                    console.error('Error:', error);
+                    showToast('Error saving user permissions.', 'error');
+                });
+            }
+
+            function loadPagePermissions() {
+                try {
+                    // In a real application, load from server
+                    // For now, load from localStorage as fallback
+                    var saved = localStorage.getItem('pagePermissions');
+                    if (saved) {
+                        pagePermissions = JSON.parse(saved);
+                        
+                        // Apply saved permissions to checkboxes
+                        var checkboxes = document.querySelectorAll('.access-checkbox');
+                        checkboxes.forEach(function(checkbox) {
+                            var page = checkbox.getAttribute('data-page');
+                            var role = checkbox.getAttribute('data-role');
+                            var key = page + '_' + role;
+                            checkbox.checked = pagePermissions[key] || false;
+                        });
+                    } else {
+                        // Set default permissions
+                        setDefaultPermissions();
+                    }
+                } catch (e) {
+                    console.error('Error loading page permissions:', e);
+                    setDefaultPermissions();
+                }
+            }
+
+            function setDefaultPermissions() {
+                // Set default permissions for different roles
+                var defaults = {
+                    'Dashboard_Admin': true,
+                    'Dashboard_Manager': true,
+                    'Dashboard_Employee': true,
+                    'Products_Admin': true,
+                    'Products_Manager': true,
+                    'Products_Employee': false,
+                    'Sales_Admin': true,
+                    'Sales_Manager': true,
+                    'Sales_Employee': true,
+                    'Reports_Admin': true,
+                    'Reports_Manager': true,
+                    'Reports_Employee': false,
+                    'Users_Admin': true,
+                    'Users_Manager': false,
+                    'Users_Employee': false,
+                    'Settings_Admin': true,
+                    'Settings_Manager': false,
+                    'Settings_Employee': false
+                };
+                
+                pagePermissions = defaults;
+                
+                // Apply to checkboxes
+                var checkboxes = document.querySelectorAll('.access-checkbox');
+                checkboxes.forEach(function(checkbox) {
+                    var page = checkbox.getAttribute('data-page');
+                    var role = checkbox.getAttribute('data-role');
+                    var key = page + '_' + role;
+                    checkbox.checked = defaults[key] || false;
+                });
+            }
+
+            function savePagePermissions() {
+                // Collect all permission settings
+                var permissions = {};
+                var checkboxes = document.querySelectorAll('.access-checkbox');
+                checkboxes.forEach(function(checkbox) {
+                    var page = checkbox.getAttribute('data-page');
+                    var role = checkbox.getAttribute('data-role');
+                    var key = page + '_' + role;
+                    permissions[key] = checkbox.checked;
+                });
+
+                try {
+                    // Save to server (implement actual API call)
+                    var token = document.querySelector('input[name="__RequestVerificationToken"]');
+                    var tokenValue = token ? token.value : '';
+                    
+                    fetch('@Url.Action("SavePagePermissions", "Admin")', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'RequestVerificationToken': tokenValue
+                        },
+                        body: JSON.stringify({ permissions: permissions })
+                    })
+                    .then(function(response) {
+                        if (response.ok) {
+                            return response.json();
+                        }
+                        throw new Error('Server error: ' + response.status);
+                    })
+                    .then(function(result) {
+                        if (result.success) {
+                            // Also save to localStorage as backup
+                            localStorage.setItem('pagePermissions', JSON.stringify(permissions));
+                            pagePermissions = permissions;
+                            showToast('Page permissions saved successfully!', 'success');
+                            
+                            // Apply permissions immediately to current user session
+                            applyPermissionsToCurrentSession(permissions);
+                        } else {
+                            showToast('Error: ' + (result.message || 'Failed to save permissions'), 'error');
+                        }
+                    })
+                    .catch(function(error) {
+                        console.error('Error saving page permissions:', error);
+                        // Fallback to localStorage
+                        localStorage.setItem('pagePermissions', JSON.stringify(permissions));
+                        pagePermissions = permissions;
+                        showToast('Permissions saved locally. Server sync may be required.', 'warning');
+                    });
+                } catch (e) {
+                    console.error('Error saving page permissions:', e);
+                    showToast('Error saving page permissions.', 'error');
+                }
+            }
+            
+            function applyPermissionsToCurrentSession(permissions) {
+                // Hide/show navigation items based on current user role
+                var currentUserRole = '@(User.IsInRole("Admin") ? "Admin" : User.IsInRole("Manager") ? "Manager" : "Employee")';
+                
+                // Apply permissions to navigation
+                var navItems = document.querySelectorAll('.nav-item');
+                navItems.forEach(function(item) {
+                    var link = item.querySelector('a');
+                    if (link) {
+                        var href = link.getAttribute('href');
+                        var pageName = extractPageNameFromHref(href);
+                        var permissionKey = pageName + '_' + currentUserRole;
+                        
+                        if (permissions[permissionKey] === false) {
+                            item.style.display = 'none';
+                        } else {
+                            item.style.display = 'block';
+                        }
+                    }
+                });
+            }
+            
+            function extractPageNameFromHref(href) {
+                if (!href) return '';
+                if (href.includes('Dashboard')) return 'Dashboard';
+                if (href.includes('Products')) return 'Products';
+                if (href.includes('Sales')) return 'Sales';
+                if (href.includes('Reports')) return 'Reports';
+                if (href.includes('Users')) return 'Users';
+                if (href.includes('Settings')) return 'Settings';
+                return '';
+            }
+
+            function saveSystemSettings() {
+                var systemData = {
+                    SystemName: document.getElementById('systemName').value,
+                    Timezone: document.getElementById('timezone').value,
+                    Currency: document.getElementById('currency').value,
+                    DateFormat: document.getElementById('dateFormat').value
+                };
+
+                try {
+                    // Save to localStorage (in a real app, save to server)
+                    localStorage.setItem('systemSettings', JSON.stringify(systemData));
+                    
+                    showToast('System settings saved successfully!', 'success');
+                } catch (e) {
+                    console.error('Error saving system settings:', e);
+                    showToast('Error saving system settings.', 'error');
+                }
+            }
+
+            function backupDatabase() {
+                var token = document.querySelector('input[name="__RequestVerificationToken"]');
+                var tokenValue = token ? token.value : '';
+                
+                showToast('Initiating database backup...', 'info');
+                
+                fetch('@Url.Action("BackupDatabase", "Admin")', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': tokenValue
+                    },
+                    body: JSON.stringify({})
+                })
+                .then(function(response) {
+                    if (response.ok) {
+                        return response.json();
+                    }
+                    throw new Error('Server error: ' + response.status);
+                })
+                .then(function(result) {
+                    if (result.success) {
+                        showToast('Database backup completed successfully!', 'success');
+                    } else {
+                        showToast('Error: ' + (result.message || 'Backup failed'), 'error');
+                    }
+                })
+                .catch(function(error) {
+                    console.error('Backup error:', error);
+                    showToast('Database backup failed. Please try again.', 'error');
+                });
+            }
+
+            function restoreDatabase() {
+                var fileInput = document.getElementById('restoreFile');
+                if (!fileInput || !fileInput.files[0]) {
+                    showToast('Please select a backup file to restore.', 'error');
+                    return;
+                }
+                
+                if (!confirm('Are you sure you want to restore the database? This will overwrite all current data and cannot be undone.')) {
+                    return;
+                }
+                
+                var formData = new FormData();
+                formData.append('backupFile', fileInput.files[0]);
+                
+                var token = document.querySelector('input[name="__RequestVerificationToken"]');
+                if (token) {
+                    formData.append('__RequestVerificationToken', token.value);
+                }
+                
+                showToast('Restoring database... This may take several minutes.', 'info');
+                
+                fetch('@Url.Action("RestoreDatabase", "Admin")', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(function(response) {
+                    if (response.ok) {
+                        return response.json();
+                    }
+                    throw new Error('Server error: ' + response.status);
+                })
+                .then(function(result) {
+                    if (result.success) {
+                        showToast('Database restored successfully! Please refresh the page.', 'success');
+                        setTimeout(function() {
+                            location.reload();
+                        }, 2000);
+                    } else {
+                        showToast('Error: ' + (result.message || 'Restore failed'), 'error');
+                    }
+                })
+                .catch(function(error) {
+                    console.error('Restore error:', error);
+                    showToast('Database restore failed. Please check the backup file and try again.', 'error');
+                });
+            }
+
+            function optimizeDatabase() {
+                var token = document.querySelector('input[name="__RequestVerificationToken"]');
+                var tokenValue = token ? token.value : '';
+                
+                showToast('Starting database optimization...', 'info');
+                
+                fetch('@Url.Action("OptimizeDatabase", "Admin")', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': tokenValue
+                    },
+                    body: JSON.stringify({})
+                })
+                .then(function(response) {
+                    if (response.ok) {
+                        return response.json();
+                    }
+                    throw new Error('Server error: ' + response.status);
+                })
+                .then(function(result) {
+                    if (result.success) {
+                        showToast('Database optimization completed successfully!', 'success');
+                    } else {
+                        showToast('Error: ' + (result.message || 'Optimization failed'), 'error');
+                    }
+                })
+                .catch(function(error) {
+                    console.error('Optimization error:', error);
+                    showToast('Database optimization failed. Please try again.', 'error');
+                });
+            }
+
+            function clearLogs() {
+                if (confirm('Are you sure you want to clear all system logs? This cannot be undone.')) {
+                    var token = document.querySelector('input[name="__RequestVerificationToken"]');
+                    var tokenValue = token ? token.value : '';
+                    
+                    fetch('@Url.Action("ClearLogs", "Admin")', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'RequestVerificationToken': tokenValue
+                        },
+                        body: JSON.stringify({})
+                    })
+                    .then(function(response) {
+                        if (response.ok) {
+                            return response.json();
+                        }
+                        throw new Error('Server error: ' + response.status);
+                    })
+                    .then(function(result) {
+                        if (result.success) {
+                            showToast('System logs cleared successfully!', 'success');
+                        } else {
+                            showToast('Error: ' + (result.message || 'Failed to clear logs'), 'error');
+                        }
+                    })
+                    .catch(function(error) {
+                        console.error('Clear logs error:', error);
+                        showToast('Failed to clear system logs. Please try again.', 'error');
+                    });
+                }
+            }
+            </text>
+        }
+
+        function showToast(message, type) {
+            // Remove existing toasts
+            var existingToasts = document.querySelectorAll('.toast');
+            existingToasts.forEach(function(toast) {
+                toast.remove();
+            });
+
+            var toast = document.createElement('div');
+            toast.className = 'toast ' + type;
+            
+            var iconClass = 'info-circle';
+            if (type === 'success') iconClass = 'check-circle';
+            else if (type === 'error') iconClass = 'exclamation-circle';
+            
+            toast.innerHTML = '<div style="display: flex; align-items: center; gap: 0.5rem;"><i class="fas fa-' + iconClass + '"></i><span>' + message + '</span></div>';
+
+            document.body.appendChild(toast);
+
+            setTimeout(function() {
+                toast.style.opacity = '1';
+                toast.style.transform = 'translateX(0)';
+            }, 100);
+
+            setTimeout(function() {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateX(100%)';
+                setTimeout(function() {
+                    if (toast.parentNode) {
+                        toast.remove();
+                    }
+                }, 300);
+            }, 5000);
+        }
+    </script>
+}

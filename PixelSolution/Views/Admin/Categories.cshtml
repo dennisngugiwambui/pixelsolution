@@ -1,0 +1,901 @@
+@model List<PixelSolution.ViewModels.CategoryListViewModel>
+@{
+    ViewData["Title"] = "Categories Management - PixelSolution";
+    Layout = "_AdminLayout";
+}
+
+@section Styles {
+    <link href="~/css/dashboard.css" rel="stylesheet">
+    <style>
+        .category-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            border-left: 4px solid #8b5cf6;
+            position: relative;
+            overflow: hidden;
+        }
+
+            .category-card:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            }
+
+            .category-card.inactive {
+                border-left-color: #6b7280;
+                opacity: 0.7;
+            }
+
+        .category-image {
+            width: 80px;
+            height: 80px;
+            border-radius: 12px;
+            object-fit: cover;
+            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .category-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid #f1f5f9;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #1e293b;
+            display: block;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: #64748b;
+            font-weight: 500;
+            margin-top: 0.25rem;
+        }
+
+        .status-indicator {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .status-active {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .status-inactive {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .quick-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 10% auto;
+            padding: 0;
+            border: none;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 600px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 12px 12px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-body {
+            padding: 2rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            transition: all 0.3s ease;
+        }
+
+            .form-control:focus {
+                outline: none;
+                border-color: #8b5cf6;
+                box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+            }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+            color: white;
+        }
+
+            .btn-primary:hover {
+                transform: translateY(-1px);
+                box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+            }
+
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-warning {
+            background: #f59e0b;
+            color: white;
+        }
+
+        .btn-sm {
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+        }
+
+        .filters-bar {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .image-preview {
+            width: 100px;
+            height: 100px;
+            border-radius: 8px;
+            object-fit: cover;
+            margin-top: 0.5rem;
+            border: 2px solid #e5e7eb;
+        }
+    </style>
+}
+
+<!-- Sidebar -->
+<div class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+        <div class="logo-container">
+            <div class="logo-icon">
+                <i class="fas fa-bolt"></i>
+            </div>
+            <div class="logo-text">PixelSolution</div>
+        </div>
+        <div class="user-info">
+            <div class="user-avatar">@User.Identity.Name?.Substring(0, 2).ToUpper()</div>
+            <div class="user-details">
+                <h4>@User.Identity.Name</h4>
+                <p>System Administrator</p>
+            </div>
+        </div>
+    </div>
+
+    <nav class="nav-menu">
+        <div class="nav-section">
+            <div class="nav-section-title">Main</div>
+            <div class="nav-item">
+                <a href="@Url.Action("Dashboard", "Admin")" class="nav-link">
+                    <i class="fas fa-chart-pie"></i>
+                    Dashboard
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Sales", "Admin")" class="nav-link">
+                    <i class="fas fa-shopping-cart"></i>
+                    Sales
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Inventory", "Admin")" class="nav-link">
+                    <i class="fas fa-box"></i>
+                    Inventory
+                </a>
+            </div>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-section-title">Management</div>
+            <div class="nav-item">
+                <a href="@Url.Action("Users", "Admin")" class="nav-link">
+                    <i class="fas fa-users"></i>
+                    Employees
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Departments", "Admin")" class="nav-link">
+                    <i class="fas fa-building"></i>
+                    Departments
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Suppliers", "Admin")" class="nav-link">
+                    <i class="fas fa-truck"></i>
+                    Suppliers
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Categories", "Admin")" class="nav-link active">
+                    <i class="fas fa-tags"></i>
+                    Categories
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Products", "Admin")" class="nav-link">
+                    <i class="fas fa-cube"></i>
+                    Products
+                </a>
+            </div>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-section-title">Operations</div>
+            <div class="nav-item">
+                <a href="@Url.Action("PurchaseRequests", "Admin")" class="nav-link">
+                    <i class="fas fa-file-invoice"></i>
+                    Purchase Requests
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Messages", "Admin")" class="nav-link">
+                    <i class="fas fa-envelope"></i>
+                    Messages
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Reports", "Admin")" class="nav-link">
+                    <i class="fas fa-chart-bar"></i>
+                    Reports
+                </a>
+            </div>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-section-title">System</div>
+            <div class="nav-item">
+                <a href="@Url.Action("Settings", "Admin")" class="nav-link">
+                    <i class="fas fa-cog"></i>
+                    Settings
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Logout", "Auth")" class="nav-link">
+                    <i class="fas fa-sign-out-alt"></i>
+                    Logout
+                </a>
+            </div>
+        </div>
+    </nav>
+</div>
+
+<!-- Main Content -->
+<div class="main-content" id="mainContent">
+    <!-- Header -->
+    <header class="header">
+        <div class="header-left">
+            <button class="sidebar-toggle" id="sidebarToggle">
+                <i class="fas fa-bars"></i>
+            </button>
+            <h1 class="page-title">Categories Management</h1>
+        </div>
+        <div class="header-right">
+            <div class="search-container">
+                <input type="text" class="search-input" placeholder="Search categories..." id="searchInput">
+                <i class="fas fa-search search-icon"></i>
+            </div>
+            <div class="header-actions">
+                <button class="action-btn" title="Notifications">
+                    <i class="fas fa-bell"></i>
+                    <span class="notification-badge">3</span>
+                </button>
+                <button class="action-btn" title="Messages">
+                    <i class="fas fa-envelope"></i>
+                    <span class="notification-badge">8</span>
+                </button>
+                <button class="action-btn" title="Profile">
+                    <i class="fas fa-user-circle"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Page Content -->
+    <div class="dashboard-content">
+        <!-- Filters and Actions Bar -->
+        <div class="filters-bar">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+                    <div style="position: relative;">
+                        <select id="statusFilter" class="form-control" style="width: 150px;">
+                            <option value="">All Status</option>
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                        </select>
+                    </div>
+                    <div style="position: relative;">
+                        <select id="sortBy" class="form-control" style="width: 150px;">
+                            <option value="name">Sort by Name</option>
+                            <option value="products">Sort by Products</option>
+                            <option value="value">Sort by Value</option>
+                            <option value="created">Sort by Created</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 1rem;">
+                    <button class="btn btn-secondary btn-sm" onclick="exportCategories()">
+                        <i class="fas fa-download"></i>
+                        Export
+                    </button>
+                    @if (User.IsInRole("Admin"))
+                    {
+                        <button class="btn btn-primary" onclick="openCreateCategoryModal()">
+                            <i class="fas fa-plus"></i>
+                            Add Category
+                        </button>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Categories Grid -->
+        <div id="categoriesGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.5rem;">
+            @foreach (var category in Model)
+            {
+                <div class="category-card @(!category.IsActive ? "inactive" : "")" data-category-id="@category.CategoryId">
+                    <div class="status-indicator status-@(category.IsActive ? "active" : "inactive")">
+                        @(category.IsActive ? "Active" : "Inactive")
+                    </div>
+
+                    <div style="display: flex; align-items: flex-start; gap: 1rem; margin-bottom: 1rem;">
+                        @if (!string.IsNullOrEmpty(category.ImageUrl))
+                        {
+                            <img src="@category.ImageUrl" alt="@category.Name" class="category-image" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                            <div class="category-image" style="display: none;">
+                                <i class="fas fa-tags"></i>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="category-image">
+                                <i class="fas fa-tags"></i>
+                            </div>
+                        }
+
+                        <div style="flex: 1; min-width: 0;">
+                            <h3 style="margin: 0 0 0.5rem 0; color: #1e293b; font-size: 1.25rem; line-height: 1.3;">@category.Name</h3>
+                            @if (!string.IsNullOrEmpty(category.Description))
+                            {
+                                <p style="margin: 0; color: #64748b; font-size: 0.875rem; line-height: 1.4;">
+                                    @(category.Description.Length > 100 ? category.Description.Substring(0, 100) + "..." : category.Description)
+                                </p>
+                            }
+                            <p style="margin: 0.5rem 0 0 0; color: #9ca3af; font-size: 0.75rem;">
+                                Created: @category.CreatedAt.ToString("MMM dd, yyyy")
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="category-stats">
+                        <div class="stat-item">
+                            <span class="stat-value">@category.ProductCount</span>
+                            <span class="stat-label">Total Products</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-value">@category.ActiveProductCount</span>
+                            <span class="stat-label">Active Products</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-value">KSh @category.TotalStockValue.ToString("N0")</span>
+                            <span class="stat-label">Stock Value</span>
+                        </div>
+                    </div>
+
+                    <div class="quick-actions">
+                        <button class="btn btn-secondary btn-sm" onclick="viewCategory(@category.CategoryId)" title="View Details">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        @if (User.IsInRole("Admin"))
+                        {
+                            <button class="btn btn-primary btn-sm" onclick="editCategory(@category.CategoryId)" title="Edit Category">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-warning btn-sm" onclick="toggleCategoryStatus(@category.CategoryId, @category.IsActive.ToString().ToLower())" title="Toggle Status">
+                                <i class="fas fa-@(category.IsActive ? "pause" : "play")"></i>
+                            </button>
+                            <button class="btn btn-danger btn-sm" onclick="deleteCategory(@category.CategoryId)" title="Delete Category">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyState" style="display: none; text-align: center; padding: 4rem; color: #64748b;">
+            <i class="fas fa-tags" style="font-size: 4rem; margin-bottom: 1rem; opacity: 0.3;"></i>
+            <h3>No categories found</h3>
+            <p>Try adjusting your search criteria or add a new category.</p>
+        </div>
+    </div>
+</div>
+
+<!-- Create/Edit Category Modal -->
+<div id="categoryModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 id="modalTitle">Add New Category</h2>
+            <button style="background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer;" onclick="closeCategoryModal()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <form id="categoryForm">
+                @Html.AntiForgeryToken()
+                <input type="hidden" id="categoryId" name="CategoryId" value="">
+
+                <div class="form-group">
+                    <label class="form-label" for="categoryName">Category Name *</label>
+                    <input type="text" id="categoryName" name="Name" class="form-control" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="categoryDescription">Description</label>
+                    <textarea id="categoryDescription" name="Description" class="form-control" rows="4" placeholder="Enter a detailed description of this category..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="categoryImageUrl">Image URL</label>
+                    <input type="url" id="categoryImageUrl" name="ImageUrl" class="form-control" placeholder="https://example.com/category-image.jpg">
+                    <img id="imagePreview" class="image-preview" style="display: none;" alt="Image Preview">
+                </div>
+
+                <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 2rem;">
+                    <button type="button" class="btn btn-secondary" onclick="closeCategoryModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i>
+                        Save Category
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/dashboard.js"></script>
+    <script>
+        let allCategories = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model));
+
+        document.addEventListener('DOMContentLoaded', function() {
+            setupFilters();
+            setupSearch();
+            setupImagePreview();
+        });
+
+        function setupFilters() {
+            const filters = ['statusFilter', 'sortBy'];
+            filters.forEach(filterId => {
+                document.getElementById(filterId).addEventListener('change', filterCategories);
+            });
+        }
+
+        function setupSearch() {
+            document.getElementById('searchInput').addEventListener('input', filterCategories);
+        }
+
+        function setupImagePreview() {
+            const imageUrlInput = document.getElementById('categoryImageUrl');
+            const imagePreview = document.getElementById('imagePreview');
+
+            imageUrlInput.addEventListener('input', function() {
+                const url = this.value.trim();
+                if (url) {
+                    imagePreview.src = url;
+                    imagePreview.style.display = 'block';
+                    imagePreview.onerror = function() {
+                        this.style.display = 'none';
+                    };
+                } else {
+                    imagePreview.style.display = 'none';
+                }
+            });
+        }
+
+        function filterCategories() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const statusFilter = document.getElementById('statusFilter').value;
+            const sortBy = document.getElementById('sortBy').value;
+
+            let filteredCategories = allCategories.filter(category => {
+                const matchesSearch = !searchTerm ||
+                    category.name.toLowerCase().includes(searchTerm) ||
+                    (category.description && category.description.toLowerCase().includes(searchTerm));
+
+                let matchesStatus = true;
+                if (statusFilter === 'active') matchesStatus = category.isActive;
+                else if (statusFilter === 'inactive') matchesStatus = !category.isActive;
+
+                return matchesSearch && matchesStatus;
+            });
+
+            // Sort categories
+            filteredCategories.sort((a, b) => {
+                switch (sortBy) {
+                    case 'name': return a.name.localeCompare(b.name);
+                    case 'products': return b.productCount - a.productCount;
+                    case 'value': return b.totalStockValue - a.totalStockValue;
+                    case 'created': return new Date(b.createdAt) - new Date(a.createdAt);
+                    default: return a.name.localeCompare(b.name);
+                }
+            });
+
+            displayCategories(filteredCategories);
+        }
+
+        function displayCategories(categories) {
+            const grid = document.getElementById('categoriesGrid');
+            const emptyState = document.getElementById('emptyState');
+
+            if (categories.length === 0) {
+                grid.style.display = 'none';
+                emptyState.style.display = 'block';
+                return;
+            }
+
+            grid.style.display = 'grid';
+            emptyState.style.display = 'none';
+
+            // Update the grid with filtered categories
+            const categoryCards = grid.querySelectorAll('.category-card');
+            categoryCards.forEach(card => {
+                const categoryId = parseInt(card.dataset.categoryId);
+                const categoryExists = categories.some(c => c.CategoryId === categoryId);
+                card.style.display = categoryExists ? 'block' : 'none';
+            });
+        }
+
+        function openCreateCategoryModal() {
+            document.getElementById('modalTitle').textContent = 'Add New Category';
+            document.getElementById('categoryForm').reset();
+            document.getElementById('categoryId').value = '';
+            document.getElementById('imagePreview').style.display = 'none';
+            document.getElementById('categoryModal').style.display = 'block';
+        }
+
+        function viewCategory(categoryId) {
+            window.location.href = `/Admin/CategoryDetails/${categoryId}`;
+        }
+
+        function editCategory(categoryId) {
+            console.log('editCategory called with ID:', categoryId);
+            console.log('All categories:', allCategories);
+            
+            try {
+                const category = allCategories.find(c => c.CategoryId === categoryId);
+                console.log('Found category:', category);
+                
+                if (!category) {
+                    console.error('Category not found with ID:', categoryId);
+                    showToast('Category not found', 'error');
+                    return;
+                }
+
+                // Update modal title and form fields
+                console.log('Setting modal title to Edit Category');
+                document.getElementById('modalTitle').textContent = 'Edit Category';
+                
+                console.log('Setting form values...');
+                document.getElementById('categoryId').value = category.CategoryId;
+                document.getElementById('categoryName').value = category.Name || '';
+                document.getElementById('categoryDescription').value = category.Description || '';
+                document.getElementById('categoryImageUrl').value = category.ImageUrl || '';
+
+                // Show image preview if URL exists
+                const imagePreview = document.getElementById('imagePreview');
+                if (category.ImageUrl) {
+                    console.log('Setting image preview:', category.ImageUrl);
+                    imagePreview.src = category.ImageUrl;
+                    imagePreview.style.display = 'block';
+                } else {
+                    console.log('No image URL, hiding preview');
+                    imagePreview.style.display = 'none';
+                }
+
+                // Show the modal
+                console.log('Showing modal...');
+                const modal = document.getElementById('categoryModal');
+                if (modal) {
+                    modal.style.display = 'block';
+                    console.log('Modal display set to block');
+                    
+                    // Force a reflow to ensure the modal is visible
+                    modal.offsetHeight;
+                    
+                    // Add a slight delay to ensure DOM is updated
+                    setTimeout(() => {
+                        console.log('Modal should now be visible');
+                        console.log('Modal computed style display:', window.getComputedStyle(modal).display);
+                    }, 100);
+                } else {
+                    console.error('Modal element not found!');
+                    showToast('Modal element not found', 'error');
+                }
+            } catch (error) {
+                console.error('Error in editCategory function:', error);
+                showToast('Error opening edit modal', 'error');
+            }
+        }
+
+        function closeCategoryModal() {
+            console.log('closeCategoryModal called');
+            const modal = document.getElementById('categoryModal');
+            if (modal) {
+                modal.style.display = 'none';
+                console.log('Modal closed successfully');
+            } else {
+                console.error('Modal element not found when trying to close!');
+            }
+        }
+        
+        // Test function to verify modal functionality
+        function testModal() {
+            console.log('Testing modal functionality...');
+            const modal = document.getElementById('categoryModal');
+            console.log('Modal element:', modal);
+            console.log('Modal current display:', modal ? modal.style.display : 'Modal not found');
+            
+            if (modal) {
+                modal.style.display = 'block';
+                console.log('Test modal opened');
+                
+                setTimeout(() => {
+                    modal.style.display = 'none';
+                    console.log('Test modal closed');
+                }, 2000);
+            }
+        }
+        
+        // Make test function globally available for console testing
+        window.testModal = testModal;
+        window.editCategory = editCategory;
+
+        function viewCategory(categoryId) {
+            window.location.href = `/Admin/CategoryDetails/${categoryId}`;
+        }
+
+        async function toggleCategoryStatus(categoryId, currentStatus) {
+            console.log('toggleCategoryStatus called with:', { categoryId, currentStatus });
+            
+            const newStatus = !currentStatus;
+
+            if (!confirm(`Are you sure you want to ${newStatus ? 'activate' : 'deactivate'} this category?`)) {
+                return;
+            }
+
+            try {
+                console.log('Sending request to toggle category status...');
+                
+                const requestData = { id: parseInt(categoryId) };
+                console.log('Request data:', requestData);
+                
+                const response = await fetch('/Admin/ToggleCategoryStatus', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestData)
+                });
+
+                console.log('Response status:', response.status);
+                console.log('Response ok:', response.ok);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                console.log('Response result:', result);
+
+                if (result.success) {
+                    showToast(result.message, 'success');
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showToast(result.message || 'Failed to update category status', 'error');
+                }
+            } catch (error) {
+                console.error('Error toggling category status:', error);
+                showToast('Error updating category status. Please try again.', 'error');
+            }
+        }
+
+        async function deleteCategory(categoryId) {
+            console.log('deleteCategory called with:', categoryId);
+            
+            if (!confirm('Are you sure you want to delete this category? This action cannot be undone.')) {
+                return;
+            }
+
+            try {
+                console.log('Sending request to delete category...');
+                
+                const requestData = { id: parseInt(categoryId) };
+                console.log('Request data:', requestData);
+                
+                const response = await fetch('/Admin/DeleteCategory', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestData)
+                });
+
+                console.log('Response status:', response.status);
+                console.log('Response ok:', response.ok);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                console.log('Response result:', result);
+
+                if (result.success) {
+                    showToast(result.message, 'success');
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showToast(result.message || 'Failed to delete category', 'error');
+                }
+            } catch (error) {
+                console.error('Error deleting category:', error);
+                showToast('Error deleting category. Please try again.', 'error');
+            }
+        }
+
+        function exportCategories() {
+            showToast('Export functionality coming soon!', 'info');
+        }
+
+        // Form submission
+        document.getElementById('categoryForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const formData = new FormData(this);
+            const categoryId = formData.get('CategoryId');
+            const isEdit = categoryId && categoryId !== '';
+
+            const categoryData = {
+                CategoryId: isEdit ? parseInt(categoryId) : 0,
+                Name: formData.get('Name'),
+                Description: formData.get('Description'),
+                ImageUrl: formData.get('ImageUrl')
+            };
+
+            console.log('Form submission data:', categoryData);
+            console.log('Is edit mode:', isEdit);
+
+            try {
+                const url = isEdit ? '/Admin/UpdateCategory' : '/Admin/CreateCategory';
+                console.log('Submitting to URL:', url);
+                
+                const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+                console.log('CSRF Token found:', !!token);
+                
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': token
+                    },
+                    body: JSON.stringify(categoryData)
+                });
+
+                console.log('Response status:', response.status);
+                console.log('Response headers:', response.headers);
+                
+                if (!response.ok) {
+                    console.error('HTTP Error:', response.status, response.statusText);
+                    const errorText = await response.text();
+                    console.error('Error response body:', errorText);
+                    showToast(`Server error: ${response.status} ${response.statusText}`, 'error');
+                    return;
+                }
+
+                const result = await response.json();
+                console.log('Server response:', result);
+
+                if (result.success) {
+                    showToast(result.message, 'success');
+                    closeCategoryModal();
+                    location.reload();
+                } else {
+                    console.error('Server returned error:', result.message);
+                    showToast(result.message, 'error');
+                }
+            } catch (error) {
+                console.error('Error saving category:', error);
+                showToast('Error saving category. Please try again.', 'error');
+            }
+        });
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('categoryModal');
+            if (event.target === modal) {
+                closeCategoryModal();
+            }
+        }
+    </script>
+}
+
+@* Hidden form for CSRF token *@
+<form style="display: none;">
+    @Html.AntiForgeryToken()
+</form>

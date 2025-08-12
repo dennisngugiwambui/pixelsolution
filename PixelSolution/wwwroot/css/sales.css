@@ -1,0 +1,65 @@
+﻿.product-card {
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+    .product-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    }
+
+.cart-item {
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.modal-overlay {
+    backdrop-filter: blur(4px);
+}
+
+.quantity-btn {
+    transition: all 0.2s ease;
+}
+
+    .quantity-btn:hover {
+        transform: scale(1.1);
+    }
+
+.payment-option {
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+    .payment-option:hover {
+        transform: translateY(-2px);
+    }
+
+    .payment-option.selected {
+        border-color: #3b82f6;
+        background-color: #eff6ff;
+    }
+
+.stk-push-animation {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.05);
+    }
+}

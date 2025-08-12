@@ -1,0 +1,796 @@
+@model List<PixelSolution.ViewModels.ProductListViewModel>
+@{
+    ViewData["Title"] = "Inventory Management - PixelSolution";
+    Layout = "_AdminLayout";
+}
+
+@section Styles {
+    <link href="~/css/dashboard.css" rel="stylesheet">
+    <style>
+        .inventory-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            border-left: 4px solid #10b981;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .inventory-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+
+        .inventory-card.low-stock {
+            border-left-color: #f59e0b;
+        }
+
+        .inventory-card.out-of-stock {
+            border-left-color: #ef4444;
+        }
+
+        .inventory-card.inactive {
+            border-left-color: #6b7280;
+            opacity: 0.7;
+        }
+
+        .product-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+
+        .product-info h3 {
+            margin: 0 0 0.5rem 0;
+            color: #1e293b;
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .product-sku {
+            color: #64748b;
+            font-size: 0.875rem;
+            font-family: 'Courier New', monospace;
+            background: #f8fafc;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            display: inline-block;
+        }
+
+        .stock-indicator {
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .stock-good {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .stock-low {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .stock-out {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .product-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin: 1rem 0;
+            padding: 1rem;
+            background: #f8fafc;
+            border-radius: 8px;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #1e293b;
+            display: block;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: #64748b;
+            font-weight: 500;
+            margin-top: 0.25rem;
+        }
+
+        .price-info {
+            display: flex;
+            justify-content: space-between;
+            margin: 1rem 0;
+        }
+
+        .price-item {
+            text-align: center;
+        }
+
+        .price-value {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        .price-label {
+            font-size: 0.75rem;
+            color: #64748b;
+            margin-top: 0.25rem;
+        }
+
+        .profit-margin {
+            background: #dcfce7;
+            color: #166534;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .inventory-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .btn-icon {
+            padding: 0.5rem;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-stock {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .btn-stock:hover {
+            background: #bfdbfe;
+        }
+
+        .btn-edit {
+            background: #f3e8ff;
+            color: #7c3aed;
+        }
+
+        .btn-edit:hover {
+            background: #e9d5ff;
+        }
+
+        .filters-bar {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .stats-overview {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .stat-card-icon {
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 1rem;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: white;
+        }
+
+        .stat-card-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-card-label {
+            color: #64748b;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 10% auto;
+            padding: 2rem;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.2s ease;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #10b981;
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+        }
+
+        .btn-primary {
+            background: #10b981;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .btn-primary:hover {
+            background: #059669;
+        }
+
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            margin-left: 0.5rem;
+        }
+
+        .btn-secondary:hover {
+            background: #4b5563;
+        }
+    </style>
+}
+
+<!-- Sidebar -->
+<div class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+        <div class="logo-container">
+            <div class="logo-icon">
+                <i class="fas fa-bolt"></i>
+            </div>
+            <div class="logo-text">PixelSolution</div>
+        </div>
+        <div class="user-info">
+            <div class="user-avatar">@User.Identity.Name?.Substring(0, 2).ToUpper()</div>
+            <div class="user-details">
+                <h4>@User.Identity.Name</h4>
+                <p>System Administrator</p>
+            </div>
+        </div>
+    </div>
+
+    <nav class="nav-menu">
+        <div class="nav-section">
+            <div class="nav-section-title">Main</div>
+            <div class="nav-item">
+                <a href="@Url.Action("Dashboard", "Admin")" class="nav-link">
+                    <i class="fas fa-chart-pie"></i>
+                    Dashboard
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Sales", "Admin")" class="nav-link">
+                    <i class="fas fa-shopping-cart"></i>
+                    Sales
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Inventory", "Admin")" class="nav-link active">
+                    <i class="fas fa-box"></i>
+                    Inventory
+                </a>
+            </div>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-section-title">Management</div>
+            <div class="nav-item">
+                <a href="@Url.Action("Users", "Admin")" class="nav-link">
+                    <i class="fas fa-users"></i>
+                    Employees
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Departments", "Admin")" class="nav-link">
+                    <i class="fas fa-building"></i>
+                    Departments
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Suppliers", "Admin")" class="nav-link">
+                    <i class="fas fa-truck"></i>
+                    Suppliers
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Categories", "Admin")" class="nav-link">
+                    <i class="fas fa-tags"></i>
+                    Categories
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Products", "Admin")" class="nav-link">
+                    <i class="fas fa-cube"></i>
+                    Products
+                </a>
+            </div>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-section-title">Operations</div>
+            <div class="nav-item">
+                <a href="@Url.Action("PurchaseRequests", "Admin")" class="nav-link">
+                    <i class="fas fa-file-invoice"></i>
+                    Purchase Requests
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Messages", "Admin")" class="nav-link">
+                    <i class="fas fa-envelope"></i>
+                    Messages
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Reports", "Admin")" class="nav-link">
+                    <i class="fas fa-chart-bar"></i>
+                    Reports
+                </a>
+            </div>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-section-title">System</div>
+            <div class="nav-item">
+                <a href="@Url.Action("Settings", "Admin")" class="nav-link">
+                    <i class="fas fa-cog"></i>
+                    Settings
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Logout", "Auth")" class="nav-link">
+                    <i class="fas fa-sign-out-alt"></i>
+                    Logout
+                </a>
+            </div>
+        </div>
+    </nav>
+</div>
+
+<!-- Main Content -->
+<div class="main-content" id="mainContent">
+    <!-- Header -->
+    <header class="header">
+        <div class="header-left">
+            <button class="sidebar-toggle" id="sidebarToggle">
+                <i class="fas fa-bars"></i>
+            </button>
+            <h1 class="page-title">Inventory Management</h1>
+        </div>
+        <div class="header-right">
+            <div class="search-container">
+                <input type="text" class="search-input" placeholder="Search products..." id="searchProducts">
+                <i class="fas fa-search search-icon"></i>
+            </div>
+            <div class="header-actions">
+                <button class="action-btn" title="Notifications">
+                    <i class="fas fa-bell"></i>
+                    <span class="notification-badge">3</span>
+                </button>
+                <button class="action-btn" title="Messages">
+                    <i class="fas fa-envelope"></i>
+                    <span class="notification-badge">8</span>
+                </button>
+                <button class="action-btn" title="Profile">
+                    <i class="fas fa-user-circle"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <div class="dashboard-content">
+        <!-- Inventory Statistics Overview -->
+        <div class="stats-overview" id="statsOverview">
+            <div class="stat-card">
+                <div class="stat-card-icon" style="background: #10b981;">
+                    <i class="fas fa-boxes"></i>
+                </div>
+                <div class="stat-card-value" id="totalProducts">0</div>
+                <div class="stat-card-label">Total Products</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card-icon" style="background: #3b82f6;">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="stat-card-value" id="activeProducts">0</div>
+                <div class="stat-card-label">Active Products</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card-icon" style="background: #f59e0b;">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <div class="stat-card-value" id="lowStockProducts">0</div>
+                <div class="stat-card-label">Low Stock</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card-icon" style="background: #ef4444;">
+                    <i class="fas fa-times-circle"></i>
+                </div>
+                <div class="stat-card-value" id="outOfStockProducts">0</div>
+                <div class="stat-card-label">Out of Stock</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card-icon" style="background: #8b5cf6;">
+                    <i class="fas fa-dollar-sign"></i>
+                </div>
+                <div class="stat-card-value" id="totalValue">$0</div>
+                <div class="stat-card-label">Total Value</div>
+            </div>
+        </div>
+
+        <!-- Filters and Actions Bar -->
+        <div class="filters-bar">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+                    <select id="categoryFilter" class="form-input" style="width: auto;">
+                        <option value="">All Categories</option>
+                        @foreach (var category in ViewBag.Categories as IEnumerable<dynamic> ?? Enumerable.Empty<dynamic>())
+                        {
+                            <option value="@category.Name">@category.Name</option>
+                        }
+                    </select>
+                    <select id="stockFilter" class="form-input" style="width: auto;">
+                        <option value="">All Stock Levels</option>
+                        <option value="good">Good Stock</option>
+                        <option value="low">Low Stock</option>
+                        <option value="out">Out of Stock</option>
+                    </select>
+                    <select id="statusFilter" class="form-input" style="width: auto;">
+                        <option value="">All Status</option>
+                        <option value="true">Active</option>
+                        <option value="false">Inactive</option>
+                    </select>
+                    <button class="btn-secondary" onclick="clearFilters()">
+                        <i class="fas fa-times"></i> Clear Filters
+                    </button>
+                </div>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button class="btn-secondary" onclick="exportInventory()">
+                        <i class="fas fa-download"></i> Export
+                    </button>
+                    <a href="@Url.Action("Products", "Admin")" class="btn-primary" style="text-decoration: none;">
+                        <i class="fas fa-plus"></i> Add Product
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Inventory Grid -->
+        <div id="inventoryGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(400px, 1fr)); gap: 1.5rem;">
+            @foreach (var product in Model)
+            {
+                <div class="inventory-card @(product.StockQuantity == 0 ? "out-of-stock" : product.IsLowStock ? "low-stock" : "") @(!product.IsActive ? "inactive" : "")" 
+                     data-product-id="@product.ProductId" 
+                     data-category="@product.CategoryName" 
+                     data-stock="@(product.StockQuantity == 0 ? "out" : product.IsLowStock ? "low" : "good")"
+                     data-active="@product.IsActive.ToString().ToLower()">
+                    
+                    <div class="product-header">
+                        <div class="product-info">
+                            <h3>@product.Name</h3>
+                            <div class="product-sku">SKU: @product.SKU</div>
+                        </div>
+                        <div class="stock-indicator @(product.StockQuantity == 0 ? "stock-out" : product.IsLowStock ? "stock-low" : "stock-good")">
+                            @if (product.StockQuantity == 0)
+                            {
+                                <text>Out of Stock</text>
+                            }
+                            else if (product.IsLowStock)
+                            {
+                                <text>Low Stock</text>
+                            }
+                            else
+                            {
+                                <text>In Stock</text>
+                            }
+                        </div>
+                    </div>
+
+                    <div style="color: #64748b; font-size: 0.875rem; margin-bottom: 1rem;">
+                        <i class="fas fa-tag"></i> @product.CategoryName
+                        @if (!string.IsNullOrEmpty(product.SupplierName))
+                        {
+                            <span style="margin-left: 1rem;"><i class="fas fa-truck"></i> @product.SupplierName</span>
+                        }
+                    </div>
+
+                    <div class="product-stats">
+                        <div class="stat-item">
+                            <span class="stat-value">@product.StockQuantity</span>
+                            <div class="stat-label">Current Stock</div>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-value">@product.MinStockLevel</span>
+                            <div class="stat-label">Min Level</div>
+                        </div>
+                    </div>
+
+                    <div class="price-info">
+                        <div class="price-item">
+                            <div class="price-value">$@product.BuyingPrice.ToString("F2")</div>
+                            <div class="price-label">Cost Price</div>
+                        </div>
+                        <div class="price-item">
+                            <div class="price-value">$@product.SellingPrice.ToString("F2")</div>
+                            <div class="price-label">Selling Price</div>
+                        </div>
+                        <div class="price-item">
+                            <div class="profit-margin">@product.ProfitPercentage.ToString("F1")%</div>
+                            <div class="price-label">Profit Margin</div>
+                        </div>
+                    </div>
+
+                    <div class="inventory-actions">
+                        <button class="btn-icon btn-stock" onclick="updateStock(@product.ProductId, '@product.Name', @product.StockQuantity)" title="Update Stock">
+                            <i class="fas fa-edit"></i> Stock
+                        </button>
+                        <a href="@Url.Action("Products", "Admin")#edit-@product.ProductId" class="btn-icon btn-edit" title="Edit Product">
+                            <i class="fas fa-cog"></i> Edit
+                        </a>
+                        <button class="btn-icon btn-stock" onclick="generateBarcode(@product.ProductId)" title="Generate Barcode">
+                            <i class="fas fa-qrcode"></i> QR
+                        </button>
+                    </div>
+
+                    <div style="color: #64748b; font-size: 0.75rem; margin-top: 1rem; text-align: center;">
+                        Last updated: @product.UpdatedAt.ToString("MMM dd, yyyy HH:mm")
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Update Stock Modal -->
+<div id="stockModal" class="modal">
+    <div class="modal-content">
+        <h2 id="stockModalTitle">Update Stock</h2>
+        <form id="stockForm">
+            <input type="hidden" id="stockProductId">
+            
+            <div class="form-group">
+                <label class="form-label">Product</label>
+                <input type="text" id="stockProductName" class="form-input" readonly>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Current Stock</label>
+                <input type="number" id="currentStock" class="form-input" readonly>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">New Quantity *</label>
+                <input type="number" id="newQuantity" name="NewQuantity" class="form-input" min="0" required>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Reason for Change</label>
+                <textarea id="stockReason" name="Reason" class="form-input" rows="3" placeholder="Optional reason for stock adjustment..."></textarea>
+            </div>
+            
+            <div style="display: flex; justify-content: flex-end; gap: 1rem; margin-top: 2rem;">
+                <button type="button" class="btn-secondary" onclick="closeStockModal()">Cancel</button>
+                <button type="submit" class="btn-primary">Update Stock</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/dashboard.js"></script>
+    <script>
+        let allProducts = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model));
+
+        document.addEventListener('DOMContentLoaded', function() {
+            loadInventoryStats();
+            setupFilters();
+            setupSearch();
+        });
+
+        async function loadInventoryStats() {
+            try {
+                const response = await fetch('@Url.Action("GetInventoryStats", "Admin")');
+                const data = await response.json();
+                
+                if (data.success) {
+                    document.getElementById('totalProducts').textContent = data.stats.totalProducts;
+                    document.getElementById('activeProducts').textContent = data.stats.activeProducts;
+                    document.getElementById('lowStockProducts').textContent = data.stats.lowStockProducts;
+                    document.getElementById('outOfStockProducts').textContent = data.stats.outOfStockProducts;
+                    document.getElementById('totalValue').textContent = '$' + data.stats.totalValue.toLocaleString('en-US', {minimumFractionDigits: 2});
+                }
+            } catch (error) {
+                console.error('Error loading inventory stats:', error);
+            }
+        }
+
+        function setupFilters() {
+            document.getElementById('categoryFilter').addEventListener('change', filterProducts);
+            document.getElementById('stockFilter').addEventListener('change', filterProducts);
+            document.getElementById('statusFilter').addEventListener('change', filterProducts);
+        }
+
+        function setupSearch() {
+            document.getElementById('searchProducts').addEventListener('input', filterProducts);
+        }
+
+        function filterProducts() {
+            const searchTerm = document.getElementById('searchProducts').value.toLowerCase();
+            const categoryFilter = document.getElementById('categoryFilter').value;
+            const stockFilter = document.getElementById('stockFilter').value;
+            const statusFilter = document.getElementById('statusFilter').value;
+
+            const productCards = document.querySelectorAll('.inventory-card');
+            
+            productCards.forEach(card => {
+                const productId = parseInt(card.dataset.productId);
+                const product = allProducts.find(p => p.productId === productId);
+                
+                const matchesSearch = !searchTerm || 
+                    product.name.toLowerCase().includes(searchTerm) ||
+                    product.sku.toLowerCase().includes(searchTerm) ||
+                    product.categoryName.toLowerCase().includes(searchTerm);
+                
+                const matchesCategory = !categoryFilter || product.categoryName === categoryFilter;
+                const matchesStock = !stockFilter || card.dataset.stock === stockFilter;
+                const matchesStatus = !statusFilter || card.dataset.active === statusFilter;
+                
+                if (matchesSearch && matchesCategory && matchesStock && matchesStatus) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+
+        function clearFilters() {
+            document.getElementById('searchProducts').value = '';
+            document.getElementById('categoryFilter').value = '';
+            document.getElementById('stockFilter').value = '';
+            document.getElementById('statusFilter').value = '';
+            filterProducts();
+        }
+
+        function updateStock(productId, productName, currentStock) {
+            document.getElementById('stockProductId').value = productId;
+            document.getElementById('stockProductName').value = productName;
+            document.getElementById('currentStock').value = currentStock;
+            document.getElementById('newQuantity').value = currentStock;
+            document.getElementById('stockReason').value = '';
+            document.getElementById('stockModal').style.display = 'block';
+        }
+
+        function closeStockModal() {
+            document.getElementById('stockModal').style.display = 'none';
+        }
+
+        function generateBarcode(productId) {
+            window.open('@Url.Action("GenerateBarcode", "Admin")?productId=' + productId, '_blank');
+        }
+
+        function exportInventory() {
+            // This would typically generate and download a CSV/Excel file
+            alert('Export functionality would be implemented here.');
+        }
+
+        document.getElementById('stockForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const formData = new FormData(this);
+            const stockData = {
+                ProductId: parseInt(document.getElementById('stockProductId').value),
+                NewQuantity: parseInt(formData.get('NewQuantity')),
+                Reason: formData.get('Reason')
+            };
+
+            try {
+                const response = await fetch('@Url.Action("UpdateStock", "Admin")', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                    },
+                    body: JSON.stringify(stockData)
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    closeStockModal();
+                    location.reload();
+                } else {
+                    alert('Error: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred while updating stock.');
+            }
+        });
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const stockModal = document.getElementById('stockModal');
+            if (event.target === stockModal) {
+                closeStockModal();
+            }
+        }
+    </script>
+}
+
+@* Hidden form for CSRF token *@
+<form style="display: none;">
+    @Html.AntiForgeryToken()
+</form>

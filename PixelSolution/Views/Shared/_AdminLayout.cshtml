@@ -1,0 +1,116 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - PixelSolution</title>
+
+    <!-- Fonts and Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+    <!-- Core Styles -->
+    <link href="~/css/site.css" rel="stylesheet" />
+
+    <!-- Page Specific Styles -->
+    @await RenderSectionAsync("Styles", required: false)
+
+    <!-- Anti-forgery token -->
+    <meta name="csrf-token" content="@Html.AntiForgeryToken().ToString()">
+</head>
+<body class="admin-layout">
+    @RenderBody()
+
+    <!-- Core Scripts -->
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/js/site.js"></script>
+
+    <!-- Page Specific Scripts -->
+    @await RenderSectionAsync("Scripts", required: false)
+
+    <!-- Global Admin Scripts -->
+    <script>
+        // Global admin functions
+        window.AdminGlobals = {
+            baseUrl: '@Url.Content("~/")',
+            userId: '@User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value',
+            userName: '@User.Identity.Name',
+            userRole: '@User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value',
+            csrfToken: $('input[name="__RequestVerificationToken"]').val()
+        };
+
+        // Global AJAX setup
+        $.ajaxSetup({
+            beforeSend: function(xhr) {
+                xhr.setRequestHeader('RequestVerificationToken',
+                    $('input[name="__RequestVerificationToken"]').val());
+            }
+        });
+
+        // Global error handler
+        $(document).ajaxError(function(event, jqXHR, ajaxSettings, thrownError) {
+            if (jqXHR.status === 401) {
+                window.location.href = '@Url.Action("Login", "Auth")';
+            } else if (jqXHR.status === 403) {
+                showToast('Access denied. You do not have permission to perform this action.', 'error');
+            } else if (jqXHR.status >= 500) {
+                showToast('A server error occurred. Please try again later.', 'error');
+            }
+        });
+
+        // Global toast notification function
+        function showToast(message, type = 'info', duration = 5000) {
+            const toast = $(`
+                <div class="toast toast-${type}" style="
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    background: ${type === 'error' ? '#ef4444' : type === 'success' ? '#10b981' : '#3b82f6'};
+                    color: white;
+                    padding: 1rem 1.5rem;
+                    border-radius: 8px;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                    z-index: 10000;
+                    max-width: 400px;
+                    animation: slideInRight 0.3s ease-out;
+                ">
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-${type === 'error' ? 'exclamation-circle' : type === 'success' ? 'check-circle' : 'info-circle'}"></i>
+                        <span>${message}</span>
+                        <button onclick="$(this).closest('.toast').remove()" style="
+                            background: none;
+                            border: none;
+                            color: white;
+                            margin-left: auto;
+                            cursor: pointer;
+                        ">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+            `);
+
+            $('body').append(toast);
+
+            setTimeout(() => {
+                toast.fadeOut(300, () => toast.remove());
+            }, duration);
+        }
+
+        // Add slide-in animation
+        var animationCSS = `
+        @@keyframes slideInRight {
+                from {
+                    transform: translateX(100%);
+                    opacity: 0;
+                }
+                to {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+            }
+        `;
+        $('<style>').text(animationCSS).appendTo('head');
+    </script>
+</body>
+</html>

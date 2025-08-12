@@ -1,0 +1,382 @@
+﻿@model PixelSolution.ViewModels.LoginViewModel
+@{
+    ViewData["Title"] = "Login - PixelSolution";
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@ViewData["Title"]</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="~/css/login.css" rel="stylesheet">
+</head>
+<body>
+    <div class="background-animation">
+        <div class="floating-shapes">
+            <div class="shape">
+                <i class="fas fa-chart-line" style="font-size: 3rem; color: rgba(255,255,255,0.1);"></i>
+            </div>
+            <div class="shape">
+                <i class="fas fa-shopping-cart" style="font-size: 2.5rem; color: rgba(255,255,255,0.1);"></i>
+            </div>
+            <div class="shape">
+                <i class="fas fa-users" style="font-size: 3.5rem; color: rgba(255,255,255,0.1);"></i>
+            </div>
+            <div class="shape">
+                <i class="fas fa-cog" style="font-size: 2.8rem; color: rgba(255,255,255,0.1);"></i>
+            </div>
+        </div>
+    </div>
+
+    <div class="login-container">
+        <div class="logo-section">
+            <div class="logo">
+                <i class="fas fa-bolt"></i>
+            </div>
+            <h1 class="company-name">PixelSolution</h1>
+            <p class="company-tagline">Advanced Sales Management System</p>
+        </div>
+
+        <div class="form-section">
+            <h2 class="section-title">Welcome Back</h2>
+            <p class="section-subtitle">Sign in to access your dashboard</p>
+
+            <div class="error-message" id="errorMessage" style="@(ViewBag.ErrorMessage != null ? "display: block;" : "display: none;")">
+                <i class="fas fa-exclamation-circle"></i>
+                <span id="errorText">@ViewBag.ErrorMessage</span>
+            </div>
+
+            <div class="success-message" id="successMessage" style="@(ViewBag.SuccessMessage != null ? "display: block;" : "display: none;")">
+                <i class="fas fa-check-circle"></i>
+                <span id="successText">@ViewBag.SuccessMessage</span>
+            </div>
+
+            @if (!string.IsNullOrEmpty(TempData["SuccessMessage"] as string))
+            {
+                <div class="success-message" style="display: block;">
+                    <i class="fas fa-check-circle"></i>
+                    <span>@TempData["SuccessMessage"]</span>
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(TempData["InfoMessage"] as string))
+            {
+                <div class="info-message" style="display: block;">
+                    <i class="fas fa-info-circle"></i>
+                    <span>@TempData["InfoMessage"]</span>
+                </div>
+            }
+
+            <!-- Use standard ASP.NET Core form with proper model binding -->
+            <form asp-controller="Auth" asp-action="Login" method="post" id="loginForm" class="login-form">
+                <input type="hidden" name="returnUrl" value="@ViewData["ReturnUrl"]" />
+                @Html.AntiForgeryToken()
+
+                <div class="input-group">
+                    <label class="input-label" for="Email">Email Address</label>
+                    <div class="input-container">
+                        <input asp-for="Email"
+                               id="Email"
+                               name="Email"
+                               class="input-field"
+                               placeholder="Enter your email address"
+                               autocomplete="email"
+                               required
+                               type="email" />
+                        <i class="fas fa-envelope input-icon"></i>
+                    </div>
+                    <span asp-validation-for="Email" class="validation-error"></span>
+                </div>
+
+                <div class="input-group">
+                    <label class="input-label" for="Password">Password</label>
+                    <div class="input-container">
+                        <input asp-for="Password"
+                               id="Password"
+                               name="Password"
+                               type="password"
+                               class="input-field"
+                               placeholder="Enter your password"
+                               autocomplete="current-password"
+                               required />
+                        <i class="fas fa-lock input-icon"></i>
+                        <button type="button" class="password-toggle" onclick="togglePassword()">
+                            <i class="fas fa-eye" id="passwordToggleIcon"></i>
+                        </button>
+                    </div>
+                    <span asp-validation-for="Password" class="validation-error"></span>
+                </div>
+
+                <div class="remember-forgot">
+                    <label class="remember-me">
+                        <input asp-for="RememberMe" type="checkbox" class="remember-checkbox" />
+                        <span>Remember me</span>
+                    </label>
+                    <a href="#" class="forgot-password">Forgot password?</a>
+                </div>
+
+                <button type="submit" class="login-button" id="loginButton">
+                    <span class="button-text">Sign In</span>
+                    <div class="button-loader" id="buttonLoader"></div>
+                </button>
+            </form>
+
+          
+
+            <!-- Quick Setup Button -->
+            <div style="margin-top: 15px; text-align: center;">
+                <button type="button" onclick="setupAdmin()" class="setup-admin-btn" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; font-size: 0.9rem;">
+                    <i class="fas fa-wrench" style="margin-right: 5px;"></i>
+                    Setup Admin User
+                </button>
+                <p style="font-size: 0.8rem; color: #6b7280; margin-top: 5px;">Click if login fails to create/fix admin user</p>
+            </div>
+        </div>
+
+        <div class="footer-links">
+            <p class="footer-text">Secure • Reliable • Efficient</p>
+            <div class="social-links">
+                <a href="#" class="social-link" title="Help & Support">
+                    <i class="fas fa-question-circle"></i>
+                </a>
+                <a href="#" class="social-link" title="System Status">
+                    <i class="fas fa-server"></i>
+                </a>
+                <a href="#" class="social-link" title="Contact Us">
+                    <i class="fas fa-envelope"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script src="~/js/login.js"></script>
+
+    <!-- Replace the existing script section in Login.cshtml with this simplified version -->
+
+    <script>
+        // Simplified credential fill function
+        function fillCredentials(type) {
+            const emailField = document.getElementById('Email');
+            const passwordField = document.getElementById('Password');
+
+            if (emailField && passwordField && type === 'admin') {
+                emailField.value = 'dennisngugi219@gmail.com';
+                passwordField.value = 'Admin1234';
+
+                // Visual feedback
+                emailField.style.background = 'rgba(16, 185, 129, 0.1)';
+                passwordField.style.background = 'rgba(16, 185, 129, 0.1)';
+
+                setTimeout(() => {
+                    emailField.style.background = '';
+                    passwordField.style.background = '';
+                }, 1000);
+            }
+        }
+
+        // Password toggle function
+        function togglePassword() {
+            const passwordField = document.getElementById('Password');
+            const toggleIcon = document.getElementById('passwordToggleIcon');
+
+            if (passwordField && toggleIcon) {
+                if (passwordField.type === 'password') {
+                    passwordField.type = 'text';
+                    toggleIcon.classList.remove('fa-eye');
+                    toggleIcon.classList.add('fa-eye-slash');
+                } else {
+                    passwordField.type = 'password';
+                    toggleIcon.classList.remove('fa-eye-slash');
+                    toggleIcon.classList.add('fa-eye');
+                }
+            }
+        }
+
+        // FINAL SIMPLE FIX
+        async function setupAdmin() {
+            const setupBtn = document.querySelector('.setup-admin-btn');
+            if (!setupBtn) return;
+
+            const originalText = setupBtn.innerHTML;
+
+            try {
+                setupBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> FIXING...';
+                setupBtn.disabled = true;
+
+                console.log('🚨 CALLING FINAL FIX...');
+
+                const response = await fetch('/fix-admin-now');
+                const result = await response.json();
+
+                console.log('🚨 Final fix result:', result);
+
+                if (result.success) {
+                    showMessage('✅ ADMIN FIXED! Login now works!', 'success');
+
+                    // Auto-fill
+                    document.getElementById('Email').value = 'dennisngugi219@gmail.com';
+                    document.getElementById('Password').value = 'Admin1234';
+
+                    console.log('✅ READY! Click login button now.');
+                } else {
+                    showMessage('❌ Fix failed: ' + result.message, 'error');
+                }
+            } catch (error) {
+                console.error('❌ Fix error:', error);
+                showMessage('❌ Fix failed. Check console.', 'error');
+            } finally {
+                setupBtn.innerHTML = originalText;
+                setupBtn.disabled = false;
+            }
+        }
+
+        // Simple credential fill
+        async function testLogin() {
+            document.getElementById('Email').value = 'dennisngugi219@gmail.com';
+            document.getElementById('Password').value = 'Admin1234';
+            showMessage('✅ Credentials filled. Try login now.', 'success');
+        }
+
+        // Show message function
+        function showMessage(message, type) {
+            const errorMsg = document.getElementById('errorMessage');
+            const successMsg = document.getElementById('successMessage');
+            const errorText = document.getElementById('errorText');
+            const successText = document.getElementById('successText');
+
+            // Hide all messages first
+            if (errorMsg) errorMsg.style.display = 'none';
+            if (successMsg) successMsg.style.display = 'none';
+
+            if (type === 'success' && successMsg && successText) {
+                successText.textContent = message;
+                successMsg.style.display = 'block';
+            } else if (type === 'error' && errorMsg && errorText) {
+                errorText.textContent = message;
+                errorMsg.style.display = 'block';
+            }
+
+            // Auto-hide after 5 seconds
+            setTimeout(() => {
+                if (type === 'success' && successMsg) {
+                    successMsg.style.display = 'none';
+                } else if (type === 'error' && errorMsg) {
+                    errorMsg.style.display = 'none';
+                }
+            }, 5000);
+        }
+
+        // Form submission handling with better error logging
+        document.addEventListener('DOMContentLoaded', function() {
+            const loginForm = document.getElementById('loginForm');
+            if (loginForm) {
+                loginForm.addEventListener('submit', function(e) {
+                    const emailValue = document.getElementById('Email')?.value || '';
+                    const passwordValue = document.getElementById('Password')?.value || '';
+
+                    console.log('=== FORM SUBMISSION DEBUG ===');
+                    console.log('Email:', emailValue);
+                    console.log('Password Length:', passwordValue.length);
+                    console.log('Form Action:', this.action);
+                    console.log('Form Method:', this.method);
+
+                    // Basic validation
+                    if (!emailValue || !passwordValue) {
+                        e.preventDefault();
+                        showMessage('Please enter both email and password.', 'error');
+                        return false;
+                    }
+
+                    // Show loading state
+                    const button = document.getElementById('loginButton');
+                    const buttonText = button?.querySelector('.button-text');
+                    const buttonLoader = document.getElementById('buttonLoader');
+
+                    if (button && buttonText && buttonLoader) {
+                        buttonText.style.opacity = '0';
+                        buttonLoader.style.display = 'block';
+                        button.disabled = true;
+                    }
+
+                    // Hide any existing messages
+                    const errorMsg = document.getElementById('errorMessage');
+                    const successMsg = document.getElementById('successMessage');
+                    if (errorMsg) errorMsg.style.display = 'none';
+                    if (successMsg) successMsg.style.display = 'none';
+                });
+            }
+
+            // Auto-hide messages after 5 seconds
+            setTimeout(function() {
+                const messages = document.querySelectorAll('.error-message, .success-message, .info-message');
+                messages.forEach(function(msg) {
+                    if (msg.style.display !== 'none') {
+                        msg.style.opacity = '0';
+                        setTimeout(function() {
+                            msg.style.display = 'none';
+                        }, 300);
+                    }
+                });
+            }, 5000);
+
+            // Debug info
+            console.log('🔑 Login page loaded');
+            console.log('📧 Expected admin email: dennisngugi219@gmail.com');
+            console.log('🔐 Expected admin password: Admin1234');
+        });
+    </script>
+
+    <style>
+        .info-message {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 16px;
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 8px;
+            color: #1e40af;
+            font-size: 0.9rem;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .password-toggle {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #6b7280;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 4px;
+            transition: color 0.3s ease;
+        }
+
+            .password-toggle:hover {
+                color: #667eea;
+            }
+
+        .input-container {
+            position: relative;
+        }
+
+        .setup-admin-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .setup-admin-btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+    </style>
+</body>
+</html>

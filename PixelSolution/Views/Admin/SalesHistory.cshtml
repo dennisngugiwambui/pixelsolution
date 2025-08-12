@@ -1,0 +1,1129 @@
+@model List<PixelSolution.ViewModels.SaleListViewModel>
+@{
+    ViewData["Title"] = "Sales History - PixelSolution";
+    Layout = "_AdminLayout";
+}
+
+@section Styles {
+    <link href="~/css/dashboard.css" rel="stylesheet">
+    <style>
+        /* Sidebar Styles */
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 280px;
+            height: 100vh;
+            background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+            color: white;
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+            overflow-y: auto;
+            box-shadow: 4px 0 20px rgba(0,0,0,0.1);
+        }
+
+        .sidebar.open {
+            transform: translateX(0);
+        }
+
+        .sidebar-header {
+            padding: 2rem 1.5rem;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            background: rgba(0,0,0,0.2);
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+
+        .logo-text {
+            font-size: 1.25rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #60a5fa, #3b82f6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, #10b981, #059669);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+
+        .user-details h4 {
+            margin: 0;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+
+        .user-details p {
+            margin: 0;
+            font-size: 0.75rem;
+            color: #94a3b8;
+        }
+
+        .nav-menu {
+            padding: 1rem 0;
+        }
+
+        .nav-section {
+            margin-bottom: 2rem;
+        }
+
+        .nav-section-title {
+            padding: 0 1.5rem 0.5rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #64748b;
+        }
+
+        .nav-item {
+            margin-bottom: 0.25rem;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1.5rem;
+            color: #cbd5e1;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            border-left: 3px solid transparent;
+        }
+
+        .nav-link:hover {
+            background: rgba(255,255,255,0.05);
+            color: white;
+            border-left-color: #3b82f6;
+        }
+
+        .nav-link.active {
+            background: rgba(59, 130, 246, 0.1);
+            color: #60a5fa;
+            border-left-color: #3b82f6;
+        }
+
+        .nav-link i {
+            width: 20px;
+            text-align: center;
+        }
+
+        /* Main Content Styles */
+        .main-content {
+            margin-left: 0;
+            min-height: 100vh;
+            background: #f8fafc;
+            transition: margin-left 0.3s ease;
+        }
+
+        .main-content.sidebar-open {
+            margin-left: 280px;
+        }
+
+        .header {
+            background: white;
+            padding: 1rem 2rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .sidebar-toggle {
+            background: none;
+            border: none;
+            font-size: 1.25rem;
+            color: #6b7280;
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .sidebar-toggle:hover {
+            background: #f3f4f6;
+            color: #374151;
+        }
+
+        .page-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1f2937;
+            margin: 0;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .action-btn {
+            background: none;
+            border: none;
+            padding: 0.75rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: #6b7280;
+            position: relative;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .action-btn:hover {
+            background: #f3f4f6;
+            color: #374151;
+        }
+
+        .notification-badge {
+            position: absolute;
+            top: 0.25rem;
+            right: 0.25rem;
+            background: #ef4444;
+            color: white;
+            font-size: 0.625rem;
+            font-weight: 600;
+            padding: 0.125rem 0.375rem;
+            border-radius: 9999px;
+            min-width: 1rem;
+            text-align: center;
+        }
+
+        /* Sales History Specific Styles */
+        .sales-history-container {
+            padding: 2rem;
+            background: #f8fafc;
+            min-height: calc(100vh - 100px);
+        }
+
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .page-title {
+            font-size: 1.875rem;
+            font-weight: 700;
+            color: #1f2937;
+            margin: 0;
+        }
+
+        .stats-summary {
+            display: flex;
+            gap: 2rem;
+            color: #6b7280;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #10b981;
+        }
+
+        .stat-label {
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+        }
+
+        .sales-table-container {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .table-header {
+            background: #f9fafb;
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .table-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: #1f2937;
+        }
+
+        .search-box {
+            padding: 0.5rem 1rem;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            width: 250px;
+        }
+
+        .sales-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .sales-table th {
+            background: #f9fafb;
+            padding: 1rem;
+            text-align: left;
+            font-weight: 600;
+            color: #374151;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .sales-table td {
+            padding: 1rem;
+            border-bottom: 1px solid #f3f4f6;
+            color: #6b7280;
+        }
+
+        .sales-table tbody tr:hover {
+            background: #f9fafb;
+        }
+
+        .sale-number {
+            font-weight: 600;
+            color: #1f2937;
+        }
+
+        .amount {
+            font-weight: 600;
+            color: #10b981;
+        }
+
+        .payment-method {
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .payment-cash {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .payment-mpesa {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .action-btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s;
+        }
+
+        .btn-view {
+            background: #eff6ff;
+            color: #2563eb;
+        }
+
+        .btn-view:hover {
+            background: #dbeafe;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: #6b7280;
+        }
+
+        .empty-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            opacity: 0.3;
+        }
+
+        .back-btn {
+            background: #6b7280;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .back-btn:hover {
+            background: #4b5563;
+            color: white;
+        }
+    </style>
+}
+
+<!-- Sidebar -->
+<div class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+        <div class="logo-container">
+            <div class="logo-icon">
+                <i class="fas fa-bolt"></i>
+            </div>
+            <div class="logo-text">PixelSolution</div>
+        </div>
+        <div class="user-info">
+            <div class="user-avatar">@User.Identity.Name?.Substring(0, 2).ToUpper()</div>
+            <div class="user-details">
+                <h4>@User.Identity.Name</h4>
+                <p>System Administrator</p>
+            </div>
+        </div>
+    </div>
+
+    <nav class="nav-menu">
+        <div class="nav-section">
+            <div class="nav-section-title">Main</div>
+            <div class="nav-item">
+                <a href="@Url.Action("Dashboard", "Admin")" class="nav-link">
+                    <i class="fas fa-chart-pie"></i>
+                    Dashboard
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Sales", "Admin")" class="nav-link">
+                    <i class="fas fa-shopping-cart"></i>
+                    Sales
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("SalesHistory", "Admin")" class="nav-link active">
+                    <i class="fas fa-history"></i>
+                    Sales History
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Inventory", "Admin")" class="nav-link">
+                    <i class="fas fa-box"></i>
+                    Inventory
+                </a>
+            </div>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-section-title">Management</div>
+            <div class="nav-item">
+                <a href="@Url.Action("Users", "Admin")" class="nav-link">
+                    <i class="fas fa-users"></i>
+                    Employees
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Departments", "Admin")" class="nav-link">
+                    <i class="fas fa-building"></i>
+                    Departments
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Suppliers", "Admin")" class="nav-link">
+                    <i class="fas fa-truck"></i>
+                    Suppliers
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Categories", "Admin")" class="nav-link">
+                    <i class="fas fa-tags"></i>
+                    Categories
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Products", "Admin")" class="nav-link">
+                    <i class="fas fa-cube"></i>
+                    Products
+                </a>
+            </div>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-section-title">Operations</div>
+            <div class="nav-item">
+                <a href="@Url.Action("PurchaseRequests", "Admin")" class="nav-link">
+                    <i class="fas fa-file-invoice"></i>
+                    Purchase Requests
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Messages", "Admin")" class="nav-link">
+                    <i class="fas fa-envelope"></i>
+                    Messages
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Reports", "Admin")" class="nav-link">
+                    <i class="fas fa-chart-bar"></i>
+                    Reports
+                </a>
+            </div>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-section-title">System</div>
+            <div class="nav-item">
+                <a href="@Url.Action("Settings", "Admin")" class="nav-link">
+                    <i class="fas fa-cog"></i>
+                    Settings
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Logout", "Auth")" class="nav-link">
+                    <i class="fas fa-sign-out-alt"></i>
+                    Logout
+                </a>
+            </div>
+        </div>
+    </nav>
+</div>
+
+<!-- Main Content -->
+<div class="main-content" id="mainContent">
+    <!-- Header -->
+    <header class="header">
+        <div class="header-left">
+            <button class="sidebar-toggle" id="sidebarToggle">
+                <i class="fas fa-bars"></i>
+            </button>
+            <h1 class="page-title">Sales History</h1>
+        </div>
+        <div class="header-right">
+            <div class="header-actions">
+                <a href="@Url.Action("Sales", "Admin")" class="action-btn" title="Back to POS">
+                    <i class="fas fa-shopping-cart"></i>
+                </a>
+                <button class="action-btn" title="Notifications">
+                    <i class="fas fa-bell"></i>
+                    <span class="notification-badge">3</span>
+                </button>
+                <button class="action-btn" title="Profile">
+                    <i class="fas fa-user-circle"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Page Content -->
+    <div class="sales-history-container">
+    <!-- Page Header -->
+    <div class="page-header">
+        <div>
+            <h1 class="page-title">📊 Sales History</h1>
+        </div>
+        <div class="stats-summary">
+            <div class="stat-item">
+                <div class="stat-value">@Model.Count</div>
+                <div class="stat-label">Total Sales</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value">KSh @Model.Sum(s => s.TotalAmount).ToString("N2")</div>
+                <div class="stat-label">Total Revenue</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value">@Model.Sum(s => s.ItemCount)</div>
+                <div class="stat-label">Items Sold</div>
+            </div>
+        </div>
+        <a href="@Url.Action("Sales", "Admin")" class="back-btn">
+            <i class="fas fa-arrow-left"></i> Back to POS
+        </a>
+    </div>
+
+    <!-- Sales Table -->
+    <div class="sales-table-container">
+        <div class="table-header">
+            <h2 class="table-title">Recent Sales</h2>
+            <input type="text" class="search-box" placeholder="Search sales..." id="searchBox">
+        </div>
+
+        @if (Model.Any())
+        {
+            <table class="sales-table" id="salesTable">
+                <thead>
+                    <tr>
+                        <th>Sale #</th>
+                        <th>Date & Time</th>
+                        <th>Customer</th>
+                        <th>Items</th>
+                        <th>Amount</th>
+                        <th>Payment</th>
+                        <th>Cashier</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var sale in Model.OrderByDescending(s => s.SaleDate))
+                    {
+                        <tr>
+                            <td>
+                                <span class="sale-number">@sale.SaleNumber</span>
+                            </td>
+                            <td>
+                                <div>@sale.SaleDate.ToString("dd/MM/yyyy")</div>
+                                <div style="font-size: 0.75rem; color: #9ca3af;">@sale.SaleDate.ToString("HH:mm:ss")</div>
+                            </td>
+                            <td>
+                                <div>@sale.CustomerName</div>
+                                @if (!string.IsNullOrEmpty(sale.CustomerPhone))
+                                {
+                                    <div style="font-size: 0.75rem; color: #9ca3af;">@sale.CustomerPhone</div>
+                                }
+                            </td>
+                            <td>
+                                <div>@sale.ItemCount items</div>
+                                <div style="font-size: 0.75rem; color: #9ca3af;">@sale.TotalQuantity qty</div>
+                            </td>
+                            <td>
+                                <div class="amount">KSh @sale.TotalAmount.ToString("N2")</div>
+                                @if (sale.ChangeGiven > 0)
+                                {
+                                    <div style="font-size: 0.75rem; color: #9ca3af;">Change: KSh @sale.ChangeGiven.ToString("N2")</div>
+                                }
+                            </td>
+                            <td>
+                                <span class="payment-method @(sale.PaymentMethod.ToLower() == "cash" ? "payment-cash" : "payment-mpesa")">
+                                    @sale.PaymentMethod
+                                </span>
+                            </td>
+                            <td>@sale.CashierName</td>
+                            <td>
+                                <a href="@Url.Action("Receipt", "Admin", new { saleId = sale.SaleId })" 
+                                   class="action-btn btn-view" 
+                                   target="_blank"
+                                   title="View Receipt">
+                                    <i class="fas fa-receipt"></i> Receipt
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+        else
+        {
+            <div class="empty-state">
+                <i class="fas fa-chart-line empty-icon"></i>
+                <h3>No Sales Found</h3>
+                <p>No sales have been recorded yet. Start making sales to see them here.</p>
+                <a href="@Url.Action("Sales", "Admin")" class="action-btn btn-view" style="margin-top: 1rem;">
+                    <i class="fas fa-plus"></i> Make First Sale
+                </a>
+            </div>
+        }
+    </div>
+</div>
+</div>
+</div>
+
+@section Scripts {
+    <script>
+        // Sidebar toggle functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('mainContent');
+            const sidebarToggle = document.getElementById('sidebarToggle');
+            
+            // Check if sidebar should be open by default on larger screens
+            if (window.innerWidth >= 1024) {
+                sidebar.classList.add('open');
+                mainContent.classList.add('sidebar-open');
+            }
+            
+            // Toggle sidebar
+            sidebarToggle.addEventListener('click', function() {
+                sidebar.classList.toggle('open');
+                mainContent.classList.toggle('sidebar-open');
+                
+                // Store sidebar state
+                localStorage.setItem('sidebarOpen', sidebar.classList.contains('open'));
+            });
+            
+            // Restore sidebar state
+            const sidebarOpen = localStorage.getItem('sidebarOpen');
+            if (sidebarOpen === 'true') {
+                sidebar.classList.add('open');
+                mainContent.classList.add('sidebar-open');
+            }
+            
+            // Handle window resize
+            window.addEventListener('resize', function() {
+                if (window.innerWidth < 1024) {
+                    sidebar.classList.remove('open');
+                    mainContent.classList.remove('sidebar-open');
+                } else if (localStorage.getItem('sidebarOpen') !== 'false') {
+                    sidebar.classList.add('open');
+                    mainContent.classList.add('sidebar-open');
+                }
+            });
+            
+            // Close sidebar when clicking outside on mobile
+            document.addEventListener('click', function(e) {
+                if (window.innerWidth < 1024 && 
+                    !sidebar.contains(e.target) && 
+                    !sidebarToggle.contains(e.target) && 
+                    sidebar.classList.contains('open')) {
+                    sidebar.classList.remove('open');
+                    mainContent.classList.remove('sidebar-open');
+                }
+            });
+        });
+        // Advanced Filtering and Search Functionality
+        let allSalesData = [];
+        let filteredSalesData = [];
+        let currentPage = 1;
+        let resultsPerPage = 25;
+
+        // Initialize filters on page load
+        function initializeFilters() {
+            // Store original sales data
+            storeSalesData();
+            
+            // Set up event listeners for all filters
+            setupFilterEventListeners();
+            
+            // Set default date range (last 30 days)
+            setDefaultDateRange();
+            
+            // Apply initial filters
+            applyAllFilters();
+        }
+
+        function storeSalesData() {
+            const salesRows = document.querySelectorAll('.sales-table tbody tr');
+            allSalesData = [];
+            
+            salesRows.forEach(row => {
+                const cells = row.querySelectorAll('td');
+                if (cells.length >= 7) {
+                    allSalesData.push({
+                        element: row,
+                        saleNumber: cells[0].textContent.trim(),
+                        dateTime: cells[1].textContent.trim(),
+                        customer: cells[2].textContent.trim(),
+                        items: cells[3].textContent.trim(),
+                        amount: parseFloat(cells[4].textContent.replace('KSh ', '').replace(',', '')),
+                        amountText: cells[4].textContent.trim(),
+                        payment: cells[5].textContent.trim(),
+                        cashier: cells[6].textContent.trim(),
+                        date: new Date(cells[1].textContent.trim())
+                    });
+                }
+            });
+            
+            console.log('Stored sales data:', allSalesData.length, 'records');
+        }
+
+        function setupFilterEventListeners() {
+            // Search input with debounce
+            const searchInput = document.getElementById('searchInput');
+            const clearSearch = document.getElementById('clearSearch');
+            
+            if (searchInput) {
+                let searchTimeout;
+                searchInput.addEventListener('input', function() {
+                    clearTimeout(searchTimeout);
+                    searchTimeout = setTimeout(() => {
+                        applyAllFilters();
+                        toggleClearButton();
+                    }, 300);
+                });
+            }
+            
+            if (clearSearch) {
+                clearSearch.addEventListener('click', function() {
+                    searchInput.value = '';
+                    applyAllFilters();
+                    toggleClearButton();
+                });
+            }
+            
+            // Date range filters
+            const dateFrom = document.getElementById('dateFrom');
+            const dateTo = document.getElementById('dateTo');
+            if (dateFrom) dateFrom.addEventListener('change', applyAllFilters);
+            if (dateTo) dateTo.addEventListener('change', applyAllFilters);
+            
+            // Payment method filter
+            const paymentFilter = document.getElementById('paymentFilter');
+            if (paymentFilter) paymentFilter.addEventListener('change', applyAllFilters);
+            
+            // Amount range filters
+            const amountFrom = document.getElementById('amountFrom');
+            const amountTo = document.getElementById('amountTo');
+            if (amountFrom) amountFrom.addEventListener('input', debounce(applyAllFilters, 500));
+            if (amountTo) amountTo.addEventListener('input', debounce(applyAllFilters, 500));
+            
+            // Sort and pagination
+            const sortBy = document.getElementById('sortBy');
+            const resultsPerPageSelect = document.getElementById('resultsPerPage');
+            
+            if (sortBy) sortBy.addEventListener('change', applyAllFilters);
+            if (resultsPerPageSelect) {
+                resultsPerPageSelect.addEventListener('change', function() {
+                    resultsPerPage = this.value === 'all' ? Infinity : parseInt(this.value);
+                    currentPage = 1;
+                    applyAllFilters();
+                });
+            }
+            
+            // Reset filters
+            const resetFilters = document.getElementById('resetFilters');
+            if (resetFilters) resetFilters.addEventListener('click', resetAllFilters);
+        }
+
+        function toggleClearButton() {
+            const searchInput = document.getElementById('searchInput');
+            const clearSearch = document.getElementById('clearSearch');
+            if (searchInput && clearSearch) {
+                clearSearch.style.display = searchInput.value ? 'block' : 'none';
+            }
+        }
+
+        function setDefaultDateRange() {
+            const today = new Date();
+            const thirtyDaysAgo = new Date(today.getTime() - (30 * 24 * 60 * 60 * 1000));
+            
+            const dateTo = document.getElementById('dateTo');
+            const dateFrom = document.getElementById('dateFrom');
+            
+            if (dateTo) dateTo.value = today.toISOString().split('T')[0];
+            if (dateFrom) dateFrom.value = thirtyDaysAgo.toISOString().split('T')[0];
+        }
+
+        function applyAllFilters() {
+            // Get filter values
+            const searchTerm = document.getElementById('searchInput')?.value.toLowerCase() || '';
+            const dateFrom = document.getElementById('dateFrom')?.value || '';
+            const dateTo = document.getElementById('dateTo')?.value || '';
+            const paymentMethod = document.getElementById('paymentFilter')?.value || '';
+            const amountFrom = parseFloat(document.getElementById('amountFrom')?.value) || 0;
+            const amountTo = parseFloat(document.getElementById('amountTo')?.value) || Infinity;
+            const sortBy = document.getElementById('sortBy')?.value || 'date_desc';
+            
+            // Apply filters
+            filteredSalesData = allSalesData.filter(sale => {
+                // Search filter
+                if (searchTerm) {
+                    const searchableText = (
+                        sale.saleNumber + ' ' +
+                        sale.customer + ' ' +
+                        sale.cashier + ' ' +
+                        sale.amountText + ' ' +
+                        sale.payment + ' ' +
+                        sale.items
+                    ).toLowerCase();
+                    
+                    if (!searchableText.includes(searchTerm)) {
+                        return false;
+                    }
+                }
+                
+                // Date range filter
+                if (dateFrom) {
+                    const fromDate = new Date(dateFrom);
+                    if (sale.date < fromDate) return false;
+                }
+                
+                if (dateTo) {
+                    const toDate = new Date(dateTo);
+                    toDate.setHours(23, 59, 59, 999);
+                    if (sale.date > toDate) return false;
+                }
+                
+                // Payment method filter
+                if (paymentMethod && !sale.payment.toLowerCase().includes(paymentMethod.toLowerCase())) {
+                    return false;
+                }
+                
+                // Amount range filter
+                if (sale.amount < amountFrom || sale.amount > amountTo) {
+                    return false;
+                }
+                
+                return true;
+            });
+            
+            // Apply sorting
+            applySorting(sortBy);
+            
+            // Update display
+            updateSalesDisplay();
+            updateFilterSummary();
+        }
+
+        function applySorting(sortBy) {
+            switch (sortBy) {
+                case 'date_desc':
+                    filteredSalesData.sort((a, b) => b.date - a.date);
+                    break;
+                case 'date_asc':
+                    filteredSalesData.sort((a, b) => a.date - b.date);
+                    break;
+                case 'amount_desc':
+                    filteredSalesData.sort((a, b) => b.amount - a.amount);
+                    break;
+                case 'amount_asc':
+                    filteredSalesData.sort((a, b) => a.amount - b.amount);
+                    break;
+                case 'sale_desc':
+                    filteredSalesData.sort((a, b) => b.saleNumber.localeCompare(a.saleNumber));
+                    break;
+                case 'sale_asc':
+                    filteredSalesData.sort((a, b) => a.saleNumber.localeCompare(b.saleNumber));
+                    break;
+            }
+        }
+
+        function updateSalesDisplay() {
+            // Hide all rows first
+            allSalesData.forEach(sale => {
+                sale.element.style.display = 'none';
+            });
+            
+            // Show filtered results with pagination
+            const startIndex = (currentPage - 1) * resultsPerPage;
+            const endIndex = resultsPerPage === Infinity ? filteredSalesData.length : startIndex + resultsPerPage;
+            
+            for (let i = startIndex; i < endIndex && i < filteredSalesData.length; i++) {
+                filteredSalesData[i].element.style.display = '';
+            }
+            
+            // Show 'no results' message if needed
+            showNoResultsMessage(filteredSalesData.length === 0);
+        }
+
+        function updateFilterSummary() {
+            const summary = document.getElementById('filterSummary');
+            const resultsCount = document.querySelector('.results-count');
+            const activeFilters = document.querySelector('.active-filters');
+            
+            if (resultsCount) {
+                resultsCount.textContent = `Showing ${filteredSalesData.length} of ${allSalesData.length} sales`;
+            }
+            
+            if (activeFilters) {
+                const filters = getActiveFilters();
+                if (filters.length > 0) {
+                    activeFilters.innerHTML = 'Active filters: ' + filters.map(f => `<span class="filter-tag">${f}</span>`).join('');
+                    if (summary) summary.style.display = 'flex';
+                } else {
+                    if (summary) summary.style.display = 'none';
+                }
+            }
+        }
+
+        function getActiveFilters() {
+            const filters = [];
+            
+            const searchTerm = document.getElementById('searchInput')?.value;
+            if (searchTerm) filters.push(`Search: "${searchTerm}"`);
+            
+            const dateFrom = document.getElementById('dateFrom')?.value;
+            const dateTo = document.getElementById('dateTo')?.value;
+            if (dateFrom || dateTo) {
+                filters.push(`Date: ${dateFrom || 'Any'} to ${dateTo || 'Any'}`);
+            }
+            
+            const paymentMethod = document.getElementById('paymentFilter')?.value;
+            if (paymentMethod) filters.push(`Payment: ${paymentMethod}`);
+            
+            const amountFrom = document.getElementById('amountFrom')?.value;
+            const amountTo = document.getElementById('amountTo')?.value;
+            if (amountFrom || amountTo) {
+                filters.push(`Amount: KSh ${amountFrom || '0'} - ${amountTo || '∞'}`);
+            }
+            
+            return filters;
+        }
+
+        function showNoResultsMessage(show) {
+            let noResultsRow = document.querySelector('.no-results-row');
+            
+            if (show && !noResultsRow) {
+                const tbody = document.querySelector('.sales-table tbody');
+                if (tbody) {
+                    noResultsRow = document.createElement('tr');
+                    noResultsRow.className = 'no-results-row';
+                    noResultsRow.innerHTML = `
+                        <td colspan="8" style="text-align: center; padding: 40px; color: #6c757d;">
+                            <i class="fas fa-search" style="font-size: 48px; margin-bottom: 16px; opacity: 0.5;"></i>
+                            <h4>No sales found</h4>
+                            <p>Try adjusting your filters or search terms</p>
+                        </td>
+                    `;
+                    tbody.appendChild(noResultsRow);
+                }
+            } else if (!show && noResultsRow) {
+                noResultsRow.remove();
+            }
+        }
+
+        function resetAllFilters() {
+            const elements = {
+                searchInput: document.getElementById('searchInput'),
+                dateFrom: document.getElementById('dateFrom'),
+                dateTo: document.getElementById('dateTo'),
+                paymentFilter: document.getElementById('paymentFilter'),
+                amountFrom: document.getElementById('amountFrom'),
+                amountTo: document.getElementById('amountTo'),
+                sortBy: document.getElementById('sortBy'),
+                resultsPerPage: document.getElementById('resultsPerPage')
+            };
+            
+            if (elements.searchInput) elements.searchInput.value = '';
+            if (elements.dateFrom) elements.dateFrom.value = '';
+            if (elements.dateTo) elements.dateTo.value = '';
+            if (elements.paymentFilter) elements.paymentFilter.value = '';
+            if (elements.amountFrom) elements.amountFrom.value = '';
+            if (elements.amountTo) elements.amountTo.value = '';
+            if (elements.sortBy) elements.sortBy.value = 'date_desc';
+            if (elements.resultsPerPage) elements.resultsPerPage.value = '25';
+            
+            resultsPerPage = 25;
+            currentPage = 1;
+            
+            toggleClearButton();
+            applyAllFilters();
+            
+            showToast('Filters reset successfully', 'success');
+        }
+
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        function showToast(message, type = 'info') {
+            const existingToasts = document.querySelectorAll('.toast-notification');
+            existingToasts.forEach(toast => toast.remove());
+            
+            const toast = document.createElement('div');
+            toast.className = `toast-notification toast-${type}`;
+            toast.innerHTML = `
+                <i class="fas fa-${type === 'success' ? 'check-circle' : 'info-circle'}"></i>
+                <span>${message}</span>
+            `;
+            
+            toast.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: ${type === 'success' ? '#28a745' : '#17a2b8'};
+                color: white;
+                padding: 12px 20px;
+                border-radius: 6px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                z-index: 10000;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                font-size: 14px;
+                animation: slideInRight 0.3s ease-out;
+            `;
+            
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.animation = 'slideOutRight 0.3s ease-in';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // Initialize filters when DOM is loaded
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeFilters);
+        } else {
+            initializeFilters();
+        }
+
+        // Legacy search functionality for backward compatibility
+        const searchBox = document.getElementById('searchBox');
+        if (searchBox) {
+            searchBox.addEventListener('input', function(e) {
+                const searchTerm = e.target.value.toLowerCase();
+                const tableRows = document.querySelectorAll('#salesTable tbody tr');
+                
+                tableRows.forEach(row => {
+                    const text = row.textContent.toLowerCase();
+                    row.style.display = text.includes(searchTerm) ? '' : 'none';
+                });
+            });
+        }
+
+        // Auto-refresh every 30 seconds
+        setInterval(function() {
+            if (document.visibilityState === 'visible') {
+                location.reload();
+            }
+        }, 30000);
+    </script>
+}
