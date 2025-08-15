@@ -135,6 +135,17 @@ namespace PixelSolution.Services.Interfaces
         Task<byte[]> GenerateInventoryReportAsync();
         Task<byte[]> GenerateUserReportAsync();
         Task<byte[]> GenerateCategoriesReportAsync();
+        
+        // Excel report generation methods
+        Task<byte[]> GenerateSalesReportExcelAsync(DateTime startDate, DateTime endDate);
+        Task<byte[]> GenerateInventoryReportExcelAsync();
+        Task<byte[]> GenerateUserReportExcelAsync();
+        Task<byte[]> GenerateCategoriesReportExcelAsync();
+        Task<byte[]> GenerateSuppliersReportExcelAsync();
+        
+        // Additional PDF report generation methods
+        Task<byte[]> GenerateSuppliersReportAsync();
+        Task<byte[]> GenerateComprehensiveReportAsync(DateTime startDate, DateTime endDate);
     }
 
     public interface IBarcodeService

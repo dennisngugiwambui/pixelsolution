@@ -22,6 +22,7 @@ namespace PixelSolution.Data
         public DbSet<Message> Messages { get; set; }
         public DbSet<MpesaTransaction> MpesaTransactions { get; set; }
         public DbSet<UserDepartment> UserDepartments { get; set; }
+        public DbSet<UserActivityLog> UserActivityLogs { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -214,6 +215,30 @@ namespace PixelSolution.Data
 
             modelBuilder.Entity<Message>()
                 .Property(m => m.SentDate)
+                .HasDefaultValueSql("GETUTCDATE()");
+
+            // Configure UserActivityLog relationships and indexes
+            modelBuilder.Entity<UserActivityLog>()
+                .HasOne(ual => ual.User)
+                .WithMany()
+                .HasForeignKey(ual => ual.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Performance indexes for UserActivityLog
+            modelBuilder.Entity<UserActivityLog>()
+                .HasIndex(ual => ual.UserId);
+
+            modelBuilder.Entity<UserActivityLog>()
+                .HasIndex(ual => ual.ActivityType);
+
+            modelBuilder.Entity<UserActivityLog>()
+                .HasIndex(ual => ual.CreatedAt);
+
+            modelBuilder.Entity<UserActivityLog>()
+                .HasIndex(ual => new { ual.UserId, ual.CreatedAt });
+
+            modelBuilder.Entity<UserActivityLog>()
+                .Property(ual => ual.CreatedAt)
                 .HasDefaultValueSql("GETUTCDATE()");
         }
     }

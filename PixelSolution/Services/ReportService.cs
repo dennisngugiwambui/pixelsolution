@@ -3,6 +3,10 @@ using PixelSolution.Data;
 using PixelSolution.Models;
 using PixelSolution.Services.Interfaces;
 using System.Text;
+using iTextSharp.text;
+using iTextSharp.text.pdf;
+using ClosedXML.Excel;
+using System.Drawing;
 
 namespace PixelSolution.Services
 {
@@ -22,7 +26,6 @@ namespace PixelSolution.Services
                 var today = DateTime.Today;
                 var thisMonth = new DateTime(today.Year, today.Month, 1);
                 var lastMonth = thisMonth.AddMonths(-1);
-                var thisYear = new DateTime(today.Year, 1, 1);
 
                 // Today's sales
                 var todaySales = await _context.Sales
@@ -59,21 +62,6 @@ namespace PixelSolution.Services
                     .Distinct()
                     .CountAsync();
 
-                // Low stock products
-                var lowStockProducts = await _context.Products
-                    .Where(p => p.IsActive && p.StockQuantity <= p.MinStockLevel)
-                    .CountAsync();
-
-                // Pending purchase requests
-                var pendingPurchaseRequests = await _context.PurchaseRequests
-                    .Where(pr => pr.Status == "Pending")
-                    .CountAsync();
-
-                // Unread messages count
-                var unreadMessages = await _context.Messages
-                    .Where(m => !m.IsRead)
-                    .CountAsync();
-
                 // Recent sales for chart
                 var salesChartData = await GetSalesChartDataAsync();
 
@@ -96,7 +84,7 @@ namespace PixelSolution.Services
                         s.TotalAmount,
                         s.Status,
                         s.SaleDate,
-                        SalesPerson = s.User.FullName
+                        SalesPerson = s.User.FirstName + " " + s.User.LastName
                     })
                     .ToListAsync();
 
@@ -116,10 +104,7 @@ namespace PixelSolution.Services
                             growth = salesGrowth
                         },
                         productsSold = todayProductsSold,
-                        newCustomers = newCustomers,
-                        lowStockAlerts = lowStockProducts,
-                        pendingRequests = pendingPurchaseRequests,
-                        unreadMessages = unreadMessages
+                        newCustomers = newCustomers
                     },
                     charts = new
                     {
@@ -162,29 +147,6 @@ namespace PixelSolution.Services
                     .OrderBy(x => x.date)
                     .ToList();
 
-                var salesByCategory = sales
-                    .SelectMany(s => s.SaleItems)
-                    .GroupBy(si => si.Product.Category.Name)
-                    .Select(g => new
-                    {
-                        category = g.Key,
-                        amount = g.Sum(si => si.TotalPrice),
-                        quantity = g.Sum(si => si.Quantity)
-                    })
-                    .OrderByDescending(x => x.amount)
-                    .ToList();
-
-                var salesByUser = sales
-                    .GroupBy(s => s.User.FullName)
-                    .Select(g => new
-                    {
-                        user = g.Key,
-                        amount = g.Sum(s => s.TotalAmount),
-                        transactions = g.Count()
-                    })
-                    .OrderByDescending(x => x.amount)
-                    .ToList();
-
                 return new
                 {
                     summary = new
@@ -198,9 +160,7 @@ namespace PixelSolution.Services
                             endDate = endDate.ToString("yyyy-MM-dd")
                         }
                     },
-                    salesByDate = salesByDate,
-                    salesByCategory = salesByCategory,
-                    salesByUser = salesByUser
+                    salesByDate = salesByDate
                 };
             }
             catch (Exception ex)
@@ -216,30 +176,22 @@ namespace PixelSolution.Services
                 var products = await _context.Products
                     .Include(p => p.Category)
                     .Include(p => p.Supplier)
-                    .Where(p => p.IsActive)
+                    .Where(p => p.Status == "Active")
                     .ToListAsync();
 
                 var totalProducts = products.Count;
                 var totalStockValue = products.Sum(p => p.StockQuantity * p.BuyingPrice);
                 var lowStockProducts = products.Where(p => p.StockQuantity <= p.MinStockLevel).ToList();
-                var outOfStockProducts = products.Where(p => p.StockQuantity == 0).ToList();
 
-                var stockByCategory = products
-                    .GroupBy(p => p.Category.Name)
-                    .Select(g => new
+                return new
+                {
+                    summary = new
                     {
-                        category = g.Key,
-                        products = g.Count(),
-                        totalStock = g.Sum(p => p.StockQuantity),
-                        stockValue = g.Sum(p => p.StockQuantity * p.BuyingPrice)
-                    })
-                    .OrderByDescending(x => x.stockValue)
-                    .ToList();
-
-                var topValueProducts = products
-                    .OrderByDescending(p => p.StockQuantity * p.BuyingPrice)
-                    .Take(10)
-                    .Select(p => new
+                        totalProducts = totalProducts,
+                        totalStockValue = totalStockValue,
+                        lowStockCount = lowStockProducts.Count
+                    },
+                    products = products.Select(p => new
                     {
                         p.ProductId,
                         p.Name,
@@ -250,131 +202,12 @@ namespace PixelSolution.Services
                         stockValue = p.StockQuantity * p.BuyingPrice,
                         p.MinStockLevel,
                         isLowStock = p.StockQuantity <= p.MinStockLevel
-                    })
-                    .ToList();
-
-                return new
-                {
-                    summary = new
-                    {
-                        totalProducts = totalProducts,
-                        totalStockValue = totalStockValue,
-                        lowStockCount = lowStockProducts.Count,
-                        outOfStockCount = outOfStockProducts.Count
-                    },
-                    stockByCategory = stockByCategory,
-                    topValueProducts = topValueProducts,
-                    lowStockProducts = lowStockProducts.Select(p => new
-                    {
-                        p.ProductId,
-                        p.Name,
-                        p.SKU,
-                        category = p.Category.Name,
-                        p.StockQuantity,
-                        p.MinStockLevel,
-                        supplier = p.Supplier?.CompanyName
                     }).ToList()
                 };
             }
             catch (Exception ex)
             {
                 throw new Exception($"Error generating inventory report: {ex.Message}", ex);
-            }
-        }
-
-        public async Task<object> GetSupplierReportAsync()
-        {
-            try
-            {
-                var suppliers = await _context.Suppliers
-                    .Include(s => s.Products)
-                    .Include(s => s.PurchaseRequests)
-                    .ToListAsync();
-
-                var supplierPerformance = suppliers.Select(s => new
-                {
-                    s.SupplierId,
-                    s.CompanyName,
-                    s.ContactPerson,
-                    s.Email,
-                    s.Phone,
-                    s.Status,
-                    productCount = s.Products.Count(p => p.IsActive),
-                    totalPurchaseRequests = s.PurchaseRequests.Count,
-                    pendingRequests = s.PurchaseRequests.Count(pr => pr.Status == "Pending"),
-                    approvedRequests = s.PurchaseRequests.Count(pr => pr.Status == "Approved"),
-                    totalPurchaseValue = s.PurchaseRequests
-                        .Where(pr => pr.Status == "Approved")
-                        .Sum(pr => pr.TotalAmount)
-                }).ToList();
-
-                return new
-                {
-                    summary = new
-                    {
-                        totalSuppliers = suppliers.Count,
-                        activeSuppliers = suppliers.Count(s => s.Status == "Active"),
-                        inactiveSuppliers = suppliers.Count(s => s.Status == "Inactive")
-                    },
-                    supplierPerformance = supplierPerformance.OrderByDescending(s => s.totalPurchaseValue)
-                };
-            }
-            catch (Exception ex)
-            {
-                throw new Exception($"Error generating supplier report: {ex.Message}", ex);
-            }
-        }
-
-        public async Task<object> GetUserActivityReportAsync()
-        {
-            try
-            {
-                var thirtyDaysAgo = DateTime.UtcNow.AddDays(-30);
-
-                var userSales = await _context.Sales
-                    .Include(s => s.User)
-                    .Where(s => s.SaleDate >= thirtyDaysAgo && s.Status == "Completed")
-                    .GroupBy(s => new { s.UserId, s.User.FullName, s.User.UserType })
-                    .Select(g => new
-                    {
-                        userId = g.Key.UserId,
-                        userName = g.Key.FullName,
-                        userType = g.Key.UserType,
-                        totalSales = g.Sum(s => s.TotalAmount),
-                        transactionCount = g.Count(),
-                        averageTransaction = g.Average(s => s.TotalAmount)
-                    })
-                    .OrderByDescending(x => x.totalSales)
-                    .ToListAsync();
-
-                var userMessages = await _context.Messages
-                    .Include(m => m.FromUser)
-                    .Where(m => m.SentDate >= thirtyDaysAgo)
-                    .GroupBy(m => new { m.FromUserId, m.FromUser.FullName })
-                    .Select(g => new
-                    {
-                        userId = g.Key.FromUserId,
-                        userName = g.Key.FullName,
-                        messagesSent = g.Count(),
-                        remindersSent = g.Count(m => m.MessageType == "Reminder"),
-                        promotionsSent = g.Count(m => m.MessageType == "Promotion")
-                    })
-                    .ToListAsync();
-
-                return new
-                {
-                    salesActivity = userSales,
-                    messageActivity = userMessages,
-                    period = new
-                    {
-                        startDate = thirtyDaysAgo.ToString("yyyy-MM-dd"),
-                        endDate = DateTime.UtcNow.ToString("yyyy-MM-dd")
-                    }
-                };
-            }
-            catch (Exception ex)
-            {
-                throw new Exception($"Error generating user activity report: {ex.Message}", ex);
             }
         }
 
@@ -386,7 +219,6 @@ namespace PixelSolution.Services
                     .Include(s => s.User)
                     .Include(s => s.SaleItems)
                         .ThenInclude(si => si.Product)
-                            .ThenInclude(p => p.Category)
                     .FirstOrDefaultAsync(s => s.SaleId == saleId);
 
                 if (sale == null)
@@ -410,7 +242,6 @@ namespace PixelSolution.Services
                     .Include(pr => pr.Supplier)
                     .Include(pr => pr.PurchaseRequestItems)
                         .ThenInclude(pri => pri.Product)
-                            .ThenInclude(p => p.Category)
                     .FirstOrDefaultAsync(pr => pr.PurchaseRequestId == purchaseRequestId);
 
                 if (purchaseRequest == null)
@@ -489,32 +320,27 @@ namespace PixelSolution.Services
             html.AppendLine("<style>");
             html.AppendLine("body { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; }");
             html.AppendLine(".header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 20px; margin-bottom: 20px; }");
-            html.AppendLine(".receipt-info { margin-bottom: 20px; }");
             html.AppendLine("table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }");
             html.AppendLine("th, td { padding: 8px; text-align: left; border-bottom: 1px solid #ddd; }");
             html.AppendLine("th { background-color: #f5f5f5; }");
             html.AppendLine(".total-row { font-weight: bold; background-color: #f0f0f0; }");
-            html.AppendLine(".footer { text-align: center; margin-top: 30px; font-size: 12px; color: #666; }");
             html.AppendLine("</style>");
             html.AppendLine("</head><body>");
 
             // Header
             html.AppendLine("<div class='header'>");
-            html.AppendLine("<h1>PIXELSOLUTION LTD</h1>");
+            html.AppendLine("<h1>PIXEL SOLUTION COMPANY LTD</h1>");
             html.AppendLine("<p>Advanced Sales Management System</p>");
-            html.AppendLine("<p>Nairobi, Kenya | Phone: +254700000000</p>");
             html.AppendLine("</div>");
 
             // Receipt Info
-            html.AppendLine("<div class='receipt-info'>");
             html.AppendLine($"<p><strong>Receipt No:</strong> {sale.SaleNumber}</p>");
             html.AppendLine($"<p><strong>Date:</strong> {sale.SaleDate:dd/MM/yyyy HH:mm}</p>");
-            html.AppendLine($"<p><strong>Sales Person:</strong> {sale.User.FullName}</p>");
+            html.AppendLine($"<p><strong>Sales Person:</strong> {sale.User.FirstName} {sale.User.LastName}</p>");
             if (!string.IsNullOrEmpty(sale.CustomerName))
             {
                 html.AppendLine($"<p><strong>Customer:</strong> {sale.CustomerName}</p>");
             }
-            html.AppendLine("</div>");
 
             // Items Table
             html.AppendLine("<table>");
@@ -537,33 +363,10 @@ namespace PixelSolution.Services
             html.AppendLine($"<td colspan='3'><strong>TOTAL</strong></td>");
             html.AppendLine($"<td><strong>KSh {sale.TotalAmount:N2}</strong></td>");
             html.AppendLine("</tr>");
-
-            if (sale.AmountPaid > 0)
-            {
-                html.AppendLine("<tr>");
-                html.AppendLine($"<td colspan='3'>Amount Paid</td>");
-                html.AppendLine($"<td>KSh {sale.AmountPaid:N2}</td>");
-                html.AppendLine("</tr>");
-
-                if (sale.ChangeGiven > 0)
-                {
-                    html.AppendLine("<tr>");
-                    html.AppendLine($"<td colspan='3'>Change</td>");
-                    html.AppendLine($"<td>KSh {sale.ChangeGiven:N2}</td>");
-                    html.AppendLine("</tr>");
-                }
-            }
-
             html.AppendLine("</tbody>");
             html.AppendLine("</table>");
 
-            // Footer
-            html.AppendLine("<div class='footer'>");
             html.AppendLine("<p>Thank you for your business!</p>");
-            html.AppendLine("<p>All sales are final.</p>");
-            html.AppendLine($"<p>Generated on: {DateTime.Now:dd/MM/yyyy HH:mm}</p>");
-            html.AppendLine("</div>");
-
             html.AppendLine("</body></html>");
 
             return html.ToString();
@@ -579,30 +382,25 @@ namespace PixelSolution.Services
             html.AppendLine("<style>");
             html.AppendLine("body { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; }");
             html.AppendLine(".header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 20px; margin-bottom: 20px; }");
-            html.AppendLine(".request-info { margin-bottom: 20px; }");
             html.AppendLine("table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }");
             html.AppendLine("th, td { padding: 8px; text-align: left; border-bottom: 1px solid #ddd; }");
             html.AppendLine("th { background-color: #f5f5f5; }");
             html.AppendLine(".total-row { font-weight: bold; background-color: #f0f0f0; }");
-            html.AppendLine(".footer { text-align: center; margin-top: 30px; font-size: 12px; color: #666; }");
             html.AppendLine("</style>");
             html.AppendLine("</head><body>");
 
             // Header
             html.AppendLine("<div class='header'>");
-            html.AppendLine("<h1>PURCHASE REQUEST</h1>");
-            html.AppendLine("<h2>PIXELSOLUTION LTD</h2>");
+            html.AppendLine("<h1>PIXEL SOLUTION COMPANY LTD</h1>");
+            html.AppendLine("<h2>PURCHASE REQUEST</h2>");
             html.AppendLine("</div>");
 
             // Request Info
-            html.AppendLine("<div class='request-info'>");
             html.AppendLine($"<p><strong>Request No:</strong> {purchaseRequest.RequestNumber}</p>");
             html.AppendLine($"<p><strong>Date:</strong> {purchaseRequest.RequestDate:dd/MM/yyyy}</p>");
-            html.AppendLine($"<p><strong>Requested By:</strong> {purchaseRequest.User.FullName}</p>");
+            html.AppendLine($"<p><strong>Requested By:</strong> {purchaseRequest.User.FirstName} {purchaseRequest.User.LastName}</p>");
             html.AppendLine($"<p><strong>Supplier:</strong> {purchaseRequest.Supplier.CompanyName}</p>");
-            html.AppendLine($"<p><strong>Contact:</strong> {purchaseRequest.Supplier.ContactPerson} - {purchaseRequest.Supplier.Phone}</p>");
             html.AppendLine($"<p><strong>Status:</strong> {purchaseRequest.Status}</p>");
-            html.AppendLine("</div>");
 
             // Items Table
             html.AppendLine("<table>");
@@ -625,25 +423,10 @@ namespace PixelSolution.Services
             html.AppendLine($"<td colspan='3'><strong>TOTAL AMOUNT</strong></td>");
             html.AppendLine($"<td><strong>KSh {purchaseRequest.TotalAmount:N2}</strong></td>");
             html.AppendLine("</tr>");
-
             html.AppendLine("</tbody>");
             html.AppendLine("</table>");
 
-            if (!string.IsNullOrEmpty(purchaseRequest.Notes))
-            {
-                html.AppendLine("<div>");
-                html.AppendLine("<p><strong>Notes:</strong></p>");
-                html.AppendLine($"<p>{purchaseRequest.Notes}</p>");
-                html.AppendLine("</div>");
-            }
-
-            // Footer
-            html.AppendLine("<div class='footer'>");
-            html.AppendLine($"<p>Generated on: {DateTime.Now:dd/MM/yyyy HH:mm}</p>");
-            html.AppendLine("</div>");
-
             html.AppendLine("</body></html>");
-
             return html.ToString();
         }
 
@@ -658,129 +441,1113 @@ namespace PixelSolution.Services
                 .OrderByDescending(s => s.SaleDate)
                 .ToListAsync();
 
-            var html = GenerateSalesReportHtml(sales, startDate, endDate);
-            return Encoding.UTF8.GetBytes(html);
+            return GenerateSalesReportPdf(sales, startDate, endDate);
         }
 
-        // Generate other report methods
         public async Task<byte[]> GenerateInventoryReportAsync()
         {
             var products = await _context.Products
                 .Include(p => p.Category)
                 .Include(p => p.Supplier)
-                .Where(p => p.IsActive)
+                .Where(p => p.Status == "Active")
                 .OrderBy(p => p.Name)
                 .ToListAsync();
 
-            var html = GenerateInventoryReportHtml(products);
-            return Encoding.UTF8.GetBytes(html);
+            return GenerateInventoryReportPdf(products);
         }
 
         public async Task<byte[]> GenerateUserReportAsync()
         {
-            var users = await _context.Users
-                .Where(u => u.Status == "Active")
-                .OrderBy(u => u.FullName)
-                .ToListAsync();
-
-            var html = GenerateUserReportHtml(users);
-            return Encoding.UTF8.GetBytes(html);
+            // Get the user activity report data
+            var reportData = await GetUserActivityReportAsync();
+            var data = (dynamic)reportData;
+            
+            return GenerateUserActivityReportPdf(data.Users, data.Summary);
         }
 
         public async Task<byte[]> GenerateCategoriesReportAsync()
         {
             var categories = await _context.Categories
                 .Include(c => c.Products)
-                .Where(c => c.IsActive)
+                .Where(c => c.Status == "Active")
                 .OrderBy(c => c.Name)
                 .ToListAsync();
 
-            var html = GenerateCategoriesReportHtml(categories);
-            return Encoding.UTF8.GetBytes(html);
+            return GenerateCategoriesReportPdf(categories);
         }
 
-        // HTML Generation Methods
-        private string GenerateSalesReportHtml(List<Sale> sales, DateTime startDate, DateTime endDate)
+        // PDF Generation Methods
+        private byte[] GenerateSalesReportPdf(List<Sale> sales, DateTime startDate, DateTime endDate)
         {
-            var html = new StringBuilder();
-            var totalRevenue = sales.Sum(s => s.TotalAmount);
-
-            html.AppendLine("<html><body>");
-            html.AppendLine($"<h1>Sales Report ({startDate:dd/MM/yyyy} - {endDate:dd/MM/yyyy})</h1>");
-            html.AppendLine($"<p>Total Sales: {sales.Count}</p>");
-            html.AppendLine($"<p>Total Revenue: KSh {totalRevenue:N2}</p>");
-            html.AppendLine("<table border='1'>");
-            html.AppendLine("<tr><th>Date</th><th>Sale #</th><th>Customer</th><th>Amount</th><th>Cashier</th></tr>");
-
-            foreach (var sale in sales)
+            using (var stream = new MemoryStream())
             {
-                html.AppendLine($"<tr><td>{sale.SaleDate:dd/MM/yyyy}</td><td>{sale.SaleNumber}</td><td>{sale.CustomerName ?? "Walk-in"}</td><td>KSh {sale.TotalAmount:N2}</td><td>{sale.User?.FullName ?? "Unknown"}</td></tr>");
+                var document = new iTextSharp.text.Document(PageSize.A4, 25, 25, 30, 30);
+                var writer = PdfWriter.GetInstance(document, stream);
+                
+                document.Open();
+                
+                // Company Header
+                var titleFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 18, BaseColor.DARK_GRAY);
+                var companyTitle = new Paragraph("PIXEL SOLUTION COMPANY LTD", titleFont);
+                companyTitle.Alignment = Element.ALIGN_CENTER;
+                companyTitle.SpacingAfter = 10f;
+                document.Add(companyTitle);
+                
+                // Report Title
+                var reportTitleFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 14, BaseColor.BLACK);
+                var reportTitle = new Paragraph($"Sales Report ({startDate:dd/MM/yyyy} - {endDate:dd/MM/yyyy})", reportTitleFont);
+                reportTitle.Alignment = Element.ALIGN_CENTER;
+                reportTitle.SpacingAfter = 20f;
+                document.Add(reportTitle);
+                
+                // Summary Statistics
+                var totalRevenue = sales.Sum(s => s.TotalAmount);
+                var summaryFont = FontFactory.GetFont(FontFactory.HELVETICA, 10, BaseColor.BLACK);
+                var summary = new Paragraph($"Total Sales: {sales.Count} | Total Revenue: KSh {totalRevenue:N2} | Generated: {DateTime.Now:dd/MM/yyyy HH:mm}", summaryFont);
+                summary.Alignment = Element.ALIGN_CENTER;
+                summary.SpacingAfter = 20f;
+                document.Add(summary);
+                
+                // Create table
+                var table = new PdfPTable(5);
+                table.WidthPercentage = 100;
+                table.SetWidths(new float[] { 15f, 15f, 25f, 20f, 25f });
+                
+                // Table headers
+                var headerFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 10, BaseColor.WHITE);
+                var headers = new string[] { "Date", "Sale #", "Customer", "Amount (KSh)", "Cashier" };
+                
+                foreach (var header in headers)
+                {
+                    var cell = new PdfPCell(new Phrase(header, headerFont));
+                    cell.BackgroundColor = BaseColor.DARK_GRAY;
+                    cell.HorizontalAlignment = Element.ALIGN_CENTER;
+                    cell.Padding = 8f;
+                    table.AddCell(cell);
+                }
+                
+                // Table data
+                var dataFont = FontFactory.GetFont(FontFactory.HELVETICA, 9, BaseColor.BLACK);
+                foreach (var sale in sales)
+                {
+                    table.AddCell(new PdfPCell(new Phrase(sale.SaleDate.ToString("dd/MM/yyyy"), dataFont)) { Padding = 5f });
+                    table.AddCell(new PdfPCell(new Phrase(sale.SaleNumber ?? "N/A", dataFont)) { Padding = 5f });
+                    table.AddCell(new PdfPCell(new Phrase(sale.CustomerName ?? "Walk-in", dataFont)) { Padding = 5f });
+                    table.AddCell(new PdfPCell(new Phrase(sale.TotalAmount.ToString("N2"), dataFont)) { Padding = 5f, HorizontalAlignment = Element.ALIGN_RIGHT });
+                    table.AddCell(new PdfPCell(new Phrase(sale.User?.FullName ?? "Unknown", dataFont)) { Padding = 5f });
+                }
+                
+                document.Add(table);
+                
+                // Footer
+                var footerFont = FontFactory.GetFont(FontFactory.HELVETICA_OBLIQUE, 8, BaseColor.GRAY);
+                var footer = new Paragraph($"\nReport generated on {DateTime.Now:dd/MM/yyyy} at {DateTime.Now:HH:mm:ss}", footerFont);
+                footer.Alignment = Element.ALIGN_CENTER;
+                document.Add(footer);
+                
+                document.Close();
+                return stream.ToArray();
             }
-
-            html.AppendLine("</table></body></html>");
-            return html.ToString();
         }
 
-        private string GenerateInventoryReportHtml(List<Product> products)
+        private byte[] GenerateInventoryReportPdf(List<Product> products)
         {
-            var html = new StringBuilder();
-            var totalValue = products.Sum(p => p.StockQuantity * p.SellingPrice);
-
-            html.AppendLine("<html><body>");
-            html.AppendLine($"<h1>Inventory Report</h1>");
-            html.AppendLine($"<p>Total Products: {products.Count}</p>");
-            html.AppendLine($"<p>Total Stock Value: KSh {totalValue:N2}</p>");
-            html.AppendLine("<table border='1'>");
-            html.AppendLine("<tr><th>Product</th><th>SKU</th><th>Category</th><th>Stock</th><th>Unit Price</th><th>Stock Value</th></tr>");
-
-            foreach (var product in products)
+            using (var stream = new MemoryStream())
             {
-                var stockValue = product.StockQuantity * product.SellingPrice;
-                html.AppendLine($"<tr><td>{product.Name}</td><td>{product.SKU}</td><td>{product.Category?.Name ?? "N/A"}</td><td>{product.StockQuantity}</td><td>KSh {product.SellingPrice:N2}</td><td>KSh {stockValue:N2}</td></tr>");
+                var document = new iTextSharp.text.Document(PageSize.A4, 25, 25, 30, 30);
+                var writer = PdfWriter.GetInstance(document, stream);
+                
+                document.Open();
+                
+                // Company Header
+                var titleFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 18, BaseColor.DARK_GRAY);
+                var companyTitle = new Paragraph("PIXEL SOLUTION COMPANY LTD", titleFont);
+                companyTitle.Alignment = Element.ALIGN_CENTER;
+                companyTitle.SpacingAfter = 10f;
+                document.Add(companyTitle);
+                
+                // Report Title
+                var reportTitleFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 14, BaseColor.BLACK);
+                var reportTitle = new Paragraph("Inventory Report", reportTitleFont);
+                reportTitle.Alignment = Element.ALIGN_CENTER;
+                reportTitle.SpacingAfter = 20f;
+                document.Add(reportTitle);
+                
+                // Summary Statistics
+                var totalValue = products.Sum(p => p.StockQuantity * p.SellingPrice);
+                var summaryFont = FontFactory.GetFont(FontFactory.HELVETICA, 10, BaseColor.BLACK);
+                var summary = new Paragraph($"Total Products: {products.Count} | Total Stock Value: KSh {totalValue:N2} | Generated: {DateTime.Now:dd/MM/yyyy HH:mm}", summaryFont);
+                summary.Alignment = Element.ALIGN_CENTER;
+                summary.SpacingAfter = 20f;
+                document.Add(summary);
+                
+                // Create table
+                var table = new PdfPTable(6);
+                table.WidthPercentage = 100;
+                table.SetWidths(new float[] { 25f, 15f, 20f, 10f, 15f, 15f });
+                
+                // Table headers
+                var headerFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 10, BaseColor.WHITE);
+                var headers = new string[] { "Product", "SKU", "Category", "Stock", "Price (KSh)", "Value (KSh)" };
+                
+                foreach (var header in headers)
+                {
+                    var cell = new PdfPCell(new Phrase(header, headerFont));
+                    cell.BackgroundColor = BaseColor.DARK_GRAY;
+                    cell.HorizontalAlignment = Element.ALIGN_CENTER;
+                    cell.Padding = 8f;
+                    table.AddCell(cell);
+                }
+                
+                // Table data
+                var dataFont = FontFactory.GetFont(FontFactory.HELVETICA, 9, BaseColor.BLACK);
+                foreach (var product in products)
+                {
+                    var stockValue = product.StockQuantity * product.SellingPrice;
+                    table.AddCell(new PdfPCell(new Phrase(product.Name ?? "N/A", dataFont)) { Padding = 5f });
+                    table.AddCell(new PdfPCell(new Phrase(product.SKU ?? "N/A", dataFont)) { Padding = 5f });
+                    table.AddCell(new PdfPCell(new Phrase(product.Category?.Name ?? "N/A", dataFont)) { Padding = 5f });
+                    table.AddCell(new PdfPCell(new Phrase(product.StockQuantity.ToString(), dataFont)) { Padding = 5f, HorizontalAlignment = Element.ALIGN_RIGHT });
+                    table.AddCell(new PdfPCell(new Phrase(product.SellingPrice.ToString("N2"), dataFont)) { Padding = 5f, HorizontalAlignment = Element.ALIGN_RIGHT });
+                    table.AddCell(new PdfPCell(new Phrase(stockValue.ToString("N2"), dataFont)) { Padding = 5f, HorizontalAlignment = Element.ALIGN_RIGHT });
+                }
+                
+                document.Add(table);
+                
+                // Footer
+                var footerFont = FontFactory.GetFont(FontFactory.HELVETICA_OBLIQUE, 8, BaseColor.GRAY);
+                var footer = new Paragraph($"\nReport generated on {DateTime.Now:dd/MM/yyyy} at {DateTime.Now:HH:mm:ss}", footerFont);
+                footer.Alignment = Element.ALIGN_CENTER;
+                document.Add(footer);
+                
+                document.Close();
+                return stream.ToArray();
             }
-
-            html.AppendLine("</table></body></html>");
-            return html.ToString();
         }
 
-        private string GenerateUserReportHtml(List<User> users)
+        private byte[] GenerateUserActivityReportPdf(dynamic users, dynamic summary)
         {
-            var html = new StringBuilder();
-
-            html.AppendLine("<html><body>");
-            html.AppendLine($"<h1>Users Report</h1>");
-            html.AppendLine($"<p>Total Active Users: {users.Count}</p>");
-            html.AppendLine("<table border='1'>");
-            html.AppendLine("<tr><th>Name</th><th>Email</th><th>Phone</th><th>Type</th><th>Created</th></tr>");
-
-            foreach (var user in users)
+            using (var stream = new MemoryStream())
             {
-                html.AppendLine($"<tr><td>{user.FullName}</td><td>{user.Email}</td><td>{user.Phone ?? "N/A"}</td><td>{user.UserType}</td><td>{user.CreatedAt:dd/MM/yyyy}</td></tr>");
+                var document = new iTextSharp.text.Document(PageSize.A4.Rotate(), 25, 25, 30, 30);
+                var writer = PdfWriter.GetInstance(document, stream);
+                
+                document.Open();
+                
+                // Company Header
+                var titleFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 18, BaseColor.DARK_GRAY);
+                var companyTitle = new Paragraph("PIXEL SOLUTION COMPANY LTD", titleFont);
+                companyTitle.Alignment = Element.ALIGN_CENTER;
+                companyTitle.SpacingAfter = 10f;
+                document.Add(companyTitle);
+                
+                // Report Title
+                var reportTitleFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 14, BaseColor.BLACK);
+                var reportTitle = new Paragraph("User Activity Report", reportTitleFont);
+                reportTitle.Alignment = Element.ALIGN_CENTER;
+                reportTitle.SpacingAfter = 20f;
+                document.Add(reportTitle);
+                
+                // Summary Statistics
+                var summaryFont = FontFactory.GetFont(FontFactory.HELVETICA, 10, BaseColor.BLACK);
+                var summaryText = new Paragraph($"Total Users: {summary.TotalUsers} | Active Users: {summary.ActiveUsers} | Users with Activity: {summary.UsersWithActivity} | Total Activities: {summary.TotalActivities} | Generated: {DateTime.Now:dd/MM/yyyy HH:mm}", summaryFont);
+                summaryText.Alignment = Element.ALIGN_CENTER;
+                summaryText.SpacingAfter = 20f;
+                document.Add(summaryText);
+                
+                // Create table
+                var table = new PdfPTable(9);
+                table.WidthPercentage = 100;
+                table.SetWidths(new float[] { 15f, 20f, 10f, 10f, 10f, 10f, 10f, 10f, 15f });
+                
+                // Table headers
+                var headerFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 9, BaseColor.WHITE);
+                var headers = new string[] { "Name", "Email", "Department", "Sales", "Total Activities", "Logins", "Sales Activities", "Report Exports", "Last Activity" };
+                
+                foreach (var header in headers)
+                {
+                    var cell = new PdfPCell(new Phrase(header, headerFont));
+                    cell.BackgroundColor = BaseColor.DARK_GRAY;
+                    cell.HorizontalAlignment = Element.ALIGN_CENTER;
+                    cell.Padding = 5f;
+                    table.AddCell(cell);
+                }
+                
+                // Table data
+                var dataFont = FontFactory.GetFont(FontFactory.HELVETICA, 8, BaseColor.BLACK);
+                foreach (var user in users)
+                {
+                    table.AddCell(new PdfPCell(new Phrase(user.FullName ?? "N/A", dataFont)) { Padding = 4f });
+                    table.AddCell(new PdfPCell(new Phrase(user.Email ?? "N/A", dataFont)) { Padding = 4f });
+                    table.AddCell(new PdfPCell(new Phrase(user.Department ?? "N/A", dataFont)) { Padding = 4f });
+                    table.AddCell(new PdfPCell(new Phrase(user.SalesCount.ToString(), dataFont)) { Padding = 4f, HorizontalAlignment = Element.ALIGN_RIGHT });
+                    table.AddCell(new PdfPCell(new Phrase(user.TotalActivities.ToString(), dataFont)) { Padding = 4f, HorizontalAlignment = Element.ALIGN_RIGHT });
+                    table.AddCell(new PdfPCell(new Phrase(user.LoginCount.ToString(), dataFont)) { Padding = 4f, HorizontalAlignment = Element.ALIGN_RIGHT });
+                    table.AddCell(new PdfPCell(new Phrase(user.SaleActivities.ToString(), dataFont)) { Padding = 4f, HorizontalAlignment = Element.ALIGN_RIGHT });
+                    table.AddCell(new PdfPCell(new Phrase(user.ReportExports.ToString(), dataFont)) { Padding = 4f, HorizontalAlignment = Element.ALIGN_RIGHT });
+                    table.AddCell(new PdfPCell(new Phrase(user.LastActivity?.ToString("dd/MM/yyyy HH:mm") ?? "Never", dataFont)) { Padding = 4f });
+                }
+                
+                document.Add(table);
+                
+                // Footer
+                var footerFont = FontFactory.GetFont(FontFactory.HELVETICA_OBLIQUE, 8, BaseColor.GRAY);
+                var footer = new Paragraph($"\nUser Activity Report generated on {DateTime.Now:dd/MM/yyyy} at {DateTime.Now:HH:mm:ss}\nPixel Solution Company Ltd", footerFont);
+                footer.Alignment = Element.ALIGN_CENTER;
+                document.Add(footer);
+                
+                document.Close();
+                return stream.ToArray();
             }
-
-            html.AppendLine("</table></body></html>");
-            return html.ToString();
         }
 
-        private string GenerateCategoriesReportHtml(List<Category> categories)
+        private byte[] GenerateCategoriesReportPdf(List<Category> categories)
         {
-            var html = new StringBuilder();
-            var totalProducts = categories.Sum(c => c.Products.Count);
-
-            html.AppendLine("<html><body>");
-            html.AppendLine($"<h1>Categories Report</h1>");
-            html.AppendLine($"<p>Total Categories: {categories.Count}</p>");
-            html.AppendLine($"<p>Total Products: {totalProducts}</p>");
-            html.AppendLine("<table border='1'>");
-            html.AppendLine("<tr><th>Category</th><th>Description</th><th>Products</th><th>Created</th></tr>");
-
-            foreach (var category in categories)
+            using (var stream = new MemoryStream())
             {
-                html.AppendLine($"<tr><td>{category.Name}</td><td>{category.Description ?? "N/A"}</td><td>{category.Products.Count}</td><td>{category.CreatedAt:dd/MM/yyyy}</td></tr>");
+                var document = new iTextSharp.text.Document(PageSize.A4, 25, 25, 30, 30);
+                var writer = PdfWriter.GetInstance(document, stream);
+                
+                document.Open();
+                
+                // Company Header
+                var titleFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 18, BaseColor.DARK_GRAY);
+                var companyTitle = new Paragraph("PIXEL SOLUTION COMPANY LTD", titleFont);
+                companyTitle.Alignment = Element.ALIGN_CENTER;
+                companyTitle.SpacingAfter = 10f;
+                document.Add(companyTitle);
+                
+                // Report Title
+                var reportTitleFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 14, BaseColor.BLACK);
+                var reportTitle = new Paragraph("Categories Report", reportTitleFont);
+                reportTitle.Alignment = Element.ALIGN_CENTER;
+                reportTitle.SpacingAfter = 20f;
+                document.Add(reportTitle);
+                
+                // Summary Statistics
+                var totalProducts = categories.Sum(c => c.Products.Count);
+                var summaryFont = FontFactory.GetFont(FontFactory.HELVETICA, 10, BaseColor.BLACK);
+                var summary = new Paragraph($"Total Categories: {categories.Count} | Total Products: {totalProducts} | Generated: {DateTime.Now:dd/MM/yyyy HH:mm}", summaryFont);
+                summary.Alignment = Element.ALIGN_CENTER;
+                summary.SpacingAfter = 20f;
+                document.Add(summary);
+                
+                // Create table
+                var table = new PdfPTable(4);
+                table.WidthPercentage = 100;
+                table.SetWidths(new float[] { 30f, 40f, 15f, 15f });
+                
+                // Table headers
+                var headerFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 10, BaseColor.WHITE);
+                var headers = new string[] { "Category", "Description", "Products", "Status" };
+                
+                foreach (var header in headers)
+                {
+                    var cell = new PdfPCell(new Phrase(header, headerFont));
+                    cell.BackgroundColor = BaseColor.DARK_GRAY;
+                    cell.HorizontalAlignment = Element.ALIGN_CENTER;
+                    cell.Padding = 8f;
+                    table.AddCell(cell);
+                }
+                
+                // Table data
+                var dataFont = FontFactory.GetFont(FontFactory.HELVETICA, 9, BaseColor.BLACK);
+                foreach (var category in categories)
+                {
+                    table.AddCell(new PdfPCell(new Phrase(category.Name ?? "N/A", dataFont)) { Padding = 5f });
+                    table.AddCell(new PdfPCell(new Phrase(category.Description ?? "N/A", dataFont)) { Padding = 5f });
+                    table.AddCell(new PdfPCell(new Phrase(category.Products.Count.ToString(), dataFont)) { Padding = 5f, HorizontalAlignment = Element.ALIGN_RIGHT });
+                    table.AddCell(new PdfPCell(new Phrase(category.Status ?? "N/A", dataFont)) { Padding = 5f });
+                }
+                
+                document.Add(table);
+                
+                // Footer
+                var footerFont = FontFactory.GetFont(FontFactory.HELVETICA_OBLIQUE, 8, BaseColor.GRAY);
+                var footer = new Paragraph($"\nReport generated on {DateTime.Now:dd/MM/yyyy} at {DateTime.Now:HH:mm:ss}", footerFont);
+                footer.Alignment = Element.ALIGN_CENTER;
+                document.Add(footer);
+                
+                document.Close();
+                return stream.ToArray();
             }
+        }
 
-            html.AppendLine("</table></body></html>");
-            return html.ToString();
+        // Excel Generation Methods
+        public async Task<byte[]> GenerateSalesReportExcelAsync(DateTime startDate, DateTime endDate)
+        {
+            var sales = await _context.Sales
+                .Include(s => s.User)
+                .Include(s => s.SaleItems)
+                    .ThenInclude(si => si.Product)
+                .Where(s => s.SaleDate >= startDate && s.SaleDate <= endDate && s.Status == "Completed")
+                .OrderByDescending(s => s.SaleDate)
+                .ToListAsync();
+
+            return GenerateSalesReportExcel(sales, startDate, endDate);
+        }
+
+        public async Task<byte[]> GenerateInventoryReportExcelAsync()
+        {
+            var products = await _context.Products
+                .Include(p => p.Category)
+                .Include(p => p.Supplier)
+                .Where(p => p.Status == "Active")
+                .OrderBy(p => p.Name)
+                .ToListAsync();
+
+            return GenerateInventoryReportExcel(products);
+        }
+
+        public async Task<byte[]> GenerateUserReportExcelAsync()
+        {
+            var users = await _context.Users
+                .Include(u => u.Department)
+                .Where(u => u.Status == "Active")
+                .OrderBy(u => u.FirstName)
+                .ToListAsync();
+
+            return GenerateUserReportExcel(users);
+        }
+
+        public async Task<byte[]> GenerateCategoriesReportExcelAsync()
+        {
+            var categories = await _context.Categories
+                .Include(c => c.Products)
+                .Where(c => c.Status == "Active")
+                .OrderBy(c => c.Name)
+                .ToListAsync();
+
+            return GenerateCategoriesReportExcel(categories);
+        }
+
+        private byte[] GenerateSalesReportExcel(List<Sale> sales, DateTime startDate, DateTime endDate)
+        {
+            using (var workbook = new XLWorkbook())
+            {
+                var worksheet = workbook.Worksheets.Add("Sales Report");
+                
+                // Company Header
+                worksheet.Range("A1:E1").Merge();
+                worksheet.Cell("A1").Value = "PIXEL SOLUTION COMPANY LTD";
+                worksheet.Cell("A1").Style.Font.FontSize = 18;
+                worksheet.Cell("A1").Style.Font.Bold = true;
+                worksheet.Cell("A1").Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                
+                // Report Title
+                worksheet.Range("A2:E2").Merge();
+                worksheet.Cell("A2").Value = $"Sales Report ({startDate:dd/MM/yyyy} - {endDate:dd/MM/yyyy})";
+                worksheet.Cell("A2").Style.Font.FontSize = 14;
+                worksheet.Cell("A2").Style.Font.Bold = true;
+                worksheet.Cell("A2").Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                
+                // Summary
+                var totalRevenue = sales.Sum(s => s.TotalAmount);
+                worksheet.Range("A3:E3").Merge();
+                worksheet.Cell("A3").Value = $"Total Sales: {sales.Count} | Total Revenue: KSh {totalRevenue:N2} | Generated: {DateTime.Now:dd/MM/yyyy HH:mm}";
+                worksheet.Cell("A3").Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                
+                // Headers
+                var headers = new string[] { "Date", "Sale #", "Customer", "Amount (KSh)", "Cashier" };
+                for (int i = 0; i < headers.Length; i++)
+                {
+                    worksheet.Cell(5, i + 1).Value = headers[i];
+                    worksheet.Cell(5, i + 1).Style.Font.Bold = true;
+                    worksheet.Cell(5, i + 1).Style.Fill.BackgroundColor = XLColor.LightGray;
+                }
+                
+                // Data
+                int row = 6;
+                foreach (var sale in sales)
+                {
+                    worksheet.Cell(row, 1).Value = sale.SaleDate.ToString("dd/MM/yyyy");
+                    worksheet.Cell(row, 2).Value = sale.SaleNumber ?? "N/A";
+                    worksheet.Cell(row, 3).Value = sale.CustomerName ?? "Walk-in";
+                    worksheet.Cell(row, 4).Value = sale.TotalAmount;
+                    worksheet.Cell(row, 4).Style.NumberFormat.Format = "#,##0.00";
+                    worksheet.Cell(row, 5).Value = sale.User?.FirstName + " " + sale.User?.LastName ?? "Unknown";
+                    row++;
+                }
+                
+                // Auto-fit columns
+                worksheet.ColumnsUsed().AdjustToContents();
+                
+                using (var stream = new MemoryStream())
+                {
+                    workbook.SaveAs(stream);
+                    return stream.ToArray();
+                }
+            }
+        }
+
+        private byte[] GenerateInventoryReportExcel(List<Product> products)
+        {
+            using (var workbook = new XLWorkbook())
+            {
+                var worksheet = workbook.Worksheets.Add("Inventory Report");
+                
+                // Company Header
+                worksheet.Range("A1:F1").Merge();
+                worksheet.Cell("A1").Value = "PIXEL SOLUTION COMPANY LTD";
+                worksheet.Cell("A1").Style.Font.FontSize = 18;
+                worksheet.Cell("A1").Style.Font.Bold = true;
+                worksheet.Cell("A1").Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                
+                // Report Title
+                worksheet.Range("A2:F2").Merge();
+                worksheet.Cell("A2").Value = "Inventory Report";
+                worksheet.Cell("A2").Style.Font.FontSize = 14;
+                worksheet.Cell("A2").Style.Font.Bold = true;
+                worksheet.Cell("A2").Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                
+                // Summary
+                var totalValue = products.Sum(p => p.StockQuantity * p.SellingPrice);
+                worksheet.Range("A3:F3").Merge();
+                worksheet.Cell("A3").Value = $"Total Products: {products.Count} | Total Stock Value: KSh {totalValue:N2} | Generated: {DateTime.Now:dd/MM/yyyy HH:mm}";
+                worksheet.Cell("A3").Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                
+                // Headers
+                var headers = new string[] { "Product", "SKU", "Category", "Stock", "Price (KSh)", "Value (KSh)" };
+                for (int i = 0; i < headers.Length; i++)
+                {
+                    worksheet.Cell(5, i + 1).Value = headers[i];
+                    worksheet.Cell(5, i + 1).Style.Font.Bold = true;
+                    worksheet.Cell(5, i + 1).Style.Fill.BackgroundColor = XLColor.LightGray;
+                }
+                
+                // Data
+                int row = 6;
+                foreach (var product in products)
+                {
+                    var stockValue = product.StockQuantity * product.SellingPrice;
+                    worksheet.Cell(row, 1).Value = product.Name ?? "N/A";
+                    worksheet.Cell(row, 2).Value = product.SKU ?? "N/A";
+                    worksheet.Cell(row, 3).Value = product.Category?.Name ?? "N/A";
+                    worksheet.Cell(row, 4).Value = product.StockQuantity;
+                    worksheet.Cell(row, 5).Value = product.SellingPrice;
+                    worksheet.Cell(row, 5).Style.NumberFormat.Format = "#,##0.00";
+                    worksheet.Cell(row, 6).Value = stockValue;
+                    worksheet.Cell(row, 6).Style.NumberFormat.Format = "#,##0.00";
+                    row++;
+                }
+                
+                // Auto-fit columns
+                worksheet.ColumnsUsed().AdjustToContents();
+                
+                using (var stream = new MemoryStream())
+                {
+                    workbook.SaveAs(stream);
+                    return stream.ToArray();
+                }
+            }
+        }
+
+        private byte[] GenerateUserReportExcel(List<User> users)
+        {
+            using (var workbook = new XLWorkbook())
+            {
+                var worksheet = workbook.Worksheets.Add("Users Report");
+                
+                // Company Header
+                worksheet.Range("A1:E1").Merge();
+                worksheet.Cell("A1").Value = "PIXEL SOLUTION COMPANY LTD";
+                worksheet.Cell("A1").Style.Font.FontSize = 18;
+                worksheet.Cell("A1").Style.Font.Bold = true;
+                worksheet.Cell("A1").Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                
+                // Report Title
+                worksheet.Range("A2:E2").Merge();
+                worksheet.Cell("A2").Value = "Users Report";
+                worksheet.Cell("A2").Style.Font.FontSize = 14;
+                worksheet.Cell("A2").Style.Font.Bold = true;
+                worksheet.Cell("A2").Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                
+                // Summary
+                worksheet.Range("A3:E3").Merge();
+                worksheet.Cell("A3").Value = $"Total Active Users: {users.Count} | Generated: {DateTime.Now:dd/MM/yyyy HH:mm}";
+                worksheet.Cell("A3").Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                
+                // Headers
+                var headers = new string[] { "Name", "Email", "Type", "Department", "Status" };
+                for (int i = 0; i < headers.Length; i++)
+                {
+                    worksheet.Cell(5, i + 1).Value = headers[i];
+                    worksheet.Cell(5, i + 1).Style.Font.Bold = true;
+                    worksheet.Cell(5, i + 1).Style.Fill.BackgroundColor = XLColor.LightGray;
+                }
+                
+                // Data
+                int row = 6;
+                foreach (var user in users)
+                {
+                    worksheet.Cell(row, 1).Value = $"{user.FirstName} {user.LastName}";
+                    worksheet.Cell(row, 2).Value = user.Email ?? "N/A";
+                    worksheet.Cell(row, 3).Value = user.UserType ?? "N/A";
+                    worksheet.Cell(row, 4).Value = user.Department ?? "N/A";
+                    worksheet.Cell(row, 5).Value = user.Status ?? "N/A";
+                    row++;
+                }
+                
+                // Auto-fit columns
+                worksheet.ColumnsUsed().AdjustToContents();
+                
+                using (var stream = new MemoryStream())
+                {
+                    workbook.SaveAs(stream);
+                    return stream.ToArray();
+                }
+            }
+        }
+
+        private byte[] GenerateCategoriesReportExcel(List<Category> categories)
+        {
+            using (var workbook = new XLWorkbook())
+            {
+                var worksheet = workbook.Worksheets.Add("Categories Report");
+                
+                // Company Header
+                worksheet.Range("A1:D1").Merge();
+                worksheet.Cell("A1").Value = "PIXEL SOLUTION COMPANY LTD";
+                worksheet.Cell("A1").Style.Font.FontSize = 18;
+                worksheet.Cell("A1").Style.Font.Bold = true;
+                worksheet.Cell("A1").Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                
+                // Report Title
+                worksheet.Range("A2:D2").Merge();
+                worksheet.Cell("A2").Value = "Categories Report";
+                worksheet.Cell("A2").Style.Font.FontSize = 14;
+                worksheet.Cell("A2").Style.Font.Bold = true;
+                worksheet.Cell("A2").Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                
+                // Summary
+                var totalProducts = categories.Sum(c => c.Products.Count);
+                worksheet.Range("A3:D3").Merge();
+                worksheet.Cell("A3").Value = $"Total Categories: {categories.Count} | Total Products: {totalProducts} | Generated: {DateTime.Now:dd/MM/yyyy HH:mm}";
+                worksheet.Cell("A3").Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                
+                // Headers
+                var headers = new string[] { "Category", "Description", "Products", "Status" };
+                for (int i = 0; i < headers.Length; i++)
+                {
+                    worksheet.Cell(5, i + 1).Value = headers[i];
+                    worksheet.Cell(5, i + 1).Style.Font.Bold = true;
+                    worksheet.Cell(5, i + 1).Style.Fill.BackgroundColor = XLColor.LightGray;
+                }
+                
+                // Data
+                int row = 6;
+                foreach (var category in categories)
+                {
+                    worksheet.Cell(row, 1).Value = category.Name ?? "N/A";
+                    worksheet.Cell(row, 2).Value = category.Description ?? "N/A";
+                    worksheet.Cell(row, 3).Value = category.Products.Count;
+                    worksheet.Cell(row, 4).Value = category.Status ?? "N/A";
+                    row++;
+                }
+                
+                // Auto-fit columns
+                worksheet.ColumnsUsed().AdjustToContents();
+                
+                using (var stream = new MemoryStream())
+                {
+                    workbook.SaveAs(stream);
+                    return stream.ToArray();
+                }
+            }
+        }
+
+        public async Task<object> GetSupplierReportAsync()
+        {
+            try
+            {
+                var suppliers = await _context.Suppliers
+                    .Include(s => s.Products)
+                    .Include(s => s.PurchaseRequests)
+                    .Select(s => new
+                    {
+                        s.SupplierId,
+                        s.CompanyName,
+                        s.ContactPerson,
+                        s.Email,
+                        s.Phone,
+                        s.Status,
+                        ProductCount = s.Products.Count,
+                        ActiveProductCount = s.Products.Count(p => p.Status == "Active"),
+                        PurchaseRequestCount = s.PurchaseRequests.Count,
+                        TotalPurchaseValue = s.PurchaseRequests
+                            .Where(pr => pr.Status == "Approved")
+                            .Sum(pr => pr.TotalAmount),
+                        s.CreatedAt
+                    })
+                    .OrderBy(s => s.CompanyName)
+                    .ToListAsync();
+
+                var summary = new
+                {
+                    TotalSuppliers = suppliers.Count,
+                    ActiveSuppliers = suppliers.Count(s => s.Status == "Active"),
+                    TotalProducts = suppliers.Sum(s => s.ProductCount),
+                    TotalPurchaseValue = suppliers.Sum(s => s.TotalPurchaseValue)
+                };
+
+                return new
+                {
+                    Suppliers = suppliers,
+                    Summary = summary
+                };
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error getting supplier report: {ex.Message}", ex);
+            }
+        }
+
+        public async Task<object> GetUserActivityReportAsync()
+        {
+            try
+            {
+                // Get users with activity logs
+                var users = await _context.Users
+                    .Include(u => u.UserDepartments)
+                        .ThenInclude(ud => ud.Department)
+                    .Include(u => u.Sales)
+                    .Include(u => u.PurchaseRequests)
+                    .ToListAsync();
+
+                // Get user activity data from UserActivityLogs table
+                var userActivities = await _context.UserActivityLogs
+                    .GroupBy(ual => ual.UserId)
+                    .Select(g => new
+                    {
+                        UserId = g.Key,
+                        TotalActivities = g.Count(),
+                        LastActivity = g.Max(ual => ual.CreatedAt),
+                        LoginCount = g.Count(ual => ual.ActivityType == "Login"),
+                        SaleActivities = g.Count(ual => ual.ActivityType == "Sale"),
+                        ReportExports = g.Count(ual => ual.ActivityType == "ReportExport")
+                    })
+                    .ToListAsync();
+
+                var userReport = users.Select(u => new
+                {
+                    u.UserId,
+                    u.FirstName,
+                    u.LastName,
+                    FullName = u.FirstName + " " + u.LastName,
+                    u.Email,
+                    u.UserType,
+                    u.Status,
+                    Department = u.UserDepartments.FirstOrDefault()?.Department?.Name ?? "No Department",
+                    SalesCount = u.Sales.Count(s => s.Status == "Completed"),
+                    TotalSalesAmount = u.Sales
+                        .Where(s => s.Status == "Completed")
+                        .Sum(s => s.TotalAmount),
+                    PurchaseRequestCount = u.PurchaseRequests.Count,
+                    LastSaleDate = u.Sales
+                        .Where(s => s.Status == "Completed")
+                        .OrderByDescending(s => s.SaleDate)
+                        .Select(s => s.SaleDate)
+                        .FirstOrDefault(),
+                    // Activity log data
+                    TotalActivities = userActivities.FirstOrDefault(ua => ua.UserId == u.UserId)?.TotalActivities ?? 0,
+                    LastActivity = userActivities.FirstOrDefault(ua => ua.UserId == u.UserId)?.LastActivity,
+                    LoginCount = userActivities.FirstOrDefault(ua => ua.UserId == u.UserId)?.LoginCount ?? 0,
+                    SaleActivities = userActivities.FirstOrDefault(ua => ua.UserId == u.UserId)?.SaleActivities ?? 0,
+                    ReportExports = userActivities.FirstOrDefault(ua => ua.UserId == u.UserId)?.ReportExports ?? 0,
+                    u.CreatedAt
+                })
+                .OrderBy(u => u.FirstName)
+                .ThenBy(u => u.LastName)
+                .ToList();
+
+                var summary = new
+                {
+                    TotalUsers = userReport.Count,
+                    ActiveUsers = userReport.Count(u => u.Status == "Active"),
+                    TotalSales = userReport.Sum(u => u.TotalSalesAmount),
+                    TotalTransactions = userReport.Sum(u => u.SalesCount),
+                    TotalActivities = userReport.Sum(u => u.TotalActivities),
+                    UsersWithActivity = userReport.Count(u => u.TotalActivities > 0)
+                };
+
+                return new
+                {
+                    Users = userReport,
+                    Summary = summary
+                };
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error getting user activity report: {ex.Message}", ex);
+            }
+        }
+
+        public async Task<byte[]> GenerateSuppliersReportAsync()
+        {
+            try
+            {
+                var reportData = await GetSupplierReportAsync();
+                var data = (dynamic)reportData;
+
+                using (var stream = new MemoryStream())
+                {
+                    var document = new Document(PageSize.A4.Rotate());
+                    var writer = PdfWriter.GetInstance(document, stream);
+                    document.Open();
+
+                    // Company header
+                    var titleFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 18, BaseColor.DARK_GRAY);
+                    var companyTitle = new Paragraph("PIXEL SOLUTION COMPANY LTD", titleFont);
+                    companyTitle.Alignment = Element.ALIGN_CENTER;
+                    companyTitle.SpacingAfter = 10f;
+                    document.Add(companyTitle);
+
+                    // Report Title
+                    var reportTitleFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 14, BaseColor.BLACK);
+                    var reportTitle = new Paragraph("Suppliers Report", reportTitleFont);
+                    reportTitle.Alignment = Element.ALIGN_CENTER;
+                    reportTitle.SpacingAfter = 20f;
+                    document.Add(reportTitle);
+
+                    // Summary Statistics
+                    var summaryFont = FontFactory.GetFont(FontFactory.HELVETICA, 10, BaseColor.BLACK);
+                    var summary = new Paragraph($"Total Suppliers: {data.Summary.TotalSuppliers} | Active Suppliers: {data.Summary.ActiveSuppliers} | Total Purchase Value: KSh {data.Summary.TotalPurchaseValue:N2} | Generated: {DateTime.Now:dd/MM/yyyy HH:mm}", summaryFont);
+                    summary.Alignment = Element.ALIGN_CENTER;
+                    summary.SpacingAfter = 20f;
+                    document.Add(summary);
+
+                    // Suppliers table
+                    var table = new PdfPTable(7);
+                    table.WidthPercentage = 100;
+                    table.SetWidths(new float[] { 2f, 2f, 2f, 1.5f, 1f, 1f, 1.5f });
+
+                    // Table headers
+                    var headerFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 10, BaseColor.WHITE);
+                    string[] headers = { "Company", "Contact Person", "Email", "Phone", "Products", "Status", "Purchase Value" };
+                    
+                    foreach (string header in headers)
+                    {
+                        var cell = new PdfPCell(new Phrase(header, headerFont));
+                        cell.BackgroundColor = BaseColor.DARK_GRAY;
+                        cell.Padding = 5f;
+                        table.AddCell(cell);
+                    }
+
+                    // Table data
+                    var dataFont = FontFactory.GetFont(FontFactory.HELVETICA, 9, BaseColor.BLACK);
+                    foreach (var supplier in data.Suppliers)
+                    {
+                        table.AddCell(new PdfPCell(new Phrase(supplier.CompanyName.ToString(), dataFont)) { Padding = 5f });
+                        table.AddCell(new PdfPCell(new Phrase(supplier.ContactPerson.ToString(), dataFont)) { Padding = 5f });
+                        table.AddCell(new PdfPCell(new Phrase(supplier.Email.ToString(), dataFont)) { Padding = 5f });
+                        table.AddCell(new PdfPCell(new Phrase(supplier.Phone.ToString(), dataFont)) { Padding = 5f });
+                        table.AddCell(new PdfPCell(new Phrase(supplier.ProductCount.ToString(), dataFont)) { Padding = 5f });
+                        table.AddCell(new PdfPCell(new Phrase(supplier.Status.ToString(), dataFont)) { Padding = 5f });
+                        table.AddCell(new PdfPCell(new Phrase($"KSh {supplier.TotalPurchaseValue:N2}", dataFont)) { Padding = 5f });
+                    }
+
+                    document.Add(table);
+
+                    // Footer
+                    var footerFont = FontFactory.GetFont(FontFactory.HELVETICA_OBLIQUE, 8, BaseColor.GRAY);
+                    var footer = new Paragraph($"\nReport generated on {DateTime.Now:dd/MM/yyyy} at {DateTime.Now:HH:mm:ss}", footerFont);
+                    footer.Alignment = Element.ALIGN_CENTER;
+                    document.Add(footer);
+
+                    document.Close();
+                    return stream.ToArray();
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error generating suppliers report PDF: {ex.Message}", ex);
+            }
+        }
+
+        public async Task<byte[]> GenerateSuppliersReportExcelAsync()
+        {
+            try
+            {
+                var reportData = await GetSupplierReportAsync();
+                var data = (dynamic)reportData;
+
+                using (var workbook = new XLWorkbook())
+                {
+                    var worksheet = workbook.Worksheets.Add("Suppliers Report");
+
+                    // Company Header
+                    worksheet.Range("A1:G1").Merge();
+                    worksheet.Cell("A1").Value = "PIXEL SOLUTION COMPANY LTD";
+                    worksheet.Cell("A1").Style.Font.FontSize = 18;
+                    worksheet.Cell("A1").Style.Font.Bold = true;
+                    worksheet.Cell("A1").Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+
+                    // Report Title
+                    worksheet.Range("A2:G2").Merge();
+                    worksheet.Cell("A2").Value = "Suppliers Report";
+                    worksheet.Cell("A2").Style.Font.FontSize = 14;
+                    worksheet.Cell("A2").Style.Font.Bold = true;
+                    worksheet.Cell("A2").Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+
+                    // Summary
+                    worksheet.Range("A3:G3").Merge();
+                    worksheet.Cell("A3").Value = $"Total Suppliers: {data.Summary.TotalSuppliers} | Active Suppliers: {data.Summary.ActiveSuppliers} | Total Purchase Value: KSh {data.Summary.TotalPurchaseValue:N2} | Generated: {DateTime.Now:dd/MM/yyyy HH:mm}";
+                    worksheet.Cell("A3").Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+
+                    // Headers
+                    var headers = new string[] { "Company", "Contact Person", "Email", "Phone", "Products", "Status", "Purchase Value" };
+                    for (int i = 0; i < headers.Length; i++)
+                    {
+                        worksheet.Cell(5, i + 1).Value = headers[i];
+                        worksheet.Cell(5, i + 1).Style.Font.Bold = true;
+                        worksheet.Cell(5, i + 1).Style.Fill.BackgroundColor = XLColor.LightGray;
+                    }
+
+                    // Data
+                    int row = 6;
+                    foreach (var supplier in data.Suppliers)
+                    {
+                        worksheet.Cell(row, 1).Value = supplier.CompanyName.ToString();
+                        worksheet.Cell(row, 2).Value = supplier.ContactPerson.ToString();
+                        worksheet.Cell(row, 3).Value = supplier.Email.ToString();
+                        worksheet.Cell(row, 4).Value = supplier.Phone.ToString();
+                        worksheet.Cell(row, 5).Value = supplier.ProductCount;
+                        worksheet.Cell(row, 6).Value = supplier.Status.ToString();
+                        worksheet.Cell(row, 7).Value = supplier.TotalPurchaseValue;
+                        worksheet.Cell(row, 7).Style.NumberFormat.Format = "#,##0.00";
+                        row++;
+                    }
+
+                    // Auto-fit columns
+                    worksheet.ColumnsUsed().AdjustToContents();
+
+                    using (var stream = new MemoryStream())
+                    {
+                        workbook.SaveAs(stream);
+                        return stream.ToArray();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error generating suppliers report Excel: {ex.Message}", ex);
+            }
+        }
+
+        public async Task<byte[]> GenerateComprehensiveReportAsync(DateTime startDate, DateTime endDate)
+        {
+            try
+            {
+                // Get all report data with proper error handling
+                object salesData, inventoryData, usersData, suppliersData;
+                
+                try
+                {
+                    salesData = await GetSalesReportAsync(startDate, endDate);
+                }
+                catch (Exception)
+                {
+                    salesData = new { Summary = new { TotalSales = 0m, TotalTransactions = 0, AverageTransaction = 0m } };
+                }
+
+                try
+                {
+                    inventoryData = await GetInventoryReportAsync();
+                }
+                catch (Exception)
+                {
+                    inventoryData = new { Summary = new { TotalProducts = 0, TotalStockValue = 0m, LowStockProducts = 0 } };
+                }
+
+                try
+                {
+                    usersData = await GetUserActivityReportAsync();
+                }
+                catch (Exception)
+                {
+                    usersData = new { Summary = new { ActiveUsers = 0, TotalSales = 0m, TotalActivities = 0, UsersWithActivity = 0 } };
+                }
+
+                try
+                {
+                    suppliersData = await GetSupplierReportAsync();
+                }
+                catch (Exception)
+                {
+                    suppliersData = new { Summary = new { ActiveSuppliers = 0 } };
+                }
+
+                // Extract summary data safely
+                var salesSummary = GetSummaryFromData(salesData);
+                var inventorySummary = GetSummaryFromData(inventoryData);
+                var usersSummary = GetSummaryFromData(usersData);
+                var suppliersSummary = GetSummaryFromData(suppliersData);
+
+                using (var stream = new MemoryStream())
+                {
+                    var document = new Document(PageSize.A4);
+                    var writer = PdfWriter.GetInstance(document, stream);
+                    document.Open();
+
+                    // Company header
+                    var titleFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 20, BaseColor.DARK_GRAY);
+                    var companyTitle = new Paragraph("PIXEL SOLUTION COMPANY LTD", titleFont);
+                    companyTitle.Alignment = Element.ALIGN_CENTER;
+                    companyTitle.SpacingAfter = 15f;
+                    document.Add(companyTitle);
+
+                    // Report Title
+                    var reportTitleFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 16, BaseColor.BLACK);
+                    var reportTitle = new Paragraph("COMPREHENSIVE BUSINESS REPORT", reportTitleFont);
+                    reportTitle.Alignment = Element.ALIGN_CENTER;
+                    reportTitle.SpacingAfter = 10f;
+                    document.Add(reportTitle);
+
+                    // Period
+                    var periodFont = FontFactory.GetFont(FontFactory.HELVETICA, 12, BaseColor.BLACK);
+                    var period = new Paragraph($"Report Period: {startDate:dd/MM/yyyy} - {endDate:dd/MM/yyyy}", periodFont);
+                    period.Alignment = Element.ALIGN_CENTER;
+                    period.SpacingAfter = 20f;
+                    document.Add(period);
+
+                    // Executive Summary
+                    var sectionFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 14, BaseColor.BLACK);
+                    var summaryTitle = new Paragraph("EXECUTIVE SUMMARY", sectionFont);
+                    summaryTitle.SpacingAfter = 10f;
+                    document.Add(summaryTitle);
+
+                    var summaryFont = FontFactory.GetFont(FontFactory.HELVETICA, 10, BaseColor.BLACK);
+                    var summaryText = new Paragraph($"• Total Sales Revenue: KSh {GetPropertyValue(salesSummary, "TotalSales", 0m):N2}\n" +
+                                                   $"• Total Transactions: {GetPropertyValue(salesSummary, "TotalTransactions", 0)}\n" +
+                                                   $"• Total Products in Inventory: {GetPropertyValue(inventorySummary, "TotalProducts", 0)}\n" +
+                                                   $"• Total Stock Value: KSh {GetPropertyValue(inventorySummary, "TotalStockValue", 0m):N2}\n" +
+                                                   $"• Active Users: {GetPropertyValue(usersSummary, "ActiveUsers", 0)}\n" +
+                                                   $"• Active Suppliers: {GetPropertyValue(suppliersSummary, "ActiveSuppliers", 0)}\n" +
+                                                   $"• Low Stock Products: {GetPropertyValue(inventorySummary, "LowStockProducts", 0)}", summaryFont);
+                    summaryText.SpacingAfter = 20f;
+                    document.Add(summaryText);
+
+                    // Sales Performance
+                    document.Add(new Paragraph("SALES PERFORMANCE", sectionFont) { SpacingAfter = 10f });
+                    
+                    var salesTable = new PdfPTable(2);
+                    salesTable.WidthPercentage = 100;
+                    salesTable.SetWidths(new float[] { 1f, 1f });
+
+                    var headerFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 10, BaseColor.WHITE);
+                    var dataFont = FontFactory.GetFont(FontFactory.HELVETICA, 10, BaseColor.BLACK);
+
+                    salesTable.AddCell(new PdfPCell(new Phrase("Metric", headerFont)) { BackgroundColor = BaseColor.DARK_GRAY, Padding = 5f });
+                    salesTable.AddCell(new PdfPCell(new Phrase("Value", headerFont)) { BackgroundColor = BaseColor.DARK_GRAY, Padding = 5f });
+                    
+                    salesTable.AddCell(new PdfPCell(new Phrase("Total Sales", dataFont)) { Padding = 5f });
+                    salesTable.AddCell(new PdfPCell(new Phrase($"KSh {GetPropertyValue(salesSummary, "TotalSales", 0m):N2}", dataFont)) { Padding = 5f });
+                    
+                    salesTable.AddCell(new PdfPCell(new Phrase("Total Transactions", dataFont)) { Padding = 5f });
+                    salesTable.AddCell(new PdfPCell(new Phrase(GetPropertyValue(salesSummary, "TotalTransactions", 0).ToString(), dataFont)) { Padding = 5f });
+                    
+                    salesTable.AddCell(new PdfPCell(new Phrase("Average Transaction", dataFont)) { Padding = 5f });
+                    salesTable.AddCell(new PdfPCell(new Phrase($"KSh {GetPropertyValue(salesSummary, "AverageTransaction", 0m):N2}", dataFont)) { Padding = 5f });
+
+                    document.Add(salesTable);
+                    document.Add(new Paragraph(" "));
+
+                    // Inventory Status
+                    document.Add(new Paragraph("INVENTORY STATUS", sectionFont) { SpacingAfter = 10f });
+                    
+                    var inventoryTable = new PdfPTable(2);
+                    inventoryTable.WidthPercentage = 100;
+                    inventoryTable.SetWidths(new float[] { 1f, 1f });
+
+                    inventoryTable.AddCell(new PdfPCell(new Phrase("Metric", headerFont)) { BackgroundColor = BaseColor.DARK_GRAY, Padding = 5f });
+                    inventoryTable.AddCell(new PdfPCell(new Phrase("Value", headerFont)) { BackgroundColor = BaseColor.DARK_GRAY, Padding = 5f });
+                    
+                    inventoryTable.AddCell(new PdfPCell(new Phrase("Total Products", dataFont)) { Padding = 5f });
+                    inventoryTable.AddCell(new PdfPCell(new Phrase(GetPropertyValue(inventorySummary, "TotalProducts", 0).ToString(), dataFont)) { Padding = 5f });
+                    
+                    inventoryTable.AddCell(new PdfPCell(new Phrase("Low Stock Products", dataFont)) { Padding = 5f });
+                    inventoryTable.AddCell(new PdfPCell(new Phrase(GetPropertyValue(inventorySummary, "LowStockProducts", 0).ToString(), dataFont)) { Padding = 5f });
+                    
+                    inventoryTable.AddCell(new PdfPCell(new Phrase("Total Stock Value", dataFont)) { Padding = 5f });
+                    inventoryTable.AddCell(new PdfPCell(new Phrase($"KSh {GetPropertyValue(inventorySummary, "TotalStockValue", 0m):N2}", dataFont)) { Padding = 5f });
+
+                    document.Add(inventoryTable);
+                    document.Add(new Paragraph(" "));
+
+                    // User Activity
+                    document.Add(new Paragraph("USER ACTIVITY", sectionFont) { SpacingAfter = 10f });
+                    
+                    var userTable = new PdfPTable(2);
+                    userTable.WidthPercentage = 100;
+                    userTable.SetWidths(new float[] { 1f, 1f });
+
+                    userTable.AddCell(new PdfPCell(new Phrase("Metric", headerFont)) { BackgroundColor = BaseColor.DARK_GRAY, Padding = 5f });
+                    userTable.AddCell(new PdfPCell(new Phrase("Value", headerFont)) { BackgroundColor = BaseColor.DARK_GRAY, Padding = 5f });
+                    
+                    userTable.AddCell(new PdfPCell(new Phrase("Total Users", dataFont)) { Padding = 5f });
+                    userTable.AddCell(new PdfPCell(new Phrase(GetPropertyValue(usersSummary, "TotalUsers", 0).ToString(), dataFont)) { Padding = 5f });
+                    
+                    userTable.AddCell(new PdfPCell(new Phrase("Active Users", dataFont)) { Padding = 5f });
+                    userTable.AddCell(new PdfPCell(new Phrase(GetPropertyValue(usersSummary, "ActiveUsers", 0).ToString(), dataFont)) { Padding = 5f });
+                    
+                    userTable.AddCell(new PdfPCell(new Phrase("Total User Sales", dataFont)) { Padding = 5f });
+                    userTable.AddCell(new PdfPCell(new Phrase($"KSh {GetPropertyValue(usersSummary, "TotalSales", 0m):N2}", dataFont)) { Padding = 5f });
+
+                    document.Add(userTable);
+
+                    // Footer
+                    var footerFont = FontFactory.GetFont(FontFactory.HELVETICA_OBLIQUE, 8, BaseColor.GRAY);
+                    var footer = new Paragraph($"\n\nComprehensive report generated on {DateTime.Now:dd/MM/yyyy} at {DateTime.Now:HH:mm:ss}\nPixel Solution Company Ltd - Business Intelligence Report", footerFont);
+                    footer.Alignment = Element.ALIGN_CENTER;
+                    document.Add(footer);
+
+                    document.Close();
+                    return stream.ToArray();
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error generating comprehensive report: {ex.Message}", ex);
+            }
+        }
+
+        // Helper methods for safe property access
+        private dynamic GetSummaryFromData(object data)
+        {
+            try
+            {
+                var dataType = data.GetType();
+                var summaryProperty = dataType.GetProperty("Summary");
+                return summaryProperty?.GetValue(data);
+            }
+            catch
+            {
+                return new { };
+            }
+        }
+
+        private T GetPropertyValue<T>(dynamic obj, string propertyName, T defaultValue)
+        {
+            try
+            {
+                if (obj == null) return defaultValue;
+                
+                var objType = obj.GetType();
+                var property = objType.GetProperty(propertyName);
+                
+                if (property != null)
+                {
+                    var value = property.GetValue(obj);
+                    if (value != null && value is T)
+                        return (T)value;
+                }
+                
+                return defaultValue;
+            }
+            catch
+            {
+                return defaultValue;
+            }
         }
     }
 }

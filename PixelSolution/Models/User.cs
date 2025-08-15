@@ -59,5 +59,8 @@ namespace PixelSolution.Models
 
         [NotMapped]
         public bool IsActive => Status.Equals("Active", StringComparison.OrdinalIgnoreCase);
+
+        [NotMapped]
+        public string Department => UserDepartments.FirstOrDefault()?.Department?.Name ?? "No Department";
     }
 }

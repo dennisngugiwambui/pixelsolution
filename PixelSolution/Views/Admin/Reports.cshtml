@@ -1,4 +1,4 @@
-﻿@{
+@{
     ViewData["Title"] = "Reports & Analytics - PixelSolution";
     Layout = "_AdminLayout";
 }
@@ -2243,23 +2243,166 @@
             }
         }
 
-        // Print dashboard
-        function printDashboard() {
-            console.log('🖨️ Printing dashboard...');
-            window.print();
+        // Print dashboard - Generate comprehensive PDF report
+        async function printDashboard() {
+            console.log('🖨️ Generating comprehensive PDF report...');
+            try {
+                showToast('Generating comprehensive report for printing...', 'info');
+                const response = await fetch('/Admin/ExportReport', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                    },
+                    body: JSON.stringify({
+                        reportType: 'comprehensive',
+                        format: 'pdf',
+                        startDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
+                        endDate: new Date().toISOString().split('T')[0]
+                    })
+                });
+
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    
+                    // Open PDF in new window for printing
+                    const printWindow = window.open(url, '_blank');
+                    if (printWindow) {
+                        printWindow.onload = function() {
+                            printWindow.print();
+                        };
+                    } else {
+                        // Fallback: download the PDF
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `Comprehensive_Business_Report_${new Date().toISOString().split('T')[0]}.pdf`;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                    }
+                    
+                    window.URL.revokeObjectURL(url);
+                    showToast('Comprehensive report generated successfully!', 'success');
+                } else {
+                    throw new Error('Failed to generate comprehensive report');
+                }
+            } catch (error) {
+                console.error('❌ Error generating comprehensive report:', error);
+                showToast('Failed to generate comprehensive report', 'error');
+            }
         }
 
         // Additional report functions
-        function generateInventoryReport() {
-            showToast('Inventory report would be generated here', 'info');
+        async function generateInventoryReport() {
+            console.log('📦 Generating Inventory Report PDF...');
+            try {
+                const response = await fetch('/Admin/ExportReport', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                    },
+                    body: JSON.stringify({
+                        reportType: 'inventory',
+                        format: 'pdf',
+                        startDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
+                        endDate: new Date().toISOString().split('T')[0]
+                    })
+                });
+
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `Inventory_Report_${new Date().toISOString().split('T')[0]}.pdf`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(url);
+                    showToast('Inventory Report downloaded successfully!', 'success');
+                } else {
+                    throw new Error('Failed to generate report');
+                }
+            } catch (error) {
+                console.error('❌ Error generating inventory report:', error);
+                showToast('Failed to generate Inventory Report', 'error');
+            }
         }
 
-        function generateSupplierReport() {
-            showToast('Supplier report would be generated here', 'info');
+        async function generateSupplierReport() {
+            console.log('🏪 Generating Supplier Report PDF...');
+            try {
+                const response = await fetch('/Admin/ExportReport', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                    },
+                    body: JSON.stringify({
+                        reportType: 'suppliers',
+                        format: 'pdf',
+                        startDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
+                        endDate: new Date().toISOString().split('T')[0]
+                    })
+                });
+
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `Supplier_Report_${new Date().toISOString().split('T')[0]}.pdf`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(url);
+                    showToast('Supplier Report downloaded successfully!', 'success');
+                } else {
+                    throw new Error('Failed to generate report');
+                }
+            } catch (error) {
+                console.error('❌ Error generating supplier report:', error);
+                showToast('Failed to generate Supplier Report', 'error');
+            }
         }
 
-        function generateUserReport() {
-            showToast('User report would be generated here', 'info');
+        async function generateUserReport() {
+            console.log('👥 Generating User Activity Report PDF...');
+            try {
+                const response = await fetch('/Admin/ExportReport', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                    },
+                    body: JSON.stringify({
+                        reportType: 'users',
+                        format: 'pdf',
+                        startDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
+                        endDate: new Date().toISOString().split('T')[0]
+                    })
+                });
+
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `User_Activity_Report_${new Date().toISOString().split('T')[0]}.pdf`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(url);
+                    showToast('User Activity Report downloaded successfully!', 'success');
+                } else {
+                    throw new Error('Failed to generate report');
+                }
+            } catch (error) {
+                console.error('❌ Error generating user report:', error);
+                showToast('Failed to generate User Activity Report', 'error');
+            }
         }
 
         // Modal functions

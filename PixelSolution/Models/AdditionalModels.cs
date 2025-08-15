@@ -38,6 +38,9 @@ namespace PixelSolution.Models
 
         public bool IsActive { get; set; } = true;
 
+        [StringLength(20)]
+        public string Status { get; set; } = "Active"; // Active, Inactive
+
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         // Navigation Properties
@@ -117,6 +120,9 @@ namespace PixelSolution.Models
         public string ImageUrl { get; set; } = string.Empty;
 
         public bool IsActive { get; set; } = true;
+
+        [StringLength(20)]
+        public string Status { get; set; } = "Active"; // Active, Inactive, Discontinued
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;

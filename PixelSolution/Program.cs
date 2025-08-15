@@ -49,6 +49,7 @@ builder.Services.AddScoped<IReportService, ReportService>();
 builder.Services.AddScoped<IBarcodeService, BarcodeService>();
 builder.Services.AddScoped<IReceiptPrintingService, ReceiptPrintingService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<IActivityLogService, ActivityLogService>();
 
 // MPESA Service Configuration
 builder.Services.Configure<MpesaSettings>(builder.Configuration.GetSection("MpesaSettings"));

@@ -21,6 +21,7 @@
     </PackageReference>
     <PackageReference Include="OfficeOpenXml.Core.ExcelPackage" Version="1.0.0" />
     <PackageReference Include="System.Drawing.Common" Version="9.0.7" />
+    <PackageReference Include="iTextSharp" Version="5.5.13.3" />
   </ItemGroup>
 
 </Project>

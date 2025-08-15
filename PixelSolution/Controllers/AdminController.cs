@@ -23,6 +23,7 @@ namespace PixelSolution.Controllers
         private readonly IPurchaseRequestService _purchaseRequestService;
         private readonly IMessageService _messageService;
         private readonly IReportService _reportService;
+        private readonly IActivityLogService _activityLogService;
         private readonly IEmailService _emailService;
         private readonly IBarcodeService _barcodeService;
         private readonly IReceiptPrintingService _receiptPrintingService;
@@ -40,6 +41,7 @@ namespace PixelSolution.Controllers
             IPurchaseRequestService purchaseRequestService,
             IMessageService messageService,
             IReportService reportService,
+            IActivityLogService activityLogService,
             IEmailService emailService,
             IBarcodeService barcodeService,
             IReceiptPrintingService receiptPrintingService,
@@ -56,6 +58,7 @@ namespace PixelSolution.Controllers
             _purchaseRequestService = purchaseRequestService;
             _messageService = messageService;
             _reportService = reportService;
+            _activityLogService = activityLogService;
             _emailService = emailService;
             _barcodeService = barcodeService;
             _receiptPrintingService = receiptPrintingService;
@@ -2862,26 +2865,65 @@ namespace PixelSolution.Controllers
                 string fileName;
                 string contentType;
 
+                // Log the export activity
+                var userId = GetCurrentUserId();
+                var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown";
+                var userAgent = HttpContext.Request.Headers["User-Agent"].ToString();
+                
+                await _activityLogService.LogActivityAsync(
+                    userId, 
+                    ActivityTypes.ReportExport, 
+                    $"Exported {request.ReportType} report in {request.Format} format",
+                    "Report",
+                    null,
+                    new { ReportType = request.ReportType, Format = request.Format, StartDate = startDate, EndDate = endDate },
+                    ipAddress,
+                    userAgent
+                );
+
+                // Determine if Excel format is requested
+                bool isExcelFormat = request.Format?.ToLower() == "excel" || request.Format?.ToLower() == "xlsx";
+                
                 switch (request.ReportType?.ToLower())
                 {
                     case "sales":
-                        reportData = await _reportService.GenerateSalesReportAsync(startDate, endDate);
+                        reportData = isExcelFormat 
+                            ? await _reportService.GenerateSalesReportExcelAsync(startDate, endDate)
+                            : await _reportService.GenerateSalesReportAsync(startDate, endDate);
                         fileName = $"Sales_Report_{startDate:yyyyMMdd}_{endDate:yyyyMMdd}";
                         break;
                     case "inventory":
-                        reportData = await _reportService.GenerateInventoryReportAsync();
+                        reportData = isExcelFormat 
+                            ? await _reportService.GenerateInventoryReportExcelAsync()
+                            : await _reportService.GenerateInventoryReportAsync();
                         fileName = $"Inventory_Report_{DateTime.Now:yyyyMMdd}";
                         break;
                     case "users":
-                        reportData = await _reportService.GenerateUserReportAsync();
+                        reportData = isExcelFormat 
+                            ? await _reportService.GenerateUserReportExcelAsync()
+                            : await _reportService.GenerateUserReportAsync();
                         fileName = $"Users_Report_{DateTime.Now:yyyyMMdd}";
                         break;
                     case "categories":
-                        reportData = await _reportService.GenerateCategoriesReportAsync();
+                        reportData = isExcelFormat 
+                            ? await _reportService.GenerateCategoriesReportExcelAsync()
+                            : await _reportService.GenerateCategoriesReportAsync();
                         fileName = $"Categories_Report_{DateTime.Now:yyyyMMdd}";
                         break;
+                    case "suppliers":
+                        reportData = isExcelFormat 
+                            ? await _reportService.GenerateSuppliersReportExcelAsync()
+                            : await _reportService.GenerateSuppliersReportAsync();
+                        fileName = $"Suppliers_Report_{DateTime.Now:yyyyMMdd}";
+                        break;
+                    case "comprehensive":
+                        reportData = await _reportService.GenerateComprehensiveReportAsync(startDate, endDate);
+                        fileName = $"Comprehensive_Report_{DateTime.Now:yyyyMMdd}";
+                        break;
                     default:
-                        reportData = await _reportService.GenerateSalesReportAsync(startDate, endDate);
+                        reportData = isExcelFormat 
+                            ? await _reportService.GenerateSalesReportExcelAsync(startDate, endDate)
+                            : await _reportService.GenerateSalesReportAsync(startDate, endDate);
                         fileName = $"Report_{DateTime.Now:yyyyMMdd}";
                         break;
                 }

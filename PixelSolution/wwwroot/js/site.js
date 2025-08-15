@@ -1,4 +1,4 @@
-﻿// PixelSolution - Global Site JavaScript
+// PixelSolution - Global Site JavaScript
 
 // Initialize global namespace
 window.PixelSolution = window.PixelSolution || {};
@@ -8,7 +8,7 @@ PixelSolution.Config = {
     apiBaseUrl: '/api',
     defaultTimeout: 30000,
     retryAttempts: 3,
-    toastDuration: 5000,
+    toastDuration: 4000,
     dateFormat: 'YYYY-MM-DD',
     currencyFormat: 'KSh',
     decimalPlaces: 2
