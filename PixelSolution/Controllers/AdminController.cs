@@ -2867,7 +2867,7 @@ namespace PixelSolution.Controllers
 
                 // Log the export activity
                 var userId = GetCurrentUserId();
-                var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown";
+                var ipAddress = GetClientIpAddress();
                 var userAgent = HttpContext.Request.Headers["User-Agent"].ToString();
                 
                 await _activityLogService.LogActivityAsync(
@@ -3919,14 +3919,13 @@ namespace PixelSolution.Controllers
 
         private int GetCurrentUserId()
         {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-            if (int.TryParse(userIdClaim, out int userId))
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+            if (userIdClaim != null && int.TryParse(userIdClaim.Value, out int userId))
             {
                 return userId;
             }
 
-            // Fallback - try to get from email claim
+            // Try to get from email claim as fallback
             var emailClaim = User.FindFirst(ClaimTypes.Email)?.Value;
             if (!string.IsNullOrEmpty(emailClaim))
             {
@@ -3939,6 +3938,258 @@ namespace PixelSolution.Controllers
 
             // Final fallback for development/testing
             return 1;
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> GetReportData([FromBody] ReportDataRequest request)
+        {
+            try
+            {
+                _logger.LogInformation("📊 GetReportData called with: {Request}", JsonSerializer.Serialize(request));
+
+                DateTime startDate = DateTime.Now.AddDays(-30);
+                DateTime endDate = DateTime.Now;
+
+                if (!string.IsNullOrEmpty(request.StartDate) && DateTime.TryParse(request.StartDate, out DateTime parsedStart))
+                    startDate = parsedStart;
+                
+                if (!string.IsNullOrEmpty(request.EndDate) && DateTime.TryParse(request.EndDate, out DateTime parsedEnd))
+                    endDate = parsedEnd;
+
+                dynamic reportData = null;
+
+                switch (request.ReportType?.ToLower())
+                {
+                    case "sales":
+                        reportData = await GetSalesReportData(startDate, endDate, request.ChartType);
+                        break;
+                    case "products":
+                        reportData = await GetProductsReportData(request.ChartType);
+                        break;
+                    case "categories":
+                        reportData = await GetCategoriesReportData(request.ChartType);
+                        break;
+                    case "inventory":
+                        reportData = await GetInventoryReportData(request.ChartType);
+                        break;
+                    default:
+                        reportData = await GetDefaultReportData(startDate, endDate);
+                        break;
+                }
+
+                return Json(new { success = true, data = reportData });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Error in GetReportData");
+                return Json(new { success = false, message = "Error loading report data" });
+            }
+        }
+
+        private async Task<object> GetSalesReportData(DateTime startDate, DateTime endDate, string chartType)
+        {
+            var sales = await _context.Sales
+                .Include(s => s.SaleItems)
+                .ThenInclude(si => si.Product)
+                .ThenInclude(p => p.Category)
+                .Where(s => s.SaleDate >= startDate && s.SaleDate <= endDate)
+                .ToListAsync();
+
+            var salesTrend = sales
+                .GroupBy(s => s.SaleDate.Date)
+                .Select(g => new
+                {
+                    date = g.Key.ToString("MMM dd"),
+                    sales = g.Sum(s => s.TotalAmount),
+                    amount = g.Sum(s => s.TotalAmount),
+                    revenue = g.Sum(s => s.TotalAmount),
+                    profit = g.Sum(s => s.TotalAmount * 0.2m) // Assuming 20% profit margin
+                })
+                .OrderBy(x => x.date)
+                .ToList();
+
+            var topCategories = sales
+                .SelectMany(s => s.SaleItems)
+                .GroupBy(si => si.Product.Category.Name)
+                .Select(g => new
+                {
+                    name = g.Key,
+                    sales = g.Sum(si => si.TotalPrice)
+                })
+                .OrderByDescending(x => x.sales)
+                .Take(10)
+                .ToList();
+
+            return new
+            {
+                salesTrend = salesTrend,
+                revenueTrend = salesTrend,
+                profitTrend = salesTrend,
+                topCategories = topCategories
+            };
+        }
+
+        private async Task<object> GetProductsReportData(string chartType)
+        {
+            var products = await _context.Products
+                .Include(p => p.Category)
+                .Include(p => p.SaleItems)
+                .ToListAsync();
+
+            var topProducts = products
+                .Select(p => new
+                {
+                    name = p.Name,
+                    productName = p.Name,
+                    sales = p.SaleItems?.Sum(si => si.Quantity) ?? 0,
+                    totalSales = p.SaleItems?.Sum(si => si.Quantity) ?? 0,
+                    revenue = p.SaleItems?.Sum(si => si.TotalPrice) ?? 0,
+                    totalRevenue = p.SaleItems?.Sum(si => si.TotalPrice) ?? 0,
+                    stock = p.StockQuantity,
+                    quantity = p.StockQuantity,
+                    price = p.SellingPrice,
+                    turnover = p.StockQuantity > 0 ? (p.SaleItems?.Sum(si => si.Quantity) ?? 0) / (decimal)p.StockQuantity : 0
+                })
+                .OrderByDescending(x => x.revenue)
+                .Take(10)
+                .ToList();
+
+            return new
+            {
+                topProducts = topProducts,
+                stockLevels = topProducts,
+                productTurnover = topProducts
+            };
+        }
+
+        private async Task<object> GetCategoriesReportData(string chartType)
+        {
+            var categories = await _context.Categories
+                .Include(c => c.Products)
+                .ThenInclude(p => p.SaleItems)
+                .ToListAsync();
+
+            var topCategories = categories
+                .Select(c => new
+                {
+                    name = c.Name,
+                    sales = c.Products.SelectMany(p => p.SaleItems).Sum(si => si.TotalPrice),
+                    current = c.Products.SelectMany(p => p.SaleItems).Sum(si => si.TotalPrice),
+                    previous = c.Products.SelectMany(p => p.SaleItems).Sum(si => si.TotalPrice) * 0.8m, // Mock previous period
+                    growth = (decimal)(new Random().NextDouble() * 40 - 20) // Mock growth percentage
+                })
+                .Where(x => x.sales > 0)
+                .OrderByDescending(x => x.sales)
+                .Take(10)
+                .ToList();
+
+            return new
+            {
+                topCategories = topCategories,
+                categoryTrends = topCategories,
+                categoryComparison = topCategories
+            };
+        }
+
+        private async Task<object> GetInventoryReportData(string chartType)
+        {
+            var products = await _context.Products
+                .Include(p => p.Category)
+                .Include(p => p.SaleItems)
+                .ToListAsync();
+
+            var inventoryData = products
+                .Select(p => new
+                {
+                    name = p.Name,
+                    currentStock = p.StockQuantity,
+                    stock = p.StockQuantity,
+                    value = p.StockQuantity * p.SellingPrice,
+                    price = p.SellingPrice,
+                    sold = p.SaleItems?.Sum(si => si.Quantity) ?? 0,
+                    sales = p.SaleItems?.Sum(si => si.TotalPrice) ?? 0
+                })
+                .OrderByDescending(x => x.value)
+                .Take(10)
+                .ToList();
+
+            return new
+            {
+                inventoryStock = inventoryData,
+                inventoryValuation = inventoryData,
+                inventoryMovement = inventoryData,
+                topProducts = inventoryData
+            };
+        }
+
+        private async Task<object> GetDefaultReportData(DateTime startDate, DateTime endDate)
+        {
+            var salesData = await GetSalesReportData(startDate, endDate, "sales");
+            var productsData = await GetProductsReportData("performance");
+            var categoriesData = await GetCategoriesReportData("breakdown");
+
+            // Calculate summary statistics
+            var totalSales = await _context.Sales
+                .Where(s => s.SaleDate >= startDate && s.SaleDate <= endDate)
+                .SelectMany(s => s.SaleItems)
+                .SumAsync(si => si.TotalPrice);
+
+            var totalOrders = await _context.Sales
+                .Where(s => s.SaleDate >= startDate && s.SaleDate <= endDate)
+                .CountAsync();
+
+            var totalProducts = await _context.Products.CountAsync();
+            var totalCustomers = await _context.Sales
+                .Where(s => s.SaleDate >= startDate && s.SaleDate <= endDate && !string.IsNullOrEmpty(s.CustomerName))
+                .Select(s => s.CustomerName)
+                .Distinct()
+                .CountAsync();
+
+            // Get recent sales for the table
+            var recentSales = await _context.Sales
+                .Where(s => s.SaleDate >= startDate && s.SaleDate <= endDate)
+                .OrderByDescending(s => s.SaleDate)
+                .Take(10)
+                .Select(s => new
+                {
+                    id = s.SaleId,
+                    saleNumber = s.SaleNumber,
+                    customerName = s.CustomerName ?? "Walk-in Customer",
+                    totalAmount = s.TotalAmount,
+                    saleDate = s.SaleDate,
+                    status = "Completed"
+                })
+                .ToListAsync();
+
+            return new
+            {
+                // Summary statistics for dashboard cards
+                totalSales = totalSales,
+                totalOrders = totalOrders,
+                totalProducts = totalProducts,
+                totalCustomers = totalCustomers,
+                
+                // Chart data
+                salesTrend = ((dynamic)salesData).salesTrend,
+                topProducts = ((dynamic)productsData).topProducts,
+                topCategories = ((dynamic)categoriesData).topCategories,
+                
+                // Table data
+                recentSales = recentSales
+            };
+        }
+
+        #endregion
+
+        #region Request/Response Models for Reports
+
+        public class ReportDataRequest
+        {
+            public string ReportType { get; set; }
+            public string ChartType { get; set; }
+            public string StartDate { get; set; }
+            public string EndDate { get; set; }
+            public string DateRange { get; set; }
         }
 
         #endregion
@@ -4037,6 +4288,55 @@ namespace PixelSolution.Controllers
             }
         }
         
+        private string GetClientIpAddress()
+        {
+            // Check for forwarded IP first (for load balancers/proxies)
+            var forwardedFor = HttpContext.Request.Headers["X-Forwarded-For"].FirstOrDefault();
+            if (!string.IsNullOrEmpty(forwardedFor))
+            {
+                // Take the first IP if multiple are present
+                var ip = forwardedFor.Split(',')[0].Trim();
+                if (!string.IsNullOrEmpty(ip) && ip != "::1" && ip != "127.0.0.1")
+                    return ip;
+            }
+
+            // Check for real IP header
+            var realIp = HttpContext.Request.Headers["X-Real-IP"].FirstOrDefault();
+            if (!string.IsNullOrEmpty(realIp) && realIp != "::1" && realIp != "127.0.0.1")
+                return realIp;
+
+            // Fall back to connection remote IP
+            var remoteIp = HttpContext.Connection.RemoteIpAddress?.ToString();
+            if (!string.IsNullOrEmpty(remoteIp))
+            {
+                // Convert IPv6 localhost to IPv4
+                if (remoteIp == "::1")
+                    return "127.0.0.1";
+                
+                // For development, try to get actual network IP
+                if (remoteIp == "127.0.0.1" || remoteIp == "::1")
+                {
+                    try
+                    {
+                        var host = System.Net.Dns.GetHostEntry(System.Net.Dns.GetHostName());
+                        var localIp = host.AddressList
+                            .FirstOrDefault(ip => ip.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork 
+                                               && !System.Net.IPAddress.IsLoopback(ip));
+                        
+                        return localIp?.ToString() ?? remoteIp;
+                    }
+                    catch
+                    {
+                        return remoteIp;
+                    }
+                }
+                
+                return remoteIp;
+            }
+
+            return "Unknown";
+        }
+
         #endregion
     }
 }

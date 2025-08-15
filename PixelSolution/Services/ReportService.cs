@@ -149,18 +149,18 @@ namespace PixelSolution.Services
 
                 return new
                 {
-                    summary = new
+                    Summary = new
                     {
-                        totalSales = totalSales,
-                        totalTransactions = totalTransactions,
-                        averageTransaction = averageTransaction,
-                        period = new
+                        TotalSales = totalSales,
+                        TotalTransactions = totalTransactions,
+                        AverageTransaction = averageTransaction,
+                        Period = new
                         {
-                            startDate = startDate.ToString("yyyy-MM-dd"),
-                            endDate = endDate.ToString("yyyy-MM-dd")
+                            StartDate = startDate.ToString("yyyy-MM-dd"),
+                            EndDate = endDate.ToString("yyyy-MM-dd")
                         }
                     },
-                    salesByDate = salesByDate
+                    SalesByDate = salesByDate
                 };
             }
             catch (Exception ex)
@@ -185,23 +185,23 @@ namespace PixelSolution.Services
 
                 return new
                 {
-                    summary = new
+                    Summary = new
                     {
-                        totalProducts = totalProducts,
-                        totalStockValue = totalStockValue,
-                        lowStockCount = lowStockProducts.Count
+                        TotalProducts = totalProducts,
+                        TotalStockValue = totalStockValue,
+                        LowStockProducts = lowStockProducts.Count
                     },
-                    products = products.Select(p => new
+                    Products = products.Select(p => new
                     {
                         p.ProductId,
                         p.Name,
                         p.SKU,
-                        category = p.Category.Name,
+                        Category = p.Category?.Name ?? "No Category",
                         p.StockQuantity,
                         p.BuyingPrice,
-                        stockValue = p.StockQuantity * p.BuyingPrice,
+                        StockValue = p.StockQuantity * p.BuyingPrice,
                         p.MinStockLevel,
-                        isLowStock = p.StockQuantity <= p.MinStockLevel
+                        IsLowStock = p.StockQuantity <= p.MinStockLevel
                     }).ToList()
                 };
             }
@@ -462,7 +462,7 @@ namespace PixelSolution.Services
             var reportData = await GetUserActivityReportAsync();
             var data = (dynamic)reportData;
             
-            return GenerateUserActivityReportPdf(data.Users, data.Summary);
+            return GenerateUserActivityReportPdf(data.Users, data.Summary, data.DetailedActivities);
         }
 
         public async Task<byte[]> GenerateCategoriesReportAsync()
@@ -625,7 +625,7 @@ namespace PixelSolution.Services
             }
         }
 
-        private byte[] GenerateUserActivityReportPdf(dynamic users, dynamic summary)
+        private byte[] GenerateUserActivityReportPdf(dynamic users, dynamic summary, dynamic detailedActivities)
         {
             using (var stream = new MemoryStream())
             {
@@ -655,7 +655,12 @@ namespace PixelSolution.Services
                 summaryText.SpacingAfter = 20f;
                 document.Add(summaryText);
                 
-                // Create table
+                // User Summary Table
+                var sectionFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 12, BaseColor.BLACK);
+                var userSummaryTitle = new Paragraph("USER ACTIVITY SUMMARY", sectionFont);
+                userSummaryTitle.SpacingAfter = 10f;
+                document.Add(userSummaryTitle);
+                
                 var table = new PdfPTable(9);
                 table.WidthPercentage = 100;
                 table.SetWidths(new float[] { 15f, 20f, 10f, 10f, 10f, 10f, 10f, 10f, 15f });
@@ -689,6 +694,40 @@ namespace PixelSolution.Services
                 }
                 
                 document.Add(table);
+                document.Add(new Paragraph(" "));
+                
+                // Detailed Activity Log Section
+                var detailTitle = new Paragraph("RECENT ACTIVITY LOG", sectionFont);
+                detailTitle.SpacingAfter = 10f;
+                document.Add(detailTitle);
+                
+                // Detailed Activities Table
+                var detailTable = new PdfPTable(5);
+                detailTable.WidthPercentage = 100;
+                detailTable.SetWidths(new float[] { 20f, 15f, 35f, 20f, 10f });
+                
+                // Detail table headers
+                var detailHeaders = new string[] { "User", "Activity Type", "Description", "Date & Time", "IP Address" };
+                foreach (var header in detailHeaders)
+                {
+                    var cell = new PdfPCell(new Phrase(header, headerFont));
+                    cell.BackgroundColor = BaseColor.DARK_GRAY;
+                    cell.HorizontalAlignment = Element.ALIGN_CENTER;
+                    cell.Padding = 5f;
+                    detailTable.AddCell(cell);
+                }
+                
+                // Detail table data
+                foreach (var activity in detailedActivities)
+                {
+                    detailTable.AddCell(new PdfPCell(new Phrase(activity.UserName ?? "Unknown", dataFont)) { Padding = 4f });
+                    detailTable.AddCell(new PdfPCell(new Phrase(activity.ActivityType ?? "N/A", dataFont)) { Padding = 4f });
+                    detailTable.AddCell(new PdfPCell(new Phrase(activity.Description ?? "N/A", dataFont)) { Padding = 4f });
+                    detailTable.AddCell(new PdfPCell(new Phrase(activity.CreatedAt.ToString("dd/MM/yyyy HH:mm:ss"), dataFont)) { Padding = 4f });
+                    detailTable.AddCell(new PdfPCell(new Phrase(activity.IpAddress ?? "N/A", dataFont)) { Padding = 4f });
+                }
+                
+                document.Add(detailTable);
                 
                 // Footer
                 var footerFont = FontFactory.GetFont(FontFactory.HELVETICA_OBLIQUE, 8, BaseColor.GRAY);
@@ -1114,19 +1153,28 @@ namespace PixelSolution.Services
                     .Include(u => u.PurchaseRequests)
                     .ToListAsync();
 
-                // Get user activity data from UserActivityLogs table
+                // Get user activity data from UserActivityLogs table - simplified query
                 var userActivities = await _context.UserActivityLogs
+                    .ToListAsync();
+
+                // Get detailed activity logs for the report
+                var detailedActivities = await _context.UserActivityLogs
+                    .Include(ual => ual.User)
+                    .OrderByDescending(ual => ual.CreatedAt)
+                    .Take(50) // Latest 50 activities
+                    .ToListAsync();
+
+                // Group activities by user in memory to avoid LINQ translation issues
+                var activityGroups = userActivities
                     .GroupBy(ual => ual.UserId)
-                    .Select(g => new
+                    .ToDictionary(g => g.Key, g => new
                     {
-                        UserId = g.Key,
                         TotalActivities = g.Count(),
                         LastActivity = g.Max(ual => ual.CreatedAt),
                         LoginCount = g.Count(ual => ual.ActivityType == "Login"),
                         SaleActivities = g.Count(ual => ual.ActivityType == "Sale"),
                         ReportExports = g.Count(ual => ual.ActivityType == "ReportExport")
-                    })
-                    .ToListAsync();
+                    });
 
                 var userReport = users.Select(u => new
                 {
@@ -1148,12 +1196,12 @@ namespace PixelSolution.Services
                         .OrderByDescending(s => s.SaleDate)
                         .Select(s => s.SaleDate)
                         .FirstOrDefault(),
-                    // Activity log data
-                    TotalActivities = userActivities.FirstOrDefault(ua => ua.UserId == u.UserId)?.TotalActivities ?? 0,
-                    LastActivity = userActivities.FirstOrDefault(ua => ua.UserId == u.UserId)?.LastActivity,
-                    LoginCount = userActivities.FirstOrDefault(ua => ua.UserId == u.UserId)?.LoginCount ?? 0,
-                    SaleActivities = userActivities.FirstOrDefault(ua => ua.UserId == u.UserId)?.SaleActivities ?? 0,
-                    ReportExports = userActivities.FirstOrDefault(ua => ua.UserId == u.UserId)?.ReportExports ?? 0,
+                    // Activity log data - using dictionary lookup
+                    TotalActivities = activityGroups.ContainsKey(u.UserId) ? activityGroups[u.UserId].TotalActivities : 0,
+                    LastActivity = activityGroups.ContainsKey(u.UserId) ? activityGroups[u.UserId].LastActivity : (DateTime?)null,
+                    LoginCount = activityGroups.ContainsKey(u.UserId) ? activityGroups[u.UserId].LoginCount : 0,
+                    SaleActivities = activityGroups.ContainsKey(u.UserId) ? activityGroups[u.UserId].SaleActivities : 0,
+                    ReportExports = activityGroups.ContainsKey(u.UserId) ? activityGroups[u.UserId].ReportExports : 0,
                     u.CreatedAt
                 })
                 .OrderBy(u => u.FirstName)
@@ -1173,7 +1221,17 @@ namespace PixelSolution.Services
                 return new
                 {
                     Users = userReport,
-                    Summary = summary
+                    Summary = summary,
+                    DetailedActivities = detailedActivities.Select(da => new
+                    {
+                        da.ActivityId,
+                        da.UserId,
+                        UserName = da.User != null ? $"{da.User.FirstName} {da.User.LastName}" : "Unknown User",
+                        da.ActivityType,
+                        da.Description,
+                        da.CreatedAt,
+                        da.IpAddress
+                    }).ToList()
                 };
             }
             catch (Exception ex)
@@ -1338,50 +1396,17 @@ namespace PixelSolution.Services
         {
             try
             {
-                // Get all report data with proper error handling
-                object salesData, inventoryData, usersData, suppliersData;
-                
-                try
-                {
-                    salesData = await GetSalesReportAsync(startDate, endDate);
-                }
-                catch (Exception)
-                {
-                    salesData = new { Summary = new { TotalSales = 0m, TotalTransactions = 0, AverageTransaction = 0m } };
-                }
+                // Get all report data directly without try-catch to see actual errors
+                var salesData = await GetSalesReportAsync(startDate, endDate);
+                var inventoryData = await GetInventoryReportAsync();
+                var usersData = await GetUserActivityReportAsync();
+                var suppliersData = await GetSupplierReportAsync();
 
-                try
-                {
-                    inventoryData = await GetInventoryReportAsync();
-                }
-                catch (Exception)
-                {
-                    inventoryData = new { Summary = new { TotalProducts = 0, TotalStockValue = 0m, LowStockProducts = 0 } };
-                }
-
-                try
-                {
-                    usersData = await GetUserActivityReportAsync();
-                }
-                catch (Exception)
-                {
-                    usersData = new { Summary = new { ActiveUsers = 0, TotalSales = 0m, TotalActivities = 0, UsersWithActivity = 0 } };
-                }
-
-                try
-                {
-                    suppliersData = await GetSupplierReportAsync();
-                }
-                catch (Exception)
-                {
-                    suppliersData = new { Summary = new { ActiveSuppliers = 0 } };
-                }
-
-                // Extract summary data safely
-                var salesSummary = GetSummaryFromData(salesData);
-                var inventorySummary = GetSummaryFromData(inventoryData);
-                var usersSummary = GetSummaryFromData(usersData);
-                var suppliersSummary = GetSummaryFromData(suppliersData);
+                // Cast to dynamic for easier property access
+                dynamic sales = salesData;
+                dynamic inventory = inventoryData;
+                dynamic users = usersData;
+                dynamic suppliers = suppliersData;
 
                 using (var stream = new MemoryStream())
                 {
@@ -1417,13 +1442,13 @@ namespace PixelSolution.Services
                     document.Add(summaryTitle);
 
                     var summaryFont = FontFactory.GetFont(FontFactory.HELVETICA, 10, BaseColor.BLACK);
-                    var summaryText = new Paragraph($"• Total Sales Revenue: KSh {GetPropertyValue(salesSummary, "TotalSales", 0m):N2}\n" +
-                                                   $"• Total Transactions: {GetPropertyValue(salesSummary, "TotalTransactions", 0)}\n" +
-                                                   $"• Total Products in Inventory: {GetPropertyValue(inventorySummary, "TotalProducts", 0)}\n" +
-                                                   $"• Total Stock Value: KSh {GetPropertyValue(inventorySummary, "TotalStockValue", 0m):N2}\n" +
-                                                   $"• Active Users: {GetPropertyValue(usersSummary, "ActiveUsers", 0)}\n" +
-                                                   $"• Active Suppliers: {GetPropertyValue(suppliersSummary, "ActiveSuppliers", 0)}\n" +
-                                                   $"• Low Stock Products: {GetPropertyValue(inventorySummary, "LowStockProducts", 0)}", summaryFont);
+                    var summaryText = new Paragraph($"• Total Sales Revenue: KSh {(sales.Summary?.TotalSales ?? 0):N2}\n" +
+                                                   $"• Total Transactions: {sales.Summary?.TotalTransactions ?? 0}\n" +
+                                                   $"• Total Products in Inventory: {inventory.Summary?.TotalProducts ?? 0}\n" +
+                                                   $"• Total Stock Value: KSh {(inventory.Summary?.TotalStockValue ?? 0):N2}\n" +
+                                                   $"• Active Users: {users.Summary?.ActiveUsers ?? 0}\n" +
+                                                   $"• Active Suppliers: {suppliers.Summary?.ActiveSuppliers ?? 0}\n" +
+                                                   $"• Low Stock Products: {inventory.Summary?.LowStockProducts ?? 0}", summaryFont);
                     summaryText.SpacingAfter = 20f;
                     document.Add(summaryText);
 
@@ -1441,13 +1466,13 @@ namespace PixelSolution.Services
                     salesTable.AddCell(new PdfPCell(new Phrase("Value", headerFont)) { BackgroundColor = BaseColor.DARK_GRAY, Padding = 5f });
                     
                     salesTable.AddCell(new PdfPCell(new Phrase("Total Sales", dataFont)) { Padding = 5f });
-                    salesTable.AddCell(new PdfPCell(new Phrase($"KSh {GetPropertyValue(salesSummary, "TotalSales", 0m):N2}", dataFont)) { Padding = 5f });
+                    salesTable.AddCell(new PdfPCell(new Phrase($"KSh {(sales.Summary?.TotalSales ?? 0):N2}", dataFont)) { Padding = 5f });
                     
                     salesTable.AddCell(new PdfPCell(new Phrase("Total Transactions", dataFont)) { Padding = 5f });
-                    salesTable.AddCell(new PdfPCell(new Phrase(GetPropertyValue(salesSummary, "TotalTransactions", 0).ToString(), dataFont)) { Padding = 5f });
+                    salesTable.AddCell(new PdfPCell(new Phrase((sales.Summary?.TotalTransactions ?? 0).ToString(), dataFont)) { Padding = 5f });
                     
                     salesTable.AddCell(new PdfPCell(new Phrase("Average Transaction", dataFont)) { Padding = 5f });
-                    salesTable.AddCell(new PdfPCell(new Phrase($"KSh {GetPropertyValue(salesSummary, "AverageTransaction", 0m):N2}", dataFont)) { Padding = 5f });
+                    salesTable.AddCell(new PdfPCell(new Phrase($"KSh {(sales.Summary?.AverageTransaction ?? 0):N2}", dataFont)) { Padding = 5f });
 
                     document.Add(salesTable);
                     document.Add(new Paragraph(" "));
@@ -1463,13 +1488,13 @@ namespace PixelSolution.Services
                     inventoryTable.AddCell(new PdfPCell(new Phrase("Value", headerFont)) { BackgroundColor = BaseColor.DARK_GRAY, Padding = 5f });
                     
                     inventoryTable.AddCell(new PdfPCell(new Phrase("Total Products", dataFont)) { Padding = 5f });
-                    inventoryTable.AddCell(new PdfPCell(new Phrase(GetPropertyValue(inventorySummary, "TotalProducts", 0).ToString(), dataFont)) { Padding = 5f });
+                    inventoryTable.AddCell(new PdfPCell(new Phrase((inventory.Summary?.TotalProducts ?? 0).ToString(), dataFont)) { Padding = 5f });
                     
                     inventoryTable.AddCell(new PdfPCell(new Phrase("Low Stock Products", dataFont)) { Padding = 5f });
-                    inventoryTable.AddCell(new PdfPCell(new Phrase(GetPropertyValue(inventorySummary, "LowStockProducts", 0).ToString(), dataFont)) { Padding = 5f });
+                    inventoryTable.AddCell(new PdfPCell(new Phrase((inventory.Summary?.LowStockProducts ?? 0).ToString(), dataFont)) { Padding = 5f });
                     
                     inventoryTable.AddCell(new PdfPCell(new Phrase("Total Stock Value", dataFont)) { Padding = 5f });
-                    inventoryTable.AddCell(new PdfPCell(new Phrase($"KSh {GetPropertyValue(inventorySummary, "TotalStockValue", 0m):N2}", dataFont)) { Padding = 5f });
+                    inventoryTable.AddCell(new PdfPCell(new Phrase($"KSh {(inventory.Summary?.TotalStockValue ?? 0):N2}", dataFont)) { Padding = 5f });
 
                     document.Add(inventoryTable);
                     document.Add(new Paragraph(" "));
@@ -1485,13 +1510,13 @@ namespace PixelSolution.Services
                     userTable.AddCell(new PdfPCell(new Phrase("Value", headerFont)) { BackgroundColor = BaseColor.DARK_GRAY, Padding = 5f });
                     
                     userTable.AddCell(new PdfPCell(new Phrase("Total Users", dataFont)) { Padding = 5f });
-                    userTable.AddCell(new PdfPCell(new Phrase(GetPropertyValue(usersSummary, "TotalUsers", 0).ToString(), dataFont)) { Padding = 5f });
+                    userTable.AddCell(new PdfPCell(new Phrase((users.Summary?.TotalUsers ?? 0).ToString(), dataFont)) { Padding = 5f });
                     
                     userTable.AddCell(new PdfPCell(new Phrase("Active Users", dataFont)) { Padding = 5f });
-                    userTable.AddCell(new PdfPCell(new Phrase(GetPropertyValue(usersSummary, "ActiveUsers", 0).ToString(), dataFont)) { Padding = 5f });
+                    userTable.AddCell(new PdfPCell(new Phrase((users.Summary?.ActiveUsers ?? 0).ToString(), dataFont)) { Padding = 5f });
                     
                     userTable.AddCell(new PdfPCell(new Phrase("Total User Sales", dataFont)) { Padding = 5f });
-                    userTable.AddCell(new PdfPCell(new Phrase($"KSh {GetPropertyValue(usersSummary, "TotalSales", 0m):N2}", dataFont)) { Padding = 5f });
+                    userTable.AddCell(new PdfPCell(new Phrase($"KSh {(users.Summary?.TotalSales ?? 0):N2}", dataFont)) { Padding = 5f });
 
                     document.Add(userTable);
 
@@ -1511,43 +1536,5 @@ namespace PixelSolution.Services
             }
         }
 
-        // Helper methods for safe property access
-        private dynamic GetSummaryFromData(object data)
-        {
-            try
-            {
-                var dataType = data.GetType();
-                var summaryProperty = dataType.GetProperty("Summary");
-                return summaryProperty?.GetValue(data);
-            }
-            catch
-            {
-                return new { };
-            }
-        }
-
-        private T GetPropertyValue<T>(dynamic obj, string propertyName, T defaultValue)
-        {
-            try
-            {
-                if (obj == null) return defaultValue;
-                
-                var objType = obj.GetType();
-                var property = objType.GetProperty(propertyName);
-                
-                if (property != null)
-                {
-                    var value = property.GetValue(obj);
-                    if (value != null && value is T)
-                        return (T)value;
-                }
-                
-                return defaultValue;
-            }
-            catch
-            {
-                return defaultValue;
-            }
-        }
     }
 }
