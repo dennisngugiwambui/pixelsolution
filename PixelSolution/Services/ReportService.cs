@@ -500,8 +500,8 @@ namespace PixelSolution.Services
                 reportTitle.SpacingAfter = 20f;
                 document.Add(reportTitle);
                 
-                // Summary Statistics
-                var totalRevenue = sales.Sum(s => s.TotalAmount);
+                // Summary Statistics using AmountPaid
+                var totalRevenue = sales.Sum(s => s.AmountPaid);
                 var summaryFont = FontFactory.GetFont(FontFactory.HELVETICA, 10, BaseColor.BLACK);
                 var summary = new Paragraph($"Total Sales: {sales.Count} | Total Revenue: KSh {totalRevenue:N2} | Generated: {DateTime.Now:dd/MM/yyyy HH:mm}", summaryFont);
                 summary.Alignment = Element.ALIGN_CENTER;
@@ -533,7 +533,7 @@ namespace PixelSolution.Services
                     table.AddCell(new PdfPCell(new Phrase(sale.SaleDate.ToString("dd/MM/yyyy"), dataFont)) { Padding = 5f });
                     table.AddCell(new PdfPCell(new Phrase(sale.SaleNumber ?? "N/A", dataFont)) { Padding = 5f });
                     table.AddCell(new PdfPCell(new Phrase(sale.CustomerName ?? "Walk-in", dataFont)) { Padding = 5f });
-                    table.AddCell(new PdfPCell(new Phrase(sale.TotalAmount.ToString("N2"), dataFont)) { Padding = 5f, HorizontalAlignment = Element.ALIGN_RIGHT });
+                    table.AddCell(new PdfPCell(new Phrase(sale.AmountPaid.ToString("N2"), dataFont)) { Padding = 5f, HorizontalAlignment = Element.ALIGN_RIGHT });
                     table.AddCell(new PdfPCell(new Phrase(sale.User?.FullName ?? "Unknown", dataFont)) { Padding = 5f });
                 }
                 
@@ -860,6 +860,94 @@ namespace PixelSolution.Services
             return GenerateCategoriesReportExcel(categories);
         }
 
+        public async Task<byte[]> GenerateReceiptPdfAsync(ReceiptPdfRequest request)
+        {
+            using (var stream = new MemoryStream())
+            {
+                var document = new iTextSharp.text.Document(PageSize.A4, 25, 25, 30, 30);
+                var writer = PdfWriter.GetInstance(document, stream);
+                
+                document.Open();
+                
+                // Company Header
+                var titleFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 18, BaseColor.DARK_GRAY);
+                var companyTitle = new Paragraph("PIXEL SOLUTION COMPANY LTD", titleFont);
+                companyTitle.Alignment = Element.ALIGN_CENTER;
+                companyTitle.SpacingAfter = 10f;
+                document.Add(companyTitle);
+                
+                // Receipt Title
+                var receiptTitleFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 14, BaseColor.BLACK);
+                var receiptTitle = new Paragraph("SALES RECEIPT", receiptTitleFont);
+                receiptTitle.Alignment = Element.ALIGN_CENTER;
+                receiptTitle.SpacingAfter = 20f;
+                document.Add(receiptTitle);
+                
+                // Receipt Details
+                var normalFont = FontFactory.GetFont(FontFactory.HELVETICA, 10, BaseColor.BLACK);
+                document.Add(new Paragraph($"Receipt #: {request.SaleNumber}", normalFont));
+                document.Add(new Paragraph($"Date: {request.SaleDate:dd/MM/yyyy HH:mm}", normalFont));
+                document.Add(new Paragraph($"Cashier: {request.CashierName}", normalFont));
+                if (!string.IsNullOrEmpty(request.CustomerName))
+                {
+                    document.Add(new Paragraph($"Customer: {request.CustomerName}", normalFont));
+                }
+                document.Add(new Paragraph(" ", normalFont)); // Spacing
+                
+                // Items Table
+                var table = new PdfPTable(4);
+                table.WidthPercentage = 100;
+                table.SetWidths(new float[] { 40f, 15f, 20f, 25f });
+                
+                // Table headers
+                var headerFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 10, BaseColor.WHITE);
+                var headers = new string[] { "Item", "Qty", "Unit Price", "Total" };
+                
+                foreach (var header in headers)
+                {
+                    var cell = new PdfPCell(new Phrase(header, headerFont));
+                    cell.BackgroundColor = BaseColor.DARK_GRAY;
+                    cell.HorizontalAlignment = Element.ALIGN_CENTER;
+                    cell.Padding = 8f;
+                    table.AddCell(cell);
+                }
+                
+                // Table data
+                var dataFont = FontFactory.GetFont(FontFactory.HELVETICA, 9, BaseColor.BLACK);
+                foreach (var item in request.Items)
+                {
+                    table.AddCell(new PdfPCell(new Phrase(item.Name, dataFont)) { Padding = 5f });
+                    table.AddCell(new PdfPCell(new Phrase(item.Quantity.ToString(), dataFont)) { Padding = 5f, HorizontalAlignment = Element.ALIGN_CENTER });
+                    table.AddCell(new PdfPCell(new Phrase($"KSh {item.UnitPrice:N2}", dataFont)) { Padding = 5f, HorizontalAlignment = Element.ALIGN_RIGHT });
+                    table.AddCell(new PdfPCell(new Phrase($"KSh {item.Total:N2}", dataFont)) { Padding = 5f, HorizontalAlignment = Element.ALIGN_RIGHT });
+                }
+                
+                document.Add(table);
+                
+                // Totals
+                document.Add(new Paragraph(" ", normalFont)); // Spacing
+                var boldFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 10, BaseColor.BLACK);
+                document.Add(new Paragraph($"Subtotal: KSh {request.Subtotal:N2}", normalFont) { Alignment = Element.ALIGN_RIGHT });
+                document.Add(new Paragraph($"Tax (16%): KSh {request.Tax:N2}", normalFont) { Alignment = Element.ALIGN_RIGHT });
+                document.Add(new Paragraph($"Total: KSh {request.TotalAmount:N2}", boldFont) { Alignment = Element.ALIGN_RIGHT });
+                document.Add(new Paragraph($"Amount Paid: KSh {request.AmountPaid:N2}", normalFont) { Alignment = Element.ALIGN_RIGHT });
+                if (request.ChangeGiven > 0)
+                {
+                    document.Add(new Paragraph($"Change: KSh {request.ChangeGiven:N2}", normalFont) { Alignment = Element.ALIGN_RIGHT });
+                }
+                
+                // Footer
+                document.Add(new Paragraph(" ", normalFont)); // Spacing
+                var footerFont = FontFactory.GetFont(FontFactory.HELVETICA_OBLIQUE, 8, BaseColor.GRAY);
+                var footer = new Paragraph("Thank you for your business!", footerFont);
+                footer.Alignment = Element.ALIGN_CENTER;
+                document.Add(footer);
+                
+                document.Close();
+                return stream.ToArray();
+            }
+        }
+
         private byte[] GenerateSalesReportExcel(List<Sale> sales, DateTime startDate, DateTime endDate)
         {
             using (var workbook = new XLWorkbook())
@@ -880,8 +968,8 @@ namespace PixelSolution.Services
                 worksheet.Cell("A2").Style.Font.Bold = true;
                 worksheet.Cell("A2").Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
                 
-                // Summary
-                var totalRevenue = sales.Sum(s => s.TotalAmount);
+                // Summary using AmountPaid
+                var totalRevenue = sales.Sum(s => s.AmountPaid);
                 worksheet.Range("A3:E3").Merge();
                 worksheet.Cell("A3").Value = $"Total Sales: {sales.Count} | Total Revenue: KSh {totalRevenue:N2} | Generated: {DateTime.Now:dd/MM/yyyy HH:mm}";
                 worksheet.Cell("A3").Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
@@ -902,7 +990,7 @@ namespace PixelSolution.Services
                     worksheet.Cell(row, 1).Value = sale.SaleDate.ToString("dd/MM/yyyy");
                     worksheet.Cell(row, 2).Value = sale.SaleNumber ?? "N/A";
                     worksheet.Cell(row, 3).Value = sale.CustomerName ?? "Walk-in";
-                    worksheet.Cell(row, 4).Value = sale.TotalAmount;
+                    worksheet.Cell(row, 4).Value = sale.AmountPaid;
                     worksheet.Cell(row, 4).Style.NumberFormat.Format = "#,##0.00";
                     worksheet.Cell(row, 5).Value = sale.User?.FirstName + " " + sale.User?.LastName ?? "Unknown";
                     row++;

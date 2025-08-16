@@ -250,6 +250,9 @@ namespace PixelSolution.ViewModels
     {
         public List<ProductSearchViewModel> Products { get; set; } = new List<ProductSearchViewModel>();
         public List<SaleListViewModel> RecentSales { get; set; } = new List<SaleListViewModel>();
+        public decimal TodaysSales { get; set; }
+        public int TodaysTransactions { get; set; }
+        public decimal AverageTransaction { get; set; }
     }
  
 

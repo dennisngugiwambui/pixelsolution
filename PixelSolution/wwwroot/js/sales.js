@@ -640,7 +640,7 @@
                     closePaymentModal();
 
                     // Update today's stats
-                    updateTodayStats(result.totalAmount);
+                    updateTodayStats();
 
                     // Generate and show receipt
                     generateAndShowReceipt(lastSaleData);
@@ -765,46 +765,75 @@
             printWindow.document.close();
 }
 
-        function downloadReceiptPDF() {
-            if (lastSaleData) {
-                // Create a simple text version for download
-                const receiptText = `
-PIXEL SOLUTION
-Chuka, Ndangani
-Tel: +254758024400
+        async function downloadReceiptPDF() {
+            if (!lastSaleData) {
+                showToast('No receipt data available', 'error');
+                return;
+            }
 
-Receipt: ${lastSaleData.saleNumber}
-Date: ${new Date().toLocaleString()}
-Served by: ${lastSaleData.cashierName}
+            try {
+                showToast('Generating PDF receipt...', 'info');
 
-Items:
-${lastSaleData.items.map(item =>
-    `${item.name} x${item.quantity} - KSh ${item.total.toFixed(2)}`
-).join('\n')}
+                // Calculate subtotal and tax
+                const subtotal = lastSaleData.totalAmount / 1.16;
+                const tax = lastSaleData.totalAmount - subtotal;
 
-Subtotal: KSh ${(lastSaleData.totalAmount / 1.16).toFixed(2)}
-Tax (16%): KSh ${(lastSaleData.totalAmount * 0.16 / 1.16).toFixed(2)}
-Total: KSh ${lastSaleData.totalAmount.toFixed(2)}
-Amount Paid: KSh ${lastSaleData.amountPaid.toFixed(2)}
-${lastSaleData.changeGiven > 0 ? `Change: KSh ${lastSaleData.changeGiven.toFixed(2)}` : ''}
+                // Prepare receipt data for server
+                const receiptData = {
+                    saleNumber: lastSaleData.saleNumber,
+                    saleDate: new Date(lastSaleData.saleDate || new Date()),
+                    cashierName: lastSaleData.cashierName || 'Unknown',
+                    customerName: lastSaleData.customerName || '',
+                    customerPhone: lastSaleData.customerPhone || '',
+                    paymentMethod: lastSaleData.paymentMethod || 'Cash',
+                    totalAmount: lastSaleData.totalAmount,
+                    amountPaid: lastSaleData.amountPaid,
+                    changeGiven: lastSaleData.changeGiven || 0,
+                    subtotal: subtotal,
+                    tax: tax,
+                    items: lastSaleData.items.map(item => ({
+                        name: item.name,
+                        quantity: item.quantity,
+                        unitPrice: item.unitPrice || (item.total / item.quantity),
+                        total: item.total
+                    }))
+                };
 
-Payment Method: ${lastSaleData.paymentMethod}
-${lastSaleData.customerPhone ? `Phone: ${lastSaleData.customerPhone}` : ''}
+                // Get CSRF token
+                const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
 
-Thank you for your business!
-                `;
+                // Call server endpoint to generate PDF
+                const response = await fetch('/Admin/GenerateReceiptPDF', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': token
+                    },
+                    body: JSON.stringify(receiptData)
+                });
 
-                const blob = new Blob([receiptText], { type: 'text/plain' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `Receipt_${lastSaleData.saleNumber}_${new Date().toISOString().split('T')[0]}.txt`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
+                if (response.ok) {
+                    // Get the PDF blob
+                    const blob = await response.blob();
+                    
+                    // Create download link
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `Receipt_${lastSaleData.saleNumber}_${new Date().toISOString().split('T')[0]}.pdf`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
 
-                showToast('Receipt downloaded successfully!', 'success');
+                    showToast('Receipt PDF downloaded successfully!', 'success');
+                } else {
+                    const errorData = await response.json();
+                    showToast(errorData.message || 'Failed to generate PDF receipt', 'error');
+                }
+            } catch (error) {
+                console.error('Error downloading receipt PDF:', error);
+                showToast('Error generating PDF receipt', 'error');
             }
         }
 
@@ -931,17 +960,41 @@ Thank you for your business!
         }
 
         // Update today's stats after sale
-        function updateTodayStats(amount) {
-            const currentSales = parseFloat(document.getElementById('todaySales').textContent.replace('KSh ', '').replace(/,/g, '')) || 0;
-            const currentTransactions = parseInt(document.getElementById('todayTransactions').textContent) || 0;
+        async function updateTodayStats() {
+            try {
+                console.log('🔄 Updating today\'s stats...');
+                const response = await fetch('/Admin/GetTodaysSalesStats', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
 
-            const newSalesTotal = currentSales + amount;
-            const newTransactionCount = currentTransactions + 1;
-            const newAvgTransaction = newSalesTotal / newTransactionCount;
-
-            document.getElementById('todaySales').textContent = `KSh ${newSalesTotal.toLocaleString('en-KE', { minimumFractionDigits: 2 })}`;
-            document.getElementById('todayTransactions').textContent = newTransactionCount.toString();
-            document.getElementById('avgTransaction').textContent = `KSh ${newAvgTransaction.toLocaleString('en-KE', { minimumFractionDigits: 2 })}`;
+                console.log('📊 Stats response status:', response.status);
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    console.log('📊 Stats response data:', result);
+                    
+                    if (result.success) {
+                        const stats = result.stats;
+                        console.log('💰 Updating cards with stats:', stats);
+                        
+                        document.getElementById('todaySales').textContent = `KSh ${stats.totalSales.toLocaleString('en-KE', { minimumFractionDigits: 2 })}`;
+                        document.getElementById('todayTransactions').textContent = stats.transactionCount.toString();
+                        document.getElementById('avgTransaction').textContent = `KSh ${stats.averageTransaction.toLocaleString('en-KE', { minimumFractionDigits: 2 })}`;
+                        
+                        console.log('✅ Sales cards updated successfully');
+                    } else {
+                        console.error('❌ Stats API returned success=false:', result.message);
+                    }
+                } else {
+                    const errorText = await response.text();
+                    console.error('❌ Stats API error:', response.status, errorText);
+                }
+            } catch (error) {
+                console.error('❌ Error updating today\'s stats:', error);
+            }
         }
 
         // Toast notification system
@@ -1015,5 +1068,15 @@ Thank you for your business!
             };
         }
 
-        // Initialize cart display on load
+        // Initialize cart display and load initial stats on page load
         updateCartDisplay();
+        
+        // Force update stats immediately and repeatedly for debugging
+        console.log('🚀 Forcing stats update on page load...');
+        updateTodayStats();
+        
+        // Also update stats every 2 seconds for debugging
+        setInterval(() => {
+            console.log('⏰ Auto-updating stats...');
+            updateTodayStats();
+        }, 2000);

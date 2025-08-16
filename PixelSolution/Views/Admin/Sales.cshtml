@@ -935,7 +935,7 @@
                         <i class="fas fa-dollar-sign"></i>
                     </div>
                 </div>
-                <div class="stat-value" id="todaySales">KSh 0.00</div>
+                <div class="stat-value" id="todaySales">KSh @Model.TodaysSales.ToString("N2")</div>
                 <div class="stat-label">Today's Sales</div>
             </div>
             <div class="stat-card" style="--card-color: #3b82f6;">
@@ -944,7 +944,7 @@
                         <i class="fas fa-shopping-cart"></i>
                     </div>
                 </div>
-                <div class="stat-value" id="todayTransactions">0</div>
+                <div class="stat-value" id="todayTransactions">@Model.TodaysTransactions</div>
                 <div class="stat-label">Transactions</div>
             </div>
             <div class="stat-card" style="--card-color: #8b5cf6;">
@@ -953,7 +953,7 @@
                         <i class="fas fa-clock"></i>
                     </div>
                 </div>
-                <div class="stat-value" id="avgTransaction">KSh 0.00</div>
+                <div class="stat-value" id="avgTransaction">KSh @Model.AverageTransaction.ToString("N2")</div>
                 <div class="stat-label">Avg Transaction</div>
             </div>
         </div>

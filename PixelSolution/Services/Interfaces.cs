@@ -141,6 +141,9 @@ namespace PixelSolution.Services.Interfaces
         Task<byte[]> GenerateInventoryReportExcelAsync();
         Task<byte[]> GenerateUserReportExcelAsync();
         Task<byte[]> GenerateCategoriesReportExcelAsync();
+        
+        // Receipt PDF generation
+        Task<byte[]> GenerateReceiptPdfAsync(ReceiptPdfRequest request);
         Task<byte[]> GenerateSuppliersReportExcelAsync();
         
         // Additional PDF report generation methods

@@ -1785,12 +1785,19 @@
                 dateRange: dateRange
             };
             
+            // Add cache-busting parameter to force fresh data
+            const timestamp = new Date().getTime();
+            requestBody.timestamp = timestamp;
+            
             // Make actual API call to get real data
             fetch('/Admin/GetReportData', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || '',
+                    'Cache-Control': 'no-cache, no-store, must-revalidate',
+                    'Pragma': 'no-cache',
+                    'Expires': '0'
                 },
                 body: JSON.stringify(requestBody)
             })
@@ -2309,19 +2316,26 @@
             const endDate = document.getElementById('endDate')?.value;
             const dateRange = document.getElementById('dateRange')?.value;
             
+            // Add cache-busting parameter to force fresh data
+            const timestamp = new Date().getTime();
+            
             const requestBody = {
                 reportType: dataView, // Use the specific view instead of 'default'
                 chartType: currentChartDataType,
                 startDate: startDate,
                 endDate: endDate,
-                dateRange: dateRange
+                dateRange: dateRange,
+                timestamp: timestamp
             };
             
             fetch('/Admin/GetReportData', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || '',
+                    'Cache-Control': 'no-cache, no-store, must-revalidate',
+                    'Pragma': 'no-cache',
+                    'Expires': '0'
                 },
                 body: JSON.stringify(requestBody)
             })

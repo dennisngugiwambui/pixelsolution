@@ -1347,16 +1347,24 @@ namespace PixelSolution.Controllers
         {
             try
             {
+                // TEMPORARY: Show ALL sales instead of just today's for debugging
+                var allSales = await _saleService.GetAllSalesAsync();
+                
+                // Also get today's sales for comparison
                 var today = DateTime.Today;
                 var tomorrow = today.AddDays(1);
-
                 var todaysSales = await _saleService.GetSalesByDateRangeAsync(today, tomorrow);
+
+                // Debug logging for API endpoint
+                _logger.LogInformation($"GetTodaysSalesStats API - ALL SALES: {allSales.Count()} totaling {allSales.Sum(s => s.TotalAmount):C}");
+                _logger.LogInformation($"GetTodaysSalesStats API - TODAY'S SALES: {todaysSales.Count()} totaling {todaysSales.Sum(s => s.TotalAmount):C}");
+                _logger.LogInformation($"GetTodaysSalesStats API - Date range: {today:yyyy-MM-dd HH:mm:ss} to {tomorrow:yyyy-MM-dd HH:mm:ss}");
 
                 var stats = new
                 {
-                    totalSales = todaysSales.Sum(s => s.TotalAmount),
-                    transactionCount = todaysSales.Count(),
-                    averageTransaction = todaysSales.Any() ? todaysSales.Average(s => s.TotalAmount) : 0
+                    totalSales = allSales.Sum(s => s.TotalAmount),
+                    transactionCount = allSales.Count(),
+                    averageTransaction = allSales.Any() ? allSales.Average(s => s.TotalAmount) : 0
                 };
 
                 return Json(new { success = true, stats = stats });
@@ -1583,6 +1591,35 @@ namespace PixelSolution.Controllers
                 // Load recent sales
                 var recentSales = await _saleService.GetAllSalesAsync();
 
+                // Get ALL sales statistics instead of just today's - DEBUG MODE
+                var allSales = await _saleService.GetAllSalesAsync();
+                
+                // Also get today's sales for comparison
+                var today = DateTime.Today;
+                var tomorrow = today.AddDays(1);
+                var todaysSales = await _saleService.GetSalesByDateRangeAsync(today, tomorrow);
+
+                // Debug logging for ALL sales vs today's sales
+                _logger.LogInformation($"=== SALES DEBUG INFO ===");
+                _logger.LogInformation($"ALL SALES COUNT: {allSales.Count()}");
+                _logger.LogInformation($"ALL SALES TOTAL: {allSales.Sum(s => s.TotalAmount):C}");
+                _logger.LogInformation($"TODAY'S SALES COUNT: {todaysSales.Count()}");
+                _logger.LogInformation($"TODAY'S SALES TOTAL: {todaysSales.Sum(s => s.TotalAmount):C}");
+                _logger.LogInformation($"Today's date range: {today:yyyy-MM-dd HH:mm:ss} to {tomorrow:yyyy-MM-dd HH:mm:ss}");
+                
+                // Log ALL sales for debugging
+                _logger.LogInformation($"=== ALL SALES IN DATABASE ===");
+                foreach (var sale in allSales.OrderByDescending(s => s.SaleDate))
+                {
+                    _logger.LogInformation($"Sale: {sale.SaleNumber} - {sale.SaleDate:yyyy-MM-dd HH:mm:ss} - KSh {sale.TotalAmount:N2}");
+                }
+                
+                // Log today's sales specifically
+                _logger.LogInformation($"=== TODAY'S SALES ONLY ===");
+                foreach (var sale in todaysSales)
+                {
+                    _logger.LogInformation($"Today Sale: {sale.SaleNumber} - {sale.SaleDate:yyyy-MM-dd HH:mm:ss} - KSh {sale.TotalAmount:N2}");
+                }
                 _logger.LogInformation($"Loaded {products.Count()} products and {recentSales.Count()} sales");
 
                 // Create view model for sales page
@@ -1610,7 +1647,10 @@ namespace PixelSolution.Controllers
                         ItemCount = s.SaleItems?.Count ?? 0,
                         CashierName = !string.IsNullOrEmpty(s.CashierName) ? s.CashierName :
                                      (s.User != null ? $"{s.User.FirstName} {s.User.LastName}" : "Unknown")
-                    }).ToList()
+                    }).ToList(),
+                    TodaysSales = todaysSales.Sum(s => s.AmountPaid),
+                    TodaysTransactions = todaysSales.Count(),
+                    AverageTransaction = todaysSales.Any() ? todaysSales.Average(s => s.AmountPaid) : 0
                 };
 
                 return View(salesViewModel);
@@ -1622,7 +1662,10 @@ namespace PixelSolution.Controllers
                 return View(new SalesPageViewModel
                 {
                     Products = new List<ProductSearchViewModel>(),
-                    RecentSales = new List<SaleListViewModel>()
+                    RecentSales = new List<SaleListViewModel>(),
+                    TodaysSales = 0,
+                    TodaysTransactions = 0,
+                    AverageTransaction = 0
                 });
             }
         }
@@ -3988,11 +4031,14 @@ namespace PixelSolution.Controllers
 
         private async Task<object> GetSalesReportData(DateTime startDate, DateTime endDate, string chartType)
         {
+            // Force fresh data retrieval with AsNoTracking for performance
             var sales = await _context.Sales
+                .AsNoTracking()
                 .Include(s => s.SaleItems)
                 .ThenInclude(si => si.Product)
                 .ThenInclude(p => p.Category)
                 .Where(s => s.SaleDate >= startDate && s.SaleDate <= endDate)
+                .OrderByDescending(s => s.SaleDate)
                 .ToListAsync();
 
             var salesTrend = sales
@@ -4000,12 +4046,12 @@ namespace PixelSolution.Controllers
                 .Select(g => new
                 {
                     date = g.Key.ToString("MMM dd"),
-                    sales = g.Sum(s => s.TotalAmount),
-                    amount = g.Sum(s => s.TotalAmount),
-                    revenue = g.Sum(s => s.TotalAmount),
-                    profit = g.Sum(s => s.TotalAmount * 0.2m) // Assuming 20% profit margin
+                    sales = g.Sum(s => s.AmountPaid), // Use AmountPaid from database
+                    amount = g.Sum(s => s.AmountPaid),
+                    revenue = g.Sum(s => s.AmountPaid),
+                    profit = g.Sum(s => s.AmountPaid * 0.2m) // 20% profit margin on actual paid amount
                 })
-                .OrderBy(x => x.date)
+                .OrderBy(x => DateTime.ParseExact(x.date, "MMM dd", null))
                 .ToList();
 
             var topCategories = sales
@@ -4032,8 +4078,10 @@ namespace PixelSolution.Controllers
         private async Task<object> GetProductsReportData(string chartType)
         {
             var products = await _context.Products
+                .AsNoTracking()
                 .Include(p => p.Category)
                 .Include(p => p.SaleItems)
+                .OrderBy(p => p.Name)
                 .ToListAsync();
 
             var topProducts = products
@@ -4065,8 +4113,10 @@ namespace PixelSolution.Controllers
         private async Task<object> GetCategoriesReportData(string chartType)
         {
             var categories = await _context.Categories
+                .AsNoTracking()
                 .Include(c => c.Products)
                 .ThenInclude(p => p.SaleItems)
+                .OrderBy(c => c.Name)
                 .ToListAsync();
 
             var categoryData = categories
@@ -4116,8 +4166,10 @@ namespace PixelSolution.Controllers
         private async Task<object> GetInventoryReportData(string chartType)
         {
             var products = await _context.Products
+                .AsNoTracking()
                 .Include(p => p.Category)
                 .Include(p => p.SaleItems)
+                .OrderBy(p => p.Name)
                 .ToListAsync();
 
             var inventoryData = products
@@ -4150,25 +4202,28 @@ namespace PixelSolution.Controllers
             var productsData = await GetProductsReportData("performance");
             var categoriesData = await GetCategoriesReportData("breakdown");
 
-            // Calculate summary statistics
+            // Calculate summary statistics with fresh data using AmountPaid
             var totalSales = await _context.Sales
+                .AsNoTracking()
                 .Where(s => s.SaleDate >= startDate && s.SaleDate <= endDate)
-                .SelectMany(s => s.SaleItems)
-                .SumAsync(si => si.TotalPrice);
+                .SumAsync(s => s.AmountPaid);
 
             var totalOrders = await _context.Sales
+                .AsNoTracking()
                 .Where(s => s.SaleDate >= startDate && s.SaleDate <= endDate)
                 .CountAsync();
 
-            var totalProducts = await _context.Products.CountAsync();
+            var totalProducts = await _context.Products.AsNoTracking().CountAsync();
             var totalCustomers = await _context.Sales
+                .AsNoTracking()
                 .Where(s => s.SaleDate >= startDate && s.SaleDate <= endDate && !string.IsNullOrEmpty(s.CustomerName))
                 .Select(s => s.CustomerName)
                 .Distinct()
                 .CountAsync();
 
-            // Get recent sales for the table
+            // Get recent sales for the table with fresh data
             var recentSales = await _context.Sales
+                .AsNoTracking()
                 .Where(s => s.SaleDate >= startDate && s.SaleDate <= endDate)
                 .OrderByDescending(s => s.SaleDate)
                 .Take(10)
@@ -4177,7 +4232,7 @@ namespace PixelSolution.Controllers
                     id = s.SaleId,
                     saleNumber = s.SaleNumber,
                     customerName = s.CustomerName ?? "Walk-in Customer",
-                    totalAmount = s.TotalAmount,
+                    totalAmount = s.AmountPaid, // Use AmountPaid instead of TotalAmount
                     saleDate = s.SaleDate,
                     status = "Completed"
                 })
@@ -4276,10 +4331,32 @@ namespace PixelSolution.Controllers
         {
             try
             {
-                // Simple HTML to PDF conversion (placeholder implementation)
-                // In a real implementation, you would use a library like iTextSharp or similar
-                var pdfContent = $"PDF Report Generated: {DateTime.Now}\n\n{htmlContent}";
-                return System.Text.Encoding.UTF8.GetBytes(pdfContent);
+                // Use proper PDF generation with iTextSharp
+                using (var stream = new MemoryStream())
+                {
+                    var document = new iTextSharp.text.Document(PageSize.A4, 25, 25, 30, 30);
+                    var writer = PdfWriter.GetInstance(document, stream);
+                    
+                    document.Open();
+                    
+                    // Parse HTML content and add to PDF
+                    var titleFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 16, BaseColor.BLACK);
+                    var normalFont = FontFactory.GetFont(FontFactory.HELVETICA, 10, BaseColor.BLACK);
+                    
+                    // Add content from HTML (simplified parsing)
+                    var lines = htmlContent.Split('\n');
+                    foreach (var line in lines)
+                    {
+                        if (!string.IsNullOrWhiteSpace(line) && !line.Contains("<") && !line.Contains(">"))
+                        {
+                            var paragraph = new Paragraph(line.Trim(), normalFont);
+                            document.Add(paragraph);
+                        }
+                    }
+                    
+                    document.Close();
+                    return stream.ToArray();
+                }
             }
             catch (Exception ex)
             {
@@ -4359,6 +4436,206 @@ namespace PixelSolution.Controllers
             return "Unknown";
         }
 
+        [HttpPost]
+        public async Task<IActionResult> GenerateReceiptPDF([FromBody] ReceiptPdfRequest request)
+        {
+            try
+            {
+                _logger.LogInformation("Generating receipt PDF for sale: {SaleNumber}", request.SaleNumber);
+
+                // Generate HTML content for the receipt
+                var htmlContent = GenerateReceiptHtml(request);
+
+                // Generate proper PDF receipt using ReportService
+                var pdfBytes = await _reportService.GenerateReceiptPdfAsync(request);
+
+                var fileName = $"Receipt_{request.SaleNumber}_{DateTime.Now:yyyyMMdd_HHmmss}.pdf";
+                
+                return File(pdfBytes, "application/pdf", fileName);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error generating receipt PDF");
+                return Json(new { success = false, message = "Error generating receipt PDF." });
+            }
+        }
+
+        private string GenerateReceiptHtml(ReceiptPdfRequest request)
+        {
+            var html = $@"
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8'>
+    <style>
+        body {{
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            line-height: 1.4;
+            margin: 0;
+            padding: 20px;
+            width: 300px;
+            background: white;
+        }}
+        .header {{
+            text-align: center;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #000;
+            padding-bottom: 10px;
+        }}
+        .company-name {{
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }}
+        .company-info {{
+            font-size: 10px;
+            margin-bottom: 2px;
+        }}
+        .receipt-info {{
+            margin-bottom: 15px;
+        }}
+        .receipt-info div {{
+            margin-bottom: 3px;
+        }}
+        .items {{
+            margin-bottom: 15px;
+        }}
+        .item {{
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            border-bottom: 1px dotted #ccc;
+            padding-bottom: 3px;
+        }}
+        .item-name {{
+            flex: 1;
+            margin-right: 10px;
+        }}
+        .item-qty {{
+            margin-right: 10px;
+        }}
+        .item-price {{
+            text-align: right;
+            min-width: 60px;
+        }}
+        .totals {{
+            border-top: 2px solid #000;
+            padding-top: 10px;
+            margin-bottom: 15px;
+        }}
+        .total-row {{
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 3px;
+        }}
+        .final-total {{
+            font-weight: bold;
+            font-size: 14px;
+            border-top: 1px solid #000;
+            padding-top: 5px;
+            margin-top: 5px;
+        }}
+        .payment-info {{
+            margin-bottom: 15px;
+        }}
+        .footer {{
+            text-align: center;
+            font-size: 10px;
+            margin-top: 20px;
+            border-top: 1px solid #ccc;
+            padding-top: 10px;
+        }}
+    </style>
+</head>
+<body>
+    <div class='header'>
+        <div class='company-name'>PIXEL SOLUTION COMPANY LTD</div>
+        <div class='company-info'>Chuka, Ndangani</div>
+        <div class='company-info'>Tel: +254758024400</div>
+    </div>
+    
+    <div class='receipt-info'>
+        <div><strong>Receipt:</strong> {request.SaleNumber}</div>
+        <div><strong>Date:</strong> {request.SaleDate:dd/MM/yyyy HH:mm}</div>
+        <div><strong>Served by:</strong> {request.CashierName}</div>
+        {(string.IsNullOrEmpty(request.CustomerName) ? "" : $"<div><strong>Customer:</strong> {request.CustomerName}</div>")}
+    </div>
+    
+    <div class='items'>
+        <div style='font-weight: bold; border-bottom: 2px solid #000; padding-bottom: 5px; margin-bottom: 10px;'>ITEMS</div>";
+
+            foreach (var item in request.Items)
+            {
+                html += $@"
+        <div class='item'>
+            <div class='item-name'>{item.Name}</div>
+            <div class='item-qty'>x{item.Quantity}</div>
+            <div class='item-price'>KSh {item.Total:N2}</div>
+        </div>";
+            }
+
+            html += $@"
+    </div>
+    
+    <div class='totals'>
+        <div class='total-row'>
+            <span>Subtotal:</span>
+            <span>KSh {request.Subtotal:N2}</span>
+        </div>
+        <div class='total-row'>
+            <span>Tax (16%):</span>
+            <span>KSh {request.Tax:N2}</span>
+        </div>
+        <div class='total-row final-total'>
+            <span>TOTAL:</span>
+            <span>KSh {request.TotalAmount:N2}</span>
+        </div>
+    </div>
+    
+    <div class='payment-info'>
+        <div><strong>Payment Method:</strong> {request.PaymentMethod}</div>
+        <div><strong>Amount Paid:</strong> KSh {request.AmountPaid:N2}</div>
+        {(request.ChangeGiven > 0 ? $"<div><strong>Change:</strong> KSh {request.ChangeGiven:N2}</div>" : "")}
+        {(string.IsNullOrEmpty(request.CustomerPhone) ? "" : $"<div><strong>Phone:</strong> {request.CustomerPhone}</div>")}
+    </div>
+    
+    <div class='footer'>
+        <div>Thank you for your business!</div>
+        <div>Visit us again soon</div>
+        <div style='margin-top: 10px; font-size: 8px;'>Generated on {DateTime.Now:dd/MM/yyyy HH:mm:ss}</div>
+    </div>
+</body>
+</html>";
+
+            return html;
+        }
+
         #endregion
+    }
+
+    // Request model for receipt PDF generation
+    public class ReceiptPdfRequest
+    {
+        public string SaleNumber { get; set; } = string.Empty;
+        public DateTime SaleDate { get; set; }
+        public string CashierName { get; set; } = string.Empty;
+        public string CustomerName { get; set; } = string.Empty;
+        public string CustomerPhone { get; set; } = string.Empty;
+        public string PaymentMethod { get; set; } = string.Empty;
+        public decimal TotalAmount { get; set; }
+        public decimal AmountPaid { get; set; }
+        public decimal ChangeGiven { get; set; }
+        public decimal Subtotal { get; set; }
+        public decimal Tax { get; set; }
+        public List<ReceiptItemRequest> Items { get; set; } = new List<ReceiptItemRequest>();
+    }
+
+    public class ReceiptItemRequest
+    {
+        public string Name { get; set; } = string.Empty;
+        public int Quantity { get; set; }
+        public decimal UnitPrice { get; set; }
+        public decimal Total { get; set; }
     }
 }
