@@ -1443,19 +1443,13 @@
         document.addEventListener('DOMContentLoaded', function() {
             console.log('🚀 Reports page initializing...');
             try {
-                initializeDateInputs();
+                initializePage();
                 setupSidebarToggle();
                 setupEventListeners();
 
-                // Load data after a short delay to ensure DOM is ready
-                setTimeout(() => {
-                    console.log('📊 Loading reports data...');
-                    loadReportsData();
-                }, 100);
-
+                console.log('✅ Reports page initialized successfully');
             } catch (error) {
-                console.error('❌ Error during page initialization:', error);
-                showLoading(false);
+                console.error('❌ Error initializing reports page:', error);
                 showToast('Error initializing Reports page: ' + error.message, 'error');
             }
         });
@@ -1467,7 +1461,28 @@
             // Date preset change
             const datePreset = document.getElementById('datePreset');
             if (datePreset) {
-                datePreset.addEventListener('change', applyDatePreset);
+                datePreset.addEventListener('change', function() {
+                    applyDatePreset();
+                    // Reload data when date range changes
+                    console.log('📅 Date preset changed, reloading data...');
+                    loadSpecificViewData(currentDataView || 'sales');
+                });
+            }
+
+            // Date range inputs change
+            const startDate = document.getElementById('startDate');
+            const endDate = document.getElementById('endDate');
+            if (startDate) {
+                startDate.addEventListener('change', function() {
+                    console.log('📅 Start date changed, reloading data...');
+                    loadSpecificViewData(currentDataView || 'sales');
+                });
+            }
+            if (endDate) {
+                endDate.addEventListener('change', function() {
+                    console.log('📅 End date changed, reloading data...');
+                    loadSpecificViewData(currentDataView || 'sales');
+                });
             }
 
             // Chart type change
@@ -1590,45 +1605,32 @@
 
             if (sidebarToggle && sidebar) {
                 sidebarToggle.addEventListener('click', function() {
-                    sidebar.classList.toggle('open');
+                    sidebar.classList.toggle('collapsed');
                 });
             }
         }
 
-        // Initialize date inputs
-        function initializeDateInputs() {
+        // Initialize page
+        function initializePage() {
+            console.log('🚀 Initializing reports page...');
+            
+            // Set default dates
             const today = new Date();
             const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-
-            const startDate = document.getElementById('startDate');
-            const endDate = document.getElementById('endDate');
-
-            if (startDate) {
-                startDate.value = firstDayOfMonth.toISOString().split('T')[0];
-            }
-            if (endDate) {
-                endDate.value = today.toISOString().split('T')[0];
-            }
-        }
-
-        // Initialize dashboard
-        function initializeDashboard() {
-            console.log('🚀 Initializing Reports Dashboard');
             
-            // Set default values
-            currentDataView = 'sales';
-            currentChartType = 'line';
+            const startDateInput = document.getElementById('startDate');
+            const endDateInput = document.getElementById('endDate');
+            
+            if (startDateInput) {
+                startDateInput.value = firstDayOfMonth.toISOString().split('T')[0];
+            }
+            if (endDateInput) {
+                endDateInput.value = today.toISOString().split('T')[0];
+            }
+
+            // Initialize chart variables
             currentChartDataType = 'sales';
-            
-            // Initialize date range
-            const today = new Date();
-            const thirtyDaysAgo = new Date(today.getTime() - (30 * 24 * 60 * 60 * 1000));
-            
-            document.getElementById('startDate').value = thirtyDaysAgo.toISOString().split('T')[0];
-            document.getElementById('endDate').value = today.toISOString().split('T')[0];
-            
-            // Initialize chart controls for default view
-            updateChartControlsForDataView(currentDataView);
+            currentData = null;
             
             // Load initial data
             loadReportsData();
@@ -1737,7 +1739,7 @@
 
                 setTimeout(() => {
                     toast.remove();
-                }, 3000);
+                }, 5000);
             } catch (error) {
                 console.error('❌ Error in showToast:', error);
                 alert(`${type.toUpperCase()}: ${message}`);
@@ -1800,15 +1802,16 @@
                 console.log('📊 Raw response data:', data);
                 if (data.success) {
                     console.log('✅ Report data loaded:', data.data);
+                    currentData = data.data; // Store globally for chart switching
                     updateDashboardStats(data.data);
-                    updateChartsForSpecificView(data.data, currentDataView, currentChartType);
+                    // Don't call updateChartsForSpecificView as updateDashboardStats already handles main chart
                 } else {
                     console.error('❌ Failed to load report data:', data.message);
                     showToast('Failed to load report data', 'error');
                     // Fallback to mock data
                     const mockData = generateMockData();
+                    currentData = mockData;
                     updateDashboardStats(mockData);
-                    updateChartsForSpecificView(mockData, currentDataView, currentChartType);
                 }
             })
             .catch(error => {
@@ -1816,8 +1819,8 @@
                 showToast('Error loading report data', 'error');
                 // Fallback to mock data
                 const mockData = generateMockData();
+                currentData = mockData;
                 updateDashboardStats(mockData);
-                updateChartsForSpecificView(mockData, currentDataView, currentChartType);
             })
             .finally(() => {
                 showLoading(false);
@@ -1834,15 +1837,23 @@
                 salesTrend: [
                     { date: '2024-01-01', sales: 15000 },
                     { date: '2024-01-02', sales: 18000 },
-                    { date: '2024-01-03', sales: 22000 }
+                    { date: '2024-01-03', sales: 22000 },
+                    { date: '2024-01-04', sales: 19000 },
+                    { date: '2024-01-05', sales: 25000 }
                 ],
                 topProducts: [
-                    { name: 'Product A', sales: 25000, stock: 50 },
-                    { name: 'Product B', sales: 18000, stock: 30 }
+                    { name: 'Product A', sales: 25000, revenue: 25000, stock: 50 },
+                    { name: 'Product B', sales: 18000, revenue: 18000, stock: 30 },
+                    { name: 'Product C', sales: 12000, revenue: 12000, stock: 20 }
                 ],
                 topCategories: [
                     { name: 'Electronics', sales: 45000 },
-                    { name: 'Clothing', sales: 32000 }
+                    { name: 'Clothing', sales: 32000 },
+                    { name: 'Home & Garden', sales: 28000 }
+                ],
+                recentSales: [
+                    { id: 'S001', customerName: 'John Doe', totalAmount: 1500, saleDate: '2024-01-05', status: 'Completed' },
+                    { id: 'S002', customerName: 'Jane Smith', totalAmount: 2200, saleDate: '2024-01-05', status: 'Completed' }
                 ]
             };
         }
@@ -1975,6 +1986,11 @@
                 // Update category chart with all categories
                 console.log('📊 Updating category chart with:', data.topCategories?.length || 0, 'categories');
                 updateCategoryChart(data.topCategories || []);
+                
+                // Update main chart with sales data by default
+                console.log('📊 Updating main chart with sales data');
+                currentData = data; // Store data globally for chart switching
+                updateMainChartWithSalesData(data);
                 
                 console.log('✅ Dashboard stats updated');
             } catch (error) {
@@ -2251,10 +2267,19 @@
         function updateChartType() {
             const chartTypeSelect = document.getElementById('chartType');
             if (chartTypeSelect) {
-                currentChartType = chartTypeSelect.value;
-                console.log('📈 Chart type changed to:', currentChartType);
-                // Reload data with new chart type
-                loadReportsData();
+                const newChartType = chartTypeSelect.value;
+                console.log('📊 Chart type changed to:', newChartType);
+                
+                currentChartType = newChartType;
+                
+                // Always update charts immediately when chart type changes
+                if (currentData) {
+                    console.log('📊 Updating charts with stored data for new chart type:', newChartType);
+                    updateChartsForSpecificView(currentData, currentDataView, newChartType);
+                } else {
+                    console.log('📊 No stored data, loading fresh data for chart type:', newChartType);
+                    loadSpecificViewData(currentDataView || 'sales');
+                }
             }
         }
 
@@ -2263,14 +2288,90 @@
             const dataViewSelect = document.getElementById('dataView');
             if (dataViewSelect) {
                 currentDataView = dataViewSelect.value;
-                console.log('🔄 Data view changed to:', currentDataView);
+                console.log('📊 Data view changed to:', currentDataView);
                 
-                // Update chart controls based on data view
+                // Update chart controls for the new data view
                 updateChartControlsForDataView(currentDataView);
                 
-                // Load appropriate data for the selected view
-                loadReportsData();
+                // Load appropriate data for the selected view immediately
+                console.log('📊 Loading data immediately for view change:', currentDataView);
+                loadSpecificViewData(currentDataView);
             }
+        }
+
+        // Load data for specific view
+        function loadSpecificViewData(dataView) {
+            console.log('📊 Loading data for view:', dataView);
+            
+            showLoading(true);
+            
+            const startDate = document.getElementById('startDate')?.value;
+            const endDate = document.getElementById('endDate')?.value;
+            const dateRange = document.getElementById('dateRange')?.value;
+            
+            const requestBody = {
+                reportType: dataView, // Use the specific view instead of 'default'
+                chartType: currentChartDataType,
+                startDate: startDate,
+                endDate: endDate,
+                dateRange: dateRange
+            };
+            
+            fetch('/Admin/GetReportData', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                },
+                body: JSON.stringify(requestBody)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    console.log('✅ View-specific data loaded:', data.data);
+                    currentData = data.data;
+                    
+                    // Update dashboard stats if it's the default view
+                    if (dataView === 'sales' || dataView === 'default') {
+                        updateDashboardStats(data.data);
+                    }
+                    
+                    // Update charts for the specific view and set default chart data type
+                    setDefaultChartDataType(dataView);
+                    updateChartsForSpecificView(data.data, dataView, currentChartType);
+                } else {
+                    console.error('❌ Failed to load view data:', data.message);
+                    showToast('Failed to load data for ' + dataView + ' view', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('❌ Error loading view data:', error);
+                showToast('Error loading ' + dataView + ' data', 'error');
+            })
+            .finally(() => {
+                showLoading(false);
+            });
+        }
+
+        // Set default chart data type for each view
+        function setDefaultChartDataType(dataView) {
+            switch(dataView) {
+                case 'sales':
+                    currentChartDataType = 'sales';
+                    break;
+                case 'products':
+                    currentChartDataType = 'performance';
+                    break;
+                case 'categories':
+                    currentChartDataType = 'breakdown';
+                    break;
+                case 'inventory':
+                    currentChartDataType = 'levels';
+                    break;
+                default:
+                    currentChartDataType = 'sales';
+            }
+            console.log('📊 Set default chart data type for', dataView, ':', currentChartDataType);
         }
 
         // Update chart controls based on data view
@@ -2391,15 +2492,121 @@
 
         // Update charts for specific view
         function updateChartsForSpecificView(data, dataView, chartType) {
+            console.log(`📈 Updating charts for ${dataView} - ${currentChartDataType}:`, data);
+            
             try {
-                console.log(`📈 Updating charts for ${dataView} - ${chartType}:`, data);
+                // Destroy existing chart
+                if (mainChart) {
+                    mainChart.destroy();
+                    mainChart = null;
+                }
+
+                const ctx = document.getElementById('mainChart');
+                if (!ctx) {
+                    console.error('❌ Main chart canvas not found');
+                    return;
+                }
+
+                let chartData;
+                let chartTitle = '';
+
+                switch(dataView) {
+                    case 'sales':
+                        chartData = getSalesChartData(data, currentChartDataType);
+                        chartTitle = `Sales ${currentChartDataType.charAt(0).toUpperCase() + currentChartDataType.slice(1)}`;
+                        break;
+                    case 'products':
+                        chartData = getProductsChartData(data, currentChartDataType);
+                        chartTitle = `Product ${currentChartDataType.charAt(0).toUpperCase() + currentChartDataType.slice(1)}`;
+                        break;
+                    case 'categories':
+                        chartData = getCategoriesChartData(data, currentChartDataType);
+                        chartTitle = `Category ${currentChartDataType.charAt(0).toUpperCase() + currentChartDataType.slice(1)}`;
+                        break;
+                    case 'inventory':
+                        chartData = getInventoryChartData(data, currentChartDataType);
+                        chartTitle = `Inventory ${currentChartDataType.charAt(0).toUpperCase() + currentChartDataType.slice(1)}`;
+                        break;
+                }
+
+                // Update chart title
+                const chartTitleElement = document.querySelector('.chart-title');
+                if (chartTitleElement) {
+                    chartTitleElement.textContent = chartTitle;
+                }
+
+                let chartTypeToUse = currentChartType;
                 
-                // Update main chart with view-specific data
-                updateMainChartForView(data, dataView, chartType);
-                
-                // Update category chart with appropriate data
-                updateCategoryChartForView(data, dataView);
-                
+                // Handle area chart as line chart with fill
+                if (currentChartType === 'area') {
+                    chartTypeToUse = 'line';
+                    // Set fill property for area charts
+                    chartData.datasets.forEach(dataset => {
+                        dataset.fill = true;
+                        dataset.backgroundColor = dataset.backgroundColor || dataset.borderColor + '20';
+                    });
+                }
+
+                console.log('📊 Creating main chart with type:', chartTypeToUse, 'for view:', dataView);
+
+                mainChart = new Chart(ctx.getContext('2d'), {
+                    type: chartTypeToUse,
+                    data: chartData,
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'top',
+                                labels: {
+                                    usePointStyle: true,
+                                    padding: 20
+                                }
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                titleColor: '#ffffff',
+                                bodyColor: '#ffffff',
+                                borderColor: '#2563eb',
+                                borderWidth: 1,
+                                callbacks: {
+                                    label: function(context) {
+                                        if (chartTypeToUse === 'doughnut' || chartTypeToUse === 'pie') {
+                                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                            const percentage = total > 0 ? ((context.parsed / total) * 100).toFixed(1) : 0;
+                                            return context.label + ': ' + context.parsed.toLocaleString() + ' (' + percentage + '%)';
+                                        } else {
+                                            return context.dataset.label + ': ' + (context.parsed.y || context.parsed).toLocaleString();
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        scales: chartTypeToUse !== 'doughnut' && chartTypeToUse !== 'pie' ? {
+                            y: {
+                                beginAtZero: true,
+                                grid: {
+                                    color: 'rgba(0, 0, 0, 0.1)'
+                                },
+                                ticks: {
+                                    callback: function(value) {
+                                        return value.toLocaleString();
+                                    }
+                                }
+                            },
+                            x: {
+                                grid: {
+                                    color: 'rgba(0, 0, 0, 0.1)'
+                                }
+                            }
+                        } : {},
+                        interaction: {
+                            intersect: false,
+                            mode: 'index'
+                        }
+                    }
+                });
             } catch (error) {
                 console.error('❌ Error updating charts for specific view:', error);
             }
@@ -2443,7 +2650,19 @@
                     chartTitleElement.textContent = chartTitle;
                 }
 
-                const chartTypeToUse = currentChartType === 'area' ? 'line' : currentChartType;
+                let chartTypeToUse = currentChartType;
+                
+                // Handle area chart as line chart with fill
+                if (currentChartType === 'area') {
+                    chartTypeToUse = 'line';
+                    // Set fill property for area charts
+                    chartData.datasets.forEach(dataset => {
+                        dataset.fill = true;
+                        dataset.backgroundColor = dataset.backgroundColor || dataset.borderColor + '20';
+                    });
+                }
+
+                console.log('📊 Creating main chart with type:', chartTypeToUse, 'for view:', dataView);
 
                 mainChart = new Chart(ctx.getContext('2d'), {
                     type: chartTypeToUse,
@@ -2454,12 +2673,27 @@
                         plugins: {
                             legend: {
                                 display: true,
-                                position: 'top'
+                                position: 'top',
+                                labels: {
+                                    usePointStyle: true,
+                                    padding: 20
+                                }
                             },
                             tooltip: {
+                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                titleColor: '#ffffff',
+                                bodyColor: '#ffffff',
+                                borderColor: '#2563eb',
+                                borderWidth: 1,
                                 callbacks: {
                                     label: function(context) {
-                                        return context.dataset.label + ': KSh ' + context.parsed.y.toLocaleString('en-KE', { minimumFractionDigits: 2 });
+                                        if (chartTypeToUse === 'doughnut' || chartTypeToUse === 'pie') {
+                                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                            const percentage = total > 0 ? ((context.parsed / total) * 100).toFixed(1) : 0;
+                                            return context.label + ': ' + context.parsed.toLocaleString() + ' (' + percentage + '%)';
+                                        } else {
+                                            return context.dataset.label + ': ' + (context.parsed.y || context.parsed).toLocaleString();
+                                        }
                                     }
                                 }
                             }
@@ -2467,13 +2701,25 @@
                         scales: chartTypeToUse !== 'doughnut' && chartTypeToUse !== 'pie' ? {
                             y: {
                                 beginAtZero: true,
+                                grid: {
+                                    color: 'rgba(0, 0, 0, 0.1)'
+                                },
                                 ticks: {
                                     callback: function(value) {
-                                        return 'KSh ' + value.toLocaleString('en-KE');
+                                        return value.toLocaleString();
                                     }
                                 }
+                            },
+                            x: {
+                                grid: {
+                                    color: 'rgba(0, 0, 0, 0.1)'
+                                }
                             }
-                        } : {}
+                        } : {},
+                        interaction: {
+                            intersect: false,
+                            mode: 'index'
+                        }
                     }
                 });
             } catch (error) {
@@ -2534,10 +2780,10 @@
                 case 'performance':
                     const topProducts = data.topProducts || [];
                     return {
-                        labels: topProducts.map(item => item.name || 'Unknown'),
+                        labels: topProducts.map(item => item.name || item.productName || 'Unknown'),
                         datasets: [{
-                            label: 'Product Sales (KSh)',
-                            data: topProducts.map(item => item.sales || 0),
+                            label: 'Revenue (KSh)',
+                            data: topProducts.map(item => item.revenue || item.totalRevenue || 0),
                             backgroundColor: generateDistinctColors(topProducts.length),
                             borderWidth: 2
                         }]
@@ -2545,7 +2791,7 @@
                 case 'stock':
                     const stockLevels = data.stockLevels || data.topProducts || [];
                     return {
-                        labels: stockLevels.map(item => item.name || 'Unknown'),
+                        labels: stockLevels.map(item => item.name || item.productName || 'Unknown'),
                         datasets: [{
                             label: 'Stock Quantity',
                             data: stockLevels.map(item => item.stock || item.quantity || 0),
@@ -2556,10 +2802,10 @@
                 case 'turnover':
                     const turnoverData = data.productTurnover || data.topProducts || [];
                     return {
-                        labels: turnoverData.map(item => item.name || 'Unknown'),
+                        labels: turnoverData.map(item => item.name || item.productName || 'Unknown'),
                         datasets: [{
-                            label: 'Turnover Rate',
-                            data: turnoverData.map(item => item.turnover || (item.sales / (item.stock || 1)) || 0),
+                            label: 'Sales Quantity',
+                            data: turnoverData.map(item => item.sales || item.totalSales || 0),
                             backgroundColor: generateDistinctColors(turnoverData.length),
                             borderWidth: 2
                         }]
@@ -2577,8 +2823,8 @@
                     return {
                         labels: topCategories.map(item => item.name || 'Unknown'),
                         datasets: [{
-                            label: 'Category Sales (KSh)',
-                            data: topCategories.map(item => item.sales || 0),
+                            label: 'Product Count',
+                            data: topCategories.map(item => item.productCount || item.totalProducts || 0),
                             backgroundColor: generateDistinctColors(topCategories.length),
                             borderWidth: 2
                         }]
@@ -2588,8 +2834,8 @@
                     return {
                         labels: categoryTrends.map(item => item.name || 'Unknown'),
                         datasets: [{
-                            label: 'Category Growth (%)',
-                            data: categoryTrends.map(item => item.growth || Math.random() * 20 - 10),
+                            label: 'Category Sales (KSh)',
+                            data: categoryTrends.map(item => item.sales || item.totalSales || 0),
                             backgroundColor: generateDistinctColors(categoryTrends.length),
                             borderWidth: 2
                         }]
@@ -2599,13 +2845,13 @@
                     return {
                         labels: categoryComparison.map(item => item.name || 'Unknown'),
                         datasets: [{
-                            label: 'This Period (KSh)',
-                            data: categoryComparison.map(item => item.current || item.sales || 0),
+                            label: 'Product Count',
+                            data: categoryComparison.map(item => item.productCount || item.totalProducts || 0),
                             backgroundColor: generateDistinctColors(categoryComparison.length),
                             borderWidth: 2
                         }, {
-                            label: 'Previous Period (KSh)',
-                            data: categoryComparison.map(item => item.previous || (item.sales * 0.8) || 0),
+                            label: 'Stock Value (KSh)',
+                            data: categoryComparison.map(item => item.stockValue || 0),
                             backgroundColor: generateDistinctColors(categoryComparison.length).map(color => color + '80'),
                             borderWidth: 2
                         }]
@@ -2782,9 +3028,13 @@
             // Update current chart data type
             currentChartDataType = type;
 
-            // Reload chart with new data type
+            // Reload chart with new data type - ensure we have data first
             if (currentData) {
+                console.log('📊 Using stored data for chart switch:', currentData);
                 updateMainChartWithType(currentData, type);
+            } else {
+                console.log('⚠️ No data available, loading fresh data...');
+                loadReportsData();
             }
         }
 
@@ -2801,7 +3051,7 @@
             try {
                 showLoading(true);
 
-                if (!currentData || !currentData.success) {
+                if (!currentData) {
                     showToast('No data available to export. Please wait for data to load.', 'error');
                     showLoading(false);
                     return;
@@ -2811,7 +3061,7 @@
                 const endDateInput = document.getElementById('endDate');
 
                 const requestBody = {
-                    reportType: 'sales',
+                    reportType: currentDataView || 'sales',
                     format: format,
                     startDate: startDateInput ? startDateInput.value : new Date().toISOString().split('T')[0],
                     endDate: endDateInput ? endDateInput.value : new Date().toISOString().split('T')[0],
@@ -2824,7 +3074,8 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Accept': 'application/json, application/octet-stream'
+                        'Accept': 'application/json, application/octet-stream',
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
                     },
                     body: JSON.stringify(requestBody)
                 });
@@ -2843,7 +3094,7 @@
                         const url = window.URL.createObjectURL(blob);
                         const a = document.createElement('a');
                         a.href = url;
-                        a.download = `sales_report_${new Date().toISOString().split('T')[0]}.${format === 'excel' ? 'xlsx' : format}`;
+                        a.download = `${currentDataView || 'sales'}_report_${new Date().toISOString().split('T')[0]}.${format === 'excel' ? 'xlsx' : format}`;
                         document.body.appendChild(a);
                         a.click();
                         document.body.removeChild(a);
@@ -3381,6 +3632,107 @@
                 console.log('✅ Category chart updated with', categories.length, 'categories');
             } catch (error) {
                 console.error('❌ Error updating category chart:', error);
+            }
+        }
+
+        // Update main chart with sales data by default
+        function updateMainChartWithSalesData(data) {
+            try {
+                console.log('📊 updateMainChartWithSalesData called with:', data);
+                const ctx = document.getElementById('mainChart');
+                if (!ctx) {
+                    console.error('❌ mainChart element not found');
+                    return;
+                }
+
+                if (mainChart) {
+                    mainChart.destroy();
+                }
+
+                // Use sales trend data for the main chart
+                const salesTrend = data.salesTrend || [];
+                console.log('📊 Sales trend data:', salesTrend);
+
+                if (salesTrend.length === 0) {
+                    console.warn('⚠️ No sales trend data available');
+                    return;
+                }
+
+                const chartData = {
+                    labels: salesTrend.map(item => item.date || 'N/A'),
+                    datasets: [{
+                        label: 'Sales Amount (KSh)',
+                        data: salesTrend.map(item => item.sales || item.amount || 0),
+                        borderColor: '#2563eb',
+                        backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                        borderWidth: 3,
+                        tension: 0.4,
+                        fill: true,
+                        pointBackgroundColor: '#2563eb',
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 2,
+                        pointRadius: 5
+                    }]
+                };
+
+                console.log('📊 Main chart data prepared:', chartData);
+
+                mainChart = new Chart(ctx.getContext('2d'), {
+                    type: 'line',
+                    data: chartData,
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'top',
+                                labels: {
+                                    usePointStyle: true,
+                                    padding: 20
+                                }
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                titleColor: '#ffffff',
+                                bodyColor: '#ffffff',
+                                borderColor: '#2563eb',
+                                borderWidth: 1,
+                                callbacks: {
+                                    label: function(context) {
+                                        return context.dataset.label + ': KSh ' + context.parsed.y.toLocaleString('en-KE', { minimumFractionDigits: 2 });
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                grid: {
+                                    color: 'rgba(0, 0, 0, 0.1)'
+                                },
+                                ticks: {
+                                    callback: function(value) {
+                                        return 'KSh ' + value.toLocaleString('en-KE');
+                                    }
+                                }
+                            },
+                            x: {
+                                grid: {
+                                    color: 'rgba(0, 0, 0, 0.1)'
+                                }
+                            }
+                        },
+                        interaction: {
+                            intersect: false,
+                            mode: 'index'
+                        }
+                    }
+                });
+
+                console.log('✅ Main chart updated with sales data');
+            } catch (error) {
+                console.error('❌ Error updating main chart with sales data:', error);
             }
         }
 

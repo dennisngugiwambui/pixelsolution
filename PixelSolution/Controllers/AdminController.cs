@@ -4069,25 +4069,47 @@ namespace PixelSolution.Controllers
                 .ThenInclude(p => p.SaleItems)
                 .ToListAsync();
 
-            var topCategories = categories
+            var categoryData = categories
                 .Select(c => new
                 {
                     name = c.Name,
+                    categoryName = c.Name,
+                    productCount = c.Products.Count(),
+                    totalProducts = c.Products.Count(),
                     sales = c.Products.SelectMany(p => p.SaleItems).Sum(si => si.TotalPrice),
+                    totalSales = c.Products.SelectMany(p => p.SaleItems).Sum(si => si.TotalPrice),
                     current = c.Products.SelectMany(p => p.SaleItems).Sum(si => si.TotalPrice),
-                    previous = c.Products.SelectMany(p => p.SaleItems).Sum(si => si.TotalPrice) * 0.8m, // Mock previous period
-                    growth = (decimal)(new Random().NextDouble() * 40 - 20) // Mock growth percentage
+                    previous = c.Products.SelectMany(p => p.SaleItems).Sum(si => si.TotalPrice) * 0.8m,
+                    growth = (decimal)(new Random().NextDouble() * 40 - 20),
+                    stockValue = c.Products.Sum(p => p.StockQuantity * p.SellingPrice),
+                    averagePrice = c.Products.Any() ? c.Products.Average(p => p.SellingPrice) : 0
                 })
-                .Where(x => x.sales > 0)
-                .OrderByDescending(x => x.sales)
-                .Take(10)
+                .OrderByDescending(x => x.productCount)
                 .ToList();
+
+            // Create chart data for categories view
+            var chartData = new
+            {
+                labels = categoryData.Select(c => c.name).ToList(),
+                datasets = new[]
+                {
+                    new
+                    {
+                        label = "Product Count",
+                        data = categoryData.Select(c => c.productCount).ToList(),
+                        backgroundColor = new[] { "#2563eb", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4", "#84cc16", "#f97316", "#ec4899", "#6366f1" }
+                    }
+                }
+            };
 
             return new
             {
-                topCategories = topCategories,
-                categoryTrends = topCategories,
-                categoryComparison = topCategories
+                topCategories = categoryData,
+                categoryTrends = categoryData,
+                categoryComparison = categoryData,
+                chartData = chartData,
+                totalCategories = categories.Count(),
+                totalProducts = categories.Sum(c => c.Products.Count())
             };
         }
 
