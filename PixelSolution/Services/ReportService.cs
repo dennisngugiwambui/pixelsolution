@@ -860,7 +860,7 @@ namespace PixelSolution.Services
             return GenerateCategoriesReportExcel(categories);
         }
 
-        public async Task<byte[]> GenerateReceiptPdfAsync(ReceiptPdfRequest request)
+        public async Task<byte[]> GenerateReceiptPdfAsync(PixelSolution.ViewModels.ReceiptPdfRequest request)
         {
             using (var stream = new MemoryStream())
             {

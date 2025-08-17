@@ -273,6 +273,31 @@ namespace PixelSolution.ViewModels
         public List<SaleItemDetailsViewModel> Items { get; set; } = new List<SaleItemDetailsViewModel>();
     }
 
+    // Receipt PDF generation models
+    public class ReceiptPdfRequest
+    {
+        public string SaleNumber { get; set; } = string.Empty;
+        public DateTime SaleDate { get; set; }
+        public string CashierName { get; set; } = string.Empty;
+        public string CustomerName { get; set; } = string.Empty;
+        public string? CustomerPhone { get; set; }
+        public string PaymentMethod { get; set; } = string.Empty;
+        public decimal TotalAmount { get; set; }
+        public decimal AmountPaid { get; set; }
+        public decimal ChangeGiven { get; set; }
+        public decimal Subtotal { get; set; }
+        public decimal Tax { get; set; }
+        public List<ReceiptItemRequest> Items { get; set; } = new List<ReceiptItemRequest>();
+    }
+
+    public class ReceiptItemRequest
+    {
+        public string Name { get; set; } = string.Empty;
+        public int Quantity { get; set; }
+        public decimal UnitPrice { get; set; }
+        public decimal Total { get; set; }
+    }
+
     public class SaleListViewModel
     {
         public int SaleId { get; set; }

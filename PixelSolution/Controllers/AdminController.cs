@@ -4425,7 +4425,28 @@ namespace PixelSolution.Controllers
                 var htmlContent = GenerateReceiptHtml(request);
 
                 // Generate proper PDF receipt using ReportService
-                var pdfBytes = await _reportService.GenerateReceiptPdfAsync(request);
+                var receiptRequest = new PixelSolution.ViewModels.ReceiptPdfRequest
+                {
+                    SaleNumber = request.SaleNumber,
+                    SaleDate = request.SaleDate,
+                    CashierName = request.CashierName,
+                    CustomerName = request.CustomerName,
+                    CustomerPhone = request.CustomerPhone,
+                    PaymentMethod = request.PaymentMethod,
+                    TotalAmount = request.TotalAmount,
+                    AmountPaid = request.AmountPaid,
+                    ChangeGiven = request.ChangeGiven,
+                    Subtotal = request.Subtotal,
+                    Tax = request.Tax,
+                    Items = request.Items.Select(i => new PixelSolution.ViewModels.ReceiptItemRequest
+                    {
+                        Name = i.Name,
+                        Quantity = i.Quantity,
+                        UnitPrice = i.UnitPrice,
+                        Total = i.Total
+                    }).ToList()
+                };
+                var pdfBytes = await _reportService.GenerateReceiptPdfAsync(receiptRequest);
 
                 var fileName = $"Receipt_{request.SaleNumber}_{DateTime.Now:yyyyMMdd_HHmmss}.pdf";
                 

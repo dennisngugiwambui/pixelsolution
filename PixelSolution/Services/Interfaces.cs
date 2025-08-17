@@ -143,7 +143,7 @@ namespace PixelSolution.Services.Interfaces
         Task<byte[]> GenerateCategoriesReportExcelAsync();
         
         // Receipt PDF generation
-        Task<byte[]> GenerateReceiptPdfAsync(ReceiptPdfRequest request);
+        Task<byte[]> GenerateReceiptPdfAsync(PixelSolution.ViewModels.ReceiptPdfRequest request);
         Task<byte[]> GenerateSuppliersReportExcelAsync();
         
         // Additional PDF report generation methods
