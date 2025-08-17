@@ -941,10 +941,17 @@
             });
         }
 
-        // Load today's stats
+        // Load today's stats on page load
         async function loadTodayStats() {
             try {
-                const response = await fetch('/Admin/GetTodaysSalesStats');
+                const response = await fetch('/Admin/GetTodaysSalesStats', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Cache-Control': 'no-cache'
+                    }
+                });
+                
                 if (response.ok) {
                     const data = await response.json();
 
@@ -952,10 +959,11 @@
                         document.getElementById('todaySales').textContent = `KSh ${data.stats.totalSales.toLocaleString('en-KE', { minimumFractionDigits: 2 })}`;
                         document.getElementById('todayTransactions').textContent = data.stats.transactionCount.toString();
                         document.getElementById('avgTransaction').textContent = `KSh ${data.stats.averageTransaction.toLocaleString('en-KE', { minimumFractionDigits: 2 })}`;
+                        console.log('✅ Initial stats loaded:', data.stats);
                     }
                 }
             } catch (error) {
-                console.log('Could not load today\'s stats:', error);
+                console.error('❌ Could not load today\'s stats:', error);
             }
         }
 

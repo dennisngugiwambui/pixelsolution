@@ -1347,24 +1347,21 @@ namespace PixelSolution.Controllers
         {
             try
             {
-                // TEMPORARY: Show ALL sales instead of just today's for debugging
-                var allSales = await _saleService.GetAllSalesAsync();
-                
-                // Also get today's sales for comparison
+                // Get today's sales only using proper date filtering
                 var today = DateTime.Today;
                 var tomorrow = today.AddDays(1);
-                var todaysSales = await _saleService.GetSalesByDateRangeAsync(today, tomorrow);
+                var todaysSales = await _context.Sales
+                    .AsNoTracking()
+                    .Where(s => s.SaleDate >= today && s.SaleDate < tomorrow)
+                    .ToListAsync();
 
-                // Debug logging for API endpoint
-                _logger.LogInformation($"GetTodaysSalesStats API - ALL SALES: {allSales.Count()} totaling {allSales.Sum(s => s.TotalAmount):C}");
-                _logger.LogInformation($"GetTodaysSalesStats API - TODAY'S SALES: {todaysSales.Count()} totaling {todaysSales.Sum(s => s.TotalAmount):C}");
-                _logger.LogInformation($"GetTodaysSalesStats API - Date range: {today:yyyy-MM-dd HH:mm:ss} to {tomorrow:yyyy-MM-dd HH:mm:ss}");
+                _logger.LogInformation($"GetTodaysSalesStats API - TODAY'S SALES: {todaysSales.Count()} totaling {todaysSales.Sum(s => s.AmountPaid):C}");
 
                 var stats = new
                 {
-                    totalSales = allSales.Sum(s => s.TotalAmount),
-                    transactionCount = allSales.Count(),
-                    averageTransaction = allSales.Any() ? allSales.Average(s => s.TotalAmount) : 0
+                    totalSales = todaysSales.Sum(s => s.AmountPaid),
+                    transactionCount = todaysSales.Count(),
+                    averageTransaction = todaysSales.Any() ? todaysSales.Average(s => s.AmountPaid) : 0
                 };
 
                 return Json(new { success = true, stats = stats });
@@ -1591,36 +1588,15 @@ namespace PixelSolution.Controllers
                 // Load recent sales
                 var recentSales = await _saleService.GetAllSalesAsync();
 
-                // Get ALL sales statistics instead of just today's - DEBUG MODE
-                var allSales = await _saleService.GetAllSalesAsync();
-                
-                // Also get today's sales for comparison
+                // Get today's sales only using proper date filtering
                 var today = DateTime.Today;
                 var tomorrow = today.AddDays(1);
-                var todaysSales = await _saleService.GetSalesByDateRangeAsync(today, tomorrow);
+                var todaysSales = await _context.Sales
+                    .AsNoTracking()
+                    .Where(s => s.SaleDate >= today && s.SaleDate < tomorrow)
+                    .ToListAsync();
 
-                // Debug logging for ALL sales vs today's sales
-                _logger.LogInformation($"=== SALES DEBUG INFO ===");
-                _logger.LogInformation($"ALL SALES COUNT: {allSales.Count()}");
-                _logger.LogInformation($"ALL SALES TOTAL: {allSales.Sum(s => s.TotalAmount):C}");
-                _logger.LogInformation($"TODAY'S SALES COUNT: {todaysSales.Count()}");
-                _logger.LogInformation($"TODAY'S SALES TOTAL: {todaysSales.Sum(s => s.TotalAmount):C}");
-                _logger.LogInformation($"Today's date range: {today:yyyy-MM-dd HH:mm:ss} to {tomorrow:yyyy-MM-dd HH:mm:ss}");
-                
-                // Log ALL sales for debugging
-                _logger.LogInformation($"=== ALL SALES IN DATABASE ===");
-                foreach (var sale in allSales.OrderByDescending(s => s.SaleDate))
-                {
-                    _logger.LogInformation($"Sale: {sale.SaleNumber} - {sale.SaleDate:yyyy-MM-dd HH:mm:ss} - KSh {sale.TotalAmount:N2}");
-                }
-                
-                // Log today's sales specifically
-                _logger.LogInformation($"=== TODAY'S SALES ONLY ===");
-                foreach (var sale in todaysSales)
-                {
-                    _logger.LogInformation($"Today Sale: {sale.SaleNumber} - {sale.SaleDate:yyyy-MM-dd HH:mm:ss} - KSh {sale.TotalAmount:N2}");
-                }
-                _logger.LogInformation($"Loaded {products.Count()} products and {recentSales.Count()} sales");
+                _logger.LogInformation($"Sales page - TODAY'S SALES: {todaysSales.Count()} totaling {todaysSales.Sum(s => s.AmountPaid):C}");
 
                 // Create view model for sales page
                 var salesViewModel = new SalesPageViewModel

@@ -30,7 +30,7 @@ namespace PixelSolution.Services
                 // Today's sales
                 var todaySales = await _context.Sales
                     .Where(s => s.SaleDate.Date == today && s.Status == "Completed")
-                    .SumAsync(s => s.TotalAmount);
+                    .SumAsync(s => s.AmountPaid);
 
                 var todaySalesCount = await _context.Sales
                     .Where(s => s.SaleDate.Date == today && s.Status == "Completed")
@@ -39,11 +39,11 @@ namespace PixelSolution.Services
                 // This month's sales
                 var thisMonthSales = await _context.Sales
                     .Where(s => s.SaleDate >= thisMonth && s.Status == "Completed")
-                    .SumAsync(s => s.TotalAmount);
+                    .SumAsync(s => s.AmountPaid);
 
                 var lastMonthSales = await _context.Sales
                     .Where(s => s.SaleDate >= lastMonth && s.SaleDate < thisMonth && s.Status == "Completed")
-                    .SumAsync(s => s.TotalAmount);
+                    .SumAsync(s => s.AmountPaid);
 
                 // Calculate growth percentage
                 var salesGrowth = lastMonthSales > 0
@@ -81,7 +81,7 @@ namespace PixelSolution.Services
                         s.SaleNumber,
                         CustomerName = string.IsNullOrEmpty(s.CustomerName) ? "Walk-in Customer" : s.CustomerName,
                         ProductName = string.Join(", ", s.SaleItems.Select(si => si.Product.Name).Take(2)),
-                        s.TotalAmount,
+                        s.AmountPaid,
                         s.Status,
                         s.SaleDate,
                         SalesPerson = s.User.FirstName + " " + s.User.LastName
@@ -132,7 +132,7 @@ namespace PixelSolution.Services
                     .Where(s => s.SaleDate >= startDate && s.SaleDate <= endDate && s.Status == "Completed")
                     .ToListAsync();
 
-                var totalSales = sales.Sum(s => s.TotalAmount);
+                var totalSales = sales.Sum(s => s.AmountPaid);
                 var totalTransactions = sales.Count;
                 var averageTransaction = totalTransactions > 0 ? totalSales / totalTransactions : 0;
 
@@ -141,7 +141,7 @@ namespace PixelSolution.Services
                     .Select(g => new
                     {
                         date = g.Key.ToString("yyyy-MM-dd"),
-                        amount = g.Sum(s => s.TotalAmount),
+                        amount = g.Sum(s => s.AmountPaid),
                         transactions = g.Count()
                     })
                     .OrderBy(x => x.date)
@@ -266,7 +266,7 @@ namespace PixelSolution.Services
                 .Select(g => new
                 {
                     date = g.Key,
-                    amount = g.Sum(s => s.TotalAmount)
+                    amount = g.Sum(s => s.AmountPaid)
                 })
                 .OrderBy(x => x.date)
                 .ToListAsync();
@@ -1277,7 +1277,7 @@ namespace PixelSolution.Services
                     SalesCount = u.Sales.Count(s => s.Status == "Completed"),
                     TotalSalesAmount = u.Sales
                         .Where(s => s.Status == "Completed")
-                        .Sum(s => s.TotalAmount),
+                        .Sum(s => s.AmountPaid),
                     PurchaseRequestCount = u.PurchaseRequests.Count,
                     LastSaleDate = u.Sales
                         .Where(s => s.Status == "Completed")
