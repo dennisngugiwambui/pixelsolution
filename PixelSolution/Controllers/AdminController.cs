@@ -8,6 +8,8 @@ using PixelSolution.Services;
 using Microsoft.EntityFrameworkCore;
 using PixelSolution.Data;
 using System.Text.Json;
+using iTextSharp.text;
+using iTextSharp.text.pdf;
 
 namespace PixelSolution.Controllers
 {
