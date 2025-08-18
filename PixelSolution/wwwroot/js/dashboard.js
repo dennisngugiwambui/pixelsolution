@@ -6,11 +6,11 @@ document.addEventListener('DOMContentLoaded', function () {
 function initializeDashboard() {
     setupSidebarToggle();
     setupNavigation();
-    setupCharts();
+    // setupCharts(); // Disabled to prevent conflicts with Dashboard.cshtml charts
     setupSearch();
     setupNotifications();
     setupResponsiveHandling();
-    loadDashboardData();
+    // loadDashboardData(); // Disabled to prevent conflicts with Dashboard.cshtml data loading
 }
 
 // Sidebar Toggle Functionality
@@ -370,13 +370,19 @@ function showUserMenu() {
 
 function checkNotifications() {
     // Check for new notifications from server
-    fetch('/api/notifications/check')
-        .then(response => response.json())
+    fetch('/Admin/GetNotifications')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
         .then(data => {
             updateNotificationBadges(data);
         })
         .catch(error => {
-            console.error('Error checking notifications:', error);
+            // Silently handle notification errors to avoid console spam
+            // console.error('Error checking notifications:', error);
         });
 }
 

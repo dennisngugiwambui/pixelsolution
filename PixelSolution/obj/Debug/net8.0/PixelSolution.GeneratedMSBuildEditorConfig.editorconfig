@@ -96,12 +96,20 @@ build_metadata.AdditionalFiles.CssScope =
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcQXV0aFxMb2dpbi5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/Denno/source/repos/PixelSolution/PixelSolution/Views/DebugAuth/CompareAuthentication.cshtml]
-build_metadata.AdditionalFiles.TargetPath = Vmlld3NcRGVidWdBdXRoXENvbXBhcmVBdXRoZW50aWNhdGlvbi5jc2h0bWw=
+[C:/Users/Denno/source/repos/PixelSolution/PixelSolution/Views/Employee/Index.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcRW1wbG95ZWVcSW5kZXguY3NodG1s
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/Denno/source/repos/PixelSolution/PixelSolution/Views/DebugPassword/DebugPage.cshtml]
-build_metadata.AdditionalFiles.TargetPath = Vmlld3NcRGVidWdQYXNzd29yZFxEZWJ1Z1BhZ2UuY3NodG1s
+[C:/Users/Denno/source/repos/PixelSolution/PixelSolution/Views/Employee/Messages.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcRW1wbG95ZWVcTWVzc2FnZXMuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Denno/source/repos/PixelSolution/PixelSolution/Views/Employee/Sales.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcRW1wbG95ZWVcU2FsZXMuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Denno/source/repos/PixelSolution/PixelSolution/Views/Employee/Saless.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcRW1wbG95ZWVcU2FsZXNzLmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
 [C:/Users/Denno/source/repos/PixelSolution/PixelSolution/Views/Home/Index.cshtml]
@@ -112,16 +120,16 @@ build_metadata.AdditionalFiles.CssScope =
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcSG9tZVxQcml2YWN5LmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/Denno/source/repos/PixelSolution/PixelSolution/Views/PasswordFix/FixAdminPassword.cshtml]
-build_metadata.AdditionalFiles.TargetPath = Vmlld3NcUGFzc3dvcmRGaXhcRml4QWRtaW5QYXNzd29yZC5jc2h0bWw=
-build_metadata.AdditionalFiles.CssScope = 
-
 [C:/Users/Denno/source/repos/PixelSolution/PixelSolution/Views/Shared/Error.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcU2hhcmVkXEVycm9yLmNzaHRtbA==
 build_metadata.AdditionalFiles.CssScope = 
 
 [C:/Users/Denno/source/repos/PixelSolution/PixelSolution/Views/Shared/_AdminLayout.cshtml]
 build_metadata.AdditionalFiles.TargetPath = Vmlld3NcU2hhcmVkXF9BZG1pbkxheW91dC5jc2h0bWw=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Denno/source/repos/PixelSolution/PixelSolution/Views/Shared/_EmployeeLayout.cshtml]
+build_metadata.AdditionalFiles.TargetPath = Vmlld3NcU2hhcmVkXF9FbXBsb3llZUxheW91dC5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
 [C:/Users/Denno/source/repos/PixelSolution/PixelSolution/Views/Shared/_ValidationScriptsPartial.cshtml]
