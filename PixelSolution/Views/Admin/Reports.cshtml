@@ -1005,7 +1005,7 @@
                 </a>
             </div>
             <div class="nav-item">
-                <a href="@Url.Action("Logout", "Auth")" class="nav-link">
+                <a href="@Url.Action("LogoutGet", "Auth")" class="nav-link">
                     <i class="fas fa-sign-out-alt"></i>
                     Logout
                 </a>
@@ -1463,9 +1463,9 @@
             if (datePreset) {
                 datePreset.addEventListener('change', function() {
                     applyDatePreset();
-                    // Reload data when date range changes
-                    console.log('📅 Date preset changed, reloading data...');
-                    loadSpecificViewData(currentDataView || 'sales');
+                    // Force reload of fresh data when date range changes
+                    console.log('📅 Date preset changed, reloading fresh data...');
+                    setTimeout(() => loadReportsData(), 100); // Small delay to ensure date fields are updated
                 });
             }
 
@@ -1474,14 +1474,14 @@
             const endDate = document.getElementById('endDate');
             if (startDate) {
                 startDate.addEventListener('change', function() {
-                    console.log('📅 Start date changed, reloading data...');
-                    loadSpecificViewData(currentDataView || 'sales');
+                    console.log('📅 Start date changed, reloading fresh data...');
+                    loadReportsData(); // Force fresh data load
                 });
             }
             if (endDate) {
                 endDate.addEventListener('change', function() {
-                    console.log('📅 End date changed, reloading data...');
-                    loadSpecificViewData(currentDataView || 'sales');
+                    console.log('📅 End date changed, reloading fresh data...');
+                    loadReportsData(); // Force fresh data load
                 });
             }
 
@@ -1639,49 +1639,70 @@
         // Apply date preset
         function applyDatePreset() {
             const preset = document.getElementById('datePreset').value;
-            const today = new Date();
+            const now = new Date();
             let startDate, endDate;
+
+            console.log('📅 Applying date preset:', preset, 'Current time:', now);
 
             switch(preset) {
                 case 'today':
-                    startDate = endDate = today;
+                    // Create fresh date objects for today
+                    startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                    endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
                     break;
                 case 'yesterday':
-                    startDate = endDate = new Date(today.setDate(today.getDate() - 1));
+                    // Create fresh date objects for yesterday
+                    const yesterday = new Date(now);
+                    yesterday.setDate(now.getDate() - 1);
+                    startDate = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate());
+                    endDate = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 23, 59, 59);
                     break;
                 case 'thisWeek':
-                    const firstDayOfWeek = new Date(today.setDate(today.getDate() - today.getDay()));
-                    startDate = firstDayOfWeek;
-                    endDate = new Date();
+                    // Start of this week (Sunday)
+                    const thisWeekStart = new Date(now);
+                    thisWeekStart.setDate(now.getDate() - now.getDay());
+                    startDate = new Date(thisWeekStart.getFullYear(), thisWeekStart.getMonth(), thisWeekStart.getDate());
+                    endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
                     break;
                 case 'lastWeek':
-                    const lastWeekStart = new Date(today.setDate(today.getDate() - today.getDay() - 7));
-                    const lastWeekEnd = new Date(today.setDate(today.getDate() - today.getDay() - 1));
-                    startDate = lastWeekStart;
-                    endDate = lastWeekEnd;
+                    // Last week Sunday to Saturday
+                    const lastWeekEnd = new Date(now);
+                    lastWeekEnd.setDate(now.getDate() - now.getDay() - 1);
+                    const lastWeekStart = new Date(lastWeekEnd);
+                    lastWeekStart.setDate(lastWeekEnd.getDate() - 6);
+                    startDate = new Date(lastWeekStart.getFullYear(), lastWeekStart.getMonth(), lastWeekStart.getDate());
+                    endDate = new Date(lastWeekEnd.getFullYear(), lastWeekEnd.getMonth(), lastWeekEnd.getDate(), 23, 59, 59);
                     break;
                 case 'thisMonth':
-                    startDate = new Date(today.getFullYear(), today.getMonth(), 1);
-                    endDate = new Date();
+                    startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+                    endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
                     break;
                 case 'lastMonth':
-                    startDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-                    endDate = new Date(today.getFullYear(), today.getMonth(), 0);
+                    startDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                    endDate = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
                     break;
                 case 'thisQuarter':
-                    const quarter = Math.floor(today.getMonth() / 3);
-                    startDate = new Date(today.getFullYear(), quarter * 3, 1);
-                    endDate = new Date();
+                    const quarter = Math.floor(now.getMonth() / 3);
+                    startDate = new Date(now.getFullYear(), quarter * 3, 1);
+                    endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
                     break;
                 case 'thisYear':
-                    startDate = new Date(today.getFullYear(), 0, 1);
-                    endDate = new Date();
+                    startDate = new Date(now.getFullYear(), 0, 1);
+                    endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
                     break;
                 case 'custom':
                     document.getElementById('customDateStart').style.display = 'block';
                     document.getElementById('customDateEnd').style.display = 'block';
                     return;
             }
+
+            console.log('📅 Date range calculated:', {
+                preset: preset,
+                startDate: startDate,
+                endDate: endDate,
+                startDateString: startDate.toISOString().split('T')[0],
+                endDateString: endDate.toISOString().split('T')[0]
+            });
 
             document.getElementById('customDateStart').style.display = 'none';
             document.getElementById('customDateEnd').style.display = 'none';
@@ -1691,13 +1712,15 @@
 
             if (startDateInput) {
                 startDateInput.value = startDate.toISOString().split('T')[0];
+                console.log('📅 Start date input set to:', startDateInput.value);
             }
             if (endDateInput) {
                 endDateInput.value = endDate.toISOString().split('T')[0];
+                console.log('📅 End date input set to:', endDateInput.value);
             }
 
             currentPeriod = preset;
-            loadReportsData();
+            // Don't call loadReportsData here as it will be called by the event listener
         }
 
         // Show/hide loading overlay
@@ -1785,9 +1808,12 @@
                 dateRange: dateRange
             };
             
-            // Add cache-busting parameter to force fresh data
+            // Add cache-busting parameters to force fresh data
             const timestamp = new Date().getTime();
+            const randomId = Math.random().toString(36).substring(7);
             requestBody.timestamp = timestamp;
+            requestBody.cacheBreaker = randomId;
+            requestBody.forceRefresh = true;
             
             // Make actual API call to get real data
             fetch('/Admin/GetReportData', {

@@ -995,12 +995,27 @@ namespace PixelSolution.Controllers
             try
             {
                 var data = await _reportService.GetDashboardDataAsync();
+                _logger.LogInformation("Dashboard data generated: {Data}", System.Text.Json.JsonSerializer.Serialize(data));
                 return Json(data);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error getting dashboard data");
-                return Json(new { success = false, message = "Error loading dashboard data." });
+                _logger.LogError(ex, "Error getting dashboard data: {Message}", ex.Message);
+                return Json(new { error = ex.Message });
+            }
+        }
+
+        [HttpGet]
+        public IActionResult GetNotifications()
+        {
+            try
+            {
+                // Return empty notifications for now to prevent errors
+                return Json(new { notifications = 0, messages = 0 });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { error = ex.Message });
             }
         }
 
@@ -3972,10 +3987,18 @@ namespace PixelSolution.Controllers
                 DateTime endDate = DateTime.Now;
 
                 if (!string.IsNullOrEmpty(request.StartDate) && DateTime.TryParse(request.StartDate, out DateTime parsedStart))
-                    startDate = parsedStart;
+                {
+                    startDate = parsedStart.Date; // Ensure start of day (00:00:00)
+                    _logger.LogInformation("📅 Parsed start date: {StartDate}", startDate);
+                }
                 
                 if (!string.IsNullOrEmpty(request.EndDate) && DateTime.TryParse(request.EndDate, out DateTime parsedEnd))
-                    endDate = parsedEnd;
+                {
+                    endDate = parsedEnd.Date.AddDays(1).AddTicks(-1); // End of day (23:59:59.999)
+                    _logger.LogInformation("📅 Parsed end date: {EndDate}", endDate);
+                }
+
+                _logger.LogInformation("📊 Final date range: {StartDate} to {EndDate}", startDate, endDate);
 
                 dynamic reportData = null;
 
@@ -4010,6 +4033,8 @@ namespace PixelSolution.Controllers
         private async Task<object> GetSalesReportData(DateTime startDate, DateTime endDate, string chartType)
         {
             // Force fresh data retrieval with AsNoTracking for performance
+            _logger.LogInformation("📊 GetSalesReportData: Querying sales from {StartDate} to {EndDate}", startDate, endDate);
+            
             var sales = await _context.Sales
                 .AsNoTracking()
                 .Include(s => s.SaleItems)
@@ -4019,15 +4044,17 @@ namespace PixelSolution.Controllers
                 .OrderByDescending(s => s.SaleDate)
                 .ToListAsync();
 
+            _logger.LogInformation("📊 Found {SalesCount} sales in date range", sales.Count);
+
             var salesTrend = sales
                 .GroupBy(s => s.SaleDate.Date)
                 .Select(g => new
                 {
                     date = g.Key.ToString("MMM dd"),
-                    sales = g.Sum(s => s.AmountPaid), // Use AmountPaid from database
-                    amount = g.Sum(s => s.AmountPaid),
-                    revenue = g.Sum(s => s.AmountPaid),
-                    profit = g.Sum(s => s.AmountPaid * 0.2m) // 20% profit margin on actual paid amount
+                    sales = g.Sum(s => s.TotalAmount), // Use TotalAmount instead of AmountPaid
+                    amount = g.Sum(s => s.TotalAmount),
+                    revenue = g.Sum(s => s.TotalAmount),
+                    profit = g.Sum(s => s.TotalAmount * 0.2m) // 20% profit margin on total amount
                 })
                 .OrderBy(x => DateTime.ParseExact(x.date, "MMM dd", null))
                 .ToList();
@@ -4180,11 +4207,11 @@ namespace PixelSolution.Controllers
             var productsData = await GetProductsReportData("performance");
             var categoriesData = await GetCategoriesReportData("breakdown");
 
-            // Calculate summary statistics with fresh data using AmountPaid
+            // Calculate summary statistics with fresh data using TotalAmount
             var totalSales = await _context.Sales
                 .AsNoTracking()
                 .Where(s => s.SaleDate >= startDate && s.SaleDate <= endDate)
-                .SumAsync(s => s.AmountPaid);
+                .SumAsync(s => s.TotalAmount);
 
             var totalOrders = await _context.Sales
                 .AsNoTracking()
@@ -4210,7 +4237,7 @@ namespace PixelSolution.Controllers
                     id = s.SaleId,
                     saleNumber = s.SaleNumber,
                     customerName = s.CustomerName ?? "Walk-in Customer",
-                    totalAmount = s.AmountPaid, // Use AmountPaid instead of TotalAmount
+                    totalAmount = s.TotalAmount, // Use TotalAmount for accurate reporting
                     saleDate = s.SaleDate,
                     status = "Completed"
                 })

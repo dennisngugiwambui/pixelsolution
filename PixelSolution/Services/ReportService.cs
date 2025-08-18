@@ -27,6 +27,9 @@ namespace PixelSolution.Services
                 var thisMonth = new DateTime(today.Year, today.Month, 1);
                 var lastMonth = thisMonth.AddMonths(-1);
 
+                // Get sidebar counts
+                var sidebarCounts = await GetSidebarCountsAsync();
+
                 // Today's sales
                 var todaySales = await _context.Sales
                     .Where(s => s.SaleDate.Date == today && s.Status == "Completed")
@@ -39,20 +42,25 @@ namespace PixelSolution.Services
                 // This month's sales
                 var thisMonthSales = await _context.Sales
                     .Where(s => s.SaleDate >= thisMonth && s.Status == "Completed")
-                    .SumAsync(s => s.AmountPaid);
+                    .SumAsync(s => s.TotalAmount);
 
                 var lastMonthSales = await _context.Sales
                     .Where(s => s.SaleDate >= lastMonth && s.SaleDate < thisMonth && s.Status == "Completed")
-                    .SumAsync(s => s.AmountPaid);
+                    .SumAsync(s => s.TotalAmount);
 
                 // Calculate growth percentage
                 var salesGrowth = lastMonthSales > 0
                     ? ((thisMonthSales - lastMonthSales) / lastMonthSales) * 100
                     : 0;
 
-                // Products sold today
-                var todayProductsSold = await _context.SaleItems
-                    .Where(si => si.Sale.SaleDate.Date == today && si.Sale.Status == "Completed")
+                // Total orders this month
+                var thisMonthOrders = await _context.Sales
+                    .Where(s => s.SaleDate >= thisMonth && s.Status == "Completed")
+                    .CountAsync();
+
+                // Products sold this month
+                var thisMonthProductsSold = await _context.SaleItems
+                    .Where(si => si.Sale.SaleDate >= thisMonth && si.Sale.Status == "Completed")
                     .SumAsync(si => si.Quantity);
 
                 // New customers this month
@@ -81,7 +89,7 @@ namespace PixelSolution.Services
                         s.SaleNumber,
                         CustomerName = string.IsNullOrEmpty(s.CustomerName) ? "Walk-in Customer" : s.CustomerName,
                         ProductName = string.Join(", ", s.SaleItems.Select(si => si.Product.Name).Take(2)),
-                        s.AmountPaid,
+                        s.TotalAmount,
                         s.Status,
                         s.SaleDate,
                         SalesPerson = s.User.FirstName + " " + s.User.LastName
@@ -92,32 +100,68 @@ namespace PixelSolution.Services
                 {
                     stats = new
                     {
-                        todaySales = new
-                        {
-                            value = todaySales,
-                            count = todaySalesCount,
-                            growth = salesGrowth > 0 ? $"+{salesGrowth:F1}%" : $"{salesGrowth:F1}%"
-                        },
-                        thisMonthSales = new
-                        {
-                            value = thisMonthSales,
-                            growth = salesGrowth
-                        },
-                        productsSold = todayProductsSold,
+                        todaySales = new { value = todaySales, count = todaySalesCount },
+                        thisMonthSales = new { value = thisMonthSales, growth = salesGrowth },
+                        thisMonthOrders = thisMonthOrders,
+                        productsSold = thisMonthProductsSold,
                         newCustomers = newCustomers
                     },
                     charts = new
                     {
-                        salesData = salesChartData,
-                        topProducts = topProducts
+                        salesData = await GetSalesChartDataAsync(),
+                        topProducts = await GetTopProductsAsync()
                     },
-                    recentSales = recentSales
+                    recentSales = recentSales,
+                    sidebarCounts = sidebarCounts
                 };
             }
             catch (Exception ex)
             {
                 throw new Exception($"Error generating dashboard data: {ex.Message}", ex);
             }
+        }
+
+        private async Task<object> GetSidebarCountsAsync()
+        {
+            var today = DateTime.Today;
+            var thisMonth = new DateTime(today.Year, today.Month, 1);
+
+            // Count today's sales
+            var todaySalesCount = await _context.Sales
+                .Where(s => s.SaleDate.Date == today && s.Status == "Completed")
+                .CountAsync();
+
+            // Count low stock products (less than 10 items)
+            var lowStockCount = await _context.Products
+                .Where(p => p.StockQuantity < 10)
+                .CountAsync();
+
+            // Count pending purchase requests
+            var pendingRequestsCount = await _context.PurchaseRequests
+                .Where(pr => pr.Status == "Pending")
+                .CountAsync();
+
+            // Count unread messages (assuming there's a Messages table)
+            var unreadMessagesCount = 0;
+            try
+            {
+                unreadMessagesCount = await _context.Messages
+                    .Where(m => !m.IsRead)
+                    .CountAsync();
+            }
+            catch
+            {
+                // If Messages table doesn't exist, default to 0
+                unreadMessagesCount = 0;
+            }
+
+            return new
+            {
+                todaySales = todaySalesCount,
+                lowStock = lowStockCount,
+                pendingRequests = pendingRequestsCount,
+                unreadMessages = unreadMessagesCount
+            };
         }
 
         public async Task<object> GetSalesReportAsync(DateTime startDate, DateTime endDate)
@@ -258,55 +302,116 @@ namespace PixelSolution.Services
 
         private async Task<object> GetSalesChartDataAsync()
         {
-            var sevenDaysAgo = DateTime.Today.AddDays(-7);
+            var currentYear = DateTime.Today.Year;
+            var startOfYear = new DateTime(currentYear, 1, 1);
+
+            // First check if we have any sales data at all
+            var totalSalesCount = await _context.Sales.CountAsync();
+            var completedSalesCount = await _context.Sales.Where(s => s.Status == "Completed").CountAsync();
+            var currentYearSalesCount = await _context.Sales.Where(s => s.SaleDate >= startOfYear).CountAsync();
+
+            Console.WriteLine($"DEBUG: Total sales: {totalSalesCount}, Completed: {completedSalesCount}, Current year: {currentYearSalesCount}");
 
             var salesData = await _context.Sales
-                .Where(s => s.SaleDate >= sevenDaysAgo && s.Status == "Completed")
-                .GroupBy(s => s.SaleDate.Date)
+                .Where(s => s.SaleDate >= startOfYear && s.Status == "Completed")
+                .GroupBy(s => new { s.SaleDate.Year, s.SaleDate.Month })
                 .Select(g => new
                 {
-                    date = g.Key,
-                    amount = g.Sum(s => s.AmountPaid)
+                    year = g.Key.Year,
+                    month = g.Key.Month,
+                    amount = g.Sum(s => s.TotalAmount)
                 })
-                .OrderBy(x => x.date)
+                .OrderBy(x => x.month)
                 .ToListAsync();
 
-            // Fill missing dates with zero
-            var result = new List<object>();
-            for (int i = 6; i >= 0; i--)
+            Console.WriteLine($"DEBUG: Sales data query result: {System.Text.Json.JsonSerializer.Serialize(salesData)}");
+
+            // If no current year data, get data from any year for demonstration
+            if (!salesData.Any())
             {
-                var date = DateTime.Today.AddDays(-i);
-                var dayData = salesData.FirstOrDefault(s => s.date == date);
+                Console.WriteLine("DEBUG: No current year data, getting all completed sales");
+                salesData = await _context.Sales
+                    .Where(s => s.Status == "Completed")
+                    .GroupBy(s => new { s.SaleDate.Year, s.SaleDate.Month })
+                    .Select(g => new
+                    {
+                        year = g.Key.Year,
+                        month = g.Key.Month,
+                        amount = g.Sum(s => s.TotalAmount)
+                    })
+                    .OrderByDescending(x => x.year).ThenBy(x => x.month)
+                    .Take(12)
+                    .ToListAsync();
+            }
+
+            // Fill missing months with zero
+            var result = new List<object>();
+            for (int month = 1; month <= 12; month++)
+            {
+                var monthData = salesData.FirstOrDefault(s => s.month == month);
+                var monthName = new DateTime(currentYear, month, 1).ToString("MMM");
                 result.Add(new
                 {
-                    date = date.ToString("MMM dd"),
-                    amount = dayData?.amount ?? 0
+                    date = monthName,
+                    amount = monthData?.amount ?? 0
                 });
             }
 
+            Console.WriteLine($"DEBUG: Final chart data: {System.Text.Json.JsonSerializer.Serialize(result)}");
             return result;
         }
 
         private async Task<object> GetTopProductsAsync()
         {
-            var thirtyDaysAgo = DateTime.UtcNow.AddDays(-30);
+            var currentYear = DateTime.Today.Year;
+            var startOfYear = new DateTime(currentYear, 1, 1);
+
+            // Check if we have any sale items
+            var totalSaleItems = await _context.SaleItems.CountAsync();
+            Console.WriteLine($"DEBUG: Total sale items in database: {totalSaleItems}");
 
             var topProducts = await _context.SaleItems
                 .Include(si => si.Product)
                 .Include(si => si.Sale)
-                .Where(si => si.Sale.SaleDate >= thirtyDaysAgo && si.Sale.Status == "Completed")
+                .Where(si => si.Sale.SaleDate >= startOfYear && si.Sale.Status == "Completed")
                 .GroupBy(si => new { si.ProductId, si.Product.Name })
                 .Select(g => new
                 {
                     productId = g.Key.ProductId,
                     productName = g.Key.Name,
+                    salesCount = g.Count(),
                     quantitySold = g.Sum(si => si.Quantity),
                     revenue = g.Sum(si => si.TotalPrice)
                 })
-                .OrderByDescending(x => x.revenue)
+                .OrderByDescending(x => x.salesCount)
                 .Take(5)
                 .ToListAsync();
 
+            Console.WriteLine($"DEBUG: Top products query result: {System.Text.Json.JsonSerializer.Serialize(topProducts)}");
+
+            // If no current year data, get data from any completed sales
+            if (!topProducts.Any())
+            {
+                Console.WriteLine("DEBUG: No current year product data, getting all completed sales");
+                topProducts = await _context.SaleItems
+                    .Include(si => si.Product)
+                    .Include(si => si.Sale)
+                    .Where(si => si.Sale.Status == "Completed")
+                    .GroupBy(si => new { si.ProductId, si.Product.Name })
+                    .Select(g => new
+                    {
+                        productId = g.Key.ProductId,
+                        productName = g.Key.Name,
+                        salesCount = g.Count(),
+                        quantitySold = g.Sum(si => si.Quantity),
+                        revenue = g.Sum(si => si.TotalPrice)
+                    })
+                    .OrderByDescending(x => x.salesCount)
+                    .Take(5)
+                    .ToListAsync();
+            }
+
+            Console.WriteLine($"DEBUG: Final top products data: {System.Text.Json.JsonSerializer.Serialize(topProducts)}");
             return topProducts;
         }
 

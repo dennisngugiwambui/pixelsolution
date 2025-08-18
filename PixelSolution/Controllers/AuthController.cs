@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
@@ -143,6 +143,26 @@ namespace PixelSolution.Controllers
 
         [HttpPost]
         public async Task<IActionResult> Logout()
+        {
+            try
+            {
+                var userEmail = User.FindFirst(ClaimTypes.Email)?.Value;
+                await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+
+                _logger.LogInformation($"👋 User {userEmail} logged out successfully");
+                TempData["InfoMessage"] = "You have been logged out successfully.";
+
+                return RedirectToAction("Login");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "💥 Error during logout");
+                return RedirectToAction("Login");
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> LogoutGet()
         {
             try
             {
@@ -316,8 +336,16 @@ namespace PixelSolution.Controllers
                 return returnUrl;
             }
 
-            // Default redirects based on user type - all go to Admin Dashboard
-            return Url.Action("Dashboard", "Admin") ?? "/Admin/Dashboard";
+            // Default redirects based on user type
+            switch (userType?.ToLower())
+            {
+                case "admin":
+                case "manager":
+                    return Url.Action("Dashboard", "Admin") ?? "/Admin/Dashboard";
+                case "employee":
+                default:
+                    return Url.Action("Index", "Employee") ?? "/Employee";
+            }
         }
 
         private bool IsValidEmail(string email)

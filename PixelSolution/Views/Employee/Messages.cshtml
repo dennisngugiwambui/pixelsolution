@@ -1,0 +1,478 @@
+@{
+    ViewData["Title"] = "Messages - PixelSolution";
+    Layout = "_EmployeeLayout";
+}
+
+@section Styles {
+    <link href="~/css/dashboard.css" rel="stylesheet">
+    <style>
+        .messages-container {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+            padding: 1rem;
+        }
+
+        @media (min-width: 1024px) {
+            .messages-container {
+                grid-template-columns: 300px 1fr;
+                gap: 2rem;
+                padding: 1.5rem;
+            }
+        }
+
+        .messages-sidebar {
+            background: white;
+            border-radius: 16px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            border-left: 4px solid #3b82f6;
+            height: fit-content;
+        }
+
+        .messages-content {
+            background: white;
+            border-radius: 16px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            border-left: 4px solid #10b981;
+            min-height: 60vh;
+        }
+
+        .message-item {
+            padding: 1rem;
+            border: 2px solid #f1f5f9;
+            border-radius: 12px;
+            margin-bottom: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .message-item:hover {
+            border-color: #3b82f6;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+        }
+
+        .message-item.unread {
+            background: linear-gradient(135deg, #f0f9ff, #ffffff);
+            border-color: #3b82f6;
+        }
+
+        .message-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .message-sender {
+            font-weight: 600;
+            color: #1f2937;
+        }
+
+        .message-time {
+            font-size: 0.8rem;
+            color: #6b7280;
+        }
+
+        .message-subject {
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: 0.5rem;
+        }
+
+        .message-preview {
+            font-size: 0.9rem;
+            color: #6b7280;
+            line-height: 1.4;
+        }
+
+        .compose-btn {
+            width: 100%;
+            padding: 0.75rem;
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 1.5rem;
+        }
+
+        .compose-btn:hover {
+            background: linear-gradient(135deg, #059669, #047857);
+            transform: translateY(-1px);
+        }
+
+        .filter-tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .filter-tab {
+            padding: 0.5rem 1rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            background: white;
+            color: #6b7280;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .filter-tab.active {
+            border-color: #3b82f6;
+            background: #3b82f6;
+            color: white;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: #6b7280;
+        }
+
+        .empty-state i {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            opacity: 0.3;
+            color: #3b82f6;
+        }
+
+        /* Mobile responsive adjustments */
+        @media (max-width: 768px) {
+            .messages-container {
+                padding: 0.5rem;
+                gap: 1rem;
+            }
+            
+            .messages-sidebar,
+            .messages-content {
+                padding: 1rem;
+            }
+            
+            .filter-tabs {
+                justify-content: center;
+            }
+            
+            .filter-tab {
+                flex: 1;
+                text-align: center;
+                min-width: 80px;
+            }
+        }
+    </style>
+}
+
+<!-- Employee Sidebar -->
+<div class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+        <div class="logo-container">
+            <div class="logo-icon">
+                <i class="fas fa-bolt"></i>
+            </div>
+            <div class="logo-text">PixelSolution</div>
+        </div>
+        <div class="user-info">
+            <div class="user-avatar">@User.Identity.Name?.Substring(0, 2).ToUpper()</div>
+            <div class="user-details">
+                <h4>@User.Identity.Name</h4>
+                <p>Employee</p>
+            </div>
+        </div>
+    </div>
+
+    <nav class="nav-menu">
+        <div class="nav-section">
+            <div class="nav-section-title">Main</div>
+            <div class="nav-item">
+                <a href="@Url.Action("Index", "Employee")" class="nav-link">
+                    <i class="fas fa-chart-pie"></i>
+                    Dashboard
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Sales", "Employee")" class="nav-link">
+                    <i class="fas fa-shopping-cart"></i>
+                    Sales
+                </a>
+            </div>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-section-title">Communication</div>
+            <div class="nav-item">
+                <a href="@Url.Action("Messages", "Employee")" class="nav-link active">
+                    <i class="fas fa-envelope"></i>
+                    Messages
+                    <span class="nav-badge" id="unreadMessagesCount">3</span>
+                </a>
+            </div>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-section-title">Account</div>
+            <div class="nav-item">
+                <a href="@Url.Action("LogoutGet", "Auth")" class="nav-link">
+                    <i class="fas fa-sign-out-alt"></i>
+                    Logout
+                </a>
+            </div>
+        </div>
+    </nav>
+</div>
+
+<!-- Main Content -->
+<div class="main-content" id="mainContent">
+    <!-- Header -->
+    <header class="header">
+        <div class="header-left">
+            <button class="sidebar-toggle" id="sidebarToggle">
+                <i class="fas fa-bars"></i>
+            </button>
+            <h1 class="page-title">Messages</h1>
+        </div>
+        <div class="header-right">
+            <div class="header-actions">
+                <button class="action-btn" title="Notifications">
+                    <i class="fas fa-bell"></i>
+                    <span class="notification-badge">3</span>
+                </button>
+                <button class="action-btn" title="Profile">
+                    <i class="fas fa-user-circle"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Messages Content -->
+    <div class="dashboard-content">
+        <div class="messages-container">
+            <!-- Messages Sidebar -->
+            <div class="messages-sidebar">
+                <button class="compose-btn">
+                    <i class="fas fa-plus" style="margin-right: 0.5rem;"></i>
+                    Compose Message
+                </button>
+
+                <div class="filter-tabs">
+                    <div class="filter-tab active" data-filter="all">All</div>
+                    <div class="filter-tab" data-filter="unread">Unread</div>
+                    <div class="filter-tab" data-filter="important">Important</div>
+                </div>
+
+                <div id="messagesList">
+                    <!-- Sample Messages -->
+                    <div class="message-item unread" data-message-id="1">
+                        <div class="message-header">
+                            <div class="message-sender">Admin Team</div>
+                            <div class="message-time">2 hours ago</div>
+                        </div>
+                        <div class="message-subject">New Product Training</div>
+                        <div class="message-preview">Please attend the training session for new products...</div>
+                    </div>
+
+                    <div class="message-item" data-message-id="2">
+                        <div class="message-header">
+                            <div class="message-sender">HR Department</div>
+                            <div class="message-time">1 day ago</div>
+                        </div>
+                        <div class="message-subject">Monthly Schedule</div>
+                        <div class="message-preview">Your work schedule for next month has been updated...</div>
+                    </div>
+
+                    <div class="message-item unread" data-message-id="3">
+                        <div class="message-header">
+                            <div class="message-sender">Manager</div>
+                            <div class="message-time">3 days ago</div>
+                        </div>
+                        <div class="message-subject">Performance Review</div>
+                        <div class="message-preview">Great job on your sales performance this month...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Messages Content Area -->
+            <div class="messages-content">
+                <div class="empty-state" id="emptyState">
+                    <i class="fas fa-envelope-open"></i>
+                    <h3>Select a message to read</h3>
+                    <p>Choose a message from the sidebar to view its contents</p>
+                </div>
+
+                <div id="messageContent" style="display: none;">
+                    <!-- Message content will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/dashboard.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Filter tabs functionality
+            const filterTabs = document.querySelectorAll('.filter-tab');
+            filterTabs.forEach(tab => {
+                tab.addEventListener('click', function() {
+                    filterTabs.forEach(t => t.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    const filter = this.dataset.filter;
+                    filterMessages(filter);
+                });
+            });
+
+            // Message selection
+            const messageItems = document.querySelectorAll('.message-item');
+            messageItems.forEach(item => {
+                item.addEventListener('click', function() {
+                    messageItems.forEach(i => i.classList.remove('selected'));
+                    this.classList.add('selected');
+                    this.classList.remove('unread');
+                    
+                    loadMessageContent(this.dataset.messageId);
+                });
+            });
+
+            // Compose button
+            document.querySelector('.compose-btn').addEventListener('click', function() {
+                // Implement compose functionality
+                showToast('Compose message functionality coming soon!', 'info');
+            });
+        });
+
+        function filterMessages(filter) {
+            const messages = document.querySelectorAll('.message-item');
+            messages.forEach(message => {
+                let show = true;
+                
+                switch(filter) {
+                    case 'unread':
+                        show = message.classList.contains('unread');
+                        break;
+                    case 'important':
+                        show = message.classList.contains('important');
+                        break;
+                    case 'all':
+                    default:
+                        show = true;
+                        break;
+                }
+                
+                message.style.display = show ? 'block' : 'none';
+            });
+        }
+
+        function loadMessageContent(messageId) {
+            const emptyState = document.getElementById('emptyState');
+            const messageContent = document.getElementById('messageContent');
+            
+            emptyState.style.display = 'none';
+            messageContent.style.display = 'block';
+            
+            // Sample message content based on ID
+            let content = '';
+            switch(messageId) {
+                case '1':
+                    content = `
+                        <div style="border-bottom: 2px solid #e5e7eb; padding-bottom: 1rem; margin-bottom: 1.5rem;">
+                            <h2 style="color: #1f2937; margin-bottom: 0.5rem;">New Product Training</h2>
+                            <div style="color: #6b7280; font-size: 0.9rem;">
+                                From: <strong>Admin Team</strong> | 
+                                To: <strong>All Employees</strong> | 
+                                Time: <strong>2 hours ago</strong>
+                            </div>
+                        </div>
+                        <div style="line-height: 1.6; color: #374151;">
+                            <p>Dear Team,</p>
+                            <p>We are excited to announce a new product training session scheduled for next week. This training will cover:</p>
+                            <ul style="margin: 1rem 0; padding-left: 1.5rem;">
+                                <li>New product features and specifications</li>
+                                <li>Sales techniques and customer approach</li>
+                                <li>Pricing and promotional strategies</li>
+                                <li>Inventory management updates</li>
+                            </ul>
+                            <p>Please mark your calendars for <strong>Monday, 10:00 AM</strong> in the main conference room.</p>
+                            <p>Best regards,<br>Admin Team</p>
+                        </div>
+                    `;
+                    break;
+                case '2':
+                    content = `
+                        <div style="border-bottom: 2px solid #e5e7eb; padding-bottom: 1rem; margin-bottom: 1.5rem;">
+                            <h2 style="color: #1f2937; margin-bottom: 0.5rem;">Monthly Schedule</h2>
+                            <div style="color: #6b7280; font-size: 0.9rem;">
+                                From: <strong>HR Department</strong> | 
+                                To: <strong>@User.Identity.Name</strong> | 
+                                Time: <strong>1 day ago</strong>
+                            </div>
+                        </div>
+                        <div style="line-height: 1.6; color: #374151;">
+                            <p>Hello @User.Identity.Name,</p>
+                            <p>Your work schedule for next month has been updated. Please review the following details:</p>
+                            <div style="background: #f8fafc; padding: 1rem; border-radius: 8px; margin: 1rem 0;">
+                                <strong>Working Hours:</strong> 8:00 AM - 5:00 PM<br>
+                                <strong>Days Off:</strong> Sundays<br>
+                                <strong>Special Notes:</strong> Extended hours during holiday season
+                            </div>
+                            <p>If you have any questions or concerns, please contact HR immediately.</p>
+                            <p>Thank you,<br>HR Department</p>
+                        </div>
+                    `;
+                    break;
+                case '3':
+                    content = `
+                        <div style="border-bottom: 2px solid #e5e7eb; padding-bottom: 1rem; margin-bottom: 1.5rem;">
+                            <h2 style="color: #1f2937; margin-bottom: 0.5rem;">Performance Review</h2>
+                            <div style="color: #6b7280; font-size: 0.9rem;">
+                                From: <strong>Manager</strong> | 
+                                To: <strong>@User.Identity.Name</strong> | 
+                                Time: <strong>3 days ago</strong>
+                            </div>
+                        </div>
+                        <div style="line-height: 1.6; color: #374151;">
+                            <p>Dear @User.Identity.Name,</p>
+                            <p>I wanted to take a moment to recognize your outstanding performance this month. Your achievements include:</p>
+                            <div style="background: #f0f9ff; padding: 1rem; border-radius: 8px; margin: 1rem 0; border-left: 4px solid #3b82f6;">
+                                <ul style="margin: 0; padding-left: 1.5rem;">
+                                    <li>Exceeded sales targets by 15%</li>
+                                    <li>Excellent customer feedback ratings</li>
+                                    <li>Helped train new team members</li>
+                                    <li>Maintained perfect attendance</li>
+                                </ul>
+                            </div>
+                            <p>Keep up the excellent work! Your dedication does not go unnoticed.</p>
+                            <p>Best regards,<br>Your Manager</p>
+                        </div>
+                    `;
+                    break;
+                default:
+                    content = '<p>Message content not found.</p>';
+            }
+            
+            messageContent.innerHTML = content;
+            
+            // Update unread count
+            updateUnreadCount();
+        }
+
+        function updateUnreadCount() {
+            const unreadMessages = document.querySelectorAll('.message-item.unread').length;
+            const badge = document.getElementById('unreadMessagesCount');
+            if (badge) {
+                badge.textContent = unreadMessages;
+                badge.style.display = unreadMessages > 0 ? 'inline' : 'none';
+            }
+        }
+
+        // Initialize unread count on page load
+        document.addEventListener('DOMContentLoaded', updateUnreadCount);
+    </script>
+}

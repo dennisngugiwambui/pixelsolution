@@ -1,7 +1,7 @@
-@model object
+@model PixelSolution.ViewModels.DashboardViewModel
 @{
-    ViewData["Title"] = "Admin Dashboard - PixelSolution";
-    Layout = "_AdminLayout";
+    ViewData["Title"] = "Employee Dashboard - PixelSolution";
+    Layout = "_EmployeeLayout";
 }
 
 @section Styles {
@@ -85,7 +85,7 @@
     </style>
 }
 
-<!-- Sidebar -->
+<!-- Employee Sidebar -->
 <div class="sidebar" id="sidebar">
     <div class="sidebar-header">
         <div class="logo-container">
@@ -98,7 +98,7 @@
             <div class="user-avatar">@User.Identity.Name?.Substring(0, 2).ToUpper()</div>
             <div class="user-details">
                 <h4>@User.Identity.Name</h4>
-                <p>System Administrator</p>
+                <p>Employee</p>
             </div>
         </div>
     </div>
@@ -107,93 +107,33 @@
         <div class="nav-section">
             <div class="nav-section-title">Main</div>
             <div class="nav-item">
-                <a href="@Url.Action("Dashboard", "Admin")" class="nav-link active">
+                <a href="@Url.Action("Index", "Employee")" class="nav-link active">
                     <i class="fas fa-chart-pie"></i>
                     Dashboard
                 </a>
             </div>
             <div class="nav-item">
-                <a href="@Url.Action("Sales", "Admin")" class="nav-link">
+                <a href="@Url.Action("Sales", "Employee")" class="nav-link">
                     <i class="fas fa-shopping-cart"></i>
                     Sales
                     <span class="nav-badge" id="salesCount">0</span>
                 </a>
             </div>
-            <div class="nav-item">
-                <a href="@Url.Action("Inventory", "Admin")" class="nav-link">
-                    <i class="fas fa-box"></i>
-                    Inventory
-                    <span class="nav-badge" id="lowStockCount">0</span>
-                </a>
-            </div>
         </div>
 
         <div class="nav-section">
-            <div class="nav-section-title">Management</div>
+            <div class="nav-section-title">Communication</div>
             <div class="nav-item">
-                <a href="@Url.Action("Users", "Admin")" class="nav-link">
-                    <i class="fas fa-users"></i>
-                    Employees
-                </a>
-            </div>
-            <div class="nav-item">
-                <a href="@Url.Action("Departments", "Admin")" class="nav-link">
-                    <i class="fas fa-building"></i>
-                    Departments
-                </a>
-            </div>
-            <div class="nav-item">
-                <a href="@Url.Action("Suppliers", "Admin")" class="nav-link">
-                    <i class="fas fa-truck"></i>
-                    Suppliers
-                </a>
-            </div>
-            <div class="nav-item">
-                <a href="@Url.Action("Categories", "Admin")" class="nav-link">
-                    <i class="fas fa-tags"></i>
-                    Categories
-                </a>
-            </div>
-            <div class="nav-item">
-                <a href="@Url.Action("Products", "Admin")" class="nav-link">
-                    <i class="fas fa-cube"></i>
-                    Products
-                </a>
-            </div>
-        </div>
-
-        <div class="nav-section">
-            <div class="nav-section-title">Operations</div>
-            <div class="nav-item">
-                <a href="@Url.Action("PurchaseRequests", "Admin")" class="nav-link">
-                    <i class="fas fa-file-invoice"></i>
-                    Purchase Requests
-                    <span class="nav-badge" id="pendingRequestsCount">0</span>
-                </a>
-            </div>
-            <div class="nav-item">
-                <a href="@Url.Action("Messages", "Admin")" class="nav-link">
+                <a href="@Url.Action("Messages", "Employee")" class="nav-link">
                     <i class="fas fa-envelope"></i>
                     Messages
                     <span class="nav-badge" id="unreadMessagesCount">0</span>
                 </a>
             </div>
-            <div class="nav-item">
-                <a href="@Url.Action("Reports", "Admin")" class="nav-link">
-                    <i class="fas fa-chart-bar"></i>
-                    Reports
-                </a>
-            </div>
         </div>
 
         <div class="nav-section">
-            <div class="nav-section-title">System</div>
-            <div class="nav-item">
-                <a href="@Url.Action("Settings", "Admin")" class="nav-link">
-                    <i class="fas fa-cog"></i>
-                    Settings
-                </a>
-            </div>
+            <div class="nav-section-title">Account</div>
             <div class="nav-item">
                 <a href="@Url.Action("LogoutGet", "Auth")" class="nav-link">
                     <i class="fas fa-sign-out-alt"></i>
@@ -212,7 +152,7 @@
             <button class="sidebar-toggle" id="sidebarToggle">
                 <i class="fas fa-bars"></i>
             </button>
-            <h1 class="page-title">Dashboard</h1>
+            <h1 class="page-title">Employee Dashboard</h1>
         </div>
         <div class="header-right">
             <div class="search-container">
@@ -250,7 +190,7 @@
                     </div>
                 </div>
                 <div class="stat-value" id="totalSalesValue">KSh 0</div>
-                <div class="stat-label">Total Sales</div>
+                <div class="stat-label">My Sales Today</div>
             </div>
 
             <div class="stat-card" style="--card-color: #10b981;">
@@ -264,7 +204,7 @@
                     </div>
                 </div>
                 <div class="stat-value" id="totalOrdersValue">0</div>
-                <div class="stat-label">Total Orders</div>
+                <div class="stat-label">My Transactions</div>
             </div>
 
             <div class="stat-card" style="--card-color: #f59e0b;">
@@ -292,7 +232,7 @@
                     </div>
                 </div>
                 <div class="stat-value" id="newCustomersValue">0</div>
-                <div class="stat-label">New Customers</div>
+                <div class="stat-label">Customers Served</div>
             </div>
         </div>
 
@@ -301,7 +241,7 @@
             <div class="chart-card">
                 <div class="chart-header">
                     <div>
-                        <h3 class="chart-title">Sales Overview</h3>
+                        <h3 class="chart-title">My Sales Performance</h3>
                         <p class="chart-subtitle">Monthly sales performance</p>
                     </div>
                 </div>
@@ -311,8 +251,8 @@
             <div class="chart-card">
                 <div class="chart-header">
                     <div>
-                        <h3 class="chart-title">Top Products</h3>
-                        <p class="chart-subtitle">Best selling items</p>
+                        <h3 class="chart-title">Top Products I Sold</h3>
+                        <p class="chart-subtitle">Best selling items by me</p>
                     </div>
                 </div>
                 <canvas id="productsChart" width="400" height="200"></canvas>
@@ -322,15 +262,11 @@
         <!-- Recent Activity Table -->
         <div class="table-card">
             <div class="table-header">
-                <h3 class="table-title">Recent Sales</h3>
+                <h3 class="table-title">My Recent Sales</h3>
                 <div class="table-actions">
                     <button class="btn-primary" onclick="createNewSale()">
                         <i class="fas fa-plus"></i>
                         New Sale
-                    </button>
-                    <button class="btn-secondary" onclick="debugCharts()" style="margin-left: 0.5rem;">
-                        <i class="fas fa-bug"></i>
-                        Debug Charts
                     </button>
                 </div>
             </div>
@@ -359,24 +295,24 @@
     <script src="~/js/dashboard.js"></script>
 
     <script>
-        // Additional custom functions for this page
+        // Employee-specific functions
         function createNewSale() {
-            window.location.href = '@Url.Action("Sales", "Admin")';
+            window.location.href = '@Url.Action("Sales", "Employee")';
         }
 
         function viewSale(saleId) {
-            window.location.href = '@Url.Action("Details", "Sales")?id=' + saleId;
+            window.location.href = '@Url.Action("Details", "Employee")?id=' + saleId;
         }
 
         function printSale(saleId) {
-            window.open('@Url.Action("Receipt", "Sales")?id=' + saleId, '_blank');
+            window.open('@Url.Action("Receipt", "Employee")?id=' + saleId, '_blank');
         }
 
         let chartsInitialized = false;
 
         // Load real-time data from database
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('DOM loaded, initializing dashboard...');
+            console.log('DOM loaded, initializing employee dashboard...');
             
             // Initialize charts first
             initializeCharts();
@@ -431,7 +367,7 @@
         }
 
         function initializeCharts() {
-            console.log('Initializing charts...');
+            console.log('Initializing employee charts...');
             
             // Destroy existing charts if they exist
             if (salesChart) {
@@ -536,60 +472,26 @@
 
             chartsInitialized = true;
             console.log('Charts initialization completed, chartsInitialized:', chartsInitialized);
-            
-            // Test charts with sample data
-            testChartsWithSampleData();
-        }
-
-        function testChartsWithSampleData() {
-            console.log('Testing charts with sample data...');
-            
-            if (salesChart) {
-                salesChart.data.labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
-                salesChart.data.datasets[0].data = [10000, 15000, 12000, 18000, 22000, 25000];
-                salesChart.update();
-                console.log('Sales chart updated with test data');
-            }
-            
-            if (productsChart) {
-                productsChart.data.labels = ['Product A', 'Product B', 'Product C'];
-                productsChart.data.datasets[0].data = [5, 3, 2];
-                productsChart.data.datasets[0].backgroundColor = ['#3b82f6', '#10b981', '#f59e0b'];
-                productsChart.update();
-                console.log('Products chart updated with test data');
-            }
         }
 
         async function loadDashboardData() {
             try {
-                console.log('Fetching dashboard data...');
-                const response = await fetch('@Url.Action("GetDashboardData", "Admin")');
+                console.log('Fetching employee dashboard data...');
+                const response = await fetch('@Url.Action("GetDashboardData", "Employee")');
                 if (!response.ok) {
                     throw new Error('Failed to fetch dashboard data');
                 }
                 
                 const data = await response.json();
-                console.log('Dashboard data loaded:', data);
-                console.log('Charts data:', data.charts);
-                console.log('Sales data for chart:', data.charts?.salesData);
-                console.log('Products data for chart:', data.charts?.topProducts);
-                console.log('Data types - salesData:', typeof data.charts?.salesData, 'topProducts:', typeof data.charts?.topProducts);
+                console.log('Employee dashboard data loaded:', data);
                 
                 // Update statistics
                 updateStatistics(data.stats);
                 
-                // Update charts with detailed logging
+                // Update charts
                 if (data.charts && data.charts.salesData && data.charts.topProducts) {
                     console.log('Calling updateChartsData with valid data structure');
                     updateChartsData(data.charts);
-                } else {
-                    console.error('Charts data missing or invalid structure:', {
-                        hasCharts: !!data.charts,
-                        hasSalesData: !!(data.charts?.salesData),
-                        hasTopProducts: !!(data.charts?.topProducts),
-                        salesDataType: typeof data.charts?.salesData,
-                        topProductsType: typeof data.charts?.topProducts
-                    });
                 }
                 
                 // Update recent sales table
@@ -599,7 +501,7 @@
                 updateSidebarCounts(data.sidebarCounts);
                 
             } catch (error) {
-                console.error('Error loading dashboard data:', error);
+                console.error('Error loading employee dashboard data:', error);
                 showToast('Error loading dashboard data', 'error');
             }
         }
@@ -614,20 +516,6 @@
                 salesCountEl.style.display = counts.todaySales > 0 ? 'inline' : 'none';
             }
             
-            // Update low stock count
-            const lowStockEl = document.getElementById('lowStockCount');
-            if (lowStockEl && counts.lowStock !== undefined) {
-                lowStockEl.textContent = counts.lowStock;
-                lowStockEl.style.display = counts.lowStock > 0 ? 'inline' : 'none';
-            }
-            
-            // Update pending requests count
-            const pendingRequestsEl = document.getElementById('pendingRequestsCount');
-            if (pendingRequestsEl && counts.pendingRequests !== undefined) {
-                pendingRequestsEl.textContent = counts.pendingRequests;
-                pendingRequestsEl.style.display = counts.pendingRequests > 0 ? 'inline' : 'none';
-            }
-            
             // Update unread messages count
             const unreadMessagesEl = document.getElementById('unreadMessagesCount');
             if (unreadMessagesEl && counts.unreadMessages !== undefined) {
@@ -637,7 +525,7 @@
         }
 
         function updateStatistics(stats) {
-            console.log('Updating statistics with:', stats);
+            console.log('Updating employee statistics with:', stats);
             
             // Update Total Sales - use thisMonthSales for better visibility
             const totalSalesElement = document.getElementById('totalSalesValue');
@@ -701,7 +589,6 @@
             window.requestAnimationFrame(step);
         }
 
-
         // Pagination variables
         let currentPage = 1;
         let itemsPerPage = 10;
@@ -742,7 +629,7 @@
                     <td><span class="status-badge ${statusClass}">${sale.status}</span></td>
                     <td>${formattedDate}</td>
                     <td>
-                        <a href="@Url.Action("Receipt", "Admin")?saleId=${sale.saleId}" 
+                        <a href="@Url.Action("Receipt", "Employee")?saleId=${sale.saleId}" 
                            class="action-btn btn-view" 
                            target="_blank"
                            title="Generate Receipt">
@@ -801,111 +688,5 @@
                 displaySalesPage(currentPage);
             }
         }
-
-        function debugCharts() {
-            console.log('=== CHART DEBUG INFO ===');
-            console.log('Charts initialized:', chartsInitialized);
-            console.log('Sales chart exists:', !!salesChart);
-            console.log('Products chart exists:', !!productsChart);
-            
-            if (salesChart) {
-                console.log('Sales chart data:', salesChart.data);
-                console.log('Sales chart labels:', salesChart.data.labels);
-                console.log('Sales chart values:', salesChart.data.datasets[0].data);
-            }
-            
-            if (productsChart) {
-                console.log('Products chart data:', productsChart.data);
-                console.log('Products chart labels:', productsChart.data.labels);
-                console.log('Products chart values:', productsChart.data.datasets[0].data);
-            }
-            
-            // Force reload dashboard data
-            console.log('Forcing dashboard data reload...');
-            loadDashboardData();
-        }
-
-        function showToast(message, type = 'info') {
-            // Create toast container if it doesn't exist
-            let toastContainer = document.getElementById('toast-container');
-            if (!toastContainer) {
-                toastContainer = document.createElement('div');
-                toastContainer.id = 'toast-container';
-                toastContainer.style.cssText = `
-                    position: fixed;
-                    top: 20px;
-                    right: 20px;
-                    z-index: 10000;
-                    pointer-events: none;
-                `;
-                document.body.appendChild(toastContainer);
-            }
-
-            const toast = document.createElement('div');
-            toast.className = `toast ${type}`;
-            toast.style.cssText = `
-                background: ${type === 'error' ? '#ef4444' : type === 'success' ? '#10b981' : '#3b82f6'};
-                color: white;
-                padding: 1rem 1.5rem;
-                border-radius: 8px;
-                margin-bottom: 0.5rem;
-                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-                transform: translateX(100%);
-                transition: transform 0.3s ease;
-                pointer-events: auto;
-                max-width: 300px;
-                word-wrap: break-word;
-            `;
-            toast.textContent = message;
-            toastContainer.appendChild(toast);
-
-            // Show toast
-            setTimeout(() => {
-                toast.style.transform = 'translateX(0)';
-            }, 100);
-
-            // Hide and remove toast
-            setTimeout(() => {
-                toast.style.transform = 'translateX(100%)';
-                setTimeout(() => {
-                    if (toastContainer.contains(toast)) {
-                        toastContainer.removeChild(toast);
-                    }
-                }, 300);
-            }, 3000);
-        }
-
-        // Debug function to check data structure
-        function debugDashboardData(data) {
-            console.log('=== DASHBOARD DATA DEBUG ===');
-            console.log('Stats:', data.stats);
-            console.log('Charts:', data.charts);
-            console.log('Recent Sales:', data.recentSales);
-            
-            // Check if elements exist
-            console.log('Elements check:');
-            console.log('totalSalesValue:', document.getElementById('totalSalesValue'));
-            console.log('totalOrdersValue:', document.getElementById('totalOrdersValue'));
-            console.log('productsSoldValue:', document.getElementById('productsSoldValue'));
-            console.log('newCustomersValue:', document.getElementById('newCustomersValue'));
-            console.log('salesChart canvas:', document.getElementById('salesChart'));
-            console.log('productsChart canvas:', document.getElementById('productsChart'));
-            console.log('recentSalesTable:', document.getElementById('recentSalesTable'));
-        }
-
-        // Enhanced error handling
-        window.addEventListener('error', function(e) {
-            console.error('Global error:', e.error);
-        });
-
-        // Chart.js error handling
-        Chart.defaults.onError = function(chart, args, options) {
-            console.error('Chart.js error:', args);
-        };
     </script>
 }
-
-@* Hidden form for CSRF token *@
-<form style="display: none;">
-    @Html.AntiForgeryToken()
-</form>
