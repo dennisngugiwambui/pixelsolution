@@ -1,6 +1,6 @@
 {
   "Version": 1,
-  "Hash": "3tPgT3AQiEvTTZMHp1Wn3n64UGh7eYQlgru+nh0mmFU=",
+  "Hash": "Wd/YLwTgaDUec6CA2kijCqebUwSw230fClhJPv726mU=",
   "Source": "PixelSolution",
   "BasePath": "_content/PixelSolution",
   "Mode": "Default",
@@ -178,8 +178,8 @@
       "RelatedAsset": "",
       "AssetTraitName": "",
       "AssetTraitValue": "",
-      "Fingerprint": "f9omqc6peg",
-      "Integrity": "U85mzColVXUAI70l1up1hF8JR4xW9HTX9IOBYSpubjo=",
+      "Fingerprint": "7qa1195xaz",
+      "Integrity": "j+EhIlQ2SX9lDWaSotNBIhunXirhRNLmRPoM9Ay5pLw=",
       "CopyToOutputDirectory": "Never",
       "CopyToPublishDirectory": "PreserveNewest",
       "OriginalItemSpec": "wwwroot\\js\\dashboard.js"
@@ -220,8 +220,8 @@
       "RelatedAsset": "",
       "AssetTraitName": "",
       "AssetTraitValue": "",
-      "Fingerprint": "i2kc9soqww",
-      "Integrity": "monVkEZANLdLg3r5tuM8vAAgYcOAAV1o8EwFiKYD+OY=",
+      "Fingerprint": "2ibc5r8k03",
+      "Integrity": "xklGZ1eCJJ2ZQ+c+8nTzV74ze9stqWLkA8ofVVLRJ3U=",
       "CopyToOutputDirectory": "Never",
       "CopyToPublishDirectory": "PreserveNewest",
       "OriginalItemSpec": "wwwroot\\js\\sales.js"
@@ -267,6 +267,48 @@
       "CopyToOutputDirectory": "Never",
       "CopyToPublishDirectory": "PreserveNewest",
       "OriginalItemSpec": "wwwroot\\js\\sales_backup.js"
+    },
+    {
+      "Identity": "C:\\Users\\Denno\\source\\repos\\PixelSolution\\PixelSolution\\wwwroot\\js\\sales-backup.js",
+      "SourceId": "PixelSolution",
+      "SourceType": "Discovered",
+      "ContentRoot": "C:\\Users\\Denno\\source\\repos\\PixelSolution\\PixelSolution\\wwwroot\\",
+      "BasePath": "_content/PixelSolution",
+      "RelativePath": "js/sales-backup#[.{fingerprint}]?.js",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "Fingerprint": "vjfyxwp7gs",
+      "Integrity": "xet4kHdXNlHW6GWPTV8VUMktgsMLx72VgUarz6wLTxQ=",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\js\\sales-backup.js"
+    },
+    {
+      "Identity": "C:\\Users\\Denno\\source\\repos\\PixelSolution\\PixelSolution\\wwwroot\\js\\sales-fixed.js",
+      "SourceId": "PixelSolution",
+      "SourceType": "Discovered",
+      "ContentRoot": "C:\\Users\\Denno\\source\\repos\\PixelSolution\\PixelSolution\\wwwroot\\",
+      "BasePath": "_content/PixelSolution",
+      "RelativePath": "js/sales-fixed#[.{fingerprint}]?.js",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "Fingerprint": "d20pv3a2cy",
+      "Integrity": "lVfT5q8G14AweY2w7Q30pVm91spbQuM+j/ab/Bl9O4s=",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\js\\sales-fixed.js"
     },
     {
       "Identity": "C:\\Users\\Denno\\source\\repos\\PixelSolution\\PixelSolution\\wwwroot\\js\\site.js",
@@ -1899,7 +1941,7 @@
       ]
     },
     {
-      "Route": "js/dashboard.f9omqc6peg.js",
+      "Route": "js/dashboard.7qa1195xaz.js",
       "AssetFile": "C:\\Users\\Denno\\source\\repos\\PixelSolution\\PixelSolution\\wwwroot\\js\\dashboard.js",
       "Selectors": [],
       "ResponseHeaders": [
@@ -1909,7 +1951,7 @@
         },
         {
           "Name": "Content-Length",
-          "Value": "19816"
+          "Value": "19951"
         },
         {
           "Name": "Content-Type",
@@ -1917,11 +1959,11 @@
         },
         {
           "Name": "ETag",
-          "Value": "\"U85mzColVXUAI70l1up1hF8JR4xW9HTX9IOBYSpubjo=\""
+          "Value": "\"j+EhIlQ2SX9lDWaSotNBIhunXirhRNLmRPoM9Ay5pLw=\""
         },
         {
           "Name": "Last-Modified",
-          "Value": "Mon, 18 Aug 2025 19:02:21 GMT"
+          "Value": "Tue, 19 Aug 2025 19:40:42 GMT"
         },
         {
           "Name": "Cache-Control",
@@ -1931,7 +1973,7 @@
       "EndpointProperties": [
         {
           "Name": "fingerprint",
-          "Value": "f9omqc6peg"
+          "Value": "7qa1195xaz"
         },
         {
           "Name": "label",
@@ -1939,7 +1981,7 @@
         },
         {
           "Name": "integrity",
-          "Value": "sha256-U85mzColVXUAI70l1up1hF8JR4xW9HTX9IOBYSpubjo="
+          "Value": "sha256-j+EhIlQ2SX9lDWaSotNBIhunXirhRNLmRPoM9Ay5pLw="
         }
       ]
     },
@@ -1954,7 +1996,7 @@
         },
         {
           "Name": "Content-Length",
-          "Value": "19816"
+          "Value": "19951"
         },
         {
           "Name": "Content-Type",
@@ -1962,11 +2004,11 @@
         },
         {
           "Name": "ETag",
-          "Value": "\"U85mzColVXUAI70l1up1hF8JR4xW9HTX9IOBYSpubjo=\""
+          "Value": "\"j+EhIlQ2SX9lDWaSotNBIhunXirhRNLmRPoM9Ay5pLw=\""
         },
         {
           "Name": "Last-Modified",
-          "Value": "Mon, 18 Aug 2025 19:02:21 GMT"
+          "Value": "Tue, 19 Aug 2025 19:40:42 GMT"
         },
         {
           "Name": "Cache-Control",
@@ -1976,7 +2018,7 @@
       "EndpointProperties": [
         {
           "Name": "integrity",
-          "Value": "sha256-U85mzColVXUAI70l1up1hF8JR4xW9HTX9IOBYSpubjo="
+          "Value": "sha256-j+EhIlQ2SX9lDWaSotNBIhunXirhRNLmRPoM9Ay5pLw="
         }
       ]
     },
@@ -2063,7 +2105,7 @@
       ]
     },
     {
-      "Route": "js/sales.i2kc9soqww.js",
+      "Route": "js/sales.2ibc5r8k03.js",
       "AssetFile": "C:\\Users\\Denno\\source\\repos\\PixelSolution\\PixelSolution\\wwwroot\\js\\sales.js",
       "Selectors": [],
       "ResponseHeaders": [
@@ -2073,7 +2115,7 @@
         },
         {
           "Name": "Content-Length",
-          "Value": "47911"
+          "Value": "38024"
         },
         {
           "Name": "Content-Type",
@@ -2081,11 +2123,11 @@
         },
         {
           "Name": "ETag",
-          "Value": "\"monVkEZANLdLg3r5tuM8vAAgYcOAAV1o8EwFiKYD+OY=\""
+          "Value": "\"xklGZ1eCJJ2ZQ+c+8nTzV74ze9stqWLkA8ofVVLRJ3U=\""
         },
         {
           "Name": "Last-Modified",
-          "Value": "Sun, 17 Aug 2025 10:13:16 GMT"
+          "Value": "Tue, 19 Aug 2025 08:35:54 GMT"
         },
         {
           "Name": "Cache-Control",
@@ -2095,7 +2137,7 @@
       "EndpointProperties": [
         {
           "Name": "fingerprint",
-          "Value": "i2kc9soqww"
+          "Value": "2ibc5r8k03"
         },
         {
           "Name": "label",
@@ -2103,7 +2145,7 @@
         },
         {
           "Name": "integrity",
-          "Value": "sha256-monVkEZANLdLg3r5tuM8vAAgYcOAAV1o8EwFiKYD+OY="
+          "Value": "sha256-xklGZ1eCJJ2ZQ+c+8nTzV74ze9stqWLkA8ofVVLRJ3U="
         }
       ]
     },
@@ -2118,7 +2160,7 @@
         },
         {
           "Name": "Content-Length",
-          "Value": "47911"
+          "Value": "38024"
         },
         {
           "Name": "Content-Type",
@@ -2126,11 +2168,11 @@
         },
         {
           "Name": "ETag",
-          "Value": "\"monVkEZANLdLg3r5tuM8vAAgYcOAAV1o8EwFiKYD+OY=\""
+          "Value": "\"xklGZ1eCJJ2ZQ+c+8nTzV74ze9stqWLkA8ofVVLRJ3U=\""
         },
         {
           "Name": "Last-Modified",
-          "Value": "Sun, 17 Aug 2025 10:13:16 GMT"
+          "Value": "Tue, 19 Aug 2025 08:35:54 GMT"
         },
         {
           "Name": "Cache-Control",
@@ -2140,7 +2182,7 @@
       "EndpointProperties": [
         {
           "Name": "integrity",
-          "Value": "sha256-monVkEZANLdLg3r5tuM8vAAgYcOAAV1o8EwFiKYD+OY="
+          "Value": "sha256-xklGZ1eCJJ2ZQ+c+8nTzV74ze9stqWLkA8ofVVLRJ3U="
         }
       ]
     },
@@ -2305,6 +2347,170 @@
         {
           "Name": "integrity",
           "Value": "sha256-+HJcDHlnmbZFWqQQoHi/gmih6hpHkk24zMHartTT5I4="
+        }
+      ]
+    },
+    {
+      "Route": "js/sales-backup.js",
+      "AssetFile": "C:\\Users\\Denno\\source\\repos\\PixelSolution\\PixelSolution\\wwwroot\\js\\sales-backup.js",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "49946"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "text/javascript"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"xet4kHdXNlHW6GWPTV8VUMktgsMLx72VgUarz6wLTxQ=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Tue, 19 Aug 2025 07:18:52 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "no-cache"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "integrity",
+          "Value": "sha256-xet4kHdXNlHW6GWPTV8VUMktgsMLx72VgUarz6wLTxQ="
+        }
+      ]
+    },
+    {
+      "Route": "js/sales-backup.vjfyxwp7gs.js",
+      "AssetFile": "C:\\Users\\Denno\\source\\repos\\PixelSolution\\PixelSolution\\wwwroot\\js\\sales-backup.js",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "49946"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "text/javascript"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"xet4kHdXNlHW6GWPTV8VUMktgsMLx72VgUarz6wLTxQ=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Tue, 19 Aug 2025 07:18:52 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=31536000, immutable"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "fingerprint",
+          "Value": "vjfyxwp7gs"
+        },
+        {
+          "Name": "label",
+          "Value": "js/sales-backup.js"
+        },
+        {
+          "Name": "integrity",
+          "Value": "sha256-xet4kHdXNlHW6GWPTV8VUMktgsMLx72VgUarz6wLTxQ="
+        }
+      ]
+    },
+    {
+      "Route": "js/sales-fixed.d20pv3a2cy.js",
+      "AssetFile": "C:\\Users\\Denno\\source\\repos\\PixelSolution\\PixelSolution\\wwwroot\\js\\sales-fixed.js",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "22360"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "text/javascript"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"lVfT5q8G14AweY2w7Q30pVm91spbQuM+j/ab/Bl9O4s=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Tue, 19 Aug 2025 07:20:23 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=31536000, immutable"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "fingerprint",
+          "Value": "d20pv3a2cy"
+        },
+        {
+          "Name": "label",
+          "Value": "js/sales-fixed.js"
+        },
+        {
+          "Name": "integrity",
+          "Value": "sha256-lVfT5q8G14AweY2w7Q30pVm91spbQuM+j/ab/Bl9O4s="
+        }
+      ]
+    },
+    {
+      "Route": "js/sales-fixed.js",
+      "AssetFile": "C:\\Users\\Denno\\source\\repos\\PixelSolution\\PixelSolution\\wwwroot\\js\\sales-fixed.js",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "22360"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "text/javascript"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"lVfT5q8G14AweY2w7Q30pVm91spbQuM+j/ab/Bl9O4s=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Tue, 19 Aug 2025 07:20:23 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "no-cache"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "integrity",
+          "Value": "sha256-lVfT5q8G14AweY2w7Q30pVm91spbQuM+j/ab/Bl9O4s="
         }
       ]
     },
@@ -7087,7 +7293,7 @@
         },
         {
           "Name": "Last-Modified",
-          "Value": "Mon, 18 Aug 2025 22:04:52 GMT"
+          "Value": "Tue, 19 Aug 2025 06:54:20 GMT"
         },
         {
           "Name": "Cache-Control",
@@ -7124,7 +7330,7 @@
         },
         {
           "Name": "Last-Modified",
-          "Value": "Mon, 18 Aug 2025 22:04:52 GMT"
+          "Value": "Tue, 19 Aug 2025 06:54:20 GMT"
         },
         {
           "Name": "Cache-Control",
@@ -7169,7 +7375,7 @@
         },
         {
           "Name": "Last-Modified",
-          "Value": "Mon, 18 Aug 2025 22:04:52 GMT"
+          "Value": "Tue, 19 Aug 2025 06:54:20 GMT"
         },
         {
           "Name": "Cache-Control",
@@ -7214,7 +7420,7 @@
         },
         {
           "Name": "Last-Modified",
-          "Value": "Mon, 18 Aug 2025 22:04:52 GMT"
+          "Value": "Tue, 19 Aug 2025 06:54:20 GMT"
         },
         {
           "Name": "Cache-Control",

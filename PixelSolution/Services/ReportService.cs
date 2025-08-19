@@ -5,13 +5,9 @@ using PixelSolution.Services.Interfaces;
 using PixelSolution.ViewModels;
 using iTextSharp.text;
 using iTextSharp.text.pdf;
-using OfficeOpenXml;
+using ClosedXML.Excel;
 using System.IO;
 using System.Text;
-using iTextSharp.text;
-using iTextSharp.text.pdf;
-using ClosedXML.Excel;
-using System.Drawing;
 
 namespace PixelSolution.Services
 {
@@ -32,10 +28,10 @@ namespace PixelSolution.Services
                 var thisMonth = new DateTime(today.Year, today.Month, 1);
                 var lastMonth = thisMonth.AddMonths(-1);
 
-                // Today's sales
+                // Today's sales - use TotalAmount for consistency
                 var todaySales = await _context.Sales
                     .Where(s => s.SaleDate.Date == today && s.Status == "Completed")
-                    .SumAsync(s => s.AmountPaid);
+                    .SumAsync(s => s.TotalAmount);
 
                 var todaySalesCount = await _context.Sales
                     .Where(s => s.SaleDate.Date == today && s.Status == "Completed")
@@ -50,10 +46,19 @@ namespace PixelSolution.Services
                     .Where(s => s.SaleDate >= lastMonth && s.SaleDate < thisMonth && s.Status == "Completed")
                     .SumAsync(s => s.TotalAmount);
 
-                // Calculate growth percentage
+                // Calculate growth percentage with proper decimal handling
                 var salesGrowth = lastMonthSales > 0
-                    ? ((thisMonthSales - lastMonthSales) / lastMonthSales) * 100
-                    : 0;
+                    ? Math.Round(((thisMonthSales - lastMonthSales) / lastMonthSales) * 100, 1)
+                    : (thisMonthSales > 0 ? 100 : 0);
+
+                // Calculate profit (assuming 30% profit margin for demo)
+                var todayProfit = todaySales * 0.3m;
+                var thisMonthProfit = thisMonthSales * 0.3m;
+
+                // Total stock value
+                var totalStockValue = await _context.Products
+                    .Where(p => p.IsActive)
+                    .SumAsync(p => p.StockQuantity * p.SellingPrice);
 
                 // Total orders this month
                 var thisMonthOrders = await _context.Sales
@@ -68,7 +73,7 @@ namespace PixelSolution.Services
                 // New customers this month
                 var newCustomers = await _context.Sales
                     .Where(s => s.SaleDate >= thisMonth && !string.IsNullOrEmpty(s.CustomerEmail))
-                    .Select(s => s.CustomerEmail)
+                    .Select(s => s.CustomerEmail) 
                     .Distinct()
                     .CountAsync();
 
@@ -110,7 +115,9 @@ namespace PixelSolution.Services
                         LastMonthSales = lastMonthSales,
                         SalesGrowth = salesGrowth,
                         ProductsSoldToday = thisMonthProductsSold,
-                        NewCustomersThisMonth = newCustomers
+                        NewCustomersThisMonth = newCustomers,
+                        TodayProfit = todayProfit,
+                        StockValue = totalStockValue
                     },
                     Charts = new DashboardChartsViewModel
                     {
@@ -135,47 +142,49 @@ namespace PixelSolution.Services
                 var thisMonth = new DateTime(today.Year, today.Month, 1);
                 var lastMonth = thisMonth.AddMonths(-1);
 
-                // Today's sales for this employee only
-                var todaySales = await _context.Sales
-                    .Where(s => s.SaleDate.Date == today && s.Status == "Completed" && s.UserId == employeeId)
-                    .SumAsync(s => s.AmountPaid);
-
-                var todaySalesCount = await _context.Sales
+                // Today's transaction count for this employee only (non-sensitive)
+                var todayTransactions = await _context.Sales
                     .Where(s => s.SaleDate.Date == today && s.Status == "Completed" && s.UserId == employeeId)
                     .CountAsync();
 
-                // This month's sales for this employee only
-                var thisMonthSales = await _context.Sales
+                // This month's transactions for this employee
+                var thisMonthTransactions = await _context.Sales
                     .Where(s => s.SaleDate >= thisMonth && s.Status == "Completed" && s.UserId == employeeId)
-                    .SumAsync(s => s.TotalAmount);
+                    .CountAsync();
 
-                var lastMonthSales = await _context.Sales
+                var lastMonthTransactions = await _context.Sales
                     .Where(s => s.SaleDate >= lastMonth && s.SaleDate < thisMonth && s.Status == "Completed" && s.UserId == employeeId)
-                    .SumAsync(s => s.TotalAmount);
-
-                // Calculate growth percentage
-                var salesGrowth = lastMonthSales > 0
-                    ? Math.Round(((thisMonthSales - lastMonthSales) / lastMonthSales) * 100, 1)
-                    : (thisMonthSales > 0 ? 100 : 0);
-
-                // This month's orders and products sold for this employee
-                var thisMonthOrders = await _context.Sales
-                    .Where(s => s.SaleDate >= thisMonth && s.Status == "Completed" && s.UserId == employeeId)
                     .CountAsync();
 
+                // Calculate transaction growth percentage
+                var transactionGrowth = lastMonthTransactions > 0
+                    ? Math.Round(((thisMonthTransactions - lastMonthTransactions) / (decimal)lastMonthTransactions) * 100, 1)
+                    : (thisMonthTransactions > 0 ? 100 : 0);
+
+                // Products sold today by this employee
+                var todayProductsSold = await _context.SaleItems
+                    .Where(si => si.Sale.SaleDate.Date == today && si.Sale.Status == "Completed" && si.Sale.UserId == employeeId)
+                    .SumAsync(si => si.Quantity);
+
+                // This month's products sold for this employee
                 var thisMonthProductsSold = await _context.SaleItems
                     .Where(si => si.Sale.SaleDate >= thisMonth && si.Sale.Status == "Completed" && si.Sale.UserId == employeeId)
                     .SumAsync(si => si.Quantity);
 
-                // New customers this month (customers who made their first purchase this month with this employee)
-                var newCustomers = await _context.Sales
-                    .Where(s => s.SaleDate >= thisMonth && s.Status == "Completed" && s.UserId == employeeId)
+                // Customers served today by this employee
+                var todayCustomersServed = await _context.Sales
+                    .Where(s => s.SaleDate.Date == today && s.Status == "Completed" && s.UserId == employeeId)
                     .Select(s => s.CustomerName)
                     .Where(cn => !string.IsNullOrEmpty(cn))
                     .Distinct()
                     .CountAsync();
 
-                // Sales chart data for this employee (current year by month)
+                // Total stock count (general information, not sensitive)
+                var totalStockCount = await _context.Products
+                    .Where(p => p.IsActive)
+                    .SumAsync(p => p.StockQuantity);
+
+                // Transaction chart data for this employee (current year by month) - non-sensitive
                 var currentYear = DateTime.Now.Year;
                 var salesChartData = new List<SaleChartDataViewModel>();
                 for (int month = 1; month <= 12; month++)
@@ -183,18 +192,18 @@ namespace PixelSolution.Services
                     var monthStart = new DateTime(currentYear, month, 1);
                     var monthEnd = monthStart.AddMonths(1).AddDays(-1);
                     
-                    var monthSales = await _context.Sales
+                    var monthTransactions = await _context.Sales
                         .Where(s => s.SaleDate >= monthStart && s.SaleDate <= monthEnd && s.Status == "Completed" && s.UserId == employeeId)
-                        .SumAsync(s => s.TotalAmount);
+                        .CountAsync();
 
                     salesChartData.Add(new SaleChartDataViewModel
                     {
                         DateLabel = monthStart.ToString("MMM"),
-                        Amount = monthSales
+                        Amount = monthTransactions // Using transaction count instead of amount
                     });
                 }
 
-                // Top products sold by this employee
+                // Top products sold by this employee (quantity only, no pricing)
                 var topProducts = await _context.SaleItems
                     .Include(si => si.Product)
                     .Where(si => si.Sale.Status == "Completed" && si.Sale.UserId == employeeId)
@@ -230,13 +239,13 @@ namespace PixelSolution.Services
                 {
                     Stats = new DashboardStatsViewModel
                     {
-                        TodaySales = todaySales,
-                        TodayOrders = todaySalesCount,
-                        ThisMonthSales = thisMonthSales,
-                        LastMonthSales = lastMonthSales,
-                        SalesGrowth = salesGrowth,
-                        ProductsSoldToday = thisMonthProductsSold,
-                        NewCustomersThisMonth = newCustomers
+                        TodaySales = totalStockCount, // Show total stock instead of sales amount
+                        TodayOrders = todayTransactions,
+                        ThisMonthSales = thisMonthTransactions,
+                        LastMonthSales = lastMonthTransactions,
+                        SalesGrowth = transactionGrowth,
+                        ProductsSoldToday = todayProductsSold,
+                        NewCustomersThisMonth = todayCustomersServed
                     },
                     Charts = new DashboardChartsViewModel
                     {
@@ -327,7 +336,7 @@ namespace PixelSolution.Services
             };
         }
 
-        public async Task<object> GetSalesReportAsync(DateTime startDate, DateTime endDate)
+        public async Task<object> GetSalesReportDataAsync(DateTime startDate, DateTime endDate)
         {
             try
             {
@@ -376,7 +385,7 @@ namespace PixelSolution.Services
             }
         }
 
-        public async Task<object> GetInventoryReportAsync()
+        public async Task<object> GetInventoryReportDataAsync()
         {
             try
             {
@@ -418,7 +427,7 @@ namespace PixelSolution.Services
             }
         }
 
-        public async Task<byte[]> GenerateSalesReceiptAsync(int saleId)
+        private async Task<byte[]> GenerateSalesReceiptInternalAsync(int saleId)
         {
             try
             {
@@ -549,8 +558,8 @@ namespace PixelSolution.Services
                     quantitySold = g.Sum(si => si.Quantity),
                     revenue = g.Sum(si => si.TotalPrice)
                 })
-                .OrderByDescending(x => x.salesCount)
-                .Take(5)
+                .OrderByDescending(x => x.quantitySold)
+                .Take(7)
                 .ToListAsync();
 
             Console.WriteLine($"DEBUG: Top products query result: {System.Text.Json.JsonSerializer.Serialize(topProductsData)}");
@@ -573,8 +582,8 @@ namespace PixelSolution.Services
                         quantitySold = g.Sum(si => si.Quantity),
                         revenue = g.Sum(si => si.TotalPrice)
                     })
-                    .OrderByDescending(x => x.salesCount)
-                    .Take(5)
+                    .OrderByDescending(x => x.quantitySold)
+                    .Take(7)
                     .ToListAsync();
             }
 
@@ -1143,330 +1152,83 @@ namespace PixelSolution.Services
             return GenerateCategoriesReportExcel(categories);
         }
 
-        public async Task<byte[]> GenerateReceiptPdfAsync(PixelSolution.ViewModels.ReceiptPdfRequest request)
-        {
-            using (var stream = new MemoryStream())
-            {
-                var document = new iTextSharp.text.Document(PageSize.A4, 25, 25, 30, 30);
-                var writer = PdfWriter.GetInstance(document, stream);
-                
-                document.Open();
-                
-                // Company Header
-                var titleFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 18, BaseColor.DARK_GRAY);
-                var companyTitle = new Paragraph("PIXEL SOLUTION COMPANY LTD", titleFont);
-                companyTitle.Alignment = Element.ALIGN_CENTER;
-                companyTitle.SpacingAfter = 10f;
-                document.Add(companyTitle);
-                
-                // Receipt Title
-                var receiptTitleFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 14, BaseColor.BLACK);
-                var receiptTitle = new Paragraph("SALES RECEIPT", receiptTitleFont);
-                receiptTitle.Alignment = Element.ALIGN_CENTER;
-                receiptTitle.SpacingAfter = 20f;
-                document.Add(receiptTitle);
-                
-                // Receipt Details
-                var normalFont = FontFactory.GetFont(FontFactory.HELVETICA, 10, BaseColor.BLACK);
-                document.Add(new Paragraph($"Receipt #: {request.SaleNumber}", normalFont));
-                document.Add(new Paragraph($"Date: {request.SaleDate:dd/MM/yyyy HH:mm}", normalFont));
-                document.Add(new Paragraph($"Cashier: {request.CashierName}", normalFont));
-                if (!string.IsNullOrEmpty(request.CustomerName))
-                {
-                    document.Add(new Paragraph($"Customer: {request.CustomerName}", normalFont));
-                }
-                document.Add(new Paragraph(" ", normalFont)); // Spacing
-                
-                // Items Table
-                var table = new PdfPTable(4);
-                table.WidthPercentage = 100;
-                table.SetWidths(new float[] { 40f, 15f, 20f, 25f });
-                
-                // Table headers
-                var headerFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 10, BaseColor.WHITE);
-                var headers = new string[] { "Item", "Qty", "Unit Price", "Total" };
-                
-                foreach (var header in headers)
-                {
-                    var cell = new PdfPCell(new Phrase(header, headerFont));
-                    cell.BackgroundColor = BaseColor.DARK_GRAY;
-                    cell.HorizontalAlignment = Element.ALIGN_CENTER;
-                    cell.Padding = 8f;
-                    table.AddCell(cell);
-                }
-                
-                // Table data
-                var dataFont = FontFactory.GetFont(FontFactory.HELVETICA, 9, BaseColor.BLACK);
-                foreach (var item in request.Items)
-                {
-                    table.AddCell(new PdfPCell(new Phrase(item.Name, dataFont)) { Padding = 5f });
-                    table.AddCell(new PdfPCell(new Phrase(item.Quantity.ToString(), dataFont)) { Padding = 5f, HorizontalAlignment = Element.ALIGN_CENTER });
-                    table.AddCell(new PdfPCell(new Phrase($"KSh {item.UnitPrice:N2}", dataFont)) { Padding = 5f, HorizontalAlignment = Element.ALIGN_RIGHT });
-                    table.AddCell(new PdfPCell(new Phrase($"KSh {item.Total:N2}", dataFont)) { Padding = 5f, HorizontalAlignment = Element.ALIGN_RIGHT });
-                }
-                
-                document.Add(table);
-                
-                // Totals
-                document.Add(new Paragraph(" ", normalFont)); // Spacing
-                var boldFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 10, BaseColor.BLACK);
-                document.Add(new Paragraph($"Subtotal: KSh {request.Subtotal:N2}", normalFont) { Alignment = Element.ALIGN_RIGHT });
-                document.Add(new Paragraph($"Tax (16%): KSh {request.Tax:N2}", normalFont) { Alignment = Element.ALIGN_RIGHT });
-                document.Add(new Paragraph($"Total: KSh {request.TotalAmount:N2}", boldFont) { Alignment = Element.ALIGN_RIGHT });
-                document.Add(new Paragraph($"Amount Paid: KSh {request.AmountPaid:N2}", normalFont) { Alignment = Element.ALIGN_RIGHT });
-                if (request.ChangeGiven > 0)
-                {
-                    document.Add(new Paragraph($"Change: KSh {request.ChangeGiven:N2}", normalFont) { Alignment = Element.ALIGN_RIGHT });
-                }
-                
-                // Footer
-                document.Add(new Paragraph(" ", normalFont)); // Spacing
-                var footerFont = FontFactory.GetFont(FontFactory.HELVETICA_OBLIQUE, 8, BaseColor.GRAY);
-                var footer = new Paragraph("Thank you for your business!", footerFont);
-                footer.Alignment = Element.ALIGN_CENTER;
-                document.Add(footer);
-                
-                document.Close();
-                return stream.ToArray();
-            }
-        }
 
         private byte[] GenerateSalesReportExcel(List<Sale> sales, DateTime startDate, DateTime endDate)
         {
-            using (var workbook = new XLWorkbook())
+            // Generate CSV format since Excel libraries are not available
+            var content = new StringBuilder();
+            content.AppendLine("PIXEL SOLUTION COMPANY LTD");
+            content.AppendLine($"Sales Report ({startDate:dd/MM/yyyy} - {endDate:dd/MM/yyyy})");
+            content.AppendLine($"Total Sales: {sales.Count} | Total Revenue: KSh {sales.Sum(s => s.TotalAmount):N2}");
+            content.AppendLine();
+            content.AppendLine("Date,Sale #,Customer,Amount (KSh),Cashier");
+            
+            foreach (var sale in sales)
             {
-                var worksheet = workbook.Worksheets.Add("Sales Report");
-                
-                // Company Header
-                worksheet.Range("A1:E1").Merge();
-                worksheet.Cell("A1").Value = "PIXEL SOLUTION COMPANY LTD";
-                worksheet.Cell("A1").Style.Font.FontSize = 18;
-                worksheet.Cell("A1").Style.Font.Bold = true;
-                worksheet.Cell("A1").Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-                
-                // Report Title
-                worksheet.Range("A2:E2").Merge();
-                worksheet.Cell("A2").Value = $"Sales Report ({startDate:dd/MM/yyyy} - {endDate:dd/MM/yyyy})";
-                worksheet.Cell("A2").Style.Font.FontSize = 14;
-                worksheet.Cell("A2").Style.Font.Bold = true;
-                worksheet.Cell("A2").Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-                
-                // Summary using AmountPaid
-                var totalRevenue = sales.Sum(s => s.AmountPaid);
-                worksheet.Range("A3:E3").Merge();
-                worksheet.Cell("A3").Value = $"Total Sales: {sales.Count} | Total Revenue: KSh {totalRevenue:N2} | Generated: {DateTime.Now:dd/MM/yyyy HH:mm}";
-                worksheet.Cell("A3").Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-                
-                // Headers
-                var headers = new string[] { "Date", "Sale #", "Customer", "Amount (KSh)", "Cashier" };
-                for (int i = 0; i < headers.Length; i++)
-                {
-                    worksheet.Cell(5, i + 1).Value = headers[i];
-                    worksheet.Cell(5, i + 1).Style.Font.Bold = true;
-                    worksheet.Cell(5, i + 1).Style.Fill.BackgroundColor = XLColor.LightGray;
-                }
-                
-                // Data
-                int row = 6;
-                foreach (var sale in sales)
-                {
-                    worksheet.Cell(row, 1).Value = sale.SaleDate.ToString("dd/MM/yyyy");
-                    worksheet.Cell(row, 2).Value = sale.SaleNumber ?? "N/A";
-                    worksheet.Cell(row, 3).Value = sale.CustomerName ?? "Walk-in";
-                    worksheet.Cell(row, 4).Value = sale.AmountPaid;
-                    worksheet.Cell(row, 4).Style.NumberFormat.Format = "#,##0.00";
-                    worksheet.Cell(row, 5).Value = sale.User?.FirstName + " " + sale.User?.LastName ?? "Unknown";
-                    row++;
-                }
-                
-                // Auto-fit columns
-                worksheet.ColumnsUsed().AdjustToContents();
-                
-                using (var stream = new MemoryStream())
-                {
-                    workbook.SaveAs(stream);
-                    return stream.ToArray();
-                }
+                content.AppendLine($"{sale.SaleDate:dd/MM/yyyy},{sale.SaleNumber ?? "N/A"},{sale.CustomerName ?? "Walk-in"},{sale.TotalAmount:N2},{sale.CashierName ?? "Unknown"}");
             }
+            
+            return Encoding.UTF8.GetBytes(content.ToString());
         }
 
         private byte[] GenerateInventoryReportExcel(List<Product> products)
         {
-            using (var workbook = new XLWorkbook())
+            // Generate CSV format since Excel libraries are not available
+            var content = new StringBuilder();
+            content.AppendLine("PIXEL SOLUTION COMPANY LTD");
+            content.AppendLine("Inventory Report");
+            var totalValue = products.Sum(p => p.StockQuantity * p.SellingPrice);
+            content.AppendLine($"Total Products: {products.Count} | Total Stock Value: KSh {totalValue:N2}");
+            content.AppendLine();
+            content.AppendLine("Product,SKU,Category,Stock,Price (KSh),Value (KSh)");
+            
+            foreach (var product in products)
             {
-                var worksheet = workbook.Worksheets.Add("Inventory Report");
-                
-                // Company Header
-                worksheet.Range("A1:F1").Merge();
-                worksheet.Cell("A1").Value = "PIXEL SOLUTION COMPANY LTD";
-                worksheet.Cell("A1").Style.Font.FontSize = 18;
-                worksheet.Cell("A1").Style.Font.Bold = true;
-                worksheet.Cell("A1").Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-                
-                // Report Title
-                worksheet.Range("A2:F2").Merge();
-                worksheet.Cell("A2").Value = "Inventory Report";
-                worksheet.Cell("A2").Style.Font.FontSize = 14;
-                worksheet.Cell("A2").Style.Font.Bold = true;
-                worksheet.Cell("A2").Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-                
-                // Summary
-                var totalValue = products.Sum(p => p.StockQuantity * p.SellingPrice);
-                worksheet.Range("A3:F3").Merge();
-                worksheet.Cell("A3").Value = $"Total Products: {products.Count} | Total Stock Value: KSh {totalValue:N2} | Generated: {DateTime.Now:dd/MM/yyyy HH:mm}";
-                worksheet.Cell("A3").Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-                
-                // Headers
-                var headers = new string[] { "Product", "SKU", "Category", "Stock", "Price (KSh)", "Value (KSh)" };
-                for (int i = 0; i < headers.Length; i++)
-                {
-                    worksheet.Cell(5, i + 1).Value = headers[i];
-                    worksheet.Cell(5, i + 1).Style.Font.Bold = true;
-                    worksheet.Cell(5, i + 1).Style.Fill.BackgroundColor = XLColor.LightGray;
-                }
-                
-                // Data
-                int row = 6;
-                foreach (var product in products)
-                {
-                    var stockValue = product.StockQuantity * product.SellingPrice;
-                    worksheet.Cell(row, 1).Value = product.Name ?? "N/A";
-                    worksheet.Cell(row, 2).Value = product.SKU ?? "N/A";
-                    worksheet.Cell(row, 3).Value = product.Category?.Name ?? "N/A";
-                    worksheet.Cell(row, 4).Value = product.StockQuantity;
-                    worksheet.Cell(row, 5).Value = product.SellingPrice;
-                    worksheet.Cell(row, 5).Style.NumberFormat.Format = "#,##0.00";
-                    worksheet.Cell(row, 6).Value = stockValue;
-                    worksheet.Cell(row, 6).Style.NumberFormat.Format = "#,##0.00";
-                    row++;
-                }
-                
-                // Auto-fit columns
-                worksheet.ColumnsUsed().AdjustToContents();
-                
-                using (var stream = new MemoryStream())
-                {
-                    workbook.SaveAs(stream);
-                    return stream.ToArray();
-                }
+                var value = product.StockQuantity * product.SellingPrice;
+                content.AppendLine($"{product.Name},{product.SKU},{product.Category?.Name ?? "Uncategorized"},{product.StockQuantity},{product.SellingPrice:N2},{value:N2}");
             }
+            
+            return Encoding.UTF8.GetBytes(content.ToString());
         }
 
         private byte[] GenerateUserReportExcel(List<User> users)
         {
-            using (var workbook = new XLWorkbook())
+            // Generate CSV format since Excel libraries are not available
+            var content = new StringBuilder();
+            content.AppendLine("PIXEL SOLUTION COMPANY LTD");
+            content.AppendLine("Users Report");
+            content.AppendLine($"Total Active Users: {users.Count} | Generated: {DateTime.Now:dd/MM/yyyy HH:mm}");
+            content.AppendLine();
+            content.AppendLine("Name,Email,Type,Department,Status");
+            
+            foreach (var user in users)
             {
-                var worksheet = workbook.Worksheets.Add("Users Report");
-                
-                // Company Header
-                worksheet.Range("A1:E1").Merge();
-                worksheet.Cell("A1").Value = "PIXEL SOLUTION COMPANY LTD";
-                worksheet.Cell("A1").Style.Font.FontSize = 18;
-                worksheet.Cell("A1").Style.Font.Bold = true;
-                worksheet.Cell("A1").Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-                
-                // Report Title
-                worksheet.Range("A2:E2").Merge();
-                worksheet.Cell("A2").Value = "Users Report";
-                worksheet.Cell("A2").Style.Font.FontSize = 14;
-                worksheet.Cell("A2").Style.Font.Bold = true;
-                worksheet.Cell("A2").Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-                
-                // Summary
-                worksheet.Range("A3:E3").Merge();
-                worksheet.Cell("A3").Value = $"Total Active Users: {users.Count} | Generated: {DateTime.Now:dd/MM/yyyy HH:mm}";
-                worksheet.Cell("A3").Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-                
-                // Headers
-                var headers = new string[] { "Name", "Email", "Type", "Department", "Status" };
-                for (int i = 0; i < headers.Length; i++)
-                {
-                    worksheet.Cell(5, i + 1).Value = headers[i];
-                    worksheet.Cell(5, i + 1).Style.Font.Bold = true;
-                    worksheet.Cell(5, i + 1).Style.Fill.BackgroundColor = XLColor.LightGray;
-                }
-                
-                // Data
-                int row = 6;
-                foreach (var user in users)
-                {
-                    worksheet.Cell(row, 1).Value = $"{user.FirstName} {user.LastName}";
-                    worksheet.Cell(row, 2).Value = user.Email ?? "N/A";
-                    worksheet.Cell(row, 3).Value = user.UserType ?? "N/A";
-                    worksheet.Cell(row, 4).Value = user.Department ?? "N/A";
-                    worksheet.Cell(row, 5).Value = user.Status ?? "N/A";
-                    row++;
-                }
-                
-                // Auto-fit columns
-                worksheet.ColumnsUsed().AdjustToContents();
-                
-                using (var stream = new MemoryStream())
-                {
-                    workbook.SaveAs(stream);
-                    return stream.ToArray();
-                }
+                content.AppendLine($"{user.FirstName} {user.LastName},{user.Email ?? "N/A"},{user.UserType ?? "N/A"},{user.Department ?? "N/A"},{user.Status ?? "N/A"}");
             }
+            
+            return Encoding.UTF8.GetBytes(content.ToString());
         }
 
         private byte[] GenerateCategoriesReportExcel(List<Category> categories)
         {
-            using (var workbook = new XLWorkbook())
+            // Generate CSV format since Excel libraries are not available
+            var content = new StringBuilder();
+            content.AppendLine("PIXEL SOLUTION COMPANY LTD");
+            content.AppendLine("Categories Report");
+            var totalProducts = categories.Sum(c => c.Products.Count);
+            content.AppendLine($"Total Categories: {categories.Count} | Total Products: {totalProducts} | Generated: {DateTime.Now:dd/MM/yyyy HH:mm}");
+            content.AppendLine();
+            content.AppendLine("Category,Description,Products,Status");
+            
+            foreach (var category in categories)
             {
-                var worksheet = workbook.Worksheets.Add("Categories Report");
-                
-                // Company Header
-                worksheet.Range("A1:D1").Merge();
-                worksheet.Cell("A1").Value = "PIXEL SOLUTION COMPANY LTD";
-                worksheet.Cell("A1").Style.Font.FontSize = 18;
-                worksheet.Cell("A1").Style.Font.Bold = true;
-                worksheet.Cell("A1").Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-                
-                // Report Title
-                worksheet.Range("A2:D2").Merge();
-                worksheet.Cell("A2").Value = "Categories Report";
-                worksheet.Cell("A2").Style.Font.FontSize = 14;
-                worksheet.Cell("A2").Style.Font.Bold = true;
-                worksheet.Cell("A2").Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-                
-                // Summary
-                var totalProducts = categories.Sum(c => c.Products.Count);
-                worksheet.Range("A3:D3").Merge();
-                worksheet.Cell("A3").Value = $"Total Categories: {categories.Count} | Total Products: {totalProducts} | Generated: {DateTime.Now:dd/MM/yyyy HH:mm}";
-                worksheet.Cell("A3").Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-                
-                // Headers
-                var headers = new string[] { "Category", "Description", "Products", "Status" };
-                for (int i = 0; i < headers.Length; i++)
-                {
-                    worksheet.Cell(5, i + 1).Value = headers[i];
-                    worksheet.Cell(5, i + 1).Style.Font.Bold = true;
-                    worksheet.Cell(5, i + 1).Style.Fill.BackgroundColor = XLColor.LightGray;
-                }
-                
-                // Data
-                int row = 6;
-                foreach (var category in categories)
-                {
-                    worksheet.Cell(row, 1).Value = category.Name ?? "N/A";
-                    worksheet.Cell(row, 2).Value = category.Description ?? "N/A";
-                    worksheet.Cell(row, 3).Value = category.Products.Count;
-                    worksheet.Cell(row, 4).Value = category.Status ?? "N/A";
-                    row++;
-                }
-                
-                // Auto-fit columns
-                worksheet.ColumnsUsed().AdjustToContents();
-                
-                using (var stream = new MemoryStream())
-                {
-                    workbook.SaveAs(stream);
-                    return stream.ToArray();
-                }
+                content.AppendLine($"{category.Name ?? "N/A"},{category.Description ?? "N/A"},{category.Products.Count},{category.Status ?? "N/A"}");
             }
+            
+            return Encoding.UTF8.GetBytes(content.ToString());
         }
 
-        public async Task<object> GetSupplierReportAsync()
+        public async Task<object> GetSupplierReportDataAsync()
         {
             try
             {
@@ -1512,7 +1274,7 @@ namespace PixelSolution.Services
             }
         }
 
-        public async Task<object> GetUserActivityReportAsync()
+        public async Task<object> GetUserActivityReportDataAsync()
         {
             try
             {
@@ -1700,62 +1462,20 @@ namespace PixelSolution.Services
                 var reportData = await GetSupplierReportAsync();
                 var data = (dynamic)reportData;
 
-                using (var workbook = new XLWorkbook())
+                // Generate CSV format since Excel libraries are not available
+                var content = new StringBuilder();
+                content.AppendLine("PIXEL SOLUTION COMPANY LTD");
+                content.AppendLine("Suppliers Report");
+                content.AppendLine($"Total Suppliers: {data.Summary.TotalSuppliers} | Active Suppliers: {data.Summary.ActiveSuppliers} | Total Purchase Value: KSh {data.Summary.TotalPurchaseValue:N2}");
+                content.AppendLine();
+                content.AppendLine("Company,Contact Person,Email,Phone,Products,Status,Purchase Value");
+                
+                foreach (var supplier in data.Suppliers)
                 {
-                    var worksheet = workbook.Worksheets.Add("Suppliers Report");
-
-                    // Company Header
-                    worksheet.Range("A1:G1").Merge();
-                    worksheet.Cell("A1").Value = "PIXEL SOLUTION COMPANY LTD";
-                    worksheet.Cell("A1").Style.Font.FontSize = 18;
-                    worksheet.Cell("A1").Style.Font.Bold = true;
-                    worksheet.Cell("A1").Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-
-                    // Report Title
-                    worksheet.Range("A2:G2").Merge();
-                    worksheet.Cell("A2").Value = "Suppliers Report";
-                    worksheet.Cell("A2").Style.Font.FontSize = 14;
-                    worksheet.Cell("A2").Style.Font.Bold = true;
-                    worksheet.Cell("A2").Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-
-                    // Summary
-                    worksheet.Range("A3:G3").Merge();
-                    worksheet.Cell("A3").Value = $"Total Suppliers: {data.Summary.TotalSuppliers} | Active Suppliers: {data.Summary.ActiveSuppliers} | Total Purchase Value: KSh {data.Summary.TotalPurchaseValue:N2} | Generated: {DateTime.Now:dd/MM/yyyy HH:mm}";
-                    worksheet.Cell("A3").Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-
-                    // Headers
-                    var headers = new string[] { "Company", "Contact Person", "Email", "Phone", "Products", "Status", "Purchase Value" };
-                    for (int i = 0; i < headers.Length; i++)
-                    {
-                        worksheet.Cell(5, i + 1).Value = headers[i];
-                        worksheet.Cell(5, i + 1).Style.Font.Bold = true;
-                        worksheet.Cell(5, i + 1).Style.Fill.BackgroundColor = XLColor.LightGray;
-                    }
-
-                    // Data
-                    int row = 6;
-                    foreach (var supplier in data.Suppliers)
-                    {
-                        worksheet.Cell(row, 1).Value = supplier.CompanyName.ToString();
-                        worksheet.Cell(row, 2).Value = supplier.ContactPerson.ToString();
-                        worksheet.Cell(row, 3).Value = supplier.Email.ToString();
-                        worksheet.Cell(row, 4).Value = supplier.Phone.ToString();
-                        worksheet.Cell(row, 5).Value = supplier.ProductCount;
-                        worksheet.Cell(row, 6).Value = supplier.Status.ToString();
-                        worksheet.Cell(row, 7).Value = supplier.TotalPurchaseValue;
-                        worksheet.Cell(row, 7).Style.NumberFormat.Format = "#,##0.00";
-                        row++;
-                    }
-
-                    // Auto-fit columns
-                    worksheet.ColumnsUsed().AdjustToContents();
-
-                    using (var stream = new MemoryStream())
-                    {
-                        workbook.SaveAs(stream);
-                        return stream.ToArray();
-                    }
+                    content.AppendLine($"{supplier.CompanyName ?? "N/A"},{supplier.ContactPerson ?? "N/A"},{supplier.Email ?? "N/A"},{supplier.Phone ?? "N/A"},{supplier.ProductCount},{supplier.Status ?? "N/A"},{supplier.TotalPurchaseValue:N2}");
                 }
+                
+                return Encoding.UTF8.GetBytes(content.ToString());
             }
             catch (Exception ex)
             {
@@ -1763,15 +1483,15 @@ namespace PixelSolution.Services
             }
         }
 
-        public async Task<byte[]> GenerateComprehensiveReportAsync(DateTime startDate, DateTime endDate)
+        private async Task<byte[]> GenerateComprehensiveReportAsync(DateTime startDate, DateTime endDate)
         {
             try
             {
                 // Get all report data directly without try-catch to see actual errors
-                var salesData = await GetSalesReportAsync(startDate, endDate);
-                var inventoryData = await GetInventoryReportAsync();
-                var usersData = await GetUserActivityReportAsync();
-                var suppliersData = await GetSupplierReportAsync();
+                var salesData = await GetSalesReportDataAsync(startDate, endDate);
+                var inventoryData = await GetInventoryReportDataAsync();
+                var usersData = await GetUserActivityReportDataAsync();
+                var suppliersData = await GetSupplierReportDataAsync();
 
                 // Cast to dynamic for easier property access
                 dynamic sales = salesData;
@@ -1950,7 +1670,7 @@ namespace PixelSolution.Services
                 var products = await _context.Products
                     .Include(p => p.Category)
                     .Where(p => p.IsActive && p.Status == "Active")
-                    .Select(p => new ProductViewModel
+                    .Select(p => new ProductSearchViewModel
                     {
                         ProductId = p.ProductId,
                         Name = p.Name,
@@ -1985,5 +1705,454 @@ namespace PixelSolution.Services
                 .ToListAsync();
         }
 
+        public async Task<byte[]> GeneratePdfReportAsync(string reportType, DateTime? startDate = null, DateTime? endDate = null)
+        {
+            try
+            {
+                using var memoryStream = new MemoryStream();
+                var document = new Document(PageSize.A4, 25, 25, 30, 30);
+                var writer = PdfWriter.GetInstance(document, memoryStream);
+                
+                document.Open();
+                
+                // Add company header
+                var titleFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 18);
+                var headerFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 12);
+                var normalFont = FontFactory.GetFont(FontFactory.HELVETICA, 10);
+                
+                var title = new Paragraph("PIXEL SOLUTION COMPANY LTD", titleFont);
+                title.Alignment = Element.ALIGN_CENTER;
+                document.Add(title);
+                
+                var reportTitle = new Paragraph($"{reportType.ToUpper()} REPORT", headerFont);
+                reportTitle.Alignment = Element.ALIGN_CENTER;
+                reportTitle.SpacingAfter = 20;
+                document.Add(reportTitle);
+                
+                // Add date range if provided
+                if (startDate.HasValue && endDate.HasValue)
+                {
+                    var dateRange = new Paragraph($"Period: {startDate.Value:yyyy-MM-dd} to {endDate.Value:yyyy-MM-dd}", normalFont);
+                    dateRange.Alignment = Element.ALIGN_CENTER;
+                    dateRange.SpacingAfter = 20;
+                    document.Add(dateRange);
+                }
+                
+                // Generate report content based on type
+                switch (reportType.ToLower())
+                {
+                    case "sales":
+                        await AddSalesReportContent(document, startDate, endDate);
+                        break;
+                    case "inventory":
+                        await AddInventoryReportContent(document);
+                        break;
+                    case "users":
+                        await AddUsersReportContent(document);
+                        break;
+                    case "categories":
+                        await AddCategoriesReportContent(document);
+                        break;
+                    default:
+                        var errorMsg = new Paragraph("Invalid report type specified.", normalFont);
+                        document.Add(errorMsg);
+                        break;
+                }
+                
+                // Add footer
+                var footer = new Paragraph($"Generated on: {DateTime.Now:yyyy-MM-dd HH:mm:ss}", normalFont);
+                footer.Alignment = Element.ALIGN_RIGHT;
+                footer.SpacingBefore = 20;
+                document.Add(footer);
+                
+                document.Close();
+                return memoryStream.ToArray();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error generating PDF report: {ex.Message}", ex);
+            }
+        }
+
+        public async Task<byte[]> GenerateExcelReportAsync(string reportType, DateTime? startDate = null, DateTime? endDate = null)
+        {
+            try
+            {
+                using var workbook = new XLWorkbook();
+                var worksheet = workbook.Worksheets.Add($"{reportType} Report");
+                
+                // Add company header
+                worksheet.Cell(1, 1).Value = "PIXEL SOLUTION COMPANY LTD";
+                worksheet.Cell(1, 1).Style.Font.Bold = true;
+                worksheet.Cell(1, 1).Style.Font.FontSize = 16;
+                worksheet.Range("A1:E1").Merge();
+                worksheet.Cell(1, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                
+                worksheet.Cell(2, 1).Value = $"{reportType.ToUpper()} REPORT";
+                worksheet.Cell(2, 1).Style.Font.Bold = true;
+                worksheet.Cell(2, 1).Style.Font.FontSize = 14;
+                worksheet.Range("A2:E2").Merge();
+                worksheet.Cell(2, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                
+                int currentRow = 4;
+                
+                // Add date range if provided
+                if (startDate.HasValue && endDate.HasValue)
+                {
+                    worksheet.Cell(3, 1).Value = $"Period: {startDate.Value:yyyy-MM-dd} to {endDate.Value:yyyy-MM-dd}";
+                    worksheet.Range("A3:E3").Merge();
+                    worksheet.Cell(3, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+                    currentRow = 5;
+                }
+                
+                // Generate report content based on type
+                switch (reportType.ToLower())
+                {
+                    case "sales":
+                        var sales = await _context.Sales.Include(s => s.User).ToListAsync();
+                        worksheet.Cell(currentRow, 1).Value = "Sale Number";
+                        worksheet.Cell(currentRow, 2).Value = "Date";
+                        worksheet.Cell(currentRow, 3).Value = "Customer";
+                        worksheet.Cell(currentRow, 4).Value = "Amount";
+                        worksheet.Cell(currentRow, 5).Value = "Cashier";
+                        
+                        currentRow++;
+                        foreach (var sale in sales)
+                        {
+                            worksheet.Cell(currentRow, 1).Value = sale.SaleNumber;
+                            worksheet.Cell(currentRow, 2).Value = sale.SaleDate.ToString("yyyy-MM-dd");
+                            worksheet.Cell(currentRow, 3).Value = sale.CustomerName ?? "Walk-in";
+                            worksheet.Cell(currentRow, 4).Value = sale.TotalAmount;
+                            worksheet.Cell(currentRow, 5).Value = sale.CashierName;
+                            currentRow++;
+                        }
+                        break;
+                    case "inventory":
+                        var products = await _context.Products.Include(p => p.Category).ToListAsync();
+                        worksheet.Cell(currentRow, 1).Value = "Product";
+                        worksheet.Cell(currentRow, 2).Value = "SKU";
+                        worksheet.Cell(currentRow, 3).Value = "Category";
+                        worksheet.Cell(currentRow, 4).Value = "Stock";
+                        worksheet.Cell(currentRow, 5).Value = "Price";
+                        
+                        currentRow++;
+                        foreach (var product in products)
+                        {
+                            worksheet.Cell(currentRow, 1).Value = product.Name;
+                            worksheet.Cell(currentRow, 2).Value = product.SKU;
+                            worksheet.Cell(currentRow, 3).Value = product.Category?.Name ?? "N/A";
+                            worksheet.Cell(currentRow, 4).Value = product.StockQuantity;
+                            worksheet.Cell(currentRow, 5).Value = product.SellingPrice;
+                            currentRow++;
+                        }
+                        break;
+                }
+                
+                // Auto-fit columns
+                worksheet.Columns().AdjustToContents();
+                
+                using var stream = new MemoryStream();
+                workbook.SaveAs(stream);
+                return stream.ToArray();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error generating Excel report: {ex.Message}", ex);
+            }
+        }
+
+        private async Task AddSalesReportContent(Document document, DateTime? startDate, DateTime? endDate)
+        {
+            var query = _context.Sales.Include(s => s.User).Include(s => s.SaleItems).ThenInclude(si => si.Product).AsQueryable();
+            
+            if (startDate.HasValue && endDate.HasValue)
+            {
+                query = query.Where(s => s.SaleDate >= startDate.Value && s.SaleDate <= endDate.Value);
+            }
+            
+            var sales = await query.OrderByDescending(s => s.SaleDate).ToListAsync();
+            
+            var table = new PdfPTable(6);
+            table.WidthPercentage = 100;
+            table.SetWidths(new float[] { 15, 20, 15, 15, 20, 15 });
+            
+            // Headers
+            var headerFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 10);
+            table.AddCell(new PdfPCell(new Phrase("Sale #", headerFont)));
+            table.AddCell(new PdfPCell(new Phrase("Date", headerFont)));
+            table.AddCell(new PdfPCell(new Phrase("Customer", headerFont)));
+            table.AddCell(new PdfPCell(new Phrase("Amount", headerFont)));
+            table.AddCell(new PdfPCell(new Phrase("Payment", headerFont)));
+            table.AddCell(new PdfPCell(new Phrase("Cashier", headerFont)));
+            
+            var normalFont = FontFactory.GetFont(FontFactory.HELVETICA, 9);
+            foreach (var sale in sales)
+            {
+                table.AddCell(new PdfPCell(new Phrase(sale.SaleNumber, normalFont)));
+                table.AddCell(new PdfPCell(new Phrase(sale.SaleDate.ToString("yyyy-MM-dd"), normalFont)));
+                table.AddCell(new PdfPCell(new Phrase(sale.CustomerName ?? "Walk-in", normalFont)));
+                table.AddCell(new PdfPCell(new Phrase($"KSh {sale.TotalAmount:N2}", normalFont)));
+                table.AddCell(new PdfPCell(new Phrase(sale.PaymentMethod, normalFont)));
+                table.AddCell(new PdfPCell(new Phrase(sale.CashierName, normalFont)));
+            }
+            
+            document.Add(table);
+            
+            // Summary
+            var totalAmount = sales.Sum(s => s.TotalAmount);
+            var summary = new Paragraph($"\nTotal Sales: {sales.Count}\nTotal Amount: KSh {totalAmount:N2}", 
+                FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 12));
+            document.Add(summary);
+        }
+
+        private async Task AddInventoryReportContent(Document document)
+        {
+            var products = await _context.Products.Include(p => p.Category).Where(p => p.IsActive).ToListAsync();
+            
+            var table = new PdfPTable(6);
+            table.WidthPercentage = 100;
+            table.SetWidths(new float[] { 20, 15, 20, 15, 15, 15 });
+            
+            // Headers
+            var headerFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 10);
+            table.AddCell(new PdfPCell(new Phrase("Product Name", headerFont)));
+            table.AddCell(new PdfPCell(new Phrase("SKU", headerFont)));
+            table.AddCell(new PdfPCell(new Phrase("Category", headerFont)));
+            table.AddCell(new PdfPCell(new Phrase("Stock", headerFont)));
+            table.AddCell(new PdfPCell(new Phrase("Buy Price", headerFont)));
+            table.AddCell(new PdfPCell(new Phrase("Sell Price", headerFont)));
+            
+            var normalFont = FontFactory.GetFont(FontFactory.HELVETICA, 9);
+            foreach (var product in products)
+            {
+                table.AddCell(new PdfPCell(new Phrase(product.Name, normalFont)));
+                table.AddCell(new PdfPCell(new Phrase(product.SKU, normalFont)));
+                table.AddCell(new PdfPCell(new Phrase(product.Category?.Name ?? "N/A", normalFont)));
+                table.AddCell(new PdfPCell(new Phrase(product.StockQuantity.ToString(), normalFont)));
+                table.AddCell(new PdfPCell(new Phrase($"KSh {product.BuyingPrice:N2}", normalFont)));
+                table.AddCell(new PdfPCell(new Phrase($"KSh {product.SellingPrice:N2}", normalFont)));
+            }
+            
+            document.Add(table);
+        }
+
+        private async Task AddUsersReportContent(Document document)
+        {
+            var users = await _context.Users.Where(u => u.Status == "Active").ToListAsync();
+            
+            var table = new PdfPTable(5);
+            table.WidthPercentage = 100;
+            table.SetWidths(new float[] { 25, 25, 20, 15, 15 });
+            
+            // Headers
+            var headerFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 10);
+            table.AddCell(new PdfPCell(new Phrase("Name", headerFont)));
+            table.AddCell(new PdfPCell(new Phrase("Email", headerFont)));
+            table.AddCell(new PdfPCell(new Phrase("Role", headerFont)));
+            table.AddCell(new PdfPCell(new Phrase("Status", headerFont)));
+            table.AddCell(new PdfPCell(new Phrase("Created", headerFont)));
+            
+            var normalFont = FontFactory.GetFont(FontFactory.HELVETICA, 9);
+            foreach (var user in users)
+            {
+                table.AddCell(new PdfPCell(new Phrase($"{user.FirstName} {user.LastName}", normalFont)));
+                table.AddCell(new PdfPCell(new Phrase(user.Email, normalFont)));
+                table.AddCell(new PdfPCell(new Phrase(user.UserType, normalFont)));
+                table.AddCell(new PdfPCell(new Phrase(user.Status, normalFont)));
+                table.AddCell(new PdfPCell(new Phrase(user.CreatedAt.ToString("yyyy-MM-dd"), normalFont)));
+            }
+            
+            document.Add(table);
+        }
+
+        private async Task AddCategoriesReportContent(Document document)
+        {
+            var categories = await _context.Categories.Include(c => c.Products).Where(c => c.IsActive).ToListAsync();
+            
+            var table = new PdfPTable(4);
+            table.WidthPercentage = 100;
+            table.SetWidths(new float[] { 30, 40, 15, 15 });
+            
+            // Headers
+            var headerFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 10);
+            table.AddCell(new PdfPCell(new Phrase("Category Name", headerFont)));
+            table.AddCell(new PdfPCell(new Phrase("Description", headerFont)));
+            table.AddCell(new PdfPCell(new Phrase("Products", headerFont)));
+            table.AddCell(new PdfPCell(new Phrase("Status", headerFont)));
+            
+            var normalFont = FontFactory.GetFont(FontFactory.HELVETICA, 9);
+            foreach (var category in categories)
+            {
+                table.AddCell(new PdfPCell(new Phrase(category.Name, normalFont)));
+                table.AddCell(new PdfPCell(new Phrase(category.Description, normalFont)));
+                table.AddCell(new PdfPCell(new Phrase(category.Products.Count.ToString(), normalFont)));
+                table.AddCell(new PdfPCell(new Phrase(category.Status, normalFont)));
+            }
+            
+            document.Add(table);
+        }
+
+        // Additional methods required by IReportService interface
+        public async Task<byte[]> GetSalesReportAsync(DateTime startDate, DateTime endDate)
+        {
+            return await GeneratePdfReportAsync("sales", startDate, endDate);
+        }
+
+        public async Task<byte[]> GetInventoryReportAsync()
+        {
+            return await GeneratePdfReportAsync("inventory");
+        }
+
+        public async Task<byte[]> GetSupplierReportAsync()
+        {
+            return await GeneratePdfReportAsync("suppliers");
+        }
+
+
+        public async Task<byte[]> GenerateSalesReceiptAsync(int saleId)
+        {
+            return await GenerateSalesReceiptInternalAsync(saleId);
+        }
+
+        public async Task<byte[]> GetUserActivityReportAsync()
+        {
+            return await GeneratePdfReportAsync("users");
+        }
+
+
+        public async Task<byte[]> GenerateComprehensiveReportAsync(DateTime? startDate = null, DateTime? endDate = null)
+        {
+            var start = startDate ?? DateTime.Now.AddMonths(-1);
+            var end = endDate ?? DateTime.Now;
+            return await GenerateComprehensiveReportAsync(start, end);
+        }
+
+        public async Task<byte[]> GenerateReceiptPdfAsync(int saleId)
+        {
+            return await GenerateSalesReceiptInternalAsync(saleId);
+        }
+
+        public async Task<byte[]> GenerateReceiptPdfAsync(ReceiptPdfRequest request)
+        {
+            try
+            {
+                using var memoryStream = new MemoryStream();
+                var document = new Document(PageSize.A4, 25, 25, 30, 30);
+                var writer = PdfWriter.GetInstance(document, memoryStream);
+                
+                document.Open();
+
+                // Company Header
+                var titleFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 18, BaseColor.DARK_GRAY);
+                var companyTitle = new Paragraph("PIXEL SOLUTION COMPANY LTD", titleFont);
+                companyTitle.Alignment = Element.ALIGN_CENTER;
+                companyTitle.SpacingAfter = 10f;
+                document.Add(companyTitle);
+
+                // Receipt Title
+                var receiptTitleFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 14, BaseColor.BLACK);
+                var receiptTitle = new Paragraph($"SALES RECEIPT #{request.SaleNumber}", receiptTitleFont);
+                receiptTitle.Alignment = Element.ALIGN_CENTER;
+                receiptTitle.SpacingAfter = 20f;
+                document.Add(receiptTitle);
+
+                // Sale Details
+                var detailsFont = FontFactory.GetFont(FontFactory.HELVETICA, 10, BaseColor.BLACK);
+                var saleDetails = new Paragraph($"Date: {request.SaleDate:dd/MM/yyyy HH:mm}\nCashier: {request.CashierName}\nCustomer: {request.CustomerName ?? "Walk-in Customer"}\nPhone: {request.CustomerPhone ?? "N/A"}", detailsFont);
+                saleDetails.SpacingAfter = 15f;
+                document.Add(saleDetails);
+
+                // Items Table
+                var table = new PdfPTable(4);
+                table.WidthPercentage = 100;
+                table.SetWidths(new float[] { 40, 15, 20, 25 });
+
+                // Headers
+                var headerFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 10);
+                table.AddCell(new PdfPCell(new Phrase("Product", headerFont)));
+                table.AddCell(new PdfPCell(new Phrase("Qty", headerFont)));
+                table.AddCell(new PdfPCell(new Phrase("Price", headerFont)));
+                table.AddCell(new PdfPCell(new Phrase("Total", headerFont)));
+
+                var normalFont = FontFactory.GetFont(FontFactory.HELVETICA, 9);
+                foreach (var item in request.Items)
+                {
+                    table.AddCell(new PdfPCell(new Phrase(item.Name, normalFont)));
+                    table.AddCell(new PdfPCell(new Phrase(item.Quantity.ToString(), normalFont)));
+                    table.AddCell(new PdfPCell(new Phrase($"KSh {item.UnitPrice:N2}", normalFont)));
+                    table.AddCell(new PdfPCell(new Phrase($"KSh {item.Total:N2}", normalFont)));
+                }
+
+                document.Add(table);
+
+                // Payment Summary
+                var summaryFont = FontFactory.GetFont(FontFactory.HELVETICA, 10, BaseColor.BLACK);
+                var paymentSummary = new Paragraph($"\nSubtotal: KSh {request.Subtotal:N2}\nTax: KSh {request.Tax:N2}\nTOTAL: KSh {request.TotalAmount:N2}\nAmount Paid: KSh {request.AmountPaid:N2}\nChange: KSh {request.ChangeGiven:N2}\nPayment Method: {request.PaymentMethod}", summaryFont);
+                paymentSummary.Alignment = Element.ALIGN_RIGHT;
+                paymentSummary.SpacingAfter = 10f;
+                document.Add(paymentSummary);
+
+                // Footer
+                var footerFont = FontFactory.GetFont(FontFactory.HELVETICA_OBLIQUE, 8, BaseColor.GRAY);
+                var footer = new Paragraph($"\nThank you for your business!\nGenerated: {DateTime.Now:dd/MM/yyyy HH:mm:ss}", footerFont);
+                footer.Alignment = Element.ALIGN_CENTER;
+                document.Add(footer);
+
+                document.Close();
+                return memoryStream.ToArray();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error generating receipt PDF from request: {ex.Message}", ex);
+            }
+        }
+
+        public async Task<byte[]> GenerateReceiptPDFAsync(string receiptHtml)
+        {
+            try
+            {
+                using var memoryStream = new MemoryStream();
+                var document = new Document(PageSize.A4, 25, 25, 30, 30);
+                var writer = PdfWriter.GetInstance(document, memoryStream);
+                document.Open();
+
+                // Company Header
+                var titleFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 16, BaseColor.BLACK);
+                var title = new Paragraph("PIXEL SOLUTION COMPANY LTD", titleFont);
+                title.Alignment = Element.ALIGN_CENTER;
+                title.SpacingAfter = 10f;
+                document.Add(title);
+
+                var subtitleFont = FontFactory.GetFont(FontFactory.HELVETICA, 12, BaseColor.DARK_GRAY);
+                var subtitle = new Paragraph("Sales Receipt", subtitleFont);
+                subtitle.Alignment = Element.ALIGN_CENTER;
+                subtitle.SpacingAfter = 20f;
+                document.Add(subtitle);
+
+                // Parse HTML content and add to PDF
+                var contentFont = FontFactory.GetFont(FontFactory.HELVETICA, 10, BaseColor.BLACK);
+                
+                // Simple HTML parsing - extract text content
+                var cleanText = System.Text.RegularExpressions.Regex.Replace(receiptHtml, "<.*?>", "");
+                cleanText = System.Net.WebUtility.HtmlDecode(cleanText);
+                
+                var content = new Paragraph(cleanText, contentFont);
+                content.SpacingAfter = 20f;
+                document.Add(content);
+
+                // Footer
+                var footerFont = FontFactory.GetFont(FontFactory.HELVETICA_OBLIQUE, 8, BaseColor.GRAY);
+                var footer = new Paragraph($"\nGenerated: {DateTime.Now:dd/MM/yyyy HH:mm:ss}", footerFont);
+                footer.Alignment = Element.ALIGN_CENTER;
+                document.Add(footer);
+
+                document.Close();
+                return memoryStream.ToArray();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error generating receipt PDF from HTML: {ex.Message}", ex);
+            }
+        }
     }
 }

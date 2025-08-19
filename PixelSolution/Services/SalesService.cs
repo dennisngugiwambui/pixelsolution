@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using PixelSolution.Data;
 using PixelSolution.Models;
+using PixelSolution.Services.Interfaces;
 
 namespace PixelSolution.Services
 {

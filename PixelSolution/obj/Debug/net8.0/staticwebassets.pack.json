@@ -33,6 +33,14 @@
       "PackagePath": "staticwebassets\\js\\login.js"
     },
     {
+      "Id": "C:\\Users\\Denno\\source\\repos\\PixelSolution\\PixelSolution\\wwwroot\\js\\sales-backup.js",
+      "PackagePath": "staticwebassets\\js\\sales-backup.js"
+    },
+    {
+      "Id": "C:\\Users\\Denno\\source\\repos\\PixelSolution\\PixelSolution\\wwwroot\\js\\sales-fixed.js",
+      "PackagePath": "staticwebassets\\js\\sales-fixed.js"
+    },
+    {
       "Id": "C:\\Users\\Denno\\source\\repos\\PixelSolution\\PixelSolution\\wwwroot\\js\\sales.js",
       "PackagePath": "staticwebassets\\js\\sales.js"
     },

@@ -372,6 +372,8 @@ namespace PixelSolution.ViewModels
         public int LowStockProducts { get; set; }
         public int PendingPurchaseRequests { get; set; }
         public int UnreadMessages { get; set; }
+        public decimal TodayProfit { get; set; }
+        public decimal StockValue { get; set; }
     }
 
     public class SaleChartDataViewModel

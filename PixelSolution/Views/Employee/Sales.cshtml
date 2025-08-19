@@ -263,8 +263,8 @@
             flex: 1;
             overflow-y: auto;
             padding: 0.5rem;
-            min-height: 200px;
-            max-height: 300px;
+            background: #f8fafc;
+            border-radius: 0 0 16px 16px;
         }
 
         @@media (min-width: 1024px) {
@@ -273,39 +273,267 @@
             }
         }
 
+        .cart-item {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem;
+            background: white;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            margin-bottom: 0.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .cart-item:hover {
+            border-color: #3b82f6;
+            transform: translateY(-1px);
+        }
+
+        .cart-item-image {
+            width: 40px;
+            height: 40px;
+            object-fit: cover;
+            border-radius: 8px;
+            background: #f3f4f6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #9ca3af;
+            font-size: 1rem;
+            margin-right: 0.75rem;
+            flex-shrink: 0;
+        }
+
+        .cart-item-details {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .cart-item-name {
+            font-weight: 600;
+            font-size: 0.8rem;
+            margin-bottom: 0.2rem;
+            color: #1f2937;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .cart-item-sku {
+            font-size: 0.7rem;
+            color: #6b7280;
+            margin-bottom: 0.2rem;
+        }
+
+        .cart-item-price {
+            font-size: 0.75rem;
+            color: #10b981;
+            font-weight: 600;
+        }
+
+        .cart-item-controls {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-left: 0.75rem;
+        }
+
+        .quantity-controls {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            background: #f3f4f6;
+            border-radius: 8px;
+            padding: 0.25rem;
+        }
+
+        .quantity-btn {
+            width: 24px;
+            height: 24px;
+            border: none;
+            background: #e5e7eb;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #374151;
+            transition: all 0.2s;
+        }
+
+        .quantity-btn:hover {
+            background: #d1d5db;
+            transform: scale(1.1);
+        }
+
+        .quantity-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .quantity-display {
+            min-width: 32px;
+            text-align: center;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #1f2937;
+        }
+
+        .remove-btn {
+            width: 28px;
+            height: 28px;
+            border: none;
+            background: #fee2e2;
+            color: #dc2626;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 0.75rem;
+            transition: all 0.2s;
+        }
+
+        .remove-btn:hover {
+            background: #fecaca;
+            transform: scale(1.1);
+        }
+
         .cart-footer {
-            padding: 1rem;
+            padding: 1.5rem;
             border-top: 2px solid #e5e7eb;
             background: linear-gradient(135deg, #f8fafc, #ffffff);
             border-radius: 0 0 16px 16px;
         }
 
+        .cart-total {
+            background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
+            border: 2px solid #0ea5e9;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+            font-size: 0.95rem;
+            color: #374151;
+        }
+
+        .total-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .total-row.final {
+            border-top: 2px solid #0ea5e9;
+            padding-top: 0.75rem;
+            margin-top: 0.75rem;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #0369a1;
+        }
+
+        .total-row.final span:last-child {
+            color: #10b981;
+            font-size: 1.3rem;
+        }
+
+        .action-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .action-buttons .btn {
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            border: 2px solid transparent;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .action-buttons .btn:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .action-buttons .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-secondary {
+            background: #f3f4f6;
+            color: #374151;
+            border-color: #d1d5db;
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: #e5e7eb;
+            border-color: #9ca3af;
+        }
+
+        .btn-warning {
+            background: #fbbf24;
+            color: #92400e;
+            border-color: #f59e0b;
+        }
+
+        .btn-warning:hover:not(:disabled) {
+            background: #f59e0b;
+            color: #78350f;
+            border-color: #d97706;
+        }
+
         .checkout-btn {
             width: 100%;
-            padding: 1rem;
+            padding: 1.2rem 1.5rem;
             background: linear-gradient(135deg, #10b981, #059669);
             color: white;
             border: none;
-            border-radius: 10px;
+            border-radius: 12px;
             font-weight: 700;
-            font-size: 1rem;
+            font-size: 1.1rem;
             cursor: pointer;
             transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.3);
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
 
         .checkout-btn:hover:not(:disabled) {
             background: linear-gradient(135deg, #059669, #047857);
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(16, 185, 129, 0.3);
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(16, 185, 129, 0.4);
         }
 
         .checkout-btn:disabled {
-            background: #d1d5db;
+            background: linear-gradient(135deg, #9ca3af, #6b7280);
             cursor: not-allowed;
             transform: none;
-            box-shadow: none;
+            box-shadow: 0 2px 8px rgba(156, 163, 175, 0.2);
+            opacity: 0.6;
+        }
+
+        .checkout-btn i {
+            font-size: 1.2rem;
         }
 
         .empty-cart {
@@ -338,68 +566,187 @@
 
         /* Modal Styles */
         .modal {
-            display: none;
             position: fixed;
             z-index: 1000;
             left: 0;
             top: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(4px);
+            background-color: rgba(0,0,0,0.6);
+            backdrop-filter: blur(8px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
         }
+
+            .modal.show {
+                display: flex;
+            }
 
         .modal-content {
-            background-color: white;
-            margin: 5% auto;
-            padding: 0;
-            border-radius: 12px;
-            width: 90%;
-            max-width: 600px;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-            animation: modalSlideIn 0.3s ease-out;
-        }
-
-        @keyframes modalSlideIn {
-            from { opacity: 0; transform: translateY(-50px); }
-            to { opacity: 1; transform: translateY(0); }
+            background: white;
+            padding: 1.5rem;
+            border-radius: 16px;
+            width: 100%;
+            max-width: 500px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            border: 1px solid rgba(59, 130, 246, 0.1);
+            max-height: 90vh;
+            overflow-y: auto;
         }
 
         .modal-header {
-            padding: 1.5rem;
-            border-bottom: 2px solid #e5e7eb;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-            color: white;
-            border-radius: 12px 12px 0 0;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid rgba(59, 130, 246, 0.1);
         }
 
         .modal-title {
-            margin: 0;
             font-size: 1.25rem;
             font-weight: 700;
+            color: #1f2937;
         }
 
         .close-btn {
             background: none;
             border: none;
-            color: white;
             font-size: 1.5rem;
+            color: #6b7280;
             cursor: pointer;
+            transition: all 0.3s ease;
             padding: 0.5rem;
-            border-radius: 6px;
-            transition: background-color 0.2s;
+            border-radius: 50%;
         }
 
-        .close-btn:hover {
-            background-color: rgba(255, 255, 255, 0.1);
+            .close-btn:hover {
+                background: rgba(239, 68, 68, 0.1);
+                color: #dc2626;
+                transform: rotate(90deg);
+            }
+
+        .payment-options {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
         }
 
-        .modal-body {
-            padding: 1.5rem;
+            @@media (min-width: 480px) {
+            .payment-options {
+                grid-template-columns: 1fr 1fr;
+            }
         }
+
+        .payment-option {
+            padding: 1.25rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+            .payment-option:hover {
+                border-color: #10b981;
+                transform: translateY(-2px);
+            }
+
+            .payment-option.selected {
+                border-color: #10b981;
+                background: #f0f9ff;
+            }
+
+            .payment-option i {
+                font-size: 2rem;
+                margin-bottom: 0.5rem;
+                color: #10b981;
+            }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+            .form-input:focus {
+                outline: none;
+                border-color: #10b981;
+                box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+            }
+
+        .quick-amounts {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .quick-amount-btn {
+            padding: 0.5rem 1rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+
+            .quick-amount-btn:hover {
+                border-color: #10b981;
+                background: #f0f9ff;
+            }
+
+        .change-display {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: #f0f9ff;
+            border-radius: 8px;
+            border: 2px solid #0ea5e9;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1rem;
+        }
+
+        .btn-secondary {
+            background: #f3f4f6;
+            color: #374151;
+            border: 2px solid #e5e7eb;
+        }
+
+            .btn-secondary:hover {
+                background: #e5e7eb;
+            }
+
+            .btn:disabled {
+                opacity: 0.5;
+                cursor: not-allowed;
+            }
 
         /* Payment Method Buttons */
         .payment-method-btn {
@@ -468,15 +815,14 @@
 
         /* Receipt Preview */
         .receipt-preview {
-            background: white;
-            padding: 1.5rem;
-            border: 2px solid #e5e7eb;
-            border-radius: 8px;
             font-family: 'Courier New', monospace;
-            font-size: 0.875rem;
+            font-size: 12px;
             line-height: 1.4;
-            max-height: 400px;
-            overflow-y: auto;
+            white-space: pre-wrap;
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
         }
 
         .receipt-header {
@@ -793,137 +1139,6 @@
             <button id="completePaymentBtn" class="btn" onclick="completePayment()" style="flex: 2; background: linear-gradient(135deg, #10b981, #059669); color: white;" disabled>
                 Complete Payment
             </button>
-        </div>
-    </div>
-</div>
-
-<!-- Receipt Modal -->
-<div id="receiptModal" class="modal">
-    <div class="modal-content" style="max-width: 450px;">
-        <div class="modal-header">
-            <h2 class="modal-title">Receipt Generated</h2>
-            <button class="close-btn" onclick="closeReceiptModal()">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-
-        <div id="receiptContent" class="receipt-preview">
-            <!-- Receipt content will be populated here -->
-        </div>
-
-        <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
-            <button class="btn btn-secondary" onclick="closeReceiptModal()" style="flex: 1;">Close</button>
-            <button class="btn btn-primary" onclick="printReceipt()" style="flex: 1;">
-                <i class="fas fa-print"></i> Print
-            </button>
-            <button class="btn btn-primary" onclick="downloadReceiptPDF()" style="flex: 1;">
-                <i class="fas fa-download"></i> Save PDF
-            </button>
-        </div>
-    </div>
-</div>
-
-<!-- Payment Modal -->
-<div id="paymentModal" class="modal">
-    <div class="modal-content" style="max-width: 500px;">
-        <div class="modal-header">
-            <h2 class="modal-title">Complete Payment</h2>
-            <button class="close-btn" onclick="closePaymentModal()">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-
-        <div class="modal-body">
-            <!-- Payment Summary -->
-            <div style="background: #f8fafc; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; border: 2px solid #e5e7eb;">
-                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-                    <span>Subtotal:</span>
-                    <strong id="modalSubtotal">KSh 0.00</strong>
-                </div>
-                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-                    <span>Tax (16%):</span>
-                    <strong id="modalTax">KSh 0.00</strong>
-                </div>
-                <div style="display: flex; justify-content: space-between; font-size: 1.2rem; color: #10b981; font-weight: 700; border-top: 2px solid #10b981; padding-top: 0.5rem;">
-                    <span>Total:</span>
-                    <strong id="modalTotal">KSh 0.00</strong>
-                </div>
-            </div>
-
-            <!-- Customer Information -->
-            <div style="margin-bottom: 1.5rem;">
-                <h3 style="margin-bottom: 1rem; font-size: 1.1rem; color: #374151;">Customer Information (Optional)</h3>
-                <div class="form-group">
-                    <label class="form-label">Customer Name:</label>
-                    <input type="text" id="customerName" class="form-input" placeholder="Enter customer name">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Phone Number:</label>
-                    <input type="text" id="customerPhoneNumber" class="form-input" placeholder="Enter phone number">
-                </div>
-            </div>
-
-            <!-- Payment Method Selection -->
-            <div style="margin-bottom: 1.5rem;">
-                <h3 style="margin-bottom: 1rem; font-size: 1.1rem; color: #374151;">Payment Method</h3>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                    <button class="payment-method-btn" data-method="Cash" onclick="selectPaymentMethod('Cash')">
-                        <i class="fas fa-money-bill-wave"></i>
-                        <span>Cash</span>
-                    </button>
-                    <button class="payment-method-btn" data-method="M-Pesa" onclick="selectPaymentMethod('M-Pesa')">
-                        <i class="fas fa-mobile-alt"></i>
-                        <span>M-Pesa</span>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Cash Payment Form -->
-            <div id="cashPaymentForm" style="display: none;">
-                <h3 style="margin-bottom: 1rem; font-size: 1.1rem; color: #374151;">Cash Payment</h3>
-                <div class="form-group">
-                    <label class="form-label">Amount Received:</label>
-                    <input type="number" id="amountReceived" class="form-input" placeholder="0.00" step="0.01" min="0">
-                </div>
-                <div class="quick-amounts">
-                    <button type="button" class="quick-amount-btn" onclick="setQuickAmount(500)">KSh 500</button>
-                    <button type="button" class="quick-amount-btn" onclick="setQuickAmount(1000)">KSh 1,000</button>
-                    <button type="button" class="quick-amount-btn" onclick="setQuickAmount(2000)">KSh 2,000</button>
-                    <button type="button" class="quick-amount-btn" onclick="setQuickAmount(5000)">KSh 5,000</button>
-                </div>
-                <div id="changeDisplay" class="change-display" style="display: none;">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <span id="changeLabel">Change:</span>
-                        <strong id="changeAmount">KSh 0.00</strong>
-                    </div>
-                </div>
-            </div>
-
-            <!-- M-Pesa Payment Form -->
-            <div id="mpesaPaymentForm" style="display: none;">
-                <h3 style="margin-bottom: 1rem; font-size: 1.1rem; color: #374151;">M-Pesa Payment</h3>
-                <div class="form-group">
-                    <label class="form-label">Customer Phone Number:</label>
-                    <div style="display: flex; align-items: center;">
-                        <span style="padding: 0.75rem; background: #f3f4f6; border: 2px solid #e5e7eb; border-right: none; border-radius: 8px 0 0 8px; font-weight: 600;">+254</span>
-                        <input type="text" id="customerPhone" class="form-input" style="border-radius: 0 8px 8px 0;" placeholder="7XXXXXXXX" maxlength="9">
-                    </div>
-                </div>
-                <div style="padding: 1rem; background: #f0f9ff; border-radius: 8px; border: 2px solid #0ea5e9; margin-top: 1rem;">
-                    <p style="margin: 0; font-size: 0.875rem; color: #0369a1;">
-                        <i class="fas fa-info-circle" style="margin-right: 0.5rem;"></i>
-                        Customer will receive an STK push to complete payment.
-                    </p>
-                </div>
-            </div>
-
-            <!-- Action Buttons -->
-            <div style="display: flex; gap: 1rem; margin-top: 2rem;">
-                <button class="btn btn-secondary" onclick="closePaymentModal()" style="flex: 1;">Cancel</button>
-                <button id="completePaymentBtn" class="btn" onclick="completePayment()" style="flex: 2; background: linear-gradient(135deg, #10b981, #059669); color: white;" disabled>
-                    Complete Payment
-                </button>
-            </div>
         </div>
     </div>
 </div>

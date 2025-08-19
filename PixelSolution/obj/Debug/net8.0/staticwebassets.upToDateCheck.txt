@@ -8,6 +8,8 @@ wwwroot\js\login.js
 wwwroot\js\sales.js
 wwwroot\js\sales.js.backup
 wwwroot\js\sales_backup.js
+wwwroot\js\sales-backup.js
+wwwroot\js\sales-fixed.js
 wwwroot\js\site.js
 wwwroot\lib\bootstrap\dist\css\bootstrap.css
 wwwroot\lib\bootstrap\dist\css\bootstrap.css.map

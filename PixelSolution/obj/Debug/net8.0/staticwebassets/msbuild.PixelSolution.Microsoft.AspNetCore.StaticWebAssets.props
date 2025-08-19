@@ -102,8 +102,8 @@
       <RelatedAsset></RelatedAsset>
       <AssetTraitName></AssetTraitName>
       <AssetTraitValue></AssetTraitValue>
-      <Fingerprint>f9omqc6peg</Fingerprint>
-      <Integrity>U85mzColVXUAI70l1up1hF8JR4xW9HTX9IOBYSpubjo=</Integrity>
+      <Fingerprint>7qa1195xaz</Fingerprint>
+      <Integrity>j+EhIlQ2SX9lDWaSotNBIhunXirhRNLmRPoM9Ay5pLw=</Integrity>
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
       <OriginalItemSpec>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\js\dashboard.js'))</OriginalItemSpec>
@@ -138,11 +138,47 @@
       <RelatedAsset></RelatedAsset>
       <AssetTraitName></AssetTraitName>
       <AssetTraitValue></AssetTraitValue>
-      <Fingerprint>i2kc9soqww</Fingerprint>
-      <Integrity>monVkEZANLdLg3r5tuM8vAAgYcOAAV1o8EwFiKYD+OY=</Integrity>
+      <Fingerprint>2ibc5r8k03</Fingerprint>
+      <Integrity>xklGZ1eCJJ2ZQ+c+8nTzV74ze9stqWLkA8ofVVLRJ3U=</Integrity>
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
       <OriginalItemSpec>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\js\sales.js'))</OriginalItemSpec>
+    </StaticWebAsset>
+    <StaticWebAsset Include="$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\js\sales-backup.js'))">
+      <SourceType>Package</SourceType>
+      <SourceId>PixelSolution</SourceId>
+      <ContentRoot>$(MSBuildThisFileDirectory)..\staticwebassets\</ContentRoot>
+      <BasePath>_content/PixelSolution</BasePath>
+      <RelativePath>js/sales-backup.js</RelativePath>
+      <AssetKind>All</AssetKind>
+      <AssetMode>All</AssetMode>
+      <AssetRole>Primary</AssetRole>
+      <RelatedAsset></RelatedAsset>
+      <AssetTraitName></AssetTraitName>
+      <AssetTraitValue></AssetTraitValue>
+      <Fingerprint>vjfyxwp7gs</Fingerprint>
+      <Integrity>xet4kHdXNlHW6GWPTV8VUMktgsMLx72VgUarz6wLTxQ=</Integrity>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      <OriginalItemSpec>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\js\sales-backup.js'))</OriginalItemSpec>
+    </StaticWebAsset>
+    <StaticWebAsset Include="$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\js\sales-fixed.js'))">
+      <SourceType>Package</SourceType>
+      <SourceId>PixelSolution</SourceId>
+      <ContentRoot>$(MSBuildThisFileDirectory)..\staticwebassets\</ContentRoot>
+      <BasePath>_content/PixelSolution</BasePath>
+      <RelativePath>js/sales-fixed.js</RelativePath>
+      <AssetKind>All</AssetKind>
+      <AssetMode>All</AssetMode>
+      <AssetRole>Primary</AssetRole>
+      <RelatedAsset></RelatedAsset>
+      <AssetTraitName></AssetTraitName>
+      <AssetTraitValue></AssetTraitValue>
+      <Fingerprint>d20pv3a2cy</Fingerprint>
+      <Integrity>lVfT5q8G14AweY2w7Q30pVm91spbQuM+j/ab/Bl9O4s=</Integrity>
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      <OriginalItemSpec>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\js\sales-fixed.js'))</OriginalItemSpec>
     </StaticWebAsset>
     <StaticWebAsset Include="$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\js\sales.js.backup'))">
       <SourceType>Package</SourceType>

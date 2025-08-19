@@ -270,29 +270,29 @@
             <div class="stat-card" style="--card-color: #f59e0b;">
                 <div class="stat-header">
                     <div class="stat-icon">
-                        <i class="fas fa-box"></i>
+                        <i class="fas fa-chart-line"></i>
                     </div>
-                    <div class="stat-trend negative">
-                        <i class="fas fa-arrow-down"></i>
-                        -2.1%
+                    <div class="stat-trend positive" id="profitTrend">
+                        <i class="fas fa-arrow-up"></i>
+                        +0.0%
                     </div>
                 </div>
-                <div class="stat-value" id="productsSoldValue">0</div>
-                <div class="stat-label">Products Sold</div>
+                <div class="stat-value" id="profitValue">KSh 0</div>
+                <div class="stat-label">Today's Profit</div>
             </div>
 
             <div class="stat-card" style="--card-color: #8b5cf6;">
                 <div class="stat-header">
                     <div class="stat-icon">
-                        <i class="fas fa-users"></i>
+                        <i class="fas fa-warehouse"></i>
                     </div>
-                    <div class="stat-trend positive">
+                    <div class="stat-trend positive" id="stockTrend">
                         <i class="fas fa-arrow-up"></i>
-                        +3.4%
+                        +0.0%
                     </div>
                 </div>
-                <div class="stat-value" id="newCustomersValue">0</div>
-                <div class="stat-label">New Customers</div>
+                <div class="stat-value" id="stockValue">KSh 0</div>
+                <div class="stat-label">Stock Value</div>
             </div>
         </div>
 
@@ -311,8 +311,8 @@
             <div class="chart-card">
                 <div class="chart-header">
                     <div>
-                        <h3 class="chart-title">Top Products</h3>
-                        <p class="chart-subtitle">Best selling items</p>
+                        <h3 class="chart-title">Top 7 Selling Products</h3>
+                        <p class="chart-subtitle">Most sold products by quantity</p>
                     </div>
                 </div>
                 <canvas id="productsChart" width="400" height="200"></canvas>
@@ -381,11 +381,6 @@
             // Initialize charts first
             initializeCharts();
             
-            // Wait a bit for charts to be ready, then load data
-            setTimeout(() => {
-                loadDashboardData();
-            }, 500);
-            
             // Auto-refresh data every 30 seconds
             setInterval(function() {
                 loadDashboardData();
@@ -414,8 +409,12 @@
             // Update Products Chart
             if (productsChart && chartData.topProducts && Array.isArray(chartData.topProducts)) {
                 console.log('Updating products chart with:', chartData.topProducts);
-                productsChart.data.labels = chartData.topProducts.map(item => item.productName);
-                productsChart.data.datasets[0].data = chartData.topProducts.map(item => item.salesCount);
+                productsChart.data.labels = chartData.topProducts.map(item => item.name || item.productName);
+                productsChart.data.datasets[0].data = chartData.topProducts.map(item => item.quantitySold);
+                productsChart.data.datasets[0].backgroundColor = [
+                    '#3b82f6', '#10b981', '#f59e0b', '#ef4444', 
+                    '#8b5cf6', '#06b6d4', '#f97316'
+                ];
                 productsChart.update('active');
                 console.log('Products chart updated successfully');
             } else {
@@ -434,12 +433,12 @@
             console.log('Initializing charts...');
             
             // Destroy existing charts if they exist
-            if (salesChart) {
+            if (salesChart && typeof salesChart.destroy === 'function') {
                 console.log('Destroying existing sales chart');
                 salesChart.destroy();
                 salesChart = null;
             }
-            if (productsChart) {
+            if (productsChart && typeof productsChart.destroy === 'function') {
                 console.log('Destroying existing products chart');
                 productsChart.destroy();
                 productsChart = null;
@@ -500,14 +499,18 @@
             if (productsCtx) {
                 console.log('Creating products chart...');
                 productsChart = new Chart(productsCtx, {
-                    type: 'doughnut',
+                    type: 'pie',
                     data: {
                         labels: ['No Data'],
                         datasets: [{
-                            label: 'Sales Count',
+                            label: 'Quantity Sold',
                             data: [1],
-                            backgroundColor: ['#e5e7eb'],
-                            borderWidth: 0
+                            backgroundColor: [
+                                '#3b82f6', '#10b981', '#f59e0b', '#ef4444', 
+                                '#8b5cf6', '#06b6d4', '#f97316'
+                            ],
+                            borderWidth: 2,
+                            borderColor: '#ffffff'
                         }]
                     },
                     options: {
@@ -515,16 +518,21 @@
                         maintainAspectRatio: false,
                         plugins: {
                             legend: {
-                                position: 'bottom',
+                                position: 'right',
                                 labels: {
                                     padding: 20,
-                                    usePointStyle: true
+                                    usePointStyle: true,
+                                    font: {
+                                        size: 12
+                                    }
                                 }
                             },
                             tooltip: {
                                 callbacks: {
                                     label: function(context) {
-                                        return context.label + ': ' + context.parsed + ' sales';
+                                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                        const percentage = ((context.parsed / total) * 100).toFixed(1);
+                                        return context.label + ': ' + context.parsed + ' units (' + percentage + '%)';
                                     }
                                 }
                             }
@@ -558,6 +566,11 @@
                 productsChart.update();
                 console.log('Products chart updated with test data');
             }
+            
+            // Load real data after charts are initialized
+            setTimeout(() => {
+                loadDashboardData();
+            }, 1000);
         }
 
         async function loadDashboardData() {
@@ -639,28 +652,28 @@
         function updateStatistics(stats) {
             console.log('Updating statistics with:', stats);
             
-            // Update Total Sales - use thisMonthSales for better visibility
+            // Update Total Sales - use todaySales
             const totalSalesElement = document.getElementById('totalSalesValue');
-            if (totalSalesElement && stats.thisMonthSales) {
-                animateValue(totalSalesElement, 0, stats.thisMonthSales.value, 2000, true);
+            if (totalSalesElement && stats.todaySales !== undefined) {
+                animateValue(totalSalesElement, 0, stats.todaySales, 2000, true);
             }
 
-            // Update Total Orders - use thisMonthOrders
+            // Update Total Orders - use todayOrders
             const totalOrdersElement = document.getElementById('totalOrdersValue');
-            if (totalOrdersElement && stats.thisMonthOrders !== undefined) {
-                animateValue(totalOrdersElement, 0, stats.thisMonthOrders, 2000, false);
+            if (totalOrdersElement && stats.todayOrders !== undefined) {
+                animateValue(totalOrdersElement, 0, stats.todayOrders, 2000, false);
             }
 
-            // Update Products Sold
-            const productsSoldElement = document.getElementById('productsSoldValue');
-            if (productsSoldElement && stats.productsSold !== undefined) {
-                animateValue(productsSoldElement, 0, stats.productsSold, 2000, false);
+            // Update Today's Profit
+            const profitElement = document.getElementById('profitValue');
+            if (profitElement && stats.todayProfit !== undefined) {
+                animateValue(profitElement, 0, stats.todayProfit, 2000, true);
             }
 
-            // Update New Customers
-            const newCustomersElement = document.getElementById('newCustomersValue');
-            if (newCustomersElement && stats.newCustomers !== undefined) {
-                animateValue(newCustomersElement, 0, stats.newCustomers, 2000, false);
+            // Update Stock Value
+            const stockElement = document.getElementById('stockValue');
+            if (stockElement && stats.stockValue !== undefined) {
+                animateValue(stockElement, 0, stats.stockValue, 2000, true);
             }
 
             // Update growth indicators
@@ -670,8 +683,8 @@
         function updateGrowthIndicators(stats) {
             // Update sales growth indicator
             const salesTrend = document.getElementById('salesTrend');
-            if (salesTrend && stats.thisMonthSales) {
-                const growth = stats.thisMonthSales.growth || 0;
+            if (salesTrend && stats.salesGrowth !== undefined) {
+                const growth = stats.salesGrowth || 0;
                 const isPositive = growth >= 0;
                 salesTrend.className = `stat-trend ${isPositive ? 'positive' : 'negative'}`;
                 salesTrend.innerHTML = `

@@ -188,15 +188,15 @@
             <div class="stat-card" style="--card-color: #3b82f6;">
                 <div class="stat-header">
                     <div class="stat-icon">
-                        <i class="fas fa-dollar-sign"></i>
+                        <i class="fas fa-boxes"></i>
                     </div>
-                    <div class="stat-trend positive" id="salesTrend">
+                    <div class="stat-trend positive" id="stockTrend">
                         <i class="fas fa-arrow-up"></i>
                         +0.0%
                     </div>
                 </div>
-                <div class="stat-value" id="totalSalesValue">KSh 0</div>
-                <div class="stat-label">My Sales Today</div>
+                <div class="stat-value" id="totalSalesValue">0</div>
+                <div class="stat-label">Total Stock Available</div>
             </div>
 
             <div class="stat-card" style="--card-color: #10b981;">
@@ -204,13 +204,13 @@
                     <div class="stat-icon">
                         <i class="fas fa-shopping-cart"></i>
                     </div>
-                    <div class="stat-trend positive">
+                    <div class="stat-trend positive" id="transactionTrend">
                         <i class="fas fa-arrow-up"></i>
-                        +8.2%
+                        +0.0%
                     </div>
                 </div>
                 <div class="stat-value" id="totalOrdersValue">0</div>
-                <div class="stat-label">My Transactions</div>
+                <div class="stat-label">My Transactions Today</div>
             </div>
 
             <div class="stat-card" style="--card-color: #f59e0b;">
@@ -218,13 +218,13 @@
                     <div class="stat-icon">
                         <i class="fas fa-box"></i>
                     </div>
-                    <div class="stat-trend negative">
-                        <i class="fas fa-arrow-down"></i>
-                        -2.1%
+                    <div class="stat-trend positive" id="productsTrend">
+                        <i class="fas fa-arrow-up"></i>
+                        +0.0%
                     </div>
                 </div>
                 <div class="stat-value" id="productsSoldValue">0</div>
-                <div class="stat-label">Products Sold</div>
+                <div class="stat-label">Products Sold Today</div>
             </div>
 
             <div class="stat-card" style="--card-color: #8b5cf6;">
@@ -232,13 +232,13 @@
                     <div class="stat-icon">
                         <i class="fas fa-users"></i>
                     </div>
-                    <div class="stat-trend positive">
+                    <div class="stat-trend positive" id="customersTrend">
                         <i class="fas fa-arrow-up"></i>
-                        +3.4%
+                        +0.0%
                     </div>
                 </div>
                 <div class="stat-value" id="newCustomersValue">0</div>
-                <div class="stat-label">Customers Served</div>
+                <div class="stat-label">Customers Served Today</div>
             </div>
         </div>
 
@@ -323,10 +323,10 @@
             // Initialize charts first
             initializeCharts();
             
-            // Wait a bit for charts to be ready, then load data
+            // Load data after charts are initialized
             setTimeout(() => {
                 loadDashboardData();
-            }, 500);
+            }, 1000);
             
             // Auto-refresh data every 30 seconds
             setInterval(function() {
@@ -483,7 +483,7 @@
         async function loadDashboardData() {
             try {
                 console.log('Fetching employee dashboard data...');
-                const response = await fetch('@Url.Action("GetDashboardData", "Employee")');
+                const response = await fetch('@Url.Action("GetEmployeeDashboardData", "Employee")');
                 if (!response.ok) {
                     throw new Error('Failed to fetch dashboard data');
                 }
@@ -533,28 +533,28 @@
         function updateStatistics(stats) {
             console.log('Updating employee statistics with:', stats);
             
-            // Update Total Sales - use thisMonthSales for better visibility
+            // Update Total Stock - shows total stock available
             const totalSalesElement = document.getElementById('totalSalesValue');
-            if (totalSalesElement && stats.thisMonthSales) {
-                animateValue(totalSalesElement, 0, stats.thisMonthSales.value, 2000, true);
+            if (totalSalesElement && stats.todaySales !== undefined) {
+                animateValue(totalSalesElement, 0, stats.todaySales, 2000, false);
             }
 
-            // Update Total Orders - use thisMonthOrders
+            // Update Today's Transactions
             const totalOrdersElement = document.getElementById('totalOrdersValue');
-            if (totalOrdersElement && stats.thisMonthOrders !== undefined) {
-                animateValue(totalOrdersElement, 0, stats.thisMonthOrders, 2000, false);
+            if (totalOrdersElement && stats.todayOrders !== undefined) {
+                animateValue(totalOrdersElement, 0, stats.todayOrders, 2000, false);
             }
 
-            // Update Products Sold
+            // Update Products Sold Today
             const productsSoldElement = document.getElementById('productsSoldValue');
-            if (productsSoldElement && stats.productsSold !== undefined) {
-                animateValue(productsSoldElement, 0, stats.productsSold, 2000, false);
+            if (productsSoldElement && stats.productsSoldToday !== undefined) {
+                animateValue(productsSoldElement, 0, stats.productsSoldToday, 2000, false);
             }
 
-            // Update New Customers
+            // Update Customers Served Today
             const newCustomersElement = document.getElementById('newCustomersValue');
-            if (newCustomersElement && stats.newCustomers !== undefined) {
-                animateValue(newCustomersElement, 0, stats.newCustomers, 2000, false);
+            if (newCustomersElement && stats.newCustomersThisMonth !== undefined) {
+                animateValue(newCustomersElement, 0, stats.newCustomersThisMonth, 2000, false);
             }
 
             // Update growth indicators
@@ -562,13 +562,13 @@
         }
 
         function updateGrowthIndicators(stats) {
-            // Update sales growth indicator
-            const salesTrend = document.getElementById('salesTrend');
-            if (salesTrend && stats.thisMonthSales) {
-                const growth = stats.thisMonthSales.growth || 0;
+            // Update transaction growth indicator
+            const transactionTrend = document.getElementById('transactionTrend');
+            if (transactionTrend && stats.salesGrowth !== undefined) {
+                const growth = stats.salesGrowth || 0;
                 const isPositive = growth >= 0;
-                salesTrend.className = `stat-trend ${isPositive ? 'positive' : 'negative'}`;
-                salesTrend.innerHTML = `
+                transactionTrend.className = `stat-trend ${isPositive ? 'positive' : 'negative'}`;
+                transactionTrend.innerHTML = `
                     <i class="fas fa-arrow-${isPositive ? 'up' : 'down'}"></i>
                     ${isPositive ? '+' : ''}${growth.toFixed(1)}%
                 `;

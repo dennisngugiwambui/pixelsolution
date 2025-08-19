@@ -132,6 +132,26 @@ namespace PixelSolution.Services.Interfaces
         Task<List<Category>> GetCategoriesAsync();
         Task<byte[]> GeneratePdfReportAsync(string reportType, DateTime? startDate = null, DateTime? endDate = null);
         Task<byte[]> GenerateExcelReportAsync(string reportType, DateTime? startDate = null, DateTime? endDate = null);
+        Task<byte[]> GetSalesReportAsync(DateTime startDate, DateTime endDate);
+        Task<byte[]> GetInventoryReportAsync();
+        Task<byte[]> GetSupplierReportAsync();
+        Task<byte[]> GetUserActivityReportAsync();
+        Task<byte[]> GenerateSalesReceiptAsync(int saleId);
+        Task<byte[]> GenerateSalesReportExcelAsync(DateTime startDate, DateTime endDate);
+        Task<byte[]> GenerateSalesReportAsync(DateTime startDate, DateTime endDate);
+        Task<byte[]> GenerateInventoryReportExcelAsync();
+        Task<byte[]> GenerateInventoryReportAsync();
+        Task<byte[]> GenerateUserReportExcelAsync();
+        Task<byte[]> GenerateUserReportAsync();
+        Task<byte[]> GenerateCategoriesReportExcelAsync();
+        Task<byte[]> GenerateCategoriesReportAsync();
+        Task<byte[]> GenerateSuppliersReportExcelAsync();
+        Task<byte[]> GenerateSuppliersReportAsync();
+        Task<byte[]> GenerateComprehensiveReportAsync(DateTime? startDate = null, DateTime? endDate = null);
+        Task<byte[]> GenerateReceiptPdfAsync(int saleId);
+        Task<byte[]> GenerateReceiptPdfAsync(ReceiptPdfRequest request);
+        Task<byte[]> GenerateReceiptPDFAsync(string receiptHtml);
+        Task<byte[]> GeneratePurchaseRequestReceiptAsync(int purchaseRequestId);
     }
 
     public interface ISalesService

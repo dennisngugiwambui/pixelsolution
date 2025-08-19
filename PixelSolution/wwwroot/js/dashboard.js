@@ -425,11 +425,11 @@ function handleWindowResize() {
         }
     }
 
-    // Resize charts if they exist
-    if (window.salesChart) {
+    // Resize charts if they exist (Chart.js uses resize() method)
+    if (window.salesChart && typeof window.salesChart.resize === 'function') {
         window.salesChart.resize();
     }
-    if (window.productsChart) {
+    if (window.productsChart && typeof window.productsChart.resize === 'function') {
         window.productsChart.resize();
     }
 }
