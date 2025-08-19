@@ -16,7 +16,7 @@
             margin-top: 1rem;
         }
 
-        @media (min-width: 1024px) {
+        @@media (min-width: 1024px) {
             .pos-container {
                 grid-template-columns: 1fr 380px;
                 gap: 2rem;
@@ -33,7 +33,7 @@
             max-height: 70vh;
         }
 
-        @media (min-width: 1024px) {
+        @@media (min-width: 1024px) {
             .products-section {
                 padding: 1.5rem;
                 max-height: calc(100vh - 200px);
@@ -47,7 +47,7 @@
             margin-bottom: 1.5rem;
         }
 
-        @media (min-width: 768px) {
+        @@media (min-width: 768px) {
             .search-filters {
                 flex-direction: row;
                 align-items: center;
@@ -97,13 +97,13 @@
             gap: 1rem;
         }
 
-        @media (min-width: 768px) {
+        @@media (min-width: 768px) {
             .products-grid {
                 grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
             }
         }
 
-        @media (min-width: 1024px) {
+        @@media (min-width: 1024px) {
             .products-grid {
                 grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
             }
@@ -111,14 +111,111 @@
 
         .product-card {
             background: white;
-            border: 2px solid #e5e7eb;
+            border: 2px solid #f1f5f9;
             border-radius: 12px;
             padding: 1rem;
+            transition: all 0.3s ease;
             cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             position: relative;
             overflow: hidden;
-            min-height: 140px;
+        }
+
+        .product-card:hover {
+            border-color: #3b82f6;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.15);
+        }
+
+        .product-image {
+            width: 100%;
+            height: 120px;
+            background: #f8fafc;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1rem;
+            overflow: hidden;
+        }
+
+        .product-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 8px;
+        }
+
+        .product-placeholder {
+            color: #94a3b8;
+            font-size: 2rem;
+        }
+
+        .product-info {
+            text-align: center;
+        }
+
+        .product-name {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 0.5rem;
+            line-height: 1.3;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .product-sku {
+            font-size: 0.75rem;
+            color: #6b7280;
+            margin-bottom: 0.25rem;
+        }
+
+        .product-category {
+            font-size: 0.75rem;
+            color: #8b5cf6;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+        }
+
+        .product-price {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #10b981;
+            margin-bottom: 0.5rem;
+        }
+
+        .product-stock {
+            font-size: 0.75rem;
+            color: #6b7280;
+            margin-bottom: 1rem;
+        }
+
+        .add-to-cart-btn {
+            width: 100%;
+            padding: 0.5rem;
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.25rem;
+        }
+
+        .add-to-cart-btn:hover {
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            transform: translateY(-1px);
+        }
+
+        .add-to-cart-btn:active {
+            transform: translateY(0);
         }
 
         .product-card:hover:not(.out-of-stock) {
@@ -149,7 +246,7 @@
             max-height: 70vh;
         }
 
-        @media (min-width: 1024px) {
+        @@media (min-width: 1024px) {
             .cart-section {
                 max-height: calc(100vh - 200px);
             }
@@ -170,7 +267,7 @@
             max-height: 300px;
         }
 
-        @media (min-width: 1024px) {
+        @@media (min-width: 1024px) {
             .cart-items {
                 max-height: 400px;
             }
@@ -231,12 +328,178 @@
             margin-bottom: 1.5rem;
         }
 
-        @media (min-width: 768px) {
+        @@media (min-width: 768px) {
             .stats-grid {
                 grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
                 gap: 1rem;
                 margin-bottom: 2rem;
             }
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 0;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 600px;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            animation: modalSlideIn 0.3s ease-out;
+        }
+
+        @keyframes modalSlideIn {
+            from { opacity: 0; transform: translateY(-50px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .modal-header {
+            padding: 1.5rem;
+            border-bottom: 2px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: white;
+            border-radius: 12px 12px 0 0;
+        }
+
+        .modal-title {
+            margin: 0;
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 6px;
+            transition: background-color 0.2s;
+        }
+
+        .close-btn:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+        }
+
+        /* Payment Method Buttons */
+        .payment-method-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 1rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 600;
+        }
+
+        .payment-method-btn:hover {
+            border-color: #3b82f6;
+            background: #f0f9ff;
+        }
+
+        .payment-method-btn.selected {
+            border-color: #3b82f6;
+            background: #eff6ff;
+            color: #1d4ed8;
+        }
+
+        .payment-method-btn i {
+            font-size: 1.5rem;
+        }
+
+        /* Quick Amount Buttons */
+        .quick-amounts {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .quick-amount-btn {
+            padding: 0.5rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 6px;
+            background: white;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .quick-amount-btn:hover {
+            border-color: #10b981;
+            background: #f0fdf4;
+            color: #059669;
+        }
+
+        /* Change Display */
+        .change-display {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: #f0fdf4;
+            border: 2px solid #10b981;
+            border-radius: 8px;
+            color: #059669;
+            font-weight: 600;
+        }
+
+        /* Receipt Preview */
+        .receipt-preview {
+            background: white;
+            padding: 1.5rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.875rem;
+            line-height: 1.4;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .receipt-header {
+            text-align: center;
+            border-bottom: 1px dashed #666;
+            padding-bottom: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .receipt-items {
+            margin-bottom: 1rem;
+        }
+
+        .receipt-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.25rem;
+        }
+
+        .receipt-total {
+            border-top: 1px dashed #666;
+            padding-top: 0.5rem;
+            font-weight: bold;
         }
     </style>
 }
@@ -310,6 +573,9 @@
         </div>
         <div class="header-right">
             <div class="header-actions">
+                <a href="@Url.Action("SalesHistory", "Admin")" class="action-btn" title="Sales History">
+                    <i class="fas fa-history"></i>
+                </a>
                 <button class="action-btn" title="Notifications">
                     <i class="fas fa-bell"></i>
                     <span class="notification-badge">3</span>
@@ -324,7 +590,7 @@
     <!-- Page Content -->
     <div class="dashboard-content">
         <!-- Stats Row -->
-        <div class="stats-grid">
+        <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); margin-bottom: 1.5rem;">
             <div class="stat-card" style="--card-color: #10b981;">
                 <div class="stat-header">
                     <div class="stat-icon">
@@ -373,6 +639,12 @@
                             <option value="low-stock">Low Stock</option>
                         </select>
                     </div>
+                </div>
+
+                <!-- Stock Warning -->
+                <div class="stock-warning" id="stockWarning">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span id="stockWarningText"></span>
                 </div>
 
                 <!-- Products Grid -->
@@ -424,12 +696,260 @@
                         </div>
                     </div>
 
+                    <div class="action-buttons">
+                        <button class="btn btn-secondary" onclick="clearCart()" id="clearBtn" disabled>
+                            <i class="fas fa-trash"></i> Clear
+                        </button>
+                        <button class="btn btn-warning" onclick="holdSale()" id="holdBtn" disabled>
+                            <i class="fas fa-pause"></i> Hold
+                        </button>
+                    </div>
+
                     <button class="checkout-btn" onclick="openPaymentModal()" id="checkoutBtn" disabled>
                         <i class="fas fa-credit-card" style="margin-right: 0.5rem;"></i>
                         Proceed to Payment
                     </button>
                 </div>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Payment Modal -->
+<div id="paymentModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 class="modal-title">Process Payment</h2>
+            <button class="close-btn" onclick="closePaymentModal()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <div style="margin-bottom: 2rem; padding: 1.5rem; background: linear-gradient(135deg, #f0f9ff, #e0f2fe); border-radius: 12px; border: 2px solid #0ea5e9;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 1.1rem; color: #0369a1; font-weight: 600;">Total Amount:</span>
+                <strong style="font-size: 1.8rem; color: #10b981; font-weight: 700;" id="modalTotalAmount">KSh 0.00</strong>
+            </div>
+        </div>
+
+        <!-- Payment Method Selection -->
+        <div id="paymentMethodSelection">
+            <h3 style="margin-bottom: 1rem; font-size: 1.1rem; color: #374151;">Select Payment Method:</h3>
+            <div class="payment-options">
+                <div class="payment-option" onclick="selectPaymentMethod('cash')">
+                    <i class="fas fa-money-bill-wave"></i>
+                    <div style="font-weight: 600;">Cash Payment</div>
+                </div>
+                <div class="payment-option" onclick="selectPaymentMethod('mpesa')">
+                    <i class="fas fa-mobile-alt"></i>
+                    <div style="font-weight: 600;">M-Pesa Payment</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cash Payment Form -->
+        <div id="cashPaymentForm" style="display: none;">
+            <h3 style="margin-bottom: 1rem; font-size: 1.1rem; color: #374151;">Cash Payment</h3>
+            <div class="form-group">
+                <label class="form-label">Amount Received (KSh):</label>
+                <input type="number" id="cashReceived" class="form-input" placeholder="Enter amount received" min="0" step="0.01">
+            </div>
+            <div class="quick-amounts">
+                <button type="button" class="quick-amount-btn" onclick="setQuickAmount('exact')">Exact</button>
+                <button type="button" class="quick-amount-btn" onclick="setQuickAmount(500)">KSh 500</button>
+                <button type="button" class="quick-amount-btn" onclick="setQuickAmount(1000)">KSh 1,000</button>
+                <button type="button" class="quick-amount-btn" onclick="setQuickAmount(2000)">KSh 2,000</button>
+                <button type="button" class="quick-amount-btn" onclick="setQuickAmount(5000)">KSh 5,000</button>
+            </div>
+            <div id="changeDisplay" class="change-display" style="display: none;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span id="changeLabel">Change:</span>
+                    <strong id="changeAmount">KSh 0.00</strong>
+                </div>
+            </div>
+        </div>
+
+        <!-- M-Pesa Payment Form -->
+        <div id="mpesaPaymentForm" style="display: none;">
+            <h3 style="margin-bottom: 1rem; font-size: 1.1rem; color: #374151;">M-Pesa Payment</h3>
+            <div class="form-group">
+                <label class="form-label">Customer Phone Number:</label>
+                <div style="display: flex; align-items: center;">
+                    <span style="padding: 0.75rem; background: #f3f4f6; border: 2px solid #e5e7eb; border-right: none; border-radius: 8px 0 0 8px; font-weight: 600;">+254</span>
+                    <input type="text" id="customerPhone" class="form-input" style="border-radius: 0 8px 8px 0;" placeholder="7XXXXXXXX" maxlength="9">
+                </div>
+            </div>
+            <div style="padding: 1rem; background: #f0f9ff; border-radius: 8px; border: 2px solid #0ea5e9; margin-top: 1rem;">
+                <p style="margin: 0; font-size: 0.875rem; color: #0369a1;">
+                    <i class="fas fa-info-circle" style="margin-right: 0.5rem;"></i>
+                    Customer will receive an STK push to complete payment.
+                </p>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+            <button class="btn btn-secondary" onclick="closePaymentModal()" style="flex: 1;">Cancel</button>
+            <button id="completePaymentBtn" class="btn" onclick="completePayment()" style="flex: 2; background: linear-gradient(135deg, #10b981, #059669); color: white;" disabled>
+                Complete Payment
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Receipt Modal -->
+<div id="receiptModal" class="modal">
+    <div class="modal-content" style="max-width: 450px;">
+        <div class="modal-header">
+            <h2 class="modal-title">Receipt Generated</h2>
+            <button class="close-btn" onclick="closeReceiptModal()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <div id="receiptContent" class="receipt-preview">
+            <!-- Receipt content will be populated here -->
+        </div>
+
+        <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+            <button class="btn btn-secondary" onclick="closeReceiptModal()" style="flex: 1;">Close</button>
+            <button class="btn btn-primary" onclick="printReceipt()" style="flex: 1;">
+                <i class="fas fa-print"></i> Print
+            </button>
+            <button class="btn btn-primary" onclick="downloadReceiptPDF()" style="flex: 1;">
+                <i class="fas fa-download"></i> Save PDF
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Payment Modal -->
+<div id="paymentModal" class="modal">
+    <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-header">
+            <h2 class="modal-title">Complete Payment</h2>
+            <button class="close-btn" onclick="closePaymentModal()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <div class="modal-body">
+            <!-- Payment Summary -->
+            <div style="background: #f8fafc; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; border: 2px solid #e5e7eb;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                    <span>Subtotal:</span>
+                    <strong id="modalSubtotal">KSh 0.00</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                    <span>Tax (16%):</span>
+                    <strong id="modalTax">KSh 0.00</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 1.2rem; color: #10b981; font-weight: 700; border-top: 2px solid #10b981; padding-top: 0.5rem;">
+                    <span>Total:</span>
+                    <strong id="modalTotal">KSh 0.00</strong>
+                </div>
+            </div>
+
+            <!-- Customer Information -->
+            <div style="margin-bottom: 1.5rem;">
+                <h3 style="margin-bottom: 1rem; font-size: 1.1rem; color: #374151;">Customer Information (Optional)</h3>
+                <div class="form-group">
+                    <label class="form-label">Customer Name:</label>
+                    <input type="text" id="customerName" class="form-input" placeholder="Enter customer name">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Phone Number:</label>
+                    <input type="text" id="customerPhoneNumber" class="form-input" placeholder="Enter phone number">
+                </div>
+            </div>
+
+            <!-- Payment Method Selection -->
+            <div style="margin-bottom: 1.5rem;">
+                <h3 style="margin-bottom: 1rem; font-size: 1.1rem; color: #374151;">Payment Method</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <button class="payment-method-btn" data-method="Cash" onclick="selectPaymentMethod('Cash')">
+                        <i class="fas fa-money-bill-wave"></i>
+                        <span>Cash</span>
+                    </button>
+                    <button class="payment-method-btn" data-method="M-Pesa" onclick="selectPaymentMethod('M-Pesa')">
+                        <i class="fas fa-mobile-alt"></i>
+                        <span>M-Pesa</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Cash Payment Form -->
+            <div id="cashPaymentForm" style="display: none;">
+                <h3 style="margin-bottom: 1rem; font-size: 1.1rem; color: #374151;">Cash Payment</h3>
+                <div class="form-group">
+                    <label class="form-label">Amount Received:</label>
+                    <input type="number" id="amountReceived" class="form-input" placeholder="0.00" step="0.01" min="0">
+                </div>
+                <div class="quick-amounts">
+                    <button type="button" class="quick-amount-btn" onclick="setQuickAmount(500)">KSh 500</button>
+                    <button type="button" class="quick-amount-btn" onclick="setQuickAmount(1000)">KSh 1,000</button>
+                    <button type="button" class="quick-amount-btn" onclick="setQuickAmount(2000)">KSh 2,000</button>
+                    <button type="button" class="quick-amount-btn" onclick="setQuickAmount(5000)">KSh 5,000</button>
+                </div>
+                <div id="changeDisplay" class="change-display" style="display: none;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span id="changeLabel">Change:</span>
+                        <strong id="changeAmount">KSh 0.00</strong>
+                    </div>
+                </div>
+            </div>
+
+            <!-- M-Pesa Payment Form -->
+            <div id="mpesaPaymentForm" style="display: none;">
+                <h3 style="margin-bottom: 1rem; font-size: 1.1rem; color: #374151;">M-Pesa Payment</h3>
+                <div class="form-group">
+                    <label class="form-label">Customer Phone Number:</label>
+                    <div style="display: flex; align-items: center;">
+                        <span style="padding: 0.75rem; background: #f3f4f6; border: 2px solid #e5e7eb; border-right: none; border-radius: 8px 0 0 8px; font-weight: 600;">+254</span>
+                        <input type="text" id="customerPhone" class="form-input" style="border-radius: 0 8px 8px 0;" placeholder="7XXXXXXXX" maxlength="9">
+                    </div>
+                </div>
+                <div style="padding: 1rem; background: #f0f9ff; border-radius: 8px; border: 2px solid #0ea5e9; margin-top: 1rem;">
+                    <p style="margin: 0; font-size: 0.875rem; color: #0369a1;">
+                        <i class="fas fa-info-circle" style="margin-right: 0.5rem;"></i>
+                        Customer will receive an STK push to complete payment.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                <button class="btn btn-secondary" onclick="closePaymentModal()" style="flex: 1;">Cancel</button>
+                <button id="completePaymentBtn" class="btn" onclick="completePayment()" style="flex: 2; background: linear-gradient(135deg, #10b981, #059669); color: white;" disabled>
+                    Complete Payment
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Receipt Modal -->
+<div id="receiptModal" class="modal">
+    <div class="modal-content" style="max-width: 450px;">
+        <div class="modal-header">
+            <h2 class="modal-title">Receipt Generated</h2>
+            <button class="close-btn" onclick="closeReceiptModal()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <div id="receiptContent" class="receipt-preview">
+            <!-- Receipt content will be populated here -->
+        </div>
+
+        <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+            <button class="btn btn-secondary" onclick="closeReceiptModal()" style="flex: 1;">Close</button>
+            <button class="btn btn-primary" onclick="printReceipt()" style="flex: 1;">
+                <i class="fas fa-print"></i> Print
+            </button>
+            <button class="btn btn-primary" onclick="downloadReceiptPDF()" style="flex: 1;">
+                <i class="fas fa-download"></i> Save PDF
+            </button>
         </div>
     </div>
 </div>

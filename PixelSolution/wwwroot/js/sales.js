@@ -16,27 +16,40 @@
             setupSearchFunctionality();
             loadTodayStats();
             setupKeyboardShortcuts();
-            setupEventListeners();
         });
 
-        // Load categories for filter
+        // Load categories from server
         async function loadCategories() {
             try {
-                const response = await fetch('/api/categories');
-                if (response.ok) {
-                    allCategories = await response.json();
+                console.log('Loading categories from server...');
+                const response = await fetch('/Employee/GetCategories');
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
 
+                const data = await response.json();
+                console.log('Categories API response:', data);
+
+                if (data.success && data.categories) {
+                    allCategories = data.categories;
+                    
                     const categoryFilter = document.getElementById('categoryFilter');
-                    categoryFilter.innerHTML = '<option value="">All Categories</option>';
+                    if (categoryFilter) {
+                        // Clear existing options except "All Categories"
+                        categoryFilter.innerHTML = '<option value="">All Categories</option>';
+                        
+                        allCategories.forEach(category => {
+                            const option = document.createElement('option');
+                            option.value = category.categoryId;
+                            option.textContent = category.name;
+                            categoryFilter.appendChild(option);
+                        });
 
-                    allCategories.forEach(category => {
-                        const option = document.createElement('option');
-                        option.value = category.categoryId;
-                        option.textContent = category.name;
-                        categoryFilter.appendChild(option);
-                    });
-
-                    console.log(`Loaded ${allCategories.length} categories`);
+                        console.log(`Loaded ${allCategories.length} categories`);
+                    }
+                } else {
+                    console.error('Failed to load categories:', data.message || 'Unknown error');
                 }
             } catch (error) {
                 console.error('Error loading categories:', error);
@@ -49,7 +62,7 @@
                 console.log('Loading products from server...');
                 showLoadingState();
 
-                const response = await fetch('/Admin/GetProductsForSale');
+                const response = await fetch('/Employee/GetProductsForSale');
 
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
@@ -588,7 +601,7 @@
                 console.log('CSRF token found:', token ? 'Yes' : 'No');
                 console.log('Calling endpoint: /Sales/ProcessSale');
 
-                const response = await fetch('/Sales/ProcessSale', {
+                const response = await fetch('/Employee/ProcessSale', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

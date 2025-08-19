@@ -352,10 +352,12 @@ namespace PixelSolution.ViewModels
     public class DashboardViewModel
     {
         public DashboardStatsViewModel Stats { get; set; } = new DashboardStatsViewModel();
+        public DashboardChartsViewModel Charts { get; set; } = new DashboardChartsViewModel();
         public List<SaleChartDataViewModel> SalesChartData { get; set; } = new List<SaleChartDataViewModel>();
         public List<TopProductViewModel> TopProducts { get; set; } = new List<TopProductViewModel>();
         public List<RecentSaleViewModel> RecentSales { get; set; } = new List<RecentSaleViewModel>();
         public List<LowStockProductViewModel> LowStockProducts { get; set; } = new List<LowStockProductViewModel>();
+        public SidebarCountsViewModel SidebarCounts { get; set; } = new SidebarCountsViewModel();
     }
 
     public class DashboardStatsViewModel
@@ -410,6 +412,20 @@ namespace PixelSolution.ViewModels
         public int MinStockLevel { get; set; }
         public string CategoryName { get; set; } = string.Empty;
         public string? SupplierName { get; set; }
+    }
+
+    public class DashboardChartsViewModel
+    {
+        public List<SaleChartDataViewModel> SalesData { get; set; } = new List<SaleChartDataViewModel>();
+        public List<TopProductViewModel> TopProducts { get; set; } = new List<TopProductViewModel>();
+    }
+
+    public class SidebarCountsViewModel
+    {
+        public int TodaySales { get; set; }
+        public int LowStock { get; set; }
+        public int PendingRequests { get; set; }
+        public int UnreadMessages { get; set; }
     }
 
     // ======================================

@@ -1,12 +1,13 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.EntityFrameworkCore;
-using PixelSolution.Data;
+using System.Security.Claims;
 using PixelSolution.Services.Interfaces;
 using PixelSolution.ViewModels;
-using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using PixelSolution.Services;
+using PixelSolution.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace PixelSolution.Controllers
 {
@@ -28,10 +29,12 @@ namespace PixelSolution.Controllers
         {
             try
             {
-                // If user is already authenticated, redirect to dashboard
+                // If user is already authenticated, redirect to appropriate dashboard
                 if (User.Identity?.IsAuthenticated == true)
                 {
-                    return RedirectToAction("Dashboard", "Admin");
+                    var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+                    var redirectUrl = GetRedirectUrl(returnUrl, userRole);
+                    return Redirect(redirectUrl);
                 }
 
                 ViewData["ReturnUrl"] = returnUrl;
@@ -294,6 +297,7 @@ namespace PixelSolution.Controllers
 
         [HttpGet]
         [Route("/fix-admin-now")]
+        [AllowAnonymous]
         public async Task<IActionResult> FixAdminNow()
         {
             try
@@ -330,20 +334,20 @@ namespace PixelSolution.Controllers
 
         private string GetRedirectUrl(string? returnUrl, string userType)
         {
-            // If returnUrl is provided and is local, use it
-            if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
-            {
-                return returnUrl;
-            }
-
-            // Default redirects based on user type
+            // Always redirect based on user role for security
             switch (userType?.ToLower())
             {
                 case "admin":
                 case "manager":
+                    // For admin/manager, check if returnUrl is admin area, otherwise use dashboard
+                    if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl) && returnUrl.StartsWith("/Admin", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return returnUrl;
+                    }
                     return Url.Action("Dashboard", "Admin") ?? "/Admin/Dashboard";
                 case "employee":
                 default:
+                    // For employees, always redirect to employee dashboard regardless of returnUrl
                     return Url.Action("Index", "Employee") ?? "/Employee";
             }
         }

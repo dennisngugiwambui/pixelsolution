@@ -1546,14 +1546,14 @@
         // Initialize Select2 with custom formatting
         function initializeSelect2() {
             try {
-                $('#recipientSelect').select2({
+                document.getElementById('recipientSelect').select2({
                     placeholder: 'Search and select recipient...',
                     allowClear: true,
                     width: '100%',
                     templateResult: formatUserOption,
                     templateSelection: formatUserSelection,
                     matcher: customUserMatcher,
-                    dropdownParent: $('#newMessageModal'),
+                    dropdownParent: document.getElementById('newMessageModal'),
                     language: {
                         noResults: function() {
                             return "No users found";
@@ -1573,20 +1573,21 @@
         function formatUserOption(user) {
             if (!user.id) return user.text;
 
-            const $user = $(user.element);
-            const initials = $user.data('initials') || user.text.substring(0, 2).toUpperCase();
-            const email = $user.data('email') || '';
-            const userType = $user.data('usertype') || '';
+            const userElement = user.element;
+            const initials = userElement?.dataset?.initials || user.text.substring(0, 2).toUpperCase();
+            const email = userElement?.dataset?.email || '';
+            const userType = userElement?.dataset?.usertype || '';
 
-            return $(`
-                <div class="user-option">
-                    <div class="user-option-avatar">${initials}</div>
-                    <div class="user-option-info">
-                        <div class="user-option-name">${user.text.split(' (')[0]}</div>
-                        <div class="user-option-details">${userType} • ${email}</div>
-                    </div>
+            const div = document.createElement('div');
+            div.className = 'user-option';
+            div.innerHTML = `
+                <div class="user-option-avatar">${initials}</div>
+                <div class="user-option-info">
+                    <div class="user-option-name">${user.text.split(' (')[0]}</div>
+                    <div class="user-option-details">${userType} • ${email}</div>
                 </div>
-            `);
+            `;
+            return div;
         }
 
         // Custom formatter for Select2 selection
@@ -1602,10 +1603,10 @@
             }
 
             const searchTerm = params.term.toLowerCase();
-            const $option = $(data.element);
+            const optionElement = data.element;
             const name = data.text.toLowerCase();
-            const email = $option.data('email')?.toLowerCase() || '';
-            const userType = $option.data('usertype')?.toLowerCase() || '';
+            const email = optionElement?.dataset?.email?.toLowerCase() || '';
+            const userType = optionElement?.dataset?.usertype?.toLowerCase() || '';
 
             if (name.includes(searchTerm) || email.includes(searchTerm) || userType.includes(searchTerm)) {
                 return data;
@@ -2058,12 +2059,19 @@
                     }
 
                     // Reset and focus Select2
-                    $('#recipientSelect').val(null).trigger('change');
+                    const recipientSelect = document.getElementById('recipientSelect');
+                    if (recipientSelect) {
+                        recipientSelect.value = '';
+                        recipientSelect.dispatchEvent(new Event('change'));
+                    }
 
                     // Focus on the select after a short delay
                     setTimeout(() => {
                         try {
-                            $('#recipientSelect').select2('open');
+                            const recipientSelect = document.getElementById('recipientSelect');
+                            if (recipientSelect && recipientSelect.select2) {
+                                recipientSelect.select2('open');
+                            }
                         } catch (e) {
                             console.warn('Could not open Select2 dropdown:', e);
                             // Fallback to focus on the select element
@@ -2094,7 +2102,11 @@
                     }
 
                     // Clear Select2 selection
-                    $('#recipientSelect').val(null).trigger('change');
+                    const recipientSelect = document.getElementById('recipientSelect');
+                    if (recipientSelect) {
+                        recipientSelect.value = '';
+                        recipientSelect.dispatchEvent(new Event('change'));
+                    }
                 }
             } catch (error) {
                 console.error('Error closing modal:', error);

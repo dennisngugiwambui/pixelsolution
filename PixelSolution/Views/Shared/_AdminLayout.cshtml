@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
@@ -36,14 +36,14 @@
             userId: '@User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value',
             userName: '@User.Identity.Name',
             userRole: '@User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value',
-            csrfToken: $('input[name="__RequestVerificationToken"]').val()
+            csrfToken: document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
         };
 
         // Global AJAX setup
         $.ajaxSetup({
             beforeSend: function(xhr) {
                 xhr.setRequestHeader('RequestVerificationToken',
-                    $('input[name="__RequestVerificationToken"]').val());
+                    document.querySelector('input[name="__RequestVerificationToken"]')?.value || '');
             }
         });
 
@@ -60,40 +60,43 @@
 
         // Global toast notification function
         function showToast(message, type = 'info', duration = 5000) {
-            const toast = $(`
-                <div class="toast toast-${type}" style="
-                    position: fixed;
-                    top: 20px;
-                    right: 20px;
-                    background: ${type === 'error' ? '#ef4444' : type === 'success' ? '#10b981' : '#3b82f6'};
-                    color: white;
-                    padding: 1rem 1.5rem;
-                    border-radius: 8px;
-                    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-                    z-index: 10000;
-                    max-width: 400px;
-                    animation: slideInRight 0.3s ease-out;
-                ">
-                    <div style="display: flex; align-items: center; gap: 0.5rem;">
-                        <i class="fas fa-${type === 'error' ? 'exclamation-circle' : type === 'success' ? 'check-circle' : 'info-circle'}"></i>
-                        <span>${message}</span>
-                        <button onclick="$(this).closest('.toast').remove()" style="
-                            background: none;
-                            border: none;
-                            color: white;
-                            margin-left: auto;
-                            cursor: pointer;
-                        ">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </div>
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: ${type === 'error' ? '#ef4444' : type === 'success' ? '#10b981' : '#3b82f6'};
+                color: white;
+                padding: 1rem 1.5rem;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                z-index: 10000;
+                max-width: 400px;
+                animation: slideInRight 0.3s ease-out;
+            `;
+            
+            toast.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <i class="fas fa-${type === 'error' ? 'exclamation-circle' : type === 'success' ? 'check-circle' : 'info-circle'}"></i>
+                    <span>${message}</span>
+                    <button onclick="this.closest('.toast').remove()" style="
+                        background: none;
+                        border: none;
+                        color: white;
+                        margin-left: auto;
+                        cursor: pointer;
+                    ">
+                        <i class="fas fa-times"></i>
+                    </button>
                 </div>
-            `);
+            `;
 
-            $('body').append(toast);
+            document.body.appendChild(toast);
 
             setTimeout(() => {
-                toast.fadeOut(300, () => toast.remove());
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 300);
             }, duration);
         }
 
@@ -110,7 +113,9 @@
                 }
             }
         `;
-        $('<style>').text(animationCSS).appendTo('head');
+        const style = document.createElement('style');
+        style.textContent = animationCSS;
+        document.head.appendChild(style);
     </script>
 </body>
 </html>

@@ -366,4 +366,34 @@ namespace PixelSolution.Models
         [ForeignKey("SaleId")]
         public virtual Sale Sale { get; set; } = null!;
     }
+
+    // Request/Response Models for API
+    public class ProcessSaleRequest
+    {
+        public List<SaleItemRequest> Items { get; set; } = new List<SaleItemRequest>();
+        public decimal TotalAmount { get; set; }
+        public string PaymentMethod { get; set; } = string.Empty;
+        public decimal AmountPaid { get; set; }
+        public decimal ChangeGiven { get; set; }
+        public string CustomerName { get; set; } = string.Empty;
+        public string CustomerPhone { get; set; } = string.Empty;
+        public string CustomerEmail { get; set; } = string.Empty;
+    }
+
+    public class SaleItemRequest
+    {
+        public int ProductId { get; set; }
+        public int Quantity { get; set; }
+        public decimal UnitPrice { get; set; }
+        public decimal TotalPrice { get; set; }
+    }
+
+    public class ProcessSaleResult
+    {
+        public bool Success { get; set; }
+        public int SaleId { get; set; }
+        public string SaleNumber { get; set; } = string.Empty;
+        public string ErrorMessage { get; set; } = string.Empty;
+        public object? ReceiptData { get; set; }
+    }
 }

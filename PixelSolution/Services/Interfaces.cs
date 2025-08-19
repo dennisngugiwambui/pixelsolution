@@ -122,33 +122,21 @@ namespace PixelSolution.Services.Interfaces
 
     public interface IReportService
     {
-        Task<object> GetDashboardDataAsync();
-        Task<object> GetSalesReportAsync(DateTime startDate, DateTime endDate);
-        Task<object> GetInventoryReportAsync();
-        Task<object> GetSupplierReportAsync();
-        Task<object> GetUserActivityReportAsync();
-        Task<byte[]> GenerateSalesReceiptAsync(int saleId);
-        Task<byte[]> GeneratePurchaseRequestReceiptAsync(int purchaseRequestId);
-        
-        // New report generation methods
-        Task<byte[]> GenerateSalesReportAsync(DateTime startDate, DateTime endDate);
-        Task<byte[]> GenerateInventoryReportAsync();
-        Task<byte[]> GenerateUserReportAsync();
-        Task<byte[]> GenerateCategoriesReportAsync();
-        
-        // Excel report generation methods
-        Task<byte[]> GenerateSalesReportExcelAsync(DateTime startDate, DateTime endDate);
-        Task<byte[]> GenerateInventoryReportExcelAsync();
-        Task<byte[]> GenerateUserReportExcelAsync();
-        Task<byte[]> GenerateCategoriesReportExcelAsync();
-        
-        // Receipt PDF generation
-        Task<byte[]> GenerateReceiptPdfAsync(PixelSolution.ViewModels.ReceiptPdfRequest request);
-        Task<byte[]> GenerateSuppliersReportExcelAsync();
-        
-        // Additional PDF report generation methods
-        Task<byte[]> GenerateSuppliersReportAsync();
-        Task<byte[]> GenerateComprehensiveReportAsync(DateTime startDate, DateTime endDate);
+        Task<DashboardViewModel> GetDashboardDataAsync();
+        Task<DashboardViewModel> GetEmployeeDashboardDataAsync(int employeeId);
+        Task<SidebarCountsViewModel> GetSidebarCountsAsync();
+        Task<SidebarCountsViewModel> GetEmployeeSidebarCountsAsync(int employeeId);
+        Task<List<SaleChartDataViewModel>> GetSalesChartDataAsync();
+        Task<List<TopProductViewModel>> GetTopProductsAsync();
+        Task<SalesPageViewModel> GetSalesPageDataAsync();
+        Task<List<Category>> GetCategoriesAsync();
+        Task<byte[]> GeneratePdfReportAsync(string reportType, DateTime? startDate = null, DateTime? endDate = null);
+        Task<byte[]> GenerateExcelReportAsync(string reportType, DateTime? startDate = null, DateTime? endDate = null);
+    }
+
+    public interface ISalesService
+    {
+        Task<ProcessSaleResult> ProcessSaleAsync(ProcessSaleRequest request, int userId);
     }
 
     public interface IBarcodeService

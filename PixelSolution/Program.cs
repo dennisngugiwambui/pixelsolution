@@ -46,6 +46,7 @@ builder.Services.AddScoped<ISaleService, SaleService>();
 builder.Services.AddScoped<IPurchaseRequestService, PurchaseRequestService>();
 builder.Services.AddScoped<IMessageService, MessageService>();
 builder.Services.AddScoped<IReportService, ReportService>();
+builder.Services.AddScoped<ISalesService, SalesService>();
 builder.Services.AddScoped<IBarcodeService, BarcodeService>();
 builder.Services.AddScoped<IReceiptPrintingService, ReceiptPrintingService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
@@ -101,11 +102,16 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.UseSession();
 
-// Configure routing
+// Configure routing with role-based redirects
 app.MapControllerRoute(
     name: "admin",
     pattern: "admin/{action=Dashboard}",
     defaults: new { controller = "Admin" });
+
+app.MapControllerRoute(
+    name: "employee",
+    pattern: "employee/{action=Index}",
+    defaults: new { controller = "Employee" });
 
 app.MapControllerRoute(
     name: "auth",
@@ -115,6 +121,25 @@ app.MapControllerRoute(
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Auth}/{action=Login}/{id?}");
+
+// Add middleware to redirect employees trying to access admin pages
+app.Use(async (context, next) =>
+{
+    var path = context.Request.Path.Value?.ToLower();
+    
+    if (path != null && path.StartsWith("/admin") && context.User.Identity?.IsAuthenticated == true)
+    {
+        var userRole = context.User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+        
+        if (userRole?.ToLower() == "employee")
+        {
+            context.Response.Redirect("/Employee/Index");
+            return;
+        }
+    }
+    
+    await next();
+});
 
 // Database initialization with BCrypt password hashing
 try

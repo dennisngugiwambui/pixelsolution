@@ -13,7 +13,7 @@ using iTextSharp.text.pdf;
 
 namespace PixelSolution.Controllers
 {
-    [Authorize]
+    [Authorize(Roles = "Admin,Manager")]
     public class AdminController : Controller
     {
         private readonly IUserService _userService;
