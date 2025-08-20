@@ -328,9 +328,9 @@
                         <i class="fas fa-plus"></i>
                         New Sale
                     </button>
-                    <button class="btn-secondary" onclick="debugCharts()" style="margin-left: 0.5rem;">
-                        <i class="fas fa-bug"></i>
-                        Debug Charts
+                    <button class="btn-secondary" onclick="viewSalesHistory()" style="margin-left: 0.5rem;">
+                        <i class="fas fa-history"></i>
+                        View Sales History
                     </button>
                 </div>
             </div>
@@ -366,6 +366,10 @@
 
         function viewSale(saleId) {
             window.location.href = '@Url.Action("Details", "Sales")?id=' + saleId;
+        }
+
+        function viewSalesHistory() {
+            window.location.href = '@Url.Action("SalesHistory", "Admin")';
         }
 
         function printSale(saleId) {

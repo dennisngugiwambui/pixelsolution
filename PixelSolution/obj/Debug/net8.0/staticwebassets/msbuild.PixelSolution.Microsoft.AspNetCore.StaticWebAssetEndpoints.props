@@ -108,17 +108,11 @@
       <EndpointProperties><![CDATA[[{"Name":"integrity","Value":"sha256-lVfT5q8G14AweY2w7Q30pVm91spbQuM\u002Bj/ab/Bl9O4s="}]]]></EndpointProperties>
       <ResponseHeaders><![CDATA[[{"Name":"Accept-Ranges","Value":"bytes"},{"Name":"Cache-Control","Value":"no-cache"},{"Name":"Content-Length","Value":"22360"},{"Name":"Content-Type","Value":"text/javascript"},{"Name":"ETag","Value":"\u0022lVfT5q8G14AweY2w7Q30pVm91spbQuM\u002Bj/ab/Bl9O4s=\u0022"},{"Name":"Last-Modified","Value":"Tue, 19 Aug 2025 07:20:23 GMT"}]]]></ResponseHeaders>
     </StaticWebAssetEndpoint>
-    <StaticWebAssetEndpoint Include="_content/PixelSolution/js/sales.2ibc5r8k03.js">
-      <AssetFile>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\js\sales.js'))</AssetFile>
-      <Selectors><![CDATA[[]]]></Selectors>
-      <EndpointProperties><![CDATA[[{"Name":"fingerprint","Value":"2ibc5r8k03"},{"Name":"integrity","Value":"sha256-xklGZ1eCJJ2ZQ\u002Bc\u002B8nTzV74ze9stqWLkA8ofVVLRJ3U="},{"Name":"label","Value":"_content/PixelSolution/js/sales.js"}]]]></EndpointProperties>
-      <ResponseHeaders><![CDATA[[{"Name":"Accept-Ranges","Value":"bytes"},{"Name":"Cache-Control","Value":"max-age=31536000, immutable"},{"Name":"Content-Length","Value":"38024"},{"Name":"Content-Type","Value":"text/javascript"},{"Name":"ETag","Value":"\u0022xklGZ1eCJJ2ZQ\u002Bc\u002B8nTzV74ze9stqWLkA8ofVVLRJ3U=\u0022"},{"Name":"Last-Modified","Value":"Tue, 19 Aug 2025 08:35:54 GMT"}]]]></ResponseHeaders>
-    </StaticWebAssetEndpoint>
     <StaticWebAssetEndpoint Include="_content/PixelSolution/js/sales.js">
       <AssetFile>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\js\sales.js'))</AssetFile>
       <Selectors><![CDATA[[]]]></Selectors>
-      <EndpointProperties><![CDATA[[{"Name":"integrity","Value":"sha256-xklGZ1eCJJ2ZQ\u002Bc\u002B8nTzV74ze9stqWLkA8ofVVLRJ3U="}]]]></EndpointProperties>
-      <ResponseHeaders><![CDATA[[{"Name":"Accept-Ranges","Value":"bytes"},{"Name":"Cache-Control","Value":"no-cache"},{"Name":"Content-Length","Value":"38024"},{"Name":"Content-Type","Value":"text/javascript"},{"Name":"ETag","Value":"\u0022xklGZ1eCJJ2ZQ\u002Bc\u002B8nTzV74ze9stqWLkA8ofVVLRJ3U=\u0022"},{"Name":"Last-Modified","Value":"Tue, 19 Aug 2025 08:35:54 GMT"}]]]></ResponseHeaders>
+      <EndpointProperties><![CDATA[[{"Name":"integrity","Value":"sha256-82PFxRHQDc8LqcXDDezFP0LEauwkm/Dywof9O/cYc38="}]]]></EndpointProperties>
+      <ResponseHeaders><![CDATA[[{"Name":"Accept-Ranges","Value":"bytes"},{"Name":"Cache-Control","Value":"no-cache"},{"Name":"Content-Length","Value":"38502"},{"Name":"Content-Type","Value":"text/javascript"},{"Name":"ETag","Value":"\u002282PFxRHQDc8LqcXDDezFP0LEauwkm/Dywof9O/cYc38=\u0022"},{"Name":"Last-Modified","Value":"Tue, 19 Aug 2025 21:42:37 GMT"}]]]></ResponseHeaders>
     </StaticWebAssetEndpoint>
     <StaticWebAssetEndpoint Include="_content/PixelSolution/js/sales.js.backup">
       <AssetFile>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\js\sales.js.backup'))</AssetFile>
@@ -131,6 +125,12 @@
       <Selectors><![CDATA[[]]]></Selectors>
       <EndpointProperties><![CDATA[[{"Name":"fingerprint","Value":"laq9u0ozei"},{"Name":"integrity","Value":"sha256-XQuqYuqqZlhv\u002BEsKOktHqhEqzKT3FxIqNExnw7HATwk="},{"Name":"label","Value":"_content/PixelSolution/js/sales.js.backup"}]]]></EndpointProperties>
       <ResponseHeaders><![CDATA[[{"Name":"Accept-Ranges","Value":"bytes"},{"Name":"Cache-Control","Value":"max-age=31536000, immutable"},{"Name":"Content-Length","Value":"48898"},{"Name":"Content-Type","Value":"application/octet-stream"},{"Name":"ETag","Value":"\u0022XQuqYuqqZlhv\u002BEsKOktHqhEqzKT3FxIqNExnw7HATwk=\u0022"},{"Name":"Last-Modified","Value":"Fri, 01 Aug 2025 10:17:59 GMT"}]]]></ResponseHeaders>
+    </StaticWebAssetEndpoint>
+    <StaticWebAssetEndpoint Include="_content/PixelSolution/js/sales.v5uhthdjq0.js">
+      <AssetFile>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\js\sales.js'))</AssetFile>
+      <Selectors><![CDATA[[]]]></Selectors>
+      <EndpointProperties><![CDATA[[{"Name":"fingerprint","Value":"v5uhthdjq0"},{"Name":"integrity","Value":"sha256-82PFxRHQDc8LqcXDDezFP0LEauwkm/Dywof9O/cYc38="},{"Name":"label","Value":"_content/PixelSolution/js/sales.js"}]]]></EndpointProperties>
+      <ResponseHeaders><![CDATA[[{"Name":"Accept-Ranges","Value":"bytes"},{"Name":"Cache-Control","Value":"max-age=31536000, immutable"},{"Name":"Content-Length","Value":"38502"},{"Name":"Content-Type","Value":"text/javascript"},{"Name":"ETag","Value":"\u002282PFxRHQDc8LqcXDDezFP0LEauwkm/Dywof9O/cYc38=\u0022"},{"Name":"Last-Modified","Value":"Tue, 19 Aug 2025 21:42:37 GMT"}]]]></ResponseHeaders>
     </StaticWebAssetEndpoint>
     <StaticWebAssetEndpoint Include="_content/PixelSolution/js/sales_backup.js">
       <AssetFile>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\js\sales_backup.js'))</AssetFile>

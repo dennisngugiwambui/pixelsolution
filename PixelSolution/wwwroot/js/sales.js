@@ -871,69 +871,76 @@ async function completePayment() {
 
 // Generate receipt
 function generateReceipt(saleId, saleData) {
-    const receiptContent = document.getElementById('receiptContent');
-    const now = new Date();
-    
-    const receiptHtml = `
-        <div class="receipt-header">
-            <h3 style="margin: 0; font-size: 1.2rem;">PIXEL SOLUTION COMPANY LTD</h3>
-            <p style="margin: 0.25rem 0;">Sales Receipt</p>
-            <p style="margin: 0.25rem 0;">Receipt #: ${saleId}</p>
-            <p style="margin: 0.25rem 0;">${now.toLocaleString('en-KE')}</p>
-        </div>
-        
-        <div class="receipt-items">
-            ${cart.map(item => `
-                <div class="receipt-item">
-                    <div>${item.name}</div>
-                    <div>${item.quantity} x KSh ${item.price.toFixed(2)}</div>
-                    <div>KSh ${item.total.toFixed(2)}</div>
-                </div>
-            `).join('')}
-        </div>
-        
-        <div class="receipt-total">
-            <div style="border-top: 1px dashed #666; padding-top: 0.5rem; margin-top: 0.5rem;">
-                <div style="display: flex; justify-content: space-between;">
-                    <span>Subtotal:</span>
-                    <span>KSh ${(currentTotal / 1.16).toFixed(2)}</span>
-                </div>
-                <div style="display: flex; justify-content: space-between;">
-                    <span>VAT (16%):</span>
-                    <span>KSh ${(currentTotal * 0.16 / 1.16).toFixed(2)}</span>
-                </div>
-                <div style="display: flex; justify-content: space-between; font-weight: bold; font-size: 1.1rem;">
-                    <span>Total:</span>
-                    <span>KSh ${currentTotal.toFixed(2)}</span>
-                </div>
-                <div style="display: flex; justify-content: space-between; margin-top: 0.5rem;">
-                    <span>Payment Method:</span>
-                    <span>${selectedPaymentMethod === 'cash' ? 'Cash' : 'M-Pesa'}</span>
-                </div>
-                ${selectedPaymentMethod === 'cash' ? `
-                    <div style="display: flex; justify-content: space-between;">
-                        <span>Cash Received:</span>
-                        <span>KSh ${parseFloat(document.getElementById('cashReceived').value).toFixed(2)}</span>
-                    </div>
-                    <div style="display: flex; justify-content: space-between;">
-                        <span>Change:</span>
-                        <span>KSh ${(parseFloat(document.getElementById('cashReceived').value) - currentTotal).toFixed(2)}</span>
-                    </div>
-                ` : ''}
-            </div>
-        </div>
-        
-        <div style="text-align: center; margin-top: 1rem; font-size: 0.8rem;">
-            <p>Thank you for your business!</p>
-            <p>Served by: ${document.querySelector('.user-name')?.textContent || 'Staff'}</p>
-        </div>
-    `;
-    
-    receiptContent.innerHTML = receiptHtml;
-    
-    // Show receipt modal
+const receiptContent = document.getElementById('receiptContent');
+const now = new Date();
+
+const receiptHtml = `
+<div class="receipt-header" style="text-align: center; padding: 1.5rem 1rem; background: #f8fafc; border-bottom: 2px solid #e5e7eb;">
+<h3 style="margin: 0; font-size: 1.25rem; font-weight: bold; color: #1f2937;">PIXEL SOLUTION COMPANY LTD</h3>
+<p style="margin: 0.5rem 0 0.25rem; font-size: 0.9rem; color: #6b7280;">Sales Receipt</p>
+<p style="margin: 0.25rem 0; font-size: 0.85rem; color: #374151;">Receipt #: ${saleId}</p>
+<p style="margin: 0.25rem 0; font-size: 0.85rem; color: #374151;">${now.toLocaleString('en-KE')}</p>
+</div>
+
+<div style="padding: 1.5rem 1rem;">
+<div style="margin-bottom: 1.5rem;">
+${cart.map(item => `
+<div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid #f1f5f9;">
+<div>
+<div style="font-weight: 600; color: #1f2937; font-size: 0.9rem;">${item.name}</div>
+<div style="font-size: 0.8rem; color: #6b7280;">${item.quantity} x KSh ${item.price.toFixed(2)}</div>
+</div>
+<div style="font-weight: 600; color: #1f2937;">KSh ${item.total.toFixed(2)}</div>
+</div>
+`).join('')}
+</div>
+
+<div style="border-top: 2px solid #e5e7eb; padding-top: 1rem; margin-bottom: 1rem;">
+<div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+<span style="color: #6b7280;">Subtotal:</span>
+<span style="color: #1f2937; font-weight: 600;">KSh ${saleData.subtotal.toFixed(2)}</span>
+</div>
+<div style="display: flex; justify-content: space-between; margin-bottom: 0.75rem;">
+<span style="color: #6b7280;">VAT (16%):</span>
+<span style="color: #1f2937; font-weight: 600;">KSh ${saleData.tax.toFixed(2)}</span>
+</div>
+<div style="display: flex; justify-content: space-between; padding-top: 0.75rem; border-top: 2px solid #1f2937; font-size: 1.1rem; font-weight: bold;">
+<span style="color: #1f2937;">Total:</span>
+<span style="color: #10b981;">KSh ${saleData.total.toFixed(2)}</span>
+</div>
+</div>
+
+<div style="border-top: 1px solid #e5e7eb; padding-top: 1rem; margin-bottom: 1rem;">
+<div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+<span style="color: #6b7280;">Payment Method:</span>
+<span style="color: #1f2937; font-weight: 600;">${selectedPaymentMethod === 'cash' ? 'Cash' : 'M-Pesa'}</span>
+</div>
+${selectedPaymentMethod === 'cash' ? `
+<div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+<span style="color: #6b7280;">Cash Received:</span>
+<span style="color: #1f2937; font-weight: 600;">KSh ${parseFloat(document.getElementById('cashReceived').value || 0).toFixed(2)}</span>
+</div>
+<div style="display: flex; justify-content: space-between;">
+<span style="color: #6b7280;">Change:</span>
+<span style="color: #1f2937; font-weight: 600;">KSh ${(parseFloat(document.getElementById('cashReceived').value || 0) - saleData.total).toFixed(2)}</span>
+</div>
+` : ''}
+</div>
+
+<div style="text-align: center; padding-top: 1rem; border-top: 1px solid #e5e7eb;">
+<p style="margin: 0 0 0.5rem; font-size: 0.9rem; color: #6b7280;">Thank you for your business!</p>
+<p style="margin: 0; font-size: 0.85rem; color: #9ca3af;">Served by: Staff</p>
+</div>
+</div>
+`;
+
+receiptContent.innerHTML = receiptHtml;
+
+    // Show receipt modal - prevent duplicate modals
     const receiptModal = document.getElementById('receiptModal');
-    receiptModal.style.display = 'flex';
+    if (receiptModal && receiptModal.style.display !== 'flex') {
+        receiptModal.style.display = 'flex';
+    }
 }
 
 // Print receipt
