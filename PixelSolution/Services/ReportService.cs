@@ -348,7 +348,7 @@ namespace PixelSolution.Services
                     .Where(s => s.SaleDate >= startDate && s.SaleDate <= endDate && s.Status == "Completed")
                     .ToListAsync();
 
-                var totalSales = sales.Sum(s => s.AmountPaid);
+                var totalSales = sales.Sum(s => s.TotalAmount);
                 var totalTransactions = sales.Count;
                 var averageTransaction = totalTransactions > 0 ? totalSales / totalTransactions : 0;
 
@@ -357,7 +357,7 @@ namespace PixelSolution.Services
                     .Select(g => new
                     {
                         date = g.Key.ToString("yyyy-MM-dd"),
-                        amount = g.Sum(s => s.AmountPaid),
+                        amount = g.Sum(s => s.TotalAmount),
                         transactions = g.Count()
                     })
                     .OrderBy(x => x.date)
@@ -792,8 +792,8 @@ namespace PixelSolution.Services
                 reportTitle.SpacingAfter = 20f;
                 document.Add(reportTitle);
                 
-                // Summary Statistics using AmountPaid
-                var totalRevenue = sales.Sum(s => s.AmountPaid);
+                // Summary Statistics using TotalAmount
+                var totalRevenue = sales.Sum(s => s.TotalAmount);
                 var summaryFont = FontFactory.GetFont(FontFactory.HELVETICA, 10, BaseColor.BLACK);
                 var summary = new Paragraph($"Total Sales: {sales.Count} | Total Revenue: KSh {totalRevenue:N2} | Generated: {DateTime.Now:dd/MM/yyyy HH:mm}", summaryFont);
                 summary.Alignment = Element.ALIGN_CENTER;
@@ -825,7 +825,7 @@ namespace PixelSolution.Services
                     table.AddCell(new PdfPCell(new Phrase(sale.SaleDate.ToString("dd/MM/yyyy"), dataFont)) { Padding = 5f });
                     table.AddCell(new PdfPCell(new Phrase(sale.SaleNumber ?? "N/A", dataFont)) { Padding = 5f });
                     table.AddCell(new PdfPCell(new Phrase(sale.CustomerName ?? "Walk-in", dataFont)) { Padding = 5f });
-                    table.AddCell(new PdfPCell(new Phrase(sale.AmountPaid.ToString("N2"), dataFont)) { Padding = 5f, HorizontalAlignment = Element.ALIGN_RIGHT });
+                    table.AddCell(new PdfPCell(new Phrase(sale.TotalAmount.ToString("N2"), dataFont)) { Padding = 5f, HorizontalAlignment = Element.ALIGN_RIGHT });
                     table.AddCell(new PdfPCell(new Phrase(sale.User?.FullName ?? "Unknown", dataFont)) { Padding = 5f });
                 }
                 
@@ -1322,7 +1322,7 @@ namespace PixelSolution.Services
                     SalesCount = u.Sales.Count(s => s.Status == "Completed"),
                     TotalSalesAmount = u.Sales
                         .Where(s => s.Status == "Completed")
-                        .Sum(s => s.AmountPaid),
+                        .Sum(s => s.TotalAmount),
                     PurchaseRequestCount = u.PurchaseRequests.Count,
                     LastSaleDate = u.Sales
                         .Where(s => s.Status == "Completed")

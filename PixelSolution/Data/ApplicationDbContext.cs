@@ -23,6 +23,18 @@ namespace PixelSolution.Data
         public DbSet<MpesaTransaction> MpesaTransactions { get; set; }
         public DbSet<UserDepartment> UserDepartments { get; set; }
         public DbSet<UserActivityLog> UserActivityLogs { get; set; }
+        
+        // Customer Management
+        public DbSet<Customer> Customers { get; set; }
+        public DbSet<CustomerCart> CustomerCarts { get; set; }
+        public DbSet<ProductRequest> ProductRequests { get; set; }
+        public DbSet<ProductRequestItem> ProductRequestItems { get; set; }
+        
+        // Employee Management
+        public DbSet<EmployeeProfile> EmployeeProfiles { get; set; }
+        public DbSet<EmployeeSalary> EmployeeSalaries { get; set; }
+        public DbSet<EmployeeFine> EmployeeFines { get; set; }
+        public DbSet<EmployeePayment> EmployeePayments { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -240,6 +252,178 @@ namespace PixelSolution.Data
             modelBuilder.Entity<UserActivityLog>()
                 .Property(ual => ual.CreatedAt)
                 .HasDefaultValueSql("GETUTCDATE()");
+
+            // Configure Customer relationships
+            modelBuilder.Entity<Customer>()
+                .HasIndex(c => c.Email)
+                .IsUnique();
+
+            modelBuilder.Entity<Customer>()
+                .Property(c => c.CreatedAt)
+                .HasDefaultValueSql("GETUTCDATE()");
+
+            modelBuilder.Entity<Customer>()
+                .Property(c => c.UpdatedAt)
+                .HasDefaultValueSql("GETUTCDATE()");
+
+            // Configure CustomerCart relationships
+            modelBuilder.Entity<CustomerCart>()
+                .HasOne(cc => cc.Customer)
+                .WithMany(c => c.CartItems)
+                .HasForeignKey(cc => cc.CustomerId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<CustomerCart>()
+                .HasOne(cc => cc.Product)
+                .WithMany()
+                .HasForeignKey(cc => cc.ProductId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<CustomerCart>()
+                .Property(cc => cc.UnitPrice)
+                .HasColumnType("decimal(18,2)");
+
+            modelBuilder.Entity<CustomerCart>()
+                .Property(cc => cc.TotalPrice)
+                .HasColumnType("decimal(18,2)");
+
+            modelBuilder.Entity<CustomerCart>()
+                .Property(cc => cc.AddedAt)
+                .HasDefaultValueSql("GETUTCDATE()");
+
+            modelBuilder.Entity<CustomerCart>()
+                .Property(cc => cc.UpdatedAt)
+                .HasDefaultValueSql("GETUTCDATE()");
+
+            // Configure ProductRequest relationships
+            modelBuilder.Entity<ProductRequest>()
+                .HasOne(pr => pr.Customer)
+                .WithMany(c => c.ProductRequests)
+                .HasForeignKey(pr => pr.CustomerId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<ProductRequest>()
+                .HasOne(pr => pr.ProcessedByUser)
+                .WithMany()
+                .HasForeignKey(pr => pr.ProcessedByUserId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<ProductRequest>()
+                .HasIndex(pr => pr.RequestNumber)
+                .IsUnique();
+
+            modelBuilder.Entity<ProductRequest>()
+                .Property(pr => pr.TotalAmount)
+                .HasColumnType("decimal(18,2)");
+
+            modelBuilder.Entity<ProductRequest>()
+                .Property(pr => pr.RequestDate)
+                .HasDefaultValueSql("GETUTCDATE()");
+
+            // Configure ProductRequestItem relationships
+            modelBuilder.Entity<ProductRequestItem>()
+                .HasOne(pri => pri.ProductRequest)
+                .WithMany(pr => pr.ProductRequestItems)
+                .HasForeignKey(pri => pri.ProductRequestId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<ProductRequestItem>()
+                .HasOne(pri => pri.Product)
+                .WithMany()
+                .HasForeignKey(pri => pri.ProductId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<ProductRequestItem>()
+                .Property(pri => pri.UnitPrice)
+                .HasColumnType("decimal(18,2)");
+
+            modelBuilder.Entity<ProductRequestItem>()
+                .Property(pri => pri.TotalPrice)
+                .HasColumnType("decimal(18,2)");
+
+            // Configure EmployeeProfile relationships
+            modelBuilder.Entity<EmployeeProfile>()
+                .HasOne(ep => ep.User)
+                .WithOne()
+                .HasForeignKey<EmployeeProfile>(ep => ep.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<EmployeeProfile>()
+                .HasIndex(ep => ep.EmployeeNumber)
+                .IsUnique();
+
+            modelBuilder.Entity<EmployeeProfile>()
+                .Property(ep => ep.BaseSalary)
+                .HasColumnType("decimal(18,2)");
+
+            modelBuilder.Entity<EmployeeProfile>()
+                .Property(ep => ep.CreatedAt)
+                .HasDefaultValueSql("GETUTCDATE()");
+
+            modelBuilder.Entity<EmployeeProfile>()
+                .Property(ep => ep.UpdatedAt)
+                .HasDefaultValueSql("GETUTCDATE()");
+
+            // Configure EmployeeSalary relationships
+            modelBuilder.Entity<EmployeeSalary>()
+                .HasOne(es => es.EmployeeProfile)
+                .WithMany(ep => ep.SalaryRecords)
+                .HasForeignKey(es => es.EmployeeProfileId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<EmployeeSalary>()
+                .Property(es => es.Amount)
+                .HasColumnType("decimal(18,2)");
+
+            modelBuilder.Entity<EmployeeSalary>()
+                .Property(es => es.CreatedAt)
+                .HasDefaultValueSql("GETUTCDATE()");
+
+            // Configure EmployeeFine relationships
+            modelBuilder.Entity<EmployeeFine>()
+                .HasOne(ef => ef.EmployeeProfile)
+                .WithMany(ep => ep.Fines)
+                .HasForeignKey(ef => ef.EmployeeProfileId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<EmployeeFine>()
+                .HasOne(ef => ef.IssuedByUser)
+                .WithMany()
+                .HasForeignKey(ef => ef.IssuedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<EmployeeFine>()
+                .Property(ef => ef.Amount)
+                .HasColumnType("decimal(18,2)");
+
+            // Configure EmployeePayment relationships
+            modelBuilder.Entity<EmployeePayment>()
+                .HasOne(ep => ep.EmployeeProfile)
+                .WithMany(epr => epr.Payments)
+                .HasForeignKey(ep => ep.EmployeeProfileId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<EmployeePayment>()
+                .HasOne(ep => ep.ProcessedByUser)
+                .WithMany()
+                .HasForeignKey(ep => ep.ProcessedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<EmployeePayment>()
+                .HasIndex(ep => ep.PaymentNumber)
+                .IsUnique();
+
+            modelBuilder.Entity<EmployeePayment>()
+                .Property(ep => ep.GrossPay)
+                .HasColumnType("decimal(18,2)");
+
+            modelBuilder.Entity<EmployeePayment>()
+                .Property(ep => ep.Deductions)
+                .HasColumnType("decimal(18,2)");
+
+            modelBuilder.Entity<EmployeePayment>()
+                .Property(ep => ep.NetPay)
+                .HasColumnType("decimal(18,2)");
         }
     }
 }
