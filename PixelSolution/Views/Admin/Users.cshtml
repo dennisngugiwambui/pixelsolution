@@ -713,23 +713,33 @@
                         @if (User.IsInRole("Admin"))
                         {
                             <div class="user-actions">
-                                <button class="btn-icon btn-edit" onclick="editUser(@user.UserId)" title="Edit">
+                                <button type="button" class="btn btn-sm btn-outline-primary" onclick="editUser(@user.UserId)">
                                     <i class="fas fa-edit"></i> Edit
                                 </button>
-                                @if (user.Status.Equals("Active", StringComparison.OrdinalIgnoreCase))
+                                @if (user.UserType == "Employee")
                                 {
-                                    <button class="btn-icon btn-toggle" onclick="toggleUserStatus(@user.UserId, '@user.FullName', 'Active')" title="Deactivate">
-                                        <i class="fas fa-ban"></i> Deactivate
+                                    <button type="button" class="btn btn-sm btn-outline-success" onclick="manageEmployeeSalary(@user.UserId, '@user.FullName')">
+                                        <i class="fas fa-money-bill-wave"></i> Salary
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-warning" onclick="manageEmployeeFines(@user.UserId, '@user.FullName')">
+                                        <i class="fas fa-exclamation-triangle"></i> Fines
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-info" onclick="processEmployeePayment(@user.UserId, '@user.FullName')">
+                                        <i class="fas fa-credit-card"></i> Payment
                                     </button>
                                 }
-                                else
-                                {
-                                    <button class="btn-icon btn-toggle" onclick="toggleUserStatus(@user.UserId, '@user.FullName', 'Inactive')" title="Activate">
-                                        <i class="fas fa-check"></i> Activate
-                                    </button>
-                                }
-                                <button class="btn-icon btn-delete" onclick="deleteUser(@user.UserId, '@user.FullName')" title="Delete">
-                                    <i class="fas fa-trash"></i> Del
+                                <button type="button" class="btn btn-sm btn-outline-warning btn-toggle" onclick="toggleUserStatus(@user.UserId, '@user.FullName', '@user.Status')">
+                                    @if (user.Status == "Active")
+                                    {
+                                        <i class="fas fa-ban"></i> <text>Deactivate</text>
+                                    }
+                                    else
+                                    {
+                                        <i class="fas fa-check"></i> <text>Activate</text>
+                                    }
+                                </button>
+                                <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteUser(@user.UserId, '@user.FullName')">
+                                    <i class="fas fa-trash"></i> Delete
                                 </button>
                             </div>
                         }
@@ -756,14 +766,86 @@
     </div>
 </div>
 
+<!-- Employee Salary Management Modal -->
+<div class="modal fade" id="salaryModal" tabindex="-1" aria-labelledby="salaryModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="salaryModalLabel">
+                    <i class="fas fa-money-bill-wave"></i> Employee Salary Management
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="salaryContent">
+                    <div class="text-center">
+                        <div class="spinner-border text-success" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-2">Loading salary information...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Employee Fines Management Modal -->
+<div class="modal fade" id="finesModal" tabindex="-1" aria-labelledby="finesModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title" id="finesModalLabel">
+                    <i class="fas fa-exclamation-triangle"></i> Employee Fines Management
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="finesContent">
+                    <div class="text-center">
+                        <div class="spinner-border text-warning" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-2">Loading fines information...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Employee Payment Processing Modal -->
+<div class="modal fade" id="paymentModal" tabindex="-1" aria-labelledby="paymentModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title" id="paymentModalLabel">
+                    <i class="fas fa-credit-card"></i> Employee Payment Processing
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="paymentContent">
+                    <div class="text-center">
+                        <div class="spinner-border text-info" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-2">Loading payment information...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Create/Edit User Modal -->
-<div id="userModal" class="modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h2 id="modalTitle" class="modal-title">Add New User</h2>
-            <button class="close-btn" onclick="closeUserModal()">
-                <i class="fas fa-times"></i>
-            </button>
+<div id="userModal" class="modal fade" tabindex="-1" aria-labelledby="userModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle" class="modal-title">Add New User</h2>
+                <button class="close-btn" onclick="closeUserModal()">
+                    <i class="fas fa-times"></i>
         </div>
         <form id="userForm">
             @Html.AntiForgeryToken()
@@ -1555,6 +1637,439 @@
                     }
                 }, 300);
             }, 4000);
+        }
+
+        // Employee Management Functions
+        function manageEmployeeSalary(userId, userName) {
+            console.log('🔄 Managing salary for user:', userId, userName);
+            
+            var modal = new bootstrap.Modal(document.getElementById('salaryModal'));
+            document.getElementById('salaryModalLabel').innerHTML = '<i class="fas fa-money-bill-wave"></i> Salary Management - ' + userName;
+            
+            // Load salary data
+            loadEmployeeSalaryData(userId);
+            modal.show();
+        }
+
+        function manageEmployeeFines(userId, userName) {
+            console.log('🔄 Managing fines for user:', userId, userName);
+            
+            var modal = new bootstrap.Modal(document.getElementById('finesModal'));
+            document.getElementById('finesModalLabel').innerHTML = '<i class="fas fa-exclamation-triangle"></i> Fines Management - ' + userName;
+            
+            // Load fines data
+            loadEmployeeFinesData(userId);
+            modal.show();
+        }
+
+        function processEmployeePayment(userId, userName) {
+            console.log('🔄 Processing payment for user:', userId, userName);
+            
+            var modal = new bootstrap.Modal(document.getElementById('paymentModal'));
+            document.getElementById('paymentModalLabel').innerHTML = '<i class="fas fa-credit-card"></i> Payment Processing - ' + userName;
+            
+            // Load payment data
+            loadEmployeePaymentData(userId);
+            modal.show();
+        }
+
+        function loadEmployeeSalaryData(userId) {
+            var content = document.getElementById('salaryContent');
+            content.innerHTML = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="text-success"><i class="fas fa-plus-circle"></i> Set New Salary</h6>
+                        <form id="salaryForm">
+                            <div class="mb-3">
+                                <label class="form-label">Salary Amount (KSh)</label>
+                                <input type="number" class="form-control" id="salaryAmount" step="0.01" min="0" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Salary Type</label>
+                                <select class="form-control" id="salaryType" required>
+                                    <option value="Base">Base Salary</option>
+                                    <option value="Bonus">Bonus</option>
+                                    <option value="Overtime">Overtime</option>
+                                    <option value="Commission">Commission</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Effective Date</label>
+                                <input type="date" class="form-control" id="effectiveDate" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Notes</label>
+                                <textarea class="form-control" id="salaryNotes" rows="2"></textarea>
+                            </div>
+                            <button type="button" class="btn btn-success" onclick="updateEmployeeSalary(${userId})">
+                                <i class="fas fa-save"></i> Update Salary
+                            </button>
+                        </form>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-info"><i class="fas fa-history"></i> Salary History</h6>
+                        <div id="salaryHistory">
+                            <div class="text-center">
+                                <div class="spinner-border text-success" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Set today's date as default
+            document.getElementById('effectiveDate').value = new Date().toISOString().split('T')[0];
+            
+            // Load salary history
+            loadSalaryHistory(userId);
+        }
+
+        function loadEmployeeFinesData(userId) {
+            var content = document.getElementById('finesContent');
+            content.innerHTML = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="text-warning"><i class="fas fa-plus-circle"></i> Issue New Fine</h6>
+                        <form id="fineForm">
+                            <div class="mb-3">
+                                <label class="form-label">Fine Amount (KSh)</label>
+                                <input type="number" class="form-control" id="fineAmount" step="0.01" min="0" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Fine Type</label>
+                                <select class="form-control" id="fineType" required>
+                                    <option value="Lateness">Lateness</option>
+                                    <option value="Absence">Absence</option>
+                                    <option value="Misconduct">Misconduct</option>
+                                    <option value="Damage">Property Damage</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Description</label>
+                                <textarea class="form-control" id="fineDescription" rows="3" required></textarea>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Fine Date</label>
+                                <input type="date" class="form-control" id="fineDate" required>
+                            </div>
+                            <button type="button" class="btn btn-warning" onclick="issueFine(${userId})">
+                                <i class="fas fa-exclamation-triangle"></i> Issue Fine
+                            </button>
+                        </form>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-info"><i class="fas fa-list"></i> Fine History</h6>
+                        <div id="fineHistory">
+                            <div class="text-center">
+                                <div class="spinner-border text-warning" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Set today's date as default
+            document.getElementById('fineDate').value = new Date().toISOString().split('T')[0];
+            
+            // Load fine history
+            loadFineHistory(userId);
+        }
+
+        function loadEmployeePaymentData(userId) {
+            var content = document.getElementById('paymentContent');
+            content.innerHTML = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="text-info"><i class="fas fa-credit-card"></i> Process Payment</h6>
+                        <form id="paymentForm">
+                            <div class="mb-3">
+                                <label class="form-label">Payment Amount (KSh)</label>
+                                <input type="number" class="form-control" id="paymentAmount" step="0.01" min="0" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Payment Type</label>
+                                <select class="form-control" id="paymentType" required>
+                                    <option value="Salary">Salary Payment</option>
+                                    <option value="Bonus">Bonus Payment</option>
+                                    <option value="Overtime">Overtime Payment</option>
+                                    <option value="Advance">Salary Advance</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Payment Method</label>
+                                <select class="form-control" id="paymentMethod" required>
+                                    <option value="Bank Transfer">Bank Transfer</option>
+                                    <option value="Cash">Cash</option>
+                                    <option value="Mobile Money">Mobile Money</option>
+                                    <option value="Cheque">Cheque</option>
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Payment Date</label>
+                                <input type="date" class="form-control" id="paymentDate" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Notes</label>
+                                <textarea class="form-control" id="paymentNotes" rows="2"></textarea>
+                            </div>
+                            <button type="button" class="btn btn-info" onclick="processPayment(${userId})">
+                                <i class="fas fa-money-check"></i> Process Payment
+                            </button>
+                        </form>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-success"><i class="fas fa-history"></i> Payment History</h6>
+                        <div id="paymentHistory">
+                            <div class="text-center">
+                                <div class="spinner-border text-info" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Set today's date as default
+            document.getElementById('paymentDate').value = new Date().toISOString().split('T')[0];
+            
+            // Load payment history
+            loadPaymentHistory(userId);
+        }
+
+        function updateEmployeeSalary(userId) {
+            var amount = document.getElementById('salaryAmount').value;
+            var type = document.getElementById('salaryType').value;
+            var effectiveDate = document.getElementById('effectiveDate').value;
+            var notes = document.getElementById('salaryNotes').value;
+            
+            if (!amount || !type || !effectiveDate) {
+                showToast('Please fill in all required fields', 'error');
+                return;
+            }
+            
+            var token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+            
+            fetch('/api/EmployeeManagement/salary', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': token
+                },
+                body: JSON.stringify({
+                    UserId: userId,
+                    Amount: parseFloat(amount),
+                    SalaryType: type,
+                    EffectiveDate: effectiveDate,
+                    Notes: notes
+                })
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    showToast('Salary updated successfully!', 'success');
+                    loadSalaryHistory(userId);
+                    document.getElementById('salaryForm').reset();
+                    document.getElementById('effectiveDate').value = new Date().toISOString().split('T')[0];
+                } else {
+                    showToast('Error updating salary: ' + (result.message || 'Unknown error'), 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('Error updating salary. Please try again.', 'error');
+            });
+        }
+
+        function issueFine(userId) {
+            var amount = document.getElementById('fineAmount').value;
+            var type = document.getElementById('fineType').value;
+            var description = document.getElementById('fineDescription').value;
+            var fineDate = document.getElementById('fineDate').value;
+            
+            if (!amount || !type || !description || !fineDate) {
+                showToast('Please fill in all required fields', 'error');
+                return;
+            }
+            
+            var token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+            
+            fetch('/api/EmployeeManagement/fine', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': token
+                },
+                body: JSON.stringify({
+                    UserId: userId,
+                    Amount: parseFloat(amount),
+                    FineType: type,
+                    Description: description,
+                    FineDate: fineDate
+                })
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    showToast('Fine issued successfully!', 'success');
+                    loadFineHistory(userId);
+                    document.getElementById('fineForm').reset();
+                    document.getElementById('fineDate').value = new Date().toISOString().split('T')[0];
+                } else {
+                    showToast('Error issuing fine: ' + (result.message || 'Unknown error'), 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('Error issuing fine. Please try again.', 'error');
+            });
+        }
+
+        function processPayment(userId) {
+            var amount = document.getElementById('paymentAmount').value;
+            var type = document.getElementById('paymentType').value;
+            var method = document.getElementById('paymentMethod').value;
+            var paymentDate = document.getElementById('paymentDate').value;
+            var notes = document.getElementById('paymentNotes').value;
+            
+            if (!amount || !type || !method || !paymentDate) {
+                showToast('Please fill in all required fields', 'error');
+                return;
+            }
+            
+            var token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+            
+            fetch('/api/EmployeeManagement/payment', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': token
+                },
+                body: JSON.stringify({
+                    UserId: userId,
+                    Amount: parseFloat(amount),
+                    PaymentType: type,
+                    PaymentMethod: method,
+                    PaymentDate: paymentDate,
+                    Notes: notes
+                })
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    showToast('Payment processed successfully!', 'success');
+                    loadPaymentHistory(userId);
+                    document.getElementById('paymentForm').reset();
+                    document.getElementById('paymentDate').value = new Date().toISOString().split('T')[0];
+                } else {
+                    showToast('Error processing payment: ' + (result.message || 'Unknown error'), 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('Error processing payment. Please try again.', 'error');
+            });
+        }
+
+        function loadSalaryHistory(userId) {
+            fetch(`/api/EmployeeManagement/salary-history/${userId}`)
+            .then(response => response.json())
+            .then(data => {
+                var historyDiv = document.getElementById('salaryHistory');
+                if (data && data.length > 0) {
+                    var html = '<div class="list-group">';
+                    data.forEach(salary => {
+                        html += `
+                            <div class="list-group-item">
+                                <div class="d-flex justify-content-between">
+                                    <strong>KSh ${salary.amount.toLocaleString()}</strong>
+                                    <small class="text-muted">${new Date(salary.effectiveDate).toLocaleDateString()}</small>
+                                </div>
+                                <div class="text-muted">${salary.salaryType}</div>
+                                ${salary.notes ? `<small>${salary.notes}</small>` : ''}
+                            </div>
+                        `;
+                    });
+                    html += '</div>';
+                    historyDiv.innerHTML = html;
+                } else {
+                    historyDiv.innerHTML = '<p class="text-muted">No salary records found.</p>';
+                }
+            })
+            .catch(error => {
+                console.error('Error loading salary history:', error);
+                document.getElementById('salaryHistory').innerHTML = '<p class="text-danger">Error loading salary history.</p>';
+            });
+        }
+
+        function loadFineHistory(userId) {
+            fetch(`/api/EmployeeManagement/fine-history/${userId}`)
+            .then(response => response.json())
+            .then(data => {
+                var historyDiv = document.getElementById('fineHistory');
+                if (data && data.length > 0) {
+                    var html = '<div class="list-group">';
+                    data.forEach(fine => {
+                        html += `
+                            <div class="list-group-item">
+                                <div class="d-flex justify-content-between">
+                                    <strong class="text-warning">KSh ${fine.amount.toLocaleString()}</strong>
+                                    <small class="text-muted">${new Date(fine.fineDate).toLocaleDateString()}</small>
+                                </div>
+                                <div class="text-muted">${fine.fineType}</div>
+                                <small>${fine.description}</small>
+                                <div class="mt-1">
+                                    <span class="badge ${fine.isPaid ? 'bg-success' : 'bg-warning'}">${fine.isPaid ? 'Paid' : 'Unpaid'}</span>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    html += '</div>';
+                    historyDiv.innerHTML = html;
+                } else {
+                    historyDiv.innerHTML = '<p class="text-muted">No fine records found.</p>';
+                }
+            })
+            .catch(error => {
+                console.error('Error loading fine history:', error);
+                document.getElementById('fineHistory').innerHTML = '<p class="text-danger">Error loading fine history.</p>';
+            });
+        }
+
+        function loadPaymentHistory(userId) {
+            fetch(`/api/EmployeeManagement/payment-history/${userId}`)
+            .then(response => response.json())
+            .then(data => {
+                var historyDiv = document.getElementById('paymentHistory');
+                if (data && data.length > 0) {
+                    var html = '<div class="list-group">';
+                    data.forEach(payment => {
+                        html += `
+                            <div class="list-group-item">
+                                <div class="d-flex justify-content-between">
+                                    <strong class="text-success">KSh ${payment.amount.toLocaleString()}</strong>
+                                    <small class="text-muted">${new Date(payment.paymentDate).toLocaleDateString()}</small>
+                                </div>
+                                <div class="text-muted">${payment.paymentType} - ${payment.paymentMethod}</div>
+                                ${payment.notes ? `<small>${payment.notes}</small>` : ''}
+                            </div>
+                        `;
+                    });
+                    html += '</div>';
+                    historyDiv.innerHTML = html;
+                } else {
+                    historyDiv.innerHTML = '<p class="text-muted">No payment records found.</p>';
+                }
+            })
+            .catch(error => {
+                console.error('Error loading payment history:', error);
+                document.getElementById('paymentHistory').innerHTML = '<p class="text-danger">Error loading payment history.</p>';
+            });
         }
 
     </script>

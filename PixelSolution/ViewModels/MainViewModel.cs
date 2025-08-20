@@ -783,4 +783,302 @@ namespace PixelSolution.ViewModels
         public string NotificationHours { get; set; } = "09:00-17:00"; // Business hours
     }
 
+    // ======================================
+    // EMPLOYEE MANAGEMENT VIEW MODELS
+    // ======================================
+
+    public class EmployeeCardViewModel
+    {
+        public int UserId { get; set; }
+        public int? EmployeeProfileId { get; set; }
+        public string FullName { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string? Phone { get; set; }
+        public string UserType { get; set; } = string.Empty;
+        public string Status { get; set; } = string.Empty;
+        public string? Position { get; set; }
+        public string? EmployeeNumber { get; set; }
+        public DateTime? HireDate { get; set; }
+        public decimal? BaseSalary { get; set; }
+        public string? PaymentFrequency { get; set; }
+        public string UserInitials { get; set; } = string.Empty;
+        public bool IsActive { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public DateTime? LastLogin { get; set; }
+        public int TotalSales { get; set; }
+        public decimal TotalSalesAmount { get; set; }
+        public decimal OutstandingFines { get; set; }
+        public string DepartmentNames { get; set; } = string.Empty;
+        public bool HasEmployeeProfile { get; set; }
+        public string EmploymentStatus { get; set; } = string.Empty;
+    }
+
+    public class EmployeeDetailsViewModel
+    {
+        // Basic User Information
+        public int UserId { get; set; }
+        public string FirstName { get; set; } = string.Empty;
+        public string LastName { get; set; } = string.Empty;
+        public string FullName { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string? Phone { get; set; }
+        public string UserType { get; set; } = string.Empty;
+        public string Status { get; set; } = string.Empty;
+        public bool IsActive { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public DateTime? LastLogin { get; set; }
+
+        // Employee Profile Information
+        public int? EmployeeProfileId { get; set; }
+        public string? EmployeeNumber { get; set; }
+        public string? Position { get; set; }
+        public DateTime? HireDate { get; set; }
+        public decimal? BaseSalary { get; set; }
+        public string? PaymentFrequency { get; set; }
+        public string? BankAccount { get; set; }
+        public string? BankName { get; set; }
+        public string? EmergencyContact { get; set; }
+        public string EmploymentStatus { get; set; } = string.Empty;
+
+        // Department Information
+        public List<DepartmentSelectionViewModel> Departments { get; set; } = new List<DepartmentSelectionViewModel>();
+        public string DepartmentNames { get; set; } = string.Empty;
+
+        // Financial Information
+        public List<EmployeeSalaryViewModel> SalaryHistory { get; set; } = new List<EmployeeSalaryViewModel>();
+        public List<EmployeeFineViewModel> Fines { get; set; } = new List<EmployeeFineViewModel>();
+        public List<EmployeePaymentViewModel> Payments { get; set; } = new List<EmployeePaymentViewModel>();
+        public decimal CurrentSalary { get; set; }
+        public decimal OutstandingFines { get; set; }
+        public decimal TotalPaid { get; set; }
+
+        // Performance Metrics
+        public int TotalSales { get; set; }
+        public decimal TotalSalesAmount { get; set; }
+        public decimal AverageSaleAmount { get; set; }
+        public int SalesToday { get; set; }
+        public decimal SalesTodayAmount { get; set; }
+        public int SalesThisMonth { get; set; }
+        public decimal SalesThisMonthAmount { get; set; }
+
+        // Additional Information
+        public string UserInitials { get; set; } = string.Empty;
+        public bool HasEmployeeProfile { get; set; }
+        public DateTime? NextPaymentDue { get; set; }
+        public string StatusBadgeClass { get; set; } = string.Empty;
+        public string EmploymentStatusBadgeClass { get; set; } = string.Empty;
+    }
+
+    public class EmployeeSalaryViewModel
+    {
+        public int SalaryId { get; set; }
+        public decimal Amount { get; set; }
+        public string SalaryType { get; set; } = string.Empty;
+        public DateTime EffectiveDate { get; set; }
+        public DateTime? EndDate { get; set; }
+        public string Notes { get; set; } = string.Empty;
+        public bool IsActive { get; set; }
+        public string FormattedAmount { get; set; } = string.Empty;
+        public string FormattedEffectiveDate { get; set; } = string.Empty;
+        public string FormattedEndDate { get; set; } = string.Empty;
+    }
+
+    public class EmployeeFineViewModel
+    {
+        public int FineId { get; set; }
+        public string Reason { get; set; } = string.Empty;
+        public decimal Amount { get; set; }
+        public string Status { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public DateTime IssueDate { get; set; }
+        public DateTime? PaidDate { get; set; }
+        public string IssuedByUserName { get; set; } = string.Empty;
+        public string PaymentMethod { get; set; } = string.Empty;
+        public string FormattedAmount { get; set; } = string.Empty;
+        public string FormattedIssueDate { get; set; } = string.Empty;
+        public string FormattedPaidDate { get; set; } = string.Empty;
+        public string StatusBadgeClass { get; set; } = string.Empty;
+    }
+
+    public class EmployeePaymentViewModel
+    {
+        public int PaymentId { get; set; }
+        public string PaymentNumber { get; set; } = string.Empty;
+        public decimal GrossPay { get; set; }
+        public decimal Deductions { get; set; }
+        public decimal NetPay { get; set; }
+        public string PaymentPeriod { get; set; } = string.Empty;
+        public DateTime PaymentDate { get; set; }
+        public string Status { get; set; } = string.Empty;
+        public string PaymentMethod { get; set; } = string.Empty;
+        public string Notes { get; set; } = string.Empty;
+        public string ProcessedByUserName { get; set; } = string.Empty;
+        public string FormattedGrossPay { get; set; } = string.Empty;
+        public string FormattedNetPay { get; set; } = string.Empty;
+        public string FormattedPaymentDate { get; set; } = string.Empty;
+        public string StatusBadgeClass { get; set; } = string.Empty;
+    }
+
+    // ======================================
+    // FORM VIEW MODELS FOR EMPLOYEE ACTIONS
+    // ======================================
+
+    public class CreateEmployeeProfileViewModel
+    {
+        public int UserId { get; set; }
+        public string UserName { get; set; } = string.Empty;
+
+        [StringLength(50)]
+        [Display(Name = "Employee Number")]
+        public string? EmployeeNumber { get; set; }
+
+        [Required(ErrorMessage = "Position is required")]
+        [StringLength(100)]
+        [Display(Name = "Position")]
+        public string Position { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Hire date is required")]
+        [Display(Name = "Hire Date")]
+        public DateTime HireDate { get; set; } = DateTime.Today;
+
+        [Required(ErrorMessage = "Base salary is required")]
+        [Range(0.01, double.MaxValue, ErrorMessage = "Base salary must be greater than 0")]
+        [Display(Name = "Base Salary (KSh)")]
+        public decimal BaseSalary { get; set; }
+
+        [Required(ErrorMessage = "Payment frequency is required")]
+        [Display(Name = "Payment Frequency")]
+        public string PaymentFrequency { get; set; } = "Monthly";
+
+        [StringLength(50)]
+        [Display(Name = "Bank Account Number")]
+        public string BankAccount { get; set; } = string.Empty;
+
+        [StringLength(100)]
+        [Display(Name = "Bank Name")]
+        public string BankName { get; set; } = string.Empty;
+
+        [StringLength(500)]
+        [Display(Name = "Emergency Contact")]
+        public string EmergencyContact { get; set; } = string.Empty;
+    }
+
+    public class UpdateSalaryViewModel
+    {
+        public int EmployeeProfileId { get; set; }
+        public string EmployeeName { get; set; } = string.Empty;
+        public decimal CurrentSalary { get; set; }
+
+        [Required(ErrorMessage = "New salary is required")]
+        [Range(0.01, double.MaxValue, ErrorMessage = "Salary must be greater than 0")]
+        [Display(Name = "New Salary (KSh)")]
+        public decimal NewSalary { get; set; }
+
+        [Required(ErrorMessage = "Salary type is required")]
+        [Display(Name = "Salary Type")]
+        public string SalaryType { get; set; } = "Base";
+
+        [StringLength(500)]
+        [Display(Name = "Notes")]
+        public string Notes { get; set; } = string.Empty;
+
+        [Display(Name = "Effective Date")]
+        public DateTime EffectiveDate { get; set; } = DateTime.Today;
+    }
+
+    public class IssueFineViewModel
+    {
+        public int EmployeeProfileId { get; set; }
+        public string EmployeeName { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Reason is required")]
+        [StringLength(200)]
+        [Display(Name = "Reason")]
+        public string Reason { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Fine amount is required")]
+        [Range(0.01, double.MaxValue, ErrorMessage = "Fine amount must be greater than 0")]
+        [Display(Name = "Fine Amount (KSh)")]
+        public decimal Amount { get; set; }
+
+        [StringLength(1000)]
+        [Display(Name = "Description")]
+        public string Description { get; set; } = string.Empty;
+    }
+
+    public class ProcessPaymentViewModel
+    {
+        public int EmployeeProfileId { get; set; }
+        public string EmployeeName { get; set; } = string.Empty;
+        public decimal BaseSalary { get; set; }
+        public decimal OutstandingFines { get; set; }
+
+        [Required(ErrorMessage = "Payment period is required")]
+        [Display(Name = "Payment Period")]
+        public string PaymentPeriod { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Gross pay is required")]
+        [Range(0.01, double.MaxValue, ErrorMessage = "Gross pay must be greater than 0")]
+        [Display(Name = "Gross Pay (KSh)")]
+        public decimal GrossPay { get; set; }
+
+        [Range(0, double.MaxValue, ErrorMessage = "Deductions cannot be negative")]
+        [Display(Name = "Deductions (KSh)")]
+        public decimal Deductions { get; set; }
+
+        [Display(Name = "Net Pay (KSh)")]
+        public decimal NetPay => GrossPay - Deductions;
+
+        [Required(ErrorMessage = "Payment method is required")]
+        [Display(Name = "Payment Method")]
+        public string PaymentMethod { get; set; } = "Bank Transfer";
+
+        [StringLength(1000)]
+        [Display(Name = "Notes")]
+        public string Notes { get; set; } = string.Empty;
+    }
+
+    public class EmployeeListViewModel
+    {
+        public List<EmployeeCardViewModel> Employees { get; set; } = new List<EmployeeCardViewModel>();
+        public int TotalEmployees { get; set; }
+        public int ActiveEmployees { get; set; }
+        public int InactiveEmployees { get; set; }
+        public decimal TotalSalariesBudget { get; set; }
+        public decimal TotalOutstandingFines { get; set; }
+        public int EmployeesWithProfiles { get; set; }
+        public int EmployeesWithoutProfiles { get; set; }
+
+        // Filtering and Search
+        public string SearchTerm { get; set; } = string.Empty;
+        public string StatusFilter { get; set; } = string.Empty;
+        public string UserTypeFilter { get; set; } = string.Empty;
+        public string DepartmentFilter { get; set; } = string.Empty;
+        public string EmploymentStatusFilter { get; set; } = string.Empty;
+
+        // Available filter options
+        public List<string> AvailableStatuses { get; set; } = new List<string>();
+        public List<string> AvailableUserTypes { get; set; } = new List<string>();
+        public List<DepartmentSelectionViewModel> AvailableDepartments { get; set; } = new List<DepartmentSelectionViewModel>();
+    }
+
+    // ======================================
+    // RESPONSE VIEW MODELS
+    // ======================================
+
+    public class EmployeeActionResponse
+    {
+        public bool Success { get; set; }
+        public string Message { get; set; } = string.Empty;
+        public object? Data { get; set; }
+        public List<string> Errors { get; set; } = new List<string>();
+    }
+
+    public class EmployeeProfileResponse
+    {
+        public bool Success { get; set; }
+        public string Message { get; set; } = string.Empty;
+        public EmployeeDetailsViewModel? Employee { get; set; }
+    }
+
 }

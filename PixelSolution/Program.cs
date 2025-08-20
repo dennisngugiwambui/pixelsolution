@@ -3,6 +3,9 @@ using Microsoft.EntityFrameworkCore;
 using PixelSolution.Data;
 using PixelSolution.Services;
 using PixelSolution.Services.Interfaces;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,20 +16,16 @@ builder.Services.AddControllersWithViews();
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Authentication Configuration
+// Authentication and Authorization
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-    .AddCookie(options =>
-    {
-        options.LoginPath = "/Auth/Login";
-        options.LogoutPath = "/Auth/Logout";
-        options.AccessDeniedPath = "/Auth/AccessDenied";
-        options.ExpireTimeSpan = TimeSpan.FromHours(8);
-        options.SlidingExpiration = true;
-        options.Cookie.HttpOnly = true;
-        options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
-        options.Cookie.SameSite = SameSiteMode.Lax;
-        options.Cookie.Name = "PixelSolution.Auth";
-    });
+.AddCookie(options =>
+{
+    options.LoginPath = "/Auth/Login";
+    options.LogoutPath = "/Auth/Logout";
+    options.AccessDeniedPath = "/Auth/AccessDenied";
+    options.ExpireTimeSpan = TimeSpan.FromDays(30);
+    options.SlidingExpiration = true;
+});
 
 builder.Services.AddAuthorization(options =>
 {
@@ -51,6 +50,13 @@ builder.Services.AddScoped<IBarcodeService, BarcodeService>();
 builder.Services.AddScoped<IReceiptPrintingService, ReceiptPrintingService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IActivityLogService, ActivityLogService>();
+
+// New Customer and Employee Management Services
+builder.Services.AddScoped<ICustomerCartService, CustomerCartService>();
+builder.Services.AddScoped<IProductRequestService, ProductRequestService>();
+builder.Services.AddScoped<IEmployeeManagementService, EmployeeManagementService>();
+builder.Services.AddScoped<IPaymentReminderService, PaymentReminderService>();
+builder.Services.AddHostedService<BackgroundPaymentReminderService>();
 
 // MPESA Service Configuration
 builder.Services.Configure<MpesaSettings>(builder.Configuration.GetSection("MpesaSettings"));

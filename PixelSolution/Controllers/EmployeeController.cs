@@ -76,9 +76,148 @@ namespace PixelSolution.Controllers
             }
         }
 
-        public IActionResult Messages()
+        public async Task<IActionResult> Messages(int? userId)
         {
-            return View();
+            try
+            {
+                var currentUserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+                
+                // Get all users for messaging (excluding current user)
+                var allUsers = await _context.Users
+                    .Where(u => u.UserId != currentUserId && u.IsActive)
+                    .Select(u => new UserSelectViewModel
+                    {
+                        UserId = u.UserId,
+                        FullName = u.FirstName + " " + u.LastName,
+                        Email = u.Email,
+                        UserType = u.UserType,
+                        Status = u.Status,
+                        IsOnline = u.IsActive,
+                        UserInitials = u.FirstName.Substring(0, 1) + u.LastName.Substring(0, 1)
+                    })
+                    .ToListAsync();
+
+                // Get conversations for current user
+                var conversations = await GetUserConversationsAsync(currentUserId);
+
+                ConversationViewModel? selectedConversation = null;
+                List<MessageViewModel> messages = new List<MessageViewModel>();
+
+                if (userId.HasValue && userId.Value > 0)
+                {
+                    selectedConversation = conversations.FirstOrDefault(c => c.UserId == userId.Value);
+                    if (selectedConversation != null)
+                    {
+                        messages = await GetConversationMessagesAsync(currentUserId, userId.Value);
+                    }
+                }
+
+                // Calculate unread message count for current user
+                var unreadCount = await _context.Messages
+                    .Where(m => m.ToUserId == currentUserId && !m.IsRead)
+                    .CountAsync();
+
+                var viewModel = new MessagesPageViewModel
+                {
+                    CurrentUserId = currentUserId,
+                    Conversations = conversations,
+                    SelectedConversation = selectedConversation,
+                    Messages = messages,
+                    AllUsers = allUsers,
+                    UnreadCount = unreadCount
+                };
+
+                return View(viewModel);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading messages for employee");
+                
+                // Return empty model to prevent null reference
+                var emptyModel = new MessagesPageViewModel
+                {
+                    CurrentUserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0"),
+                    Conversations = new List<ConversationViewModel>(),
+                    Messages = new List<MessageViewModel>(),
+                    AllUsers = new List<UserSelectViewModel>()
+                };
+                
+                return View(emptyModel);
+            }
+        }
+
+        private async Task<List<ConversationViewModel>> GetUserConversationsAsync(int currentUserId)
+        {
+            var sentMessages = _context.Messages
+                .Where(m => m.FromUserId == currentUserId)
+                .GroupBy(m => m.ToUserId)
+                .Select(g => new { UserId = g.Key, LastMessage = g.OrderByDescending(m => m.SentDate).FirstOrDefault() });
+
+            var receivedMessages = _context.Messages
+                .Where(m => m.ToUserId == currentUserId)
+                .GroupBy(m => m.FromUserId)
+                .Select(g => new { UserId = g.Key, LastMessage = g.OrderByDescending(m => m.SentDate).FirstOrDefault() });
+
+            var allConversations = await sentMessages.Union(receivedMessages)
+                .GroupBy(c => c.UserId)
+                .Select(g => g.OrderByDescending(c => c.LastMessage.SentDate).First())
+                .Join(_context.Users,
+                    c => c.UserId,
+                    u => u.UserId,
+                    (c, u) => new ConversationViewModel
+                    {
+                        UserId = u.UserId,
+                        FullName = u.FirstName + " " + u.LastName,
+                        UserInitials = (u.FirstName.Substring(0, 1) + u.LastName.Substring(0, 1)).ToUpper(),
+                        LastMessage = c.LastMessage.Content.Length > 50 ? c.LastMessage.Content.Substring(0, 50) + "..." : c.LastMessage.Content,
+                        LastMessageTime = c.LastMessage.SentDate.ToString("MMM dd, HH:mm"),
+                        IsOnline = false, // You can implement online status logic here
+                        UnreadCount = _context.Messages.Count(m => m.FromUserId == u.UserId && m.ToUserId == currentUserId && !m.IsRead),
+                        LastSeen = DateTime.Now.AddMinutes(-30), // Mock data
+                        LastSeenFormatted = "30 min ago"
+                    })
+                .OrderByDescending(c => c.LastMessageTime)
+                .ToListAsync();
+
+            return allConversations;
+        }
+
+        private async Task<List<MessageViewModel>> GetConversationMessagesAsync(int currentUserId, int otherUserId)
+        {
+            var messages = await _context.Messages
+                .Where(m => (m.FromUserId == currentUserId && m.ToUserId == otherUserId) ||
+                           (m.FromUserId == otherUserId && m.ToUserId == currentUserId))
+                .OrderBy(m => m.SentDate)
+                .Select(m => new MessageViewModel
+                {
+                    MessageId = m.MessageId,
+                    Content = m.Content,
+                    Subject = m.Subject,
+                    MessageType = m.MessageType,
+                    SentDate = m.SentDate,
+                    IsRead = m.IsRead,
+                    ReadDate = m.ReadDate,
+                    IsFromCurrentUser = m.FromUserId == currentUserId
+                })
+                .ToListAsync();
+
+            // Mark messages as read
+            var unreadMessages = await _context.Messages
+                .Where(m => m.FromUserId == otherUserId && m.ToUserId == currentUserId && !m.IsRead)
+                .ToListAsync();
+
+            foreach (var message in unreadMessages)
+            {
+                message.IsRead = true;
+                message.ReadDate = DateTime.Now;
+            }
+
+            if (unreadMessages.Any())
+            {
+                await _context.SaveChangesAsync();
+            }
+
+            return messages;
         }
 
         public IActionResult Settings()
@@ -287,6 +426,146 @@ namespace PixelSolution.Controllers
             }
         }
 
+        [HttpGet]
+        public async Task<IActionResult> GetConversationMessages(int userId)
+        {
+            try
+            {
+                var currentUserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+                
+                var messages = await GetConversationMessagesAsync(currentUserId, userId);
+                var conversation = await _context.Users
+                    .Where(u => u.UserId == userId)
+                    .Select(u => new ConversationViewModel
+                    {
+                        UserId = u.UserId,
+                        FullName = u.FirstName + " " + u.LastName,
+                        UserInitials = (u.FirstName.Substring(0, 1) + u.LastName.Substring(0, 1)).ToUpper(),
+                        IsOnline = false,
+                        LastSeenFormatted = "Recently"
+                    })
+                    .FirstOrDefaultAsync();
+
+                return Json(new { success = true, messages, conversation });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting conversation messages for employee");
+                return Json(new { success = false, message = "Error loading messages" });
+            }
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SendMessage([FromBody] SendMessageRequest request)
+        {
+            try
+            {
+                var currentUserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+                
+                var message = new Message
+                {
+                    FromUserId = currentUserId,
+                    ToUserId = request.ToUserId,
+                    Subject = request.Subject ?? "",
+                    Content = request.Content,
+                    MessageType = request.MessageType ?? "General",
+                    SentDate = DateTime.Now,
+                    IsRead = false
+                };
+
+                _context.Messages.Add(message);
+                await _context.SaveChangesAsync();
+
+                return Json(new { success = true, messageId = message.MessageId, message = "Message sent successfully" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error sending message for employee");
+                return Json(new { success = false, message = "Error sending message" });
+            }
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SendQuickMessage([FromBody] SendQuickMessageRequest request)
+        {
+            try
+            {
+                var currentUserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+                
+                var message = new Message
+                {
+                    FromUserId = currentUserId,
+                    ToUserId = request.ToUserId,
+                    Subject = request.Subject ?? "",
+                    Content = request.Content,
+                    MessageType = request.MessageType ?? "General",
+                    SentDate = DateTime.Now,
+                    IsRead = false
+                };
+
+                _context.Messages.Add(message);
+                await _context.SaveChangesAsync();
+
+                return Json(new { success = true, messageId = message.MessageId });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error sending quick message for employee");
+                return Json(new { success = false, message = "Error sending message" });
+            }
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> MarkMessagesAsRead([FromBody] MarkMessagesRequest request)
+        {
+            try
+            {
+                var currentUserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+                
+                var unreadMessages = await _context.Messages
+                    .Where(m => m.FromUserId == request.UserId && m.ToUserId == currentUserId && !m.IsRead)
+                    .ToListAsync();
+
+                foreach (var message in unreadMessages)
+                {
+                    message.IsRead = true;
+                    message.ReadDate = DateTime.Now;
+                }
+
+                if (unreadMessages.Any())
+                {
+                    await _context.SaveChangesAsync();
+                }
+
+                return Json(new { success = true });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error marking messages as read for employee");
+                return Json(new { success = false, message = "Error updating messages" });
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetConversationsList()
+        {
+            try
+            {
+                var currentUserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+                var conversations = await GetUserConversationsAsync(currentUserId);
+                
+                return Json(new { success = true, conversations });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting conversations list for employee");
+                return Json(new { success = false, message = "Error loading conversations" });
+            }
+        }
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> GenerateReceiptPDF([FromBody] ReceiptRequest request)
@@ -313,6 +592,88 @@ namespace PixelSolution.Controllers
                 return StatusCode(500, "Error generating PDF");
             }
         }
+
+        [HttpGet]
+        public async Task<IActionResult> GetUnreadCount()
+        {
+            try
+            {
+                var currentUserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+                
+                var unreadCount = await _context.Messages
+                    .Where(m => m.ToUserId == currentUserId && !m.IsRead)
+                    .CountAsync();
+
+                return Json(new { success = true, unreadCount = unreadCount });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting unread count for employee");
+                return Json(new { success = false, message = "Error getting unread count" });
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetUserOnlineStatus(int userId)
+        {
+            try
+            {
+                var user = await _context.Users
+                    .Where(u => u.UserId == userId)
+                    .Select(u => new
+                    {
+                        u.UserId,
+                        u.IsActive,
+                        u.CreatedAt
+                    })
+                    .FirstOrDefaultAsync();
+
+                if (user == null)
+                {
+                    return Json(new { success = false, message = "User not found" });
+                }
+
+                // Simple online status logic - for now, just return based on user status
+                // In a real implementation, you would track actual login sessions
+                var isOnline = user.IsActive;
+
+                var lastSeen = user.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss");
+
+                return Json(new 
+                { 
+                    success = true, 
+                    isOnline = isOnline,
+                    lastSeen = lastSeen
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting user online status for userId: {UserId}", userId);
+                return Json(new { success = false, message = "Error getting user status" });
+            }
+        }
+    }
+
+    // Request models for Employee messaging
+    public class SendMessageRequest
+    {
+        public int ToUserId { get; set; }
+        public string Subject { get; set; } = "";
+        public string Content { get; set; } = "";
+        public string MessageType { get; set; } = "General";
+    }
+
+    public class SendQuickMessageRequest
+    {
+        public int ToUserId { get; set; }
+        public string Subject { get; set; } = "";
+        public string Content { get; set; } = "";
+        public string MessageType { get; set; } = "General";
+    }
+
+    public class MarkMessagesRequest
+    {
+        public int UserId { get; set; }
     }
 
     // Request models for Employee sales

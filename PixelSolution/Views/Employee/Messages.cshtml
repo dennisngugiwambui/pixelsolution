@@ -1,4 +1,4 @@
-﻿@model PixelSolution.ViewModels.MessagesPageViewModel
+@model PixelSolution.ViewModels.MessagesPageViewModel
 @{
     ViewData["Title"] = "Messages - PixelSolution";
     Layout = "_AdminLayout";
@@ -1034,7 +1034,10 @@
                 <a href="@Url.Action("Messages", "Employee")" class="nav-link active">
                     <i class="fas fa-envelope"></i>
                     Messages
-                    <span class="nav-badge" id="unreadMessagesCount">3</span>
+                    @if (Model.UnreadCount > 0)
+                    {
+                        <span class="nav-badge" id="unreadMessagesCount">@Model.UnreadCount</span>
+                    }
                 </a>
             </div>
         </div>
@@ -1069,7 +1072,10 @@
             <div class="header-actions">
                 <button class="action-btn" title="Notifications">
                     <i class="fas fa-bell"></i>
-                    <span class="notification-badge">3</span>
+                    @if (Model.UnreadCount > 0)
+                    {
+                        <span class="notification-badge">@Model.UnreadCount</span>
+                    }
                 </button>
                 <button class="action-btn" title="New Message" onclick="openNewMessageModal()">
                     <i class="fas fa-plus"></i>
@@ -1108,35 +1114,38 @@
                 </div>
 
                 <div class="contacts-list" id="contactsList">
-                    @foreach (var conversation in Model.Conversations)
+                    @if (Model?.Conversations != null)
                     {
-                        <div class="contact-item @(Model.SelectedConversation?.UserId == conversation.UserId ? "active" : "")"
-                             data-user-id="@conversation.UserId"
-                             data-user-name="@conversation.FullName"
-                             data-user-initials="@conversation.UserInitials"
-                             data-is-online="@conversation.IsOnline.ToString().ToLower()">
-                            <div class="contact-avatar">
-                                @conversation.UserInitials
-                                <div class="online-indicator @(conversation.IsOnline ? "online" : "offline")"></div>
-                            </div>
-                            <div class="contact-info">
-                                <div class="contact-name">@conversation.FullName</div>
-                                <div class="contact-last-message">@(string.IsNullOrEmpty(conversation.LastMessage) ? "No messages yet" : conversation.LastMessage)</div>
-                                @if (!string.IsNullOrEmpty(conversation.LastSeenFormatted))
-                                {
-                                    <div class="last-seen">@conversation.LastSeenFormatted</div>
-                                }
-                            </div>
-                            <div class="contact-meta">
-                                <div style="font-size: 0.7rem; margin-bottom: 0.25rem;">
-                                    @conversation.LastMessageTime
+                        @foreach (var conversation in Model.Conversations)
+                        {
+                            <div class="contact-item @(Model.SelectedConversation?.UserId == conversation.UserId ? "active" : "")"
+                                 data-user-id="@conversation.UserId"
+                                 data-user-name="@conversation.FullName"
+                                 data-user-initials="@conversation.UserInitials"
+                                 data-is-online="@conversation.IsOnline.ToString().ToLower()">
+                                <div class="contact-avatar">
+                                    @conversation.UserInitials
+                                    <div class="online-indicator @(conversation.IsOnline ? "online" : "offline")"></div>
                                 </div>
-                                @if (conversation.UnreadCount > 0)
-                                {
-                                    <div class="unread-badge">@conversation.UnreadCount</div>
-                                }
+                                <div class="contact-info">
+                                    <div class="contact-name">@conversation.FullName</div>
+                                    <div class="contact-last-message">@(string.IsNullOrEmpty(conversation.LastMessage) ? "No messages yet" : conversation.LastMessage)</div>
+                                    @if (!string.IsNullOrEmpty(conversation.LastSeenFormatted))
+                                    {
+                                        <div class="last-seen">@conversation.LastSeenFormatted</div>
+                                    }
+                                </div>
+                                <div class="contact-meta">
+                                    <div style="font-size: 0.7rem; margin-bottom: 0.25rem;">
+                                        @conversation.LastMessageTime
+                                    </div>
+                                    @if (conversation.UnreadCount > 0)
+                                    {
+                                        <div class="unread-badge">@conversation.UnreadCount</div>
+                                    }
+                                </div>
                             </div>
-                        </div>
+                        }
                     }
                 </div>
             </div>
@@ -1659,7 +1668,7 @@
                 } else {
                     // Desktop: Use pushState to avoid page reload but update URL
                     console.log('Desktop view - updating URL without reload');
-                    const newUrl = `/Admin/Messages?userId=${userId}`;
+                    const newUrl = `/Employee/Messages?userId=${userId}`;
                     history.pushState({ userId: userId, userName: userName }, '', newUrl);
 
                     // Load the conversation directly without page reload
@@ -1688,7 +1697,7 @@
             onlineStatusInterval = setInterval(async function() {
                 if (currentSelectedUserId > 0 && !isLoadingConversation) {
                     try {
-                        const response = await fetch(`/Admin/GetUserOnlineStatus?userId=${currentSelectedUserId}`);
+                        const response = await fetch(`/Employee/GetUserOnlineStatus?userId=${currentSelectedUserId}`);
                         if (response.ok) {
                             const statusData = await response.json();
                             updateUserOnlineStatus(currentSelectedUserId, statusData.isOnline, statusData.lastSeen);
@@ -1710,47 +1719,44 @@
             }
 
             if (isLoadingConversation) {
-                console.log('Already loading a conversation, skipping...');
+                console.log('Already loading conversation, skipping...');
                 return;
             }
 
             isLoadingConversation = true;
+            console.log('Loading conversation messages for userId:', userId);
 
             try {
-                showLoadingSpinner();
+                showLoadingState();
 
-                const url = `/Admin/GetConversationMessages?userId=${userId}`;
-                console.log('Fetching conversation from:', url);
-
-                const response = await fetch(url);
-
+                const response = await fetch(`/Employee/GetConversationMessages?userId=${userId}`);
                 if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
+                    throw new Error(`HTTP error! status: ${response.status}`);
                 }
 
                 const data = await response.json();
-                console.log('Conversation data received for userId:', userId, data);
+                console.log('Conversation data received:', data);
 
                 if (data.success) {
-                    // Ensure we're still on the same conversation (user might have clicked another)
-                    if (userId === currentSelectedUserId) {
-                        updateChatArea(data.conversation, data.messages);
-                        scrollToBottom();
-                        markMessagesAsRead();
-                        console.log('Conversation loaded successfully for user:', userId);
-                    } else {
-                        console.log('User changed conversation while loading, skipping update');
-                    }
+                    displayMessages(data.messages);
+                    updateChatHeader(data.conversation);
+                    scrollToBottom();
+
+                    // Mark messages as read and update unread count
+                    markMessagesAsRead();
+
+                    // Start polling for new messages
+                    startMessagePolling();
+                    startOnlineStatusPolling();
                 } else {
-                    console.error('Server returned error:', data.message);
-                    showToast(data.message || 'Error loading messages', 'error');
+                    showToast(data.message || 'Error loading conversation', 'error');
                 }
             } catch (error) {
-                console.error('Error loading conversation for userId', userId, ':', error);
+                console.error('Error loading conversation:', error);
                 showToast('Error loading conversation. Please try again.', 'error');
             } finally {
+                hideLoadingState();
                 isLoadingConversation = false;
-                hideLoadingSpinner();
             }
         }
 
@@ -2041,7 +2047,7 @@
                 sendBtn.disabled = true;
                 sendBtn.innerHTML = '<div class="loading-spinner"></div>';
 
-                const response = await fetch('/Admin/SendQuickMessage', {
+                const response = await fetch('/Employee/SendQuickMessage', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -2152,14 +2158,16 @@
         }
 
         function startMessagePolling() {
-            // Poll for new messages every 5 seconds
-            setInterval(async function() {
-                if (currentSelectedUserId > 0) {
+            if (messagePollingInterval) {
+                clearInterval(messagePollingInterval);
+            }
+
+            messagePollingInterval = setInterval(async () => {
+                if (currentSelectedUserId > 0 && !isLoadingConversation) {
                     try {
-                        const response = await fetch(`/Admin/GetNewMessages?lastCheck=${lastMessageCheck.toISOString()}`);
+                        const response = await fetch(`/Employee/GetConversationMessages?userId=${currentSelectedUserId}&lastCheck=${lastMessageCheck.toISOString()}`);
                         if (response.ok) {
                             const data = await response.json();
-
                             if (data.success && data.newMessages && data.newMessages.length > 0) {
                                 handleNewMessages(data.newMessages);
                                 lastMessageCheck = new Date();
@@ -2194,7 +2202,7 @@
 
         async function updateContactsList() {
             try {
-                const response = await fetch('/Admin/GetConversationsList');
+                const response = await fetch('/Employee/GetConversationsList');
                 if (response.ok) {
                     const data = await response.json();
 
@@ -2253,17 +2261,56 @@
 
         function markMessagesAsRead() {
             if (currentSelectedUserId > 0) {
-                fetch('/Admin/MarkMessagesAsRead', {
+                fetch('/Employee/MarkMessagesAsRead', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'RequestVerificationToken': getAntiForgeryToken()
                     },
                     body: JSON.stringify({ userId: currentSelectedUserId })
+                }).then(response => {
+                    if (response.ok) {
+                        // Update unread count in UI
+                        updateUnreadCount();
+                    }
                 }).catch(error => {
                     console.error('Error marking messages as read:', error);
                 });
             }
+        }
+
+        function updateUnreadCount() {
+            // Fetch updated unread count from server
+            fetch('/Employee/GetUnreadCount')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const notificationBadge = document.querySelector('.notification-badge');
+                        if (data.unreadCount > 0) {
+                            if (notificationBadge) {
+                                notificationBadge.textContent = data.unreadCount;
+                                notificationBadge.style.display = 'inline-block';
+                            } else {
+                                // Create badge if it doesn't exist
+                                const bellButton = document.querySelector('.action-btn[title="Notifications"]');
+                                if (bellButton) {
+                                    const badge = document.createElement('span');
+                                    badge.className = 'notification-badge';
+                                    badge.textContent = data.unreadCount;
+                                    bellButton.appendChild(badge);
+                                }
+                            }
+                        } else {
+                            // Hide badge when no unread messages
+                            if (notificationBadge) {
+                                notificationBadge.style.display = 'none';
+                            }
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error updating unread count:', error);
+                });
         }
 
         function handleNewMessages(newMessages) {
@@ -2292,7 +2339,7 @@
         // Update contacts list without affecting current selection
         async function updateContactsListSilently() {
             try {
-                const response = await fetch('/Admin/GetConversationsList');
+                const response = await fetch('/Employee/GetConversationsList');
                 if (response.ok) {
                     const data = await response.json();
 
@@ -2361,7 +2408,7 @@
             console.log('updateContactsList called - preserving current selection:', currentSelectedUserId);
 
             try {
-                const response = await fetch('/Admin/GetConversationsList');
+                const response = await fetch('/Employee/GetConversationsList');
                 if (response.ok) {
                     const data = await response.json();
 
@@ -2494,7 +2541,7 @@
                         sendBtn.disabled = true;
                         sendBtn.innerHTML = '<div class="loading-spinner"></div> Sending...';
 
-                        const response = await fetch('/Admin/SendMessage', {
+                        const response = await fetch('/Employee/SendQuickMessage', {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
@@ -2700,7 +2747,7 @@
 
             // Update URL for mobile (optional)
             if (window.innerWidth <= 768) {
-                const newUrl = '/Admin/Messages';
+                const newUrl = '/Employee/Messages';
                 history.pushState({ showContacts: true }, '', newUrl);
             }
 
