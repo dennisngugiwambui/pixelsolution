@@ -6,7 +6,8 @@ let selectedPaymentMethod = null;
 let currentTotal = 0;
 
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('Sales page loaded');
+    console.log('🚀 Sales page loaded - Edit button functionality enabled');
+    console.log('🔧 JavaScript file version: 2025-08-21-22:40');
     loadCategories();
     loadProducts();
     updateCartDisplay();
@@ -14,6 +15,19 @@ document.addEventListener('DOMContentLoaded', function() {
     loadTodayStats();
     loadNotifications();
     setupKeyboardShortcuts();
+    
+    // Test edit button functionality
+    window.testEditButton = function() {
+        console.log('🧪 Testing edit button functionality');
+        if (cart.length === 0) {
+            console.log('❌ Cart is empty - add a product first');
+            return false;
+        }
+        console.log('✅ Cart has items:', cart.length);
+        const editButtons = document.querySelectorAll('.edit-price-btn');
+        console.log('🔍 Edit buttons found:', editButtons.length);
+        return editButtons.length > 0;
+    };
 });
 
 // Load categories from server
@@ -285,6 +299,11 @@ function addToCart(productId) {
     }
 
     updateCartDisplay();
+    
+    // Force add edit buttons as fallback
+    setTimeout(() => {
+        forceAddEditButtons();
+    }, 100);
 }
 
 // Update cart display
@@ -344,6 +363,7 @@ function updateCartDisplay() {
             </div>
         `;
     } else {
+        console.log('🛒 Rendering cart with edit buttons enabled');
         cartItemsContainer.innerHTML = cart.map(item => `
             <div class="cart-item">
                 ${item.imageUrl && item.imageUrl.trim() !== '' ? 
@@ -366,12 +386,20 @@ function updateCartDisplay() {
                         <span class="quantity-display">${item.quantity}</span>
                         <button class="quantity-btn" onclick="updateQuantity(${item.id}, 1)" ${item.quantity >= item.maxStock ? 'disabled' : ''}>+</button>
                     </div>
-                    <button class="remove-btn" onclick="removeFromCart(${item.id})">
+                    <button class="edit-price-btn" onclick="editItemPrice(${item.id})" title="Edit Price" style="width: 28px; height: 28px; border: none; background: #dbeafe; color: #2563eb; border-radius: 6px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 0.75rem; transition: all 0.2s; margin-left: 0.25rem;">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="remove-btn" onclick="removeFromCart(${item.id})" style="margin-left: 0.25rem;">
                         <i class="fas fa-trash"></i>
                     </button>
                 </div>
             </div>
         `).join('');
+        
+        // Force add edit buttons as fallback
+        setTimeout(() => {
+            forceAddEditButtons();
+        }, 100);
     }
 }
 
@@ -1021,4 +1049,76 @@ function closeReceiptModal() {
     if (modal) {
         modal.style.display = 'none';
     }
+}
+
+// Edit item price
+function editItemPrice(productId) {
+    console.log('🔧 Edit button clicked for product ID:', productId);
+    const item = cart.find(item => item.id === productId);
+    if (!item) {
+        console.error('❌ Item not found in cart:', productId);
+        return;
+    }
+    
+    console.log('📝 Opening price edit dialog for:', item.name, 'Current price:', item.price);
+    const newPrice = prompt(`Edit price for ${item.name}\nCurrent price: KSh ${item.price.toFixed(2)}\nEnter new price:`, item.price.toFixed(2));
+    
+    if (newPrice === null) {
+        console.log('❌ User cancelled price edit');
+        return; // User cancelled
+    }
+    
+    const parsedPrice = parseFloat(newPrice);
+    console.log('💰 New price entered:', newPrice, 'Parsed:', parsedPrice);
+    
+    if (isNaN(parsedPrice) || parsedPrice < 0) {
+        console.error('❌ Invalid price entered:', newPrice);
+        showToast('Please enter a valid price', 'error');
+        return;
+    }
+    
+    if (parsedPrice === item.price) {
+        console.log('ℹ️ Price unchanged');
+        showToast('Price unchanged', 'info');
+        return;
+    }
+    
+    // Update the item price and total
+    const oldPrice = item.price;
+    item.price = parsedPrice;
+    item.total = item.quantity * parsedPrice;
+    
+    console.log('✅ Price updated from', oldPrice, 'to', parsedPrice);
+    updateCartDisplay();
+    
+    const priceChange = parsedPrice > oldPrice ? 'increased' : 'decreased';
+    showToast(`Price ${priceChange} for ${item.name}`, 'success');
+}
+
+// Force add edit buttons to existing cart items (fallback function)
+function forceAddEditButtons() {
+    console.log('🔧 Force adding edit buttons to cart items');
+    const cartItems = document.querySelectorAll('.cart-item-controls');
+    cartItems.forEach((controls, index) => {
+        // Check if edit button already exists
+        if (controls.querySelector('.edit-price-btn')) {
+            console.log('✅ Edit button already exists for item', index);
+            return;
+        }
+        
+        const quantityControls = controls.querySelector('.quantity-controls');
+        const removeBtn = controls.querySelector('.remove-btn');
+        
+        if (quantityControls && removeBtn && cart[index]) {
+            const editBtn = document.createElement('button');
+            editBtn.className = 'edit-price-btn';
+            editBtn.title = 'Edit Price';
+            editBtn.style.cssText = 'width: 28px; height: 28px; border: none; background: #dbeafe; color: #2563eb; border-radius: 6px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 0.75rem; transition: all 0.2s; margin-left: 0.25rem;';
+            editBtn.innerHTML = '<i class="fas fa-edit"></i>';
+            editBtn.onclick = () => editItemPrice(cart[index].id);
+            
+            controls.insertBefore(editBtn, removeBtn);
+            console.log('✅ Edit button added for item', index);
+        }
+    });
 }

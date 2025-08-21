@@ -379,6 +379,27 @@
             color: #1f2937;
         }
 
+        .edit-price-btn {
+            width: 28px;
+            height: 28px;
+            border: none;
+            background: #dbeafe;
+            color: #2563eb;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 0.75rem;
+            transition: all 0.2s;
+            margin-left: 0.25rem;
+        }
+
+        .edit-price-btn:hover {
+            background: #bfdbfe;
+            transform: scale(1.1);
+        }
+
         .remove-btn {
             width: 28px;
             height: 28px;
@@ -392,6 +413,7 @@
             cursor: pointer;
             font-size: 0.75rem;
             transition: all 0.2s;
+            margin-left: 0.25rem;
         }
 
         .remove-btn:hover {
@@ -1187,5 +1209,5 @@
 
 @section Scripts {
     <script src="~/js/dashboard.js"></script>
-    <script src="~/js/sales.js"></script>
+    <script src="~/js/sales.js?v=@DateTime.Now.Ticks"></script>
 }

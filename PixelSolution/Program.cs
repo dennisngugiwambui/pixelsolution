@@ -108,45 +108,10 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.UseSession();
 
-// Configure routing with role-based redirects
-app.MapControllerRoute(
-    name: "admin",
-    pattern: "admin/{controller=Admin}/{action=Dashboard}/{id?}");
-
-app.MapControllerRoute(
-    name: "employee",
-    pattern: "employee/{action=Index}",
-    defaults: new { controller = "Employee" });
-
-app.MapControllerRoute(
-    name: "auth",
-    pattern: "auth/{action=Login}",
-    defaults: new { controller = "Auth" });
-
+// Configure routing
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Auth}/{action=Login}/{id?}");
-
-// Add middleware to redirect employees trying to access admin pages
-app.Use(async (context, next) =>
-{
-    var path = context.Request.Path.Value?.ToLower();
-    
-    if (path != null && path.StartsWith("/admin") && context.User.Identity?.IsAuthenticated == true)
-    {
-        var userRole = context.User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
-        
-        if (userRole?.ToLower() == "employee")
-        {
-            var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
-            logger.LogWarning("Redirecting user with role {Role} from path {Path} to /Employee/Index due to unauthorized access.", userRole, path);
-            context.Response.Redirect("/Employee/Index");
-            return;
-        }
-    }
-    
-    await next();
-});
 
 // Database initialization with BCrypt password hashing
 try
