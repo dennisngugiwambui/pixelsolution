@@ -282,6 +282,230 @@
         }
 
         /* Tabs */
+        /* Overview Grid Styles */
+        .overview-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .overview-grid .full-width {
+            grid-column: 1 / -1;
+        }
+
+        .summary-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+            transition: transform 0.3s ease;
+        }
+
+        .summary-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .card-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1rem 1.5rem;
+        }
+
+        .card-header h4 {
+            margin: 0;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .card-body {
+            padding: 1.5rem;
+        }
+
+        .summary-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .summary-item:last-child {
+            border-bottom: none;
+        }
+
+        .summary-item .label {
+            color: #64748b;
+            font-weight: 500;
+        }
+
+        .summary-item .value {
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        .summary-item .value.success {
+            color: #059669;
+        }
+
+        .summary-item .value.warning {
+            color: #d97706;
+        }
+
+        /* Action Buttons */
+        .action-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+        }
+
+        .action-btn {
+            padding: 0.75rem 1rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .action-btn.primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .action-btn.primary:hover {
+            background: #5a67d8;
+        }
+
+        .action-btn.warning {
+            background: #ed8936;
+            color: white;
+        }
+
+        .action-btn.warning:hover {
+            background: #dd6b20;
+        }
+
+        .action-btn.success {
+            background: #48bb78;
+            color: white;
+        }
+
+        .action-btn.success:hover {
+            background: #38a169;
+        }
+
+        .action-btn.info {
+            background: #4299e1;
+            color: white;
+        }
+
+        .action-btn.info:hover {
+            background: #3182ce;
+        }
+
+        .action-btn.secondary {
+            background: #e2e8f0;
+            color: #4a5568;
+        }
+
+        .action-btn.secondary:hover {
+            background: #cbd5e0;
+        }
+
+        /* Activity Timeline */
+        .activity-timeline {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .timeline-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+            padding: 1rem 0;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .timeline-item:last-child {
+            border-bottom: none;
+        }
+
+        .timeline-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.9rem;
+            flex-shrink: 0;
+        }
+
+        .timeline-icon.salary {
+            background: #48bb78;
+        }
+
+        .timeline-icon.fine {
+            background: #ed8936;
+        }
+
+        .timeline-icon.payment {
+            background: #4299e1;
+        }
+
+        .timeline-content h6 {
+            margin: 0 0 0.25rem 0;
+            color: #2d3748;
+            font-weight: 600;
+        }
+
+        .timeline-content p {
+            margin: 0 0 0.25rem 0;
+            color: #4a5568;
+            font-size: 0.9rem;
+        }
+
+        .timeline-content small {
+            color: #64748b;
+            font-size: 0.8rem;
+        }
+
+        .no-activity {
+            text-align: center;
+            padding: 2rem;
+            color: #64748b;
+        }
+
+        .no-activity i {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+
+        /* Tab Header */
+        .tab-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .tab-header h3 {
+            margin: 0;
+            color: #2d3748;
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
         .tabs-container {
             background: white;
             border-radius: 12px;
@@ -867,16 +1091,19 @@
                         {
                             <span class="header-badge">@Model.DepartmentNames</span>
                         }
-            <div class="quick-actions">
-                <button class="quick-action-btn" onclick="sendMessage()" title="Send Message">
-                    <i class="fas fa-envelope"></i>
-                </button>
-                <button class="quick-action-btn" onclick="printProfile()" title="Print Profile">
-                    <i class="fas fa-print"></i>
-                </button>
-                <a href="@Url.Action("Users", "Admin")" class="quick-action-btn" title="Back to Users">
-                    <i class="fas fa-arrow-left"></i>
-                </a>
+                    </div>
+                </div>
+                <div class="quick-actions">
+                    <button class="quick-action-btn" onclick="sendMessage()" title="Send Message">
+                        <i class="fas fa-envelope"></i>
+                    </button>
+                    <button class="quick-action-btn" onclick="printProfile()" title="Print Profile">
+                        <i class="fas fa-print"></i>
+                    </button>
+                    <a href="@Url.Action("Users", "Admin")" class="quick-action-btn" title="Back to Users">
+                        <i class="fas fa-arrow-left"></i>
+                    </a>
+                </div>
             </div>
         </div>
 
@@ -1095,32 +1322,179 @@
             </div>
         </div>
 
-        @if (Model.HasEmployeeProfile)
-        {
-            <!-- Detailed Tabs Section -->
-            <div class="tabs-container">
-                <div class="tabs-header">
-                    <button class="tab-button active" onclick="switchTab('salary')">
-                        <i class="fas fa-money-bill-wave"></i>
-                        Salary History
-                    </button>
-                    <button class="tab-button" onclick="switchTab('fines')">
-                        <i class="fas fa-exclamation-triangle"></i>
-                        Fines & Deductions
-                    </button>
-                    <button class="tab-button" onclick="switchTab('payments')">
-                        <i class="fas fa-credit-card"></i>
-                        Payment History
-                    </button>
-                    <button class="tab-button" onclick="switchTab('performance')">
-                        <i class="fas fa-chart-line"></i>
-                        Performance
-                    </button>
-                </div>
+        <!-- Employee Management Tabs Section -->
+        <div class="tabs-container">
+            <div class="tabs-header">
+                <button class="tab-button active" onclick="switchTab('overview')">
+                    <i class="fas fa-chart-pie"></i>
+                    Overview
+                </button>
+                <button class="tab-button" onclick="switchTab('salary')">
+                    <i class="fas fa-money-bill-wave"></i>
+                    Salary Management
+                </button>
+                <button class="tab-button" onclick="switchTab('fines')">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    Fines & Deductions
+                </button>
+                <button class="tab-button" onclick="switchTab('payments')">
+                    <i class="fas fa-credit-card"></i>
+                    Payment History
+                </button>
+                <button class="tab-button" onclick="switchTab('performance')">
+                    <i class="fas fa-chart-line"></i>
+                    Performance Analytics
+                </button>
+            </div>
 
-                <!-- Salary History Tab -->
-                <div id="salary-tab" class="tab-content active">
-                    <h3>Salary History</h3>
+            <!-- Overview Tab -->
+            <div id="overview-tab" class="tab-content active">
+                <div class="overview-grid">
+                    <!-- Financial Summary Card -->
+                    <div class="summary-card">
+                        <div class="card-header">
+                            <h4><i class="fas fa-wallet"></i> Financial Summary</h4>
+                        </div>
+                        <div class="card-body">
+                            <div class="summary-item">
+                                <span class="label">Current Salary</span>
+                                <span class="value">KSh @(Model.BaseSalary?.ToString("N2") ?? "0.00")</span>
+                            </div>
+                            <div class="summary-item">
+                                <span class="label">Total Paid</span>
+                                <span class="value success">KSh @Model.TotalSalariesPaid.ToString("N2")</span>
+                            </div>
+                            <div class="summary-item">
+                                <span class="label">Outstanding Fines</span>
+                                <span class="value warning">KSh @Model.OutstandingFines.ToString("N2")</span>
+                            </div>
+                            <div class="summary-item">
+                                <span class="label">Total Fines</span>
+                                <span class="value">KSh @Model.TotalFines.ToString("N2")</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Actions Card -->
+                    <div class="summary-card">
+                        <div class="card-header">
+                            <h4><i class="fas fa-tools"></i> Quick Actions</h4>
+                        </div>
+                        <div class="card-body">
+                            <div class="action-buttons">
+                                @if (Model.HasEmployeeProfile)
+                                {
+                                    <button class="action-btn primary" onclick="manageEmployeeSalary(@Model.UserId, '@Model.FullName')">
+                                        <i class="fas fa-dollar-sign"></i>
+                                        Update Salary
+                                    </button>
+                                    <button class="action-btn warning" onclick="manageEmployeeFines(@Model.UserId, '@Model.FullName')">
+                                        <i class="fas fa-exclamation-triangle"></i>
+                                        Issue Fine
+                                    </button>
+                                    <button class="action-btn success" onclick="processEmployeePayment(@Model.UserId, '@Model.FullName')">
+                                        <i class="fas fa-credit-card"></i>
+                                        Process Payment
+                                    </button>
+                                }
+                                else
+                                {
+                                    <button class="action-btn primary" onclick="createEmployeeProfile()">
+                                        <i class="fas fa-user-plus"></i>
+                                        Create Employee Profile
+                                    </button>
+                                }
+                                <button class="action-btn info" onclick="sendEmailToEmployee(@Model.UserId, '@Model.FullName')">
+                                    <i class="fas fa-envelope"></i>
+                                    Send Email
+                                </button>
+                                <button class="action-btn secondary" onclick="generateReport()">
+                                    <i class="fas fa-file-alt"></i>
+                                    Generate Report
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Activity Card -->
+                    <div class="summary-card full-width">
+                        <div class="card-header">
+                            <h4><i class="fas fa-clock"></i> Recent Activity</h4>
+                        </div>
+                        <div class="card-body">
+                            <div class="activity-timeline">
+                                @if (Model.RecentSalaries?.Any() == true)
+                                {
+                                    @foreach (var salary in Model.RecentSalaries.Take(3))
+                                    {
+                                        <div class="timeline-item">
+                                            <div class="timeline-icon salary">
+                                                <i class="fas fa-money-bill-wave"></i>
+                                            </div>
+                                            <div class="timeline-content">
+                                                <h6>Salary Update</h6>
+                                                <p>@salary.SalaryType salary set to KSh @salary.Amount.ToString("N2")</p>
+                                                <small>@salary.EffectiveDate.ToString("MMM dd, yyyy")</small>
+                                            </div>
+                                        </div>
+                                    }
+                                }
+                                @if (Model.RecentFines?.Any() == true)
+                                {
+                                    @foreach (var fine in Model.RecentFines.Take(2))
+                                    {
+                                        <div class="timeline-item">
+                                            <div class="timeline-icon fine">
+                                                <i class="fas fa-exclamation-triangle"></i>
+                                            </div>
+                                            <div class="timeline-content">
+                                                <h6>Fine Issued</h6>
+                                                <p>@fine.Reason - KSh @fine.Amount.ToString("N2")</p>
+                                                <small>@fine.IssuedDate.ToString("MMM dd, yyyy")</small>
+                                            </div>
+                                        </div>
+                                    }
+                                }
+                                @if (Model.RecentPayments?.Any() == true)
+                                {
+                                    @foreach (var payment in Model.RecentPayments.Take(2))
+                                    {
+                                        <div class="timeline-item">
+                                            <div class="timeline-icon payment">
+                                                <i class="fas fa-credit-card"></i>
+                                            </div>
+                                            <div class="timeline-content">
+                                                <h6>Payment Processed</h6>
+                                                <p>@payment.PaymentPeriod - KSh @payment.NetPay.ToString("N2")</p>
+                                                <small>@payment.PaymentDate.ToString("MMM dd, yyyy")</small>
+                                            </div>
+                                        </div>
+                                    }
+                                }
+                                @if (!(Model.RecentSalaries?.Any() == true || Model.RecentFines?.Any() == true || Model.RecentPayments?.Any() == true))
+                                {
+                                    <div class="no-activity">
+                                        <i class="fas fa-inbox"></i>
+                                        <p>No recent activity found</p>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Salary Management Tab -->
+            <div id="salary-tab" class="tab-content">
+                <div class="tab-header">
+                    <h3>Salary Management</h3>
+                    @if (Model.HasEmployeeProfile)
+                    {
+                        <button class="btn btn-primary" onclick="manageEmployeeSalary(@Model.UserId, '@Model.FullName')">
+                            <i class="fas fa-plus"></i> Add New Salary
+                        </button>
+                    }
+                </div>
                     @if (Model.SalaryHistory?.Any() == true)
                     {
                         <table class="data-table">
@@ -1408,6 +1782,84 @@
             // Show selected tab and mark button as active
             document.getElementById(tabName + '-tab').classList.add('active');
             event.target.classList.add('active');
+        }
+
+        function sendEmailToEmployee(userId, userName) {
+            console.log('Sending email to user:', userId, userName);
+            
+            // Create and show email modal
+            const emailModal = document.createElement('div');
+            emailModal.className = 'modal show';
+            emailModal.id = 'emailModal';
+            emailModal.innerHTML = `
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3 class="modal-title">Send Email to ${userName}</h3>
+                        <button class="modal-close" onclick="closeEmailModal()">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="emailForm">
+                            <div class="form-group">
+                                <label class="form-label">Subject *</label>
+                                <input type="text" id="emailSubject" class="form-control" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Message *</label>
+                                <textarea id="emailBody" class="form-control" rows="5" required></textarea>
+                            </div>
+                            <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1.5rem;">
+                                <button type="button" class="btn btn-secondary" onclick="closeEmailModal()">Cancel</button>
+                                <button type="button" class="btn btn-primary" onclick="sendEmail(${userId})">
+                                    <i class="fas fa-paper-plane"></i> Send Email
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(emailModal);
+        }
+
+        function closeEmailModal() {
+            const modal = document.getElementById('emailModal');
+            if (modal) {
+                modal.remove();
+            }
+        }
+
+        function sendEmail(userId) {
+            const subject = document.getElementById('emailSubject').value;
+            const body = document.getElementById('emailBody').value;
+
+            if (!subject || !body) {
+                showToast('Please fill in all required fields', 'error');
+                return;
+            }
+
+            fetch('/api/admin/send-email', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    UserId: userId,
+                    Subject: subject,
+                    Body: body
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('Email sent successfully!', 'success');
+                    closeEmailModal();
+                } else {
+                    showToast(data.message || 'Failed to send email', 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('An error occurred while sending email', 'error');
+            });
         }
 
         function createEmployeeProfile() {
