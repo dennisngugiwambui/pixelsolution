@@ -111,8 +111,7 @@ app.UseSession();
 // Configure routing with role-based redirects
 app.MapControllerRoute(
     name: "admin",
-    pattern: "admin/{action=Dashboard}",
-    defaults: new { controller = "Admin" });
+    pattern: "admin/{controller=Admin}/{action=Dashboard}/{id?}");
 
 app.MapControllerRoute(
     name: "employee",
@@ -139,6 +138,8 @@ app.Use(async (context, next) =>
         
         if (userRole?.ToLower() == "employee")
         {
+            var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
+            logger.LogWarning("Redirecting user with role {Role} from path {Path} to /Employee/Index due to unauthorized access.", userRole, path);
             context.Response.Redirect("/Employee/Index");
             return;
         }

@@ -93,9 +93,9 @@ namespace PixelSolution.Services
         {
             return await _context.EmployeeProfiles
                 .Include(ep => ep.User)
-                .Include(ep => ep.SalaryRecords.Where(sr => sr.IsActive))
-                .Include(ep => ep.Fines.Where(f => f.Status != "Paid"))
-                .Include(ep => ep.Payments)
+                .Include(ep => ep.EmployeeSalaries.Where(sr => sr.IsActive))
+                .Include(ep => ep.EmployeeFines.Where(f => f.Status != "Paid"))
+                .Include(ep => ep.EmployeePayments)
                 .FirstOrDefaultAsync(ep => ep.UserId == userId);
         }
 
@@ -103,8 +103,8 @@ namespace PixelSolution.Services
         {
             return await _context.EmployeeProfiles
                 .Include(ep => ep.User)
-                .Include(ep => ep.SalaryRecords.Where(sr => sr.IsActive))
-                .Include(ep => ep.Fines.Where(f => f.Status != "Paid"))
+                .Include(ep => ep.EmployeeSalaries.Where(sr => sr.IsActive))
+                .Include(ep => ep.EmployeeFines.Where(f => f.Status != "Paid"))
                 .Where(ep => ep.EmploymentStatus == "Active")
                 .OrderBy(ep => ep.EmployeeNumber)
                 .ToListAsync();
@@ -250,7 +250,7 @@ namespace PixelSolution.Services
             return await _context.EmployeeFines
                 .Include(ef => ef.IssuedByUser)
                 .Where(ef => ef.EmployeeProfileId == employeeProfileId)
-                .OrderByDescending(ef => ef.IssueDate)
+                .OrderByDescending(ef => ef.IssuedDate)
                 .ToListAsync();
         }
 

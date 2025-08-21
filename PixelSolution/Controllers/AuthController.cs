@@ -24,6 +24,39 @@ namespace PixelSolution.Controllers
             _logger = logger;
         }
 
+        [HttpGet("test-auth")]
+        public async Task<IActionResult> TestAuth()
+        {
+            try
+            {
+                var testEmail = "dennisngugi219@gmail.com";
+                var testPassword = "Admin1234";
+                
+                var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == testEmail);
+                if (user == null)
+                {
+                    return Json(new { error = "User not found", email = testEmail });
+                }
+                
+                var isValidBCrypt = BCrypt.Net.BCrypt.Verify(testPassword, user.PasswordHash);
+                var isValidPlain = testPassword == user.PasswordHash;
+                
+                return Json(new { 
+                    email = user.Email,
+                    hashStartsWith = user.PasswordHash?.Substring(0, 10),
+                    hashLength = user.PasswordHash?.Length,
+                    bcryptValid = isValidBCrypt,
+                    plainValid = isValidPlain,
+                    status = user.Status,
+                    userType = user.UserType
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { error = ex.Message });
+            }
+        }
+
         [HttpGet]
         public IActionResult Login(string? returnUrl = null)
         {

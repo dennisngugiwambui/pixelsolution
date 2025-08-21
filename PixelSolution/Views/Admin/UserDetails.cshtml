@@ -1,4 +1,4 @@
-﻿@model PixelSolution.ViewModels.EmployeeDetailsViewModel
+@model PixelSolution.ViewModels.EmployeeDetailsViewModel
 @{
     ViewData["Title"] = $"Employee Details - {Model.FullName} - PixelSolution";
     Layout = "_AdminLayout";
@@ -590,7 +590,7 @@
             }
 
         /* Mobile Responsive */
-        @media (max-width: 768px) {
+        @@media (max-width: 768px) {
             .header-content
 
         {
@@ -649,7 +649,7 @@
 
         }
 
-        @media (max-width: 480px) {
+        @@media (max-width: 480px) {
             .info-panel, .actions-panel
 
         {
@@ -1183,7 +1183,7 @@
                                 @foreach (var fine in Model.Fines)
                                 {
                                     <tr>
-                                        <td>@fine.IssueDate.ToString("MMM dd, yyyy")</td>
+                                        <td>@fine.IssuedDate.ToString("MMM dd, yyyy")</td>
                                         <td>@fine.Reason</td>
                                         <td>KSh @fine.Amount.ToString("N2")</td>
                                         <td>
@@ -1292,6 +1292,52 @@
                 </div>
             </div>
         }
+    </div>
+</div>
+
+<!-- Add Fine Modal -->
+<div class="modal" id="addFineModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 class="modal-title">Add Employee Fine</h2>
+            <button class="close-btn" onclick="closeAddFineModal()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <form id="addFineForm">
+            <div class="form-group">
+                <label class="form-label" for="fineAmount">Fine Amount (KSh) *</label>
+                <input type="number" id="fineAmount" name="Amount" class="form-control" step="0.01" min="0" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="fineReason">Reason *</label>
+                <select id="fineReason" name="Reason" class="form-control" required>
+                    <option value="">Select Reason</option>
+                    <option value="Lateness">Lateness</option>
+                    <option value="Absence">Unauthorized Absence</option>
+                    <option value="Misconduct">Misconduct</option>
+                    <option value="Damage">Property Damage</option>
+                    <option value="Uniform">Uniform Violation</option>
+                    <option value="Policy">Policy Violation</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="fineDescription">Description *</label>
+                <textarea id="fineDescription" name="Description" class="form-control" rows="3" required 
+                         placeholder="Provide detailed description of the violation..."></textarea>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="fineDueDate">Due Date *</label>
+                <input type="date" id="fineDueDate" name="DueDate" class="form-control" required>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1.5rem;">
+                <button type="button" class="btn btn-secondary" onclick="closeAddFineModal()">Cancel</button>
+                <button type="button" class="btn btn-warning" onclick="submitFine()">
+                    <i class="fas fa-exclamation-triangle"></i> Issue Fine
+                </button>
+            </div>
+        </form>
     </div>
 </div>
 
@@ -1606,35 +1652,208 @@
             document.getElementById('paymentModal').classList.remove('show');
         }
 
-        // Placeholder functions for salary, fines, and payment operations
+        // Employee management functions
         function updateEmployeeSalary(userId) {
-            // Implementation would go here
-            showToast('Salary update functionality would be implemented here', 'info');
+            showToast('Salary update functionality - contact admin for implementation', 'info');
         }
 
         function issueFine(userId) {
-            // Implementation would go here
-            showToast('Fine issuing functionality would be implemented here', 'info');
+            // Show add fine modal
+            document.getElementById('addFineModal').classList.add('show');
         }
 
         function processPayment(userId) {
-            // Implementation would go here
-            showToast('Payment processing functionality would be implemented here', 'info');
+            showToast('Payment processing functionality - contact admin for implementation', 'info');
+        }
+
+        function sendPaymentReminder(userId) {
+            if (confirm('Send payment reminder to this employee?')) {
+                const requestData = {
+                    UserId: userId,
+                    SendEmail: true,
+                    SendMessage: true
+                };
+
+                fetch('@Url.Action("SendPaymentReminder", "Admin")', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': getAntiForgeryToken()
+                    },
+                    body: JSON.stringify(requestData)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showToast('Payment reminder sent successfully!', 'success');
+                    } else {
+                        showToast('Error: ' + (data.message || 'Failed to send reminder'), 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showToast('Error sending payment reminder', 'error');
+                });
+            }
+        }
+
+        function submitFine() {
+            const form = document.getElementById('addFineForm');
+            const formData = new FormData(form);
+            
+            const fineData = {
+                UserId: @Model.UserId,
+                Amount: parseFloat(formData.get('Amount')),
+                Reason: formData.get('Reason'),
+                Description: formData.get('Description'),
+                DueDate: formData.get('DueDate')
+            };
+
+            // Validate
+            if (!fineData.Amount || fineData.Amount <= 0) {
+                showToast('Please enter a valid amount', 'error');
+                return;
+            }
+            if (!fineData.Reason.trim()) {
+                showToast('Please enter a reason for the fine', 'error');
+                return;
+            }
+            if (!fineData.DueDate) {
+                showToast('Please select a due date', 'error');
+                return;
+            }
+
+            fetch('@Url.Action("AddEmployeeFine", "Admin")', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': getAntiForgeryToken()
+                },
+                body: JSON.stringify(fineData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('Fine added successfully and employee notified!', 'success');
+                    closeAddFineModal();
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    showToast('Error: ' + (data.message || 'Failed to add fine'), 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('Error adding fine', 'error');
+            });
+        }
+
+        function closeAddFineModal() {
+            document.getElementById('addFineModal').classList.remove('show');
+            document.getElementById('addFineForm').reset();
         }
 
         function loadSalaryHistory(userId) {
-            // Implementation would go here
-            document.getElementById('salaryHistory').innerHTML = '<p>Salary history would be loaded here</p>';
+            const historyContainer = document.getElementById('salaryHistory');
+            historyContainer.innerHTML = '<div class="loading">Loading salary history...</div>';
+            
+            // Display recent salaries from model
+            const recentSalaries = @Html.Raw(Json.Serialize(Model.RecentSalaries ?? new List<EmployeeSalary>()));
+            
+            if (recentSalaries.length === 0) {
+                historyContainer.innerHTML = '<p class="no-data">No salary history available</p>';
+                return;
+            }
+
+            let historyHtml = '<div class="history-list">';
+            recentSalaries.forEach(salary => {
+                historyHtml += `
+                    <div class="history-item">
+                        <div class="history-details">
+                            <strong>KSh ${salary.amount?.toLocaleString() || '0'}</strong>
+                            <span class="history-date">${salary.effectiveDate ? new Date(salary.effectiveDate).toLocaleDateString() : 'Unknown'}</span>
+                        </div>
+                        <div class="history-meta">
+                            <span class="frequency">${salary.paymentFrequency || 'Monthly'}</span>
+                        </div>
+                    </div>
+                `;
+            });
+            historyHtml += '</div>';
+            
+            historyContainer.innerHTML = historyHtml;
         }
 
         function loadFineHistory(userId) {
-            // Implementation would go here
-            document.getElementById('fineHistory').innerHTML = '<p>Fine history would be loaded here</p>';
+            const historyContainer = document.getElementById('fineHistory');
+            historyContainer.innerHTML = '<div class="loading">Loading fine history...</div>';
+            
+            // Display recent fines from model
+            const recentFines = @Html.Raw(Json.Serialize(Model.RecentFines ?? new List<EmployeeFine>()));
+            
+            if (recentFines.length === 0) {
+                historyContainer.innerHTML = '<p class="no-data">No fine history available</p>';
+                return;
+            }
+
+            let historyHtml = '<div class="history-list">';
+            recentFines.forEach(fine => {
+                const statusClass = fine.isPaid ? 'paid' : 'unpaid';
+                const statusText = fine.isPaid ? 'Paid' : 'Outstanding';
+                
+                historyHtml += `
+                    <div class="history-item">
+                        <div class="history-details">
+                            <strong>KSh ${fine.amount?.toLocaleString() || '0'}</strong>
+                            <span class="fine-reason">${fine.reason || 'No reason specified'}</span>
+                            <span class="history-date">Issued: ${fine.issuedDate ? new Date(fine.issuedDate).toLocaleDateString() : 'Unknown'}</span>
+                            ${fine.dueDate ? `<span class="due-date">Due: ${new Date(fine.dueDate).toLocaleDateString()}</span>` : ''}
+                        </div>
+                        <div class="history-meta">
+                            <span class="status ${statusClass}">${statusText}</span>
+                        </div>
+                    </div>
+                `;
+            });
+            historyHtml += '</div>';
+            
+            historyContainer.innerHTML = historyHtml;
         }
 
         function loadPaymentHistory(userId) {
-            // Implementation would go here
-            document.getElementById('paymentHistory').innerHTML = '<p>Payment history would be loaded here</p>';
+            const historyContainer = document.getElementById('paymentHistory');
+            historyContainer.innerHTML = '<div class="loading">Loading payment history...</div>';
+            
+            // Display recent payments from model
+            const recentPayments = @Html.Raw(Json.Serialize(Model.RecentPayments ?? new List<EmployeePayment>()));
+            
+            if (recentPayments.length === 0) {
+                historyContainer.innerHTML = '<p class="no-data">No payment history available</p>';
+                return;
+            }
+
+            let historyHtml = '<div class="history-list">';
+            recentPayments.forEach(payment => {
+                historyHtml += `
+                    <div class="history-item">
+                        <div class="history-details">
+                            <strong>KSh ${payment.amount?.toLocaleString() || '0'}</strong>
+                            <span class="payment-type">${payment.paymentType || 'Salary'}</span>
+                            <span class="history-date">${payment.paymentDate ? new Date(payment.paymentDate).toLocaleDateString() : 'Unknown'}</span>
+                        </div>
+                        <div class="history-meta">
+                            <span class="method">${payment.paymentMethod || 'Bank Transfer'}</span>
+                        </div>
+                    </div>
+                `;
+            });
+            historyHtml += '</div>';
+            
+            historyContainer.innerHTML = historyHtml;
+        }
+
+        function getAntiForgeryToken() {
+            const token = document.querySelector('input[name="__RequestVerificationToken"]');
+            return token ? token.value : '';
         }
 
         function showToast(message, type) {

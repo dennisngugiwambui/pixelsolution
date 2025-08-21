@@ -12,9 +12,17 @@ namespace PixelSolution.Data
                 // Ensure database is created
                 await context.Database.EnsureCreatedAsync();
 
-                // ALWAYS CLEAR AND RESET - Force fresh start every time
-                Console.WriteLine("=== FORCING DATABASE RESET (DEBUG MODE) ===");
-                await ClearExistingDataAsync(context);
+                // Check if we need to seed data
+                if (!await context.Users.AnyAsync())
+                {
+                    Console.WriteLine("=== SEEDING FRESH DATABASE ===");
+                    await ClearExistingDataAsync(context);
+                }
+                else
+                {
+                    Console.WriteLine("=== DATABASE ALREADY SEEDED ===");
+                    return;
+                }
 
                 // Seed Departments first
                 await SeedDepartmentsAsync(context);

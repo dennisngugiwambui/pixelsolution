@@ -64,14 +64,14 @@ namespace PixelSolution.Services
             {
                 var profile = await _context.EmployeeProfiles
                     .Include(ep => ep.User)
-                    .Include(ep => ep.SalaryRecords.Where(sr => sr.IsActive))
-                    .Include(ep => ep.Payments.OrderByDescending(p => p.PaymentDate).Take(1))
+                    .Include(ep => ep.EmployeeSalaries.Where(sr => sr.IsActive))
+                    .Include(ep => ep.EmployeePayments.OrderByDescending(p => p.PaymentDate).Take(1))
                     .FirstOrDefaultAsync(ep => ep.EmployeeProfileId == employeeProfileId);
 
                 if (profile == null) return;
 
-                var currentSalary = profile.SalaryRecords.FirstOrDefault(sr => sr.IsActive && sr.SalaryType == "Base");
-                var lastPayment = profile.Payments.FirstOrDefault();
+                var currentSalary = profile.EmployeeSalaries.FirstOrDefault(sr => sr.IsActive && sr.SalaryType == "Base");
+                var lastPayment = profile.EmployeePayments.FirstOrDefault();
 
                 // Send Email Reminder
                 await SendEmailReminder(profile, currentSalary, lastPayment);

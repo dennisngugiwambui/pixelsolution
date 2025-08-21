@@ -135,8 +135,8 @@ namespace PixelSolution.Controllers
                     EmployeeName = p.User.FullName,
                     Position = p.Position,
                     BaseSalary = p.BaseSalary,
-                    OutstandingFines = p.Fines.Where(f => f.Status != "Paid").Sum(f => f.Amount),
-                    LastPayment = p.Payments.OrderByDescending(pay => pay.PaymentDate).FirstOrDefault()
+                    OutstandingFines = p.EmployeeFines.Where(f => f.Status != "Paid").Sum(f => f.Amount),
+                    LastPayment = p.EmployeePayments.OrderByDescending(pay => pay.PaymentDate).FirstOrDefault()
                 }).ToList();
 
                 return Ok(summary);
@@ -151,13 +151,13 @@ namespace PixelSolution.Controllers
         public async Task<IActionResult> GetSalaryHistory(int employeeProfileId)
         {
             var profile = await _context.EmployeeProfiles
-                .Include(ep => ep.SalaryRecords)
+                .Include(ep => ep.EmployeeSalaries)
                 .FirstOrDefaultAsync(ep => ep.EmployeeProfileId == employeeProfileId);
 
             if (profile == null)
                 return NotFound(new { message = "Employee profile not found" });
 
-            var salaryHistory = profile.SalaryRecords
+            var salaryHistory = profile.EmployeeSalaries
                 .OrderByDescending(sr => sr.EffectiveDate)
                 .ToList();
 

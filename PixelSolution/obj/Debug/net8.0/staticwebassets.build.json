@@ -1,6 +1,6 @@
 {
   "Version": 1,
-  "Hash": "3ulxmVVwrAMSJb1JzMRIwX917+WMA1Cz67ONXp4NW4I=",
+  "Hash": "kcYLR7j7NQaTwS9iwspgVZFDOsAlN4+ENdc+g0gPGcM=",
   "Source": "PixelSolution",
   "BasePath": "_content/PixelSolution",
   "Mode": "Default",
@@ -178,8 +178,8 @@
       "RelatedAsset": "",
       "AssetTraitName": "",
       "AssetTraitValue": "",
-      "Fingerprint": "7qa1195xaz",
-      "Integrity": "j+EhIlQ2SX9lDWaSotNBIhunXirhRNLmRPoM9Ay5pLw=",
+      "Fingerprint": "jttrejczhq",
+      "Integrity": "t0mlBf9BEWodeCgdFl48z5GIZn9KghUFCCcEpStqvJM=",
       "CopyToOutputDirectory": "Never",
       "CopyToPublishDirectory": "PreserveNewest",
       "OriginalItemSpec": "wwwroot\\js\\dashboard.js"
@@ -1941,51 +1941,6 @@
       ]
     },
     {
-      "Route": "js/dashboard.7qa1195xaz.js",
-      "AssetFile": "C:\\Users\\Denno\\source\\repos\\PixelSolution\\PixelSolution\\wwwroot\\js\\dashboard.js",
-      "Selectors": [],
-      "ResponseHeaders": [
-        {
-          "Name": "Accept-Ranges",
-          "Value": "bytes"
-        },
-        {
-          "Name": "Content-Length",
-          "Value": "19951"
-        },
-        {
-          "Name": "Content-Type",
-          "Value": "text/javascript"
-        },
-        {
-          "Name": "ETag",
-          "Value": "\"j+EhIlQ2SX9lDWaSotNBIhunXirhRNLmRPoM9Ay5pLw=\""
-        },
-        {
-          "Name": "Last-Modified",
-          "Value": "Tue, 19 Aug 2025 19:40:42 GMT"
-        },
-        {
-          "Name": "Cache-Control",
-          "Value": "max-age=31536000, immutable"
-        }
-      ],
-      "EndpointProperties": [
-        {
-          "Name": "fingerprint",
-          "Value": "7qa1195xaz"
-        },
-        {
-          "Name": "label",
-          "Value": "js/dashboard.js"
-        },
-        {
-          "Name": "integrity",
-          "Value": "sha256-j+EhIlQ2SX9lDWaSotNBIhunXirhRNLmRPoM9Ay5pLw="
-        }
-      ]
-    },
-    {
       "Route": "js/dashboard.js",
       "AssetFile": "C:\\Users\\Denno\\source\\repos\\PixelSolution\\PixelSolution\\wwwroot\\js\\dashboard.js",
       "Selectors": [],
@@ -1996,7 +1951,7 @@
         },
         {
           "Name": "Content-Length",
-          "Value": "19951"
+          "Value": "19954"
         },
         {
           "Name": "Content-Type",
@@ -2004,11 +1959,11 @@
         },
         {
           "Name": "ETag",
-          "Value": "\"j+EhIlQ2SX9lDWaSotNBIhunXirhRNLmRPoM9Ay5pLw=\""
+          "Value": "\"t0mlBf9BEWodeCgdFl48z5GIZn9KghUFCCcEpStqvJM=\""
         },
         {
           "Name": "Last-Modified",
-          "Value": "Tue, 19 Aug 2025 19:40:42 GMT"
+          "Value": "Wed, 20 Aug 2025 17:33:34 GMT"
         },
         {
           "Name": "Cache-Control",
@@ -2018,7 +1973,52 @@
       "EndpointProperties": [
         {
           "Name": "integrity",
-          "Value": "sha256-j+EhIlQ2SX9lDWaSotNBIhunXirhRNLmRPoM9Ay5pLw="
+          "Value": "sha256-t0mlBf9BEWodeCgdFl48z5GIZn9KghUFCCcEpStqvJM="
+        }
+      ]
+    },
+    {
+      "Route": "js/dashboard.jttrejczhq.js",
+      "AssetFile": "C:\\Users\\Denno\\source\\repos\\PixelSolution\\PixelSolution\\wwwroot\\js\\dashboard.js",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "19954"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "text/javascript"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"t0mlBf9BEWodeCgdFl48z5GIZn9KghUFCCcEpStqvJM=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Wed, 20 Aug 2025 17:33:34 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=31536000, immutable"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "fingerprint",
+          "Value": "jttrejczhq"
+        },
+        {
+          "Name": "label",
+          "Value": "js/dashboard.js"
+        },
+        {
+          "Name": "integrity",
+          "Value": "sha256-t0mlBf9BEWodeCgdFl48z5GIZn9KghUFCCcEpStqvJM="
         }
       ]
     },

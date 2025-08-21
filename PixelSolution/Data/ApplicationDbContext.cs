@@ -367,7 +367,7 @@ namespace PixelSolution.Data
             // Configure EmployeeSalary relationships
             modelBuilder.Entity<EmployeeSalary>()
                 .HasOne(es => es.EmployeeProfile)
-                .WithMany(ep => ep.SalaryRecords)
+                .WithMany(ep => ep.EmployeeSalaries)
                 .HasForeignKey(es => es.EmployeeProfileId)
                 .OnDelete(DeleteBehavior.Cascade);
 
@@ -382,7 +382,7 @@ namespace PixelSolution.Data
             // Configure EmployeeFine relationships
             modelBuilder.Entity<EmployeeFine>()
                 .HasOne(ef => ef.EmployeeProfile)
-                .WithMany(ep => ep.Fines)
+                .WithMany(ep => ep.EmployeeFines)
                 .HasForeignKey(ef => ef.EmployeeProfileId)
                 .OnDelete(DeleteBehavior.Cascade);
 
@@ -399,7 +399,7 @@ namespace PixelSolution.Data
             // Configure EmployeePayment relationships
             modelBuilder.Entity<EmployeePayment>()
                 .HasOne(ep => ep.EmployeeProfile)
-                .WithMany(epr => epr.Payments)
+                .WithMany(ep => ep.EmployeePayments)
                 .HasForeignKey(ep => ep.EmployeeProfileId)
                 .OnDelete(DeleteBehavior.Cascade);
 

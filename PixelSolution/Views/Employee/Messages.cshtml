@@ -1382,7 +1382,12 @@
                 setupMessageInput();
                 setupSearch();
                 setupConversationClickHandlers(); // New function for handling clicks
-                initializeSelect2();
+                
+                // Initialize Select2 with a small delay to ensure DOM is ready
+                setTimeout(() => {
+                    initializeSelect2();
+                }, 100);
+                
                 setupMobileNavigation();
                 addMobileTouchHandlers(); // Add touch support for mobile
 
@@ -1468,24 +1473,44 @@
         // Initialize Select2 with custom formatting
         function initializeSelect2() {
             try {
-                document.getElementById('recipientSelect').select2({
+                const recipientSelect = document.getElementById('recipientSelect');
+                if (!recipientSelect) {
+                    console.error('Recipient select element not found');
+                    return;
+                }
+
+                // Destroy existing Select2 if it exists
+                if (recipientSelect.select2) {
+                    recipientSelect.select2('destroy');
+                }
+
+                // Initialize Select2 with enhanced configuration
+                $(recipientSelect).select2({
                     placeholder: 'Search and select recipient...',
                     allowClear: true,
                     width: '100%',
                     templateResult: formatUserOption,
                     templateSelection: formatUserSelection,
                     matcher: customUserMatcher,
-                    dropdownParent: document.getElementById('newMessageModal'),
+                    dropdownParent: $('#newMessageModal'),
+                    minimumInputLength: 0,
                     language: {
                         noResults: function() {
                             return "No users found";
                         },
                         searching: function() {
                             return "Searching users...";
+                        },
+                        inputTooShort: function() {
+                            return "Start typing to search users...";
                         }
+                    },
+                    escapeMarkup: function(markup) {
+                        return markup; // Allow HTML in results
                     }
                 });
-                console.log('Select2 initialized successfully');
+                
+                console.log('Select2 initialized successfully with', recipientSelect.options.length - 1, 'users');
             } catch (error) {
                 console.error('Error initializing Select2:', error);
             }
@@ -1493,23 +1518,29 @@
 
         // Custom formatter for Select2 options
         function formatUserOption(user) {
-            if (!user.id) return user.text;
+            if (!user.id || user.id === '') {
+                return user.text;
+            }
 
             const userElement = user.element;
-            const initials = userElement?.dataset?.initials || user.text.substring(0, 2).toUpperCase();
-            const email = userElement?.dataset?.email || '';
-            const userType = userElement?.dataset?.usertype || '';
+            if (!userElement) {
+                return user.text;
+            }
 
-            const div = document.createElement('div');
-            div.className = 'user-option';
-            div.innerHTML = `
-                <div class="user-option-avatar">${initials}</div>
-                <div class="user-option-info">
-                    <div class="user-option-name">${user.text.split(' (')[0]}</div>
-                    <div class="user-option-details">${userType} • ${email}</div>
+            const initials = userElement.dataset.initials || user.text.substring(0, 2).toUpperCase();
+            const email = userElement.dataset.email || '';
+            const userType = userElement.dataset.usertype || '';
+            const fullName = user.text.split(' (')[0];
+
+            return $(`
+                <div class="user-option">
+                    <div class="user-option-avatar">${initials}</div>
+                    <div class="user-option-info">
+                        <div class="user-option-name">${fullName}</div>
+                        <div class="user-option-details">${userType} • ${email}</div>
+                    </div>
                 </div>
-            `;
-            return div;
+            `);
         }
 
         // Custom formatter for Select2 selection
@@ -1520,17 +1551,31 @@
 
         // Custom matcher for Select2 search
         function customUserMatcher(params, data) {
+            // If there are no search terms, return all data
             if ($.trim(params.term) === '') {
                 return data;
             }
 
+            // Skip the placeholder option
+            if (!data.id || data.id === '') {
+                return null;
+            }
+
             const searchTerm = params.term.toLowerCase();
             const optionElement = data.element;
-            const name = data.text.toLowerCase();
-            const email = optionElement?.dataset?.email?.toLowerCase() || '';
-            const userType = optionElement?.dataset?.usertype?.toLowerCase() || '';
+            
+            if (!optionElement) {
+                return null;
+            }
 
-            if (name.includes(searchTerm) || email.includes(searchTerm) || userType.includes(searchTerm)) {
+            const name = data.text.toLowerCase();
+            const email = (optionElement.dataset.email || '').toLowerCase();
+            const userType = (optionElement.dataset.usertype || '').toLowerCase();
+
+            // Search in name, email, and user type
+            if (name.includes(searchTerm) || 
+                email.includes(searchTerm) || 
+                userType.includes(searchTerm)) {
                 return data;
             }
 
@@ -1727,7 +1772,7 @@
             console.log('Loading conversation messages for userId:', userId);
 
             try {
-                showLoadingState();
+                showLoadingSpinner();
 
                 const response = await fetch(`/Employee/GetConversationMessages?userId=${userId}`);
                 if (!response.ok) {
@@ -1737,26 +1782,111 @@
                 const data = await response.json();
                 console.log('Conversation data received:', data);
 
-                if (data.success) {
+                if (data.success && data.messages && data.conversation) {
                     displayMessages(data.messages);
                     updateChatHeader(data.conversation);
                     scrollToBottom();
 
                     // Mark messages as read and update unread count
                     markMessagesAsRead();
+                    updateUnreadCount();
 
                     // Start polling for new messages
-                    startMessagePolling();
-                    startOnlineStatusPolling();
+                    setTimeout(() => {
+                        startMessagePolling();
+                        startOnlineStatusPolling();
+                    }, 1000);
                 } else {
+                    console.error('Invalid response data:', data);
                     showToast(data.message || 'Error loading conversation', 'error');
                 }
             } catch (error) {
                 console.error('Error loading conversation:', error);
                 showToast('Error loading conversation. Please try again.', 'error');
             } finally {
-                hideLoadingState();
+                hideLoadingSpinner();
                 isLoadingConversation = false;
+            }
+        }
+
+        // Display messages in the chat area
+        function displayMessages(messages) {
+            const messagesContainer = document.getElementById('messagesContainer');
+            if (!messagesContainer || !messages) {
+                console.error('Messages container not found or no messages provided');
+                return;
+            }
+
+            console.log('Displaying', messages.length, 'messages');
+
+            const messagesHtml = messages.map(message => {
+                const messageTypeHtml = message.messageType && message.messageType !== 'General'
+                    ? `<div class="message-type-badge type-${message.messageType.toLowerCase()}">${message.messageType}</div>`
+                    : '';
+
+                const subjectHtml = message.subject
+                    ? `<div style="font-weight: 600; margin-bottom: 0.5rem; opacity: 0.9;">${escapeHtml(message.subject)}</div>`
+                    : '';
+
+                const statusHtml = message.isFromCurrentUser
+                    ? `<div class="message-status">
+                         ${message.isRead
+                           ? `<i class="fas fa-eye status-icon" title="Read"></i>${message.readDate ? `<span>${formatTime(message.readDate)}</span>` : ''}`
+                           : `<i class="fas fa-check status-icon" title="Sent"></i>`}
+                       </div>`
+                    : '';
+
+                return `
+                    <div class="message-bubble ${message.isFromCurrentUser ? 'sent' : 'received'}" data-message-id="${message.messageId}">
+                        ${messageTypeHtml}
+                        ${subjectHtml}
+                        <div class="message-content">${escapeHtml(message.content)}</div>
+                        <div class="message-meta">
+                            <span class="message-time">${formatTime(message.sentDate)}</span>
+                            ${statusHtml}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            messagesContainer.innerHTML = messagesHtml + `
+                <div class="typing-indicator" id="typingIndicator">
+                    <div class="typing-dots">
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                        <div class="typing-dot"></div>
+                    </div>
+                    <span style="margin-left: 0.5rem; font-size: 0.8rem; color: #64748b;">typing...</span>
+                </div>
+            `;
+        }
+
+        // Update chat header with conversation info
+        function updateChatHeader(conversation) {
+            const chatHeader = document.querySelector('.chat-header');
+            if (!chatHeader || !conversation) {
+                console.error('Chat header not found or no conversation provided');
+                return;
+            }
+
+            console.log('Updating chat header for:', conversation.fullName);
+
+            const chatUserInfo = chatHeader.querySelector('.chat-user-info');
+            if (chatUserInfo) {
+                chatUserInfo.innerHTML = `
+                    <div class="chat-avatar" style="position: relative;">
+                        ${conversation.userInitials}
+                        ${conversation.isOnline ? '<div class="online-indicator online"></div>' : ''}
+                    </div>
+                    <div class="chat-user-details">
+                        <h4>${escapeHtml(conversation.fullName)}</h4>
+                        <div class="chat-user-status ${conversation.isOnline ? 'status-online' : 'status-offline'}" id="userStatus-${conversation.userId}">
+                            ${conversation.isOnline
+                              ? '<i class="fas fa-circle" style="font-size: 0.5rem; margin-right: 0.25rem;"></i><span>Online</span>'
+                              : `<span>Last seen ${conversation.lastSeenFormatted || 'Unknown'}</span>`}
+                        </div>
+                    </div>
+                `;
             }
         }
 
@@ -1977,25 +2107,21 @@
                         form.reset();
                     }
 
-                    // Reset and focus Select2
-                    const recipientSelect = document.getElementById('recipientSelect');
-                    if (recipientSelect) {
-                        recipientSelect.value = '';
-                        recipientSelect.dispatchEvent(new Event('change'));
-                    }
-
-                    // Focus on the select after a short delay
+                    // Re-initialize Select2 to ensure it works properly
                     setTimeout(() => {
-                        try {
-                            const recipientSelect = document.getElementById('recipientSelect');
-                            if (recipientSelect && recipientSelect.select2) {
-                                recipientSelect.select2('open');
+                        initializeSelect2();
+                        
+                        // Focus on the select after initialization
+                        setTimeout(() => {
+                            try {
+                                const recipientSelect = $('#recipientSelect');
+                                if (recipientSelect.length && recipientSelect.hasClass('select2-hidden-accessible')) {
+                                    recipientSelect.select2('open');
+                                }
+                            } catch (e) {
+                                console.warn('Could not open Select2 dropdown:', e);
                             }
-                        } catch (e) {
-                            console.warn('Could not open Select2 dropdown:', e);
-                            // Fallback to focus on the select element
-                            document.getElementById('recipientSelect').focus();
-                        }
+                        }, 200);
                     }, 100);
                 } else {
                     console.error('New message modal not found');
@@ -2285,6 +2411,9 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
+                        console.log('Updated unread count:', data.unreadCount);
+                        
+                        // Update notification badge in header
                         const notificationBadge = document.querySelector('.notification-badge');
                         if (data.unreadCount > 0) {
                             if (notificationBadge) {
@@ -2304,6 +2433,19 @@
                             // Hide badge when no unread messages
                             if (notificationBadge) {
                                 notificationBadge.style.display = 'none';
+                            }
+                        }
+                        
+                        // Update sidebar badge
+                        const sidebarBadge = document.getElementById('unreadMessagesCount');
+                        if (data.unreadCount > 0) {
+                            if (sidebarBadge) {
+                                sidebarBadge.textContent = data.unreadCount;
+                                sidebarBadge.style.display = 'inline-block';
+                            }
+                        } else {
+                            if (sidebarBadge) {
+                                sidebarBadge.style.display = 'none';
                             }
                         }
                     }
@@ -2611,12 +2753,19 @@
         }
 
         function showLoadingSpinner() {
-            // You can implement a global loading spinner here
             console.log('Loading...');
+            const messagesContainer = document.getElementById('messagesContainer');
+            if (messagesContainer) {
+                messagesContainer.innerHTML = `
+                    <div style="display: flex; justify-content: center; align-items: center; height: 200px; color: #64748b;">
+                        <div class="loading-spinner" style="width: 40px; height: 40px; border: 4px solid #f3f4f6; border-top: 4px solid #8b5cf6; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                        <span style="margin-left: 1rem;">Loading messages...</span>
+                    </div>
+                `;
+            }
         }
 
         function hideLoadingSpinner() {
-            // Hide global loading spinner
             console.log('Loading complete');
         }
 

@@ -42,6 +42,7 @@ namespace PixelSolution.Models
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime? LastLogin { get; set; }
 
         // Navigation Properties
         public virtual ICollection<Sale> Sales { get; set; } = new List<Sale>();
@@ -49,6 +50,7 @@ namespace PixelSolution.Models
         public virtual ICollection<Message> SentMessages { get; set; } = new List<Message>();
         public virtual ICollection<Message> ReceivedMessages { get; set; } = new List<Message>();
         public virtual ICollection<UserDepartment> UserDepartments { get; set; } = new List<UserDepartment>();
+        public virtual EmployeeProfile? EmployeeProfile { get; set; }
 
         // Computed Properties
         [NotMapped]

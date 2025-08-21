@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using PixelSolution.Models;
 
 namespace PixelSolution.ViewModels
 {
@@ -851,6 +852,13 @@ namespace PixelSolution.ViewModels
         public decimal CurrentSalary { get; set; }
         public decimal OutstandingFines { get; set; }
         public decimal TotalPaid { get; set; }
+        public decimal TotalSalariesPaid { get; set; }
+        public decimal TotalFines { get; set; }
+
+        // Recent Activity Lists
+        public List<EmployeeSalary> RecentSalaries { get; set; } = new List<EmployeeSalary>();
+        public List<EmployeeFine> RecentFines { get; set; } = new List<EmployeeFine>();
+        public List<EmployeePayment> RecentPayments { get; set; } = new List<EmployeePayment>();
 
         // Performance Metrics
         public int TotalSales { get; set; }
@@ -890,12 +898,12 @@ namespace PixelSolution.ViewModels
         public decimal Amount { get; set; }
         public string Status { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
-        public DateTime IssueDate { get; set; }
+        public DateTime IssuedDate { get; set; }
         public DateTime? PaidDate { get; set; }
         public string IssuedByUserName { get; set; } = string.Empty;
         public string PaymentMethod { get; set; } = string.Empty;
         public string FormattedAmount { get; set; } = string.Empty;
-        public string FormattedIssueDate { get; set; } = string.Empty;
+        public string FormattedIssuedDate { get; set; } = string.Empty;
         public string FormattedPaidDate { get; set; } = string.Empty;
         public string StatusBadgeClass { get; set; } = string.Empty;
     }

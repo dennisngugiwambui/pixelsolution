@@ -1,202 +1,512 @@
-@model List<PixelSolution.ViewModels.UserListViewModel>
+@model PixelSolution.ViewModels.EmployeeListViewModel
 @{
-    ViewData["Title"] = "Users Management - PixelSolution";
+    ViewData["Title"] = "Employee Management - PixelSolution";
     Layout = "_AdminLayout";
 }
 
 @section Styles {
     <link href="~/css/dashboard.css" rel="stylesheet">
     <style>
-        /* Compact User Card Styles */
-        .user-card {
-            background: white;
-            border-radius: 8px;
-            padding: 1rem;
-            box-shadow: 0 1px 6px rgba(0,0,0,0.08);
-            transition: all 0.3s ease;
-            border-left: 3px solid #3b82f6;
-            position: relative;
-            overflow: hidden;
-            min-height: 200px;
+        .users-container {
+            background: #f8fafc;
+            min-height: calc(100vh - 80px);
+            padding: 2rem 0;
         }
 
-            .user-card:hover {
-                transform: translateY(-1px);
-                box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+        .page-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem;
+            border-radius: 16px;
+            margin-bottom: 2rem;
+            box-shadow: 0 8px 32px rgba(102, 126, 234, 0.3);
+        }
+
+        .page-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .page-subtitle {
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            border-left: 4px solid var(--accent-color);
+            transition: all 0.3s ease;
+        }
+
+            .stat-card:hover {
+                transform: translateY(-4px);
+                box-shadow: 0 8px 30px rgba(0,0,0,0.12);
             }
 
-            .user-card.inactive {
-                border-left-color: #6b7280;
+            .stat-card.employees {
+                --accent-color: #3b82f6;
+            }
+
+            .stat-card.active {
+                --accent-color: #10b981;
+            }
+
+            .stat-card.inactive {
+                --accent-color: #ef4444;
+            }
+
+            .stat-card.budget {
+                --accent-color: #f59e0b;
+            }
+
+        .stat-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+            color: white;
+            background: var(--accent-color);
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-label {
+            color: #64748b;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .controls-section {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+        }
+
+        .controls-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .search-filters {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
+            gap: 1rem;
+            align-items: end;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-label {
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        .form-control {
+            padding: 0.75rem 1rem;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+            .form-control:focus {
+                outline: none;
+                border-color: #667eea;
+                box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            justify-content: center;
+            font-size: 0.875rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+            .btn-primary:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+            }
+
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+        }
+
+            .btn-secondary:hover {
+                background: #4b5563;
+            }
+
+        .btn-outline {
+            background: transparent;
+            color: #667eea;
+            border: 2px solid #667eea;
+        }
+
+            .btn-outline:hover {
+                background: #667eea;
+                color: white;
+            }
+
+        .employees-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .employee-card {
+            background: white;
+            border-radius: 16px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+            .employee-card::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                height: 4px;
+                background: linear-gradient(135deg, #667eea, #764ba2);
+            }
+
+            .employee-card:hover {
+                transform: translateY(-8px);
+                box-shadow: 0 12px 40px rgba(0,0,0,0.15);
+            }
+
+            .employee-card.inactive {
                 opacity: 0.7;
             }
 
-        .user-avatar {
-            width: 36px;
-            height: 36px;
+        .employee-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .employee-avatar {
+            width: 64px;
+            height: 64px;
             border-radius: 50%;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #667eea, #764ba2);
             display: flex;
             align-items: center;
             justify-content: center;
             color: white;
-            font-size: 0.9rem;
-            font-weight: 600;
-            margin-bottom: 0.75rem;
-            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
-        }
-
-        .user-info h3 {
-            margin: 0 0 0.3rem 0;
-            color: #1e293b;
-            font-size: 0.95rem;
-            font-weight: 600;
-            line-height: 1.2;
-        }
-
-        .user-email {
-            color: #64748b;
-            font-size: 0.75rem;
-            margin-bottom: 0.5rem;
-            font-weight: 500;
-            word-break: break-word;
-        }
-
-        .user-role {
-            display: inline-block;
-            padding: 0.15rem 0.5rem;
-            border-radius: 12px;
-            font-size: 0.65rem;
-            font-weight: 600;
-            margin-bottom: 0.75rem;
-            text-transform: uppercase;
-            letter-spacing: 0.3px;
-        }
-
-        .role-admin {
-            background: #fef3c7;
-            color: #92400e;
-        }
-
-        .role-manager {
-            background: #dbeafe;
-            color: #1e40af;
-        }
-
-        .role-employee {
-            background: #d1fae5;
-            color: #065f46;
+            font-weight: 700;
+            font-size: 1.5rem;
+            margin-right: 1rem;
+            position: relative;
         }
 
         .status-indicator {
             position: absolute;
-            top: 0.5rem;
-            right: 0.5rem;
-            padding: 0.15rem 0.4rem;
-            border-radius: 10px;
-            font-size: 0.6rem;
+            bottom: 2px;
+            right: 2px;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            border: 3px solid white;
+        }
+
+            .status-indicator.active {
+                background: #10b981;
+            }
+
+            .status-indicator.inactive {
+                background: #ef4444;
+            }
+
+        .employee-info h3 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 0.25rem;
+        }
+
+        .employee-info .subtitle {
+            color: #64748b;
+            font-size: 0.875rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .employee-badges {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
             font-weight: 600;
             text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
-        .status-active {
-            background: #dcfce7;
-            color: #166534;
+            .badge.active {
+                background: #dcfdf7;
+                color: #059669;
+            }
+
+            .badge.inactive {
+                background: #fef2f2;
+                color: #dc2626;
+            }
+
+            .badge.employee {
+                background: #dbeafe;
+                color: #2563eb;
+            }
+
+            .badge.admin {
+                background: #f3e8ff;
+                color: #7c3aed;
+            }
+
+            .badge.manager {
+                background: #ecfdf5;
+                color: #059669;
+            }
+
+        .employee-details {
+            margin: 1.5rem 0;
         }
 
-        .status-inactive {
-            background: #fee2e2;
-            color: #991b1b;
-        }
-
-        .user-details {
-            font-size: 0.7rem;
-            color: #64748b;
-            margin-bottom: 0.3rem;
+        .detail-row {
             display: flex;
+            justify-content: space-between;
             align-items: center;
-            gap: 0.3rem;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid #f1f5f9;
         }
 
-            .user-details i {
-                width: 10px;
-                font-size: 0.65rem;
+            .detail-row:last-child {
+                border-bottom: none;
             }
 
-        .user-actions {
-            display: flex;
-            gap: 0.3rem;
-            margin-top: 0.75rem;
-            justify-content: center;
+        .detail-label {
+            font-weight: 600;
+            color: #374151;
+            font-size: 0.875rem;
         }
 
-        .btn-icon {
-            padding: 0.3rem 0.5rem;
-            border-radius: 6px;
-            border: none;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.2rem;
-            font-size: 0.7rem;
-            font-weight: 500;
-            min-width: 50px;
-            min-height: 24px;
+        .detail-value {
+            color: #6b7280;
+            font-size: 0.875rem;
         }
 
-            .btn-icon i {
-                font-size: 0.7rem;
+            .detail-value.highlight {
+                color: #059669;
+                font-weight: 600;
             }
 
-        .btn-edit {
-            background: #dbeafe;
-            color: #1e40af;
-        }
-
-            .btn-edit:hover {
-                background: #bfdbfe;
-                transform: translateY(-1px);
-            }
-
-        .btn-delete {
-            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-            color: white;
-        }
-
-            .btn-delete:hover {
-                background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
-                transform: translateY(-1px);
-                box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
-            }
-
-        .btn-toggle {
-            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-            color: white;
-        }
-
-            .btn-toggle:hover {
-                background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
-                transform: translateY(-1px);
-                box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
-            }
-
-        .filters-bar {
-            background: white;
-            border: 1px solid #e2e8f0;
-            padding: 1rem;
-            border-radius: 8px;
-            margin-bottom: 1rem;
-            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
-        }
-
-        .filter-controls {
+        .employee-actions {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 0.75rem;
-            align-items: end;
+            grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+            gap: 0.5rem;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid #f1f5f9;
+            position: relative;
+            z-index: 5;
         }
 
+        .action-btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+            text-decoration: none;
+            text-align: center;
+            position: relative;
+            z-index: 10;
+        }
+
+            .action-btn.view {
+                background: #f0f9ff;
+                color: #0284c7;
+            }
+
+                .action-btn.view:hover {
+                    background: #0284c7;
+                    color: white;
+                }
+
+            .action-btn.edit {
+                background: #fef3c7;
+                color: #d97706;
+            }
+
+                .action-btn.edit:hover {
+                    background: #d97706;
+                    color: white;
+                }
+
+            .action-btn.activate {
+                background: #dcfdf7;
+                color: #059669;
+            }
+
+                .action-btn.activate:hover {
+                    background: #059669;
+                    color: white;
+                }
+
+            .action-btn.deactivate {
+                background: #fef2f2;
+                color: #dc2626;
+            }
+
+                .action-btn.deactivate:hover {
+                    background: #dc2626;
+                    color: white;
+                }
+
+            .action-btn.delete {
+                background: #fef2f2;
+                color: #dc2626;
+            }
+
+                .action-btn.delete:hover {
+                    background: #dc2626;
+                    color: white;
+                }
+
+        /* Mobile Responsive */
+            @@media (max-width: 768px) {
+            .users-container
+
+        {
+            padding: 1rem;
+        }
+
+        .page-header {
+            padding: 1.5rem;
+            text-align: center;
+        }
+
+        .page-title {
+            font-size: 1.5rem;
+        }
+
+        .stats-grid {
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .controls-header {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .search-filters {
+            grid-template-columns: 1fr;
+            gap: 1rem;
+        }
+
+        .employees-grid {
+            grid-template-columns: 1fr;
+            gap: 1rem;
+        }
+
+        .employee-actions {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        }
+
+            @@media (max-width: 480px) {
+            .employee-header
+
+        {
+            flex-direction: column;
+            text-align: center;
+        }
+
+        .employee-avatar {
+            margin-right: 0;
+            margin-bottom: 1rem;
+        }
+
+        .employee-actions {
+            grid-template-columns: 1fr;
+            gap: 0.5rem;
+        }
+
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: #6b7280;
+        }
+
+        .empty-state-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+            opacity: 0.3;
+        }
+
+        /* Modal Styles */
         .modal {
             display: none;
             position: fixed;
@@ -205,271 +515,137 @@
             top: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.5);
-            backdrop-filter: blur(4px);
+            background-color: rgba(0,0,0,0.5);
+            align-items: center;
+            justify-content: center;
         }
 
-            .modal.show {
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                padding: 1rem;
-            }
-
         .modal-content {
-            background: white;
-            padding: 1.5rem;
+            background-color: white;
             border-radius: 12px;
-            width: 100%;
-            max-width: 480px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-            max-height: 85vh;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
             overflow-y: auto;
+            animation: modalSlideIn 0.3s ease-out;
+        }
+
+        @@keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-50px) scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
         }
 
         .modal-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid #e2e8f0;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 1.25rem;
-            padding-bottom: 0.75rem;
-            border-bottom: 2px solid #f1f5f9;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 12px 12px 0 0;
         }
 
         .modal-title {
-            font-size: 1.2rem;
+            margin: 0;
+            font-size: 1.25rem;
             font-weight: 600;
-            color: #1e293b;
         }
 
         .close-btn {
-            background: #fee2e2;
-            color: #dc2626;
+            background: none;
             border: none;
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            color: white;
+            font-size: 1.5rem;
             cursor: pointer;
-            transition: all 0.3s ease;
-            font-size: 0.8rem;
+            padding: 0.25rem;
+            border-radius: 4px;
+            transition: background-color 0.2s;
         }
 
-            .close-btn:hover {
-                background: #fecaca;
-                transform: rotate(90deg);
-            }
+        .close-btn:hover {
+            background-color: rgba(255,255,255,0.1);
+        }
+
+        .modal form {
+            padding: 1.5rem;
+        }
 
         .form-row {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 0.75rem;
-            margin-bottom: 0.75rem;
+            gap: 1rem;
+            margin-bottom: 1rem;
         }
 
         .form-group {
-            margin-bottom: 0.75rem;
+            margin-bottom: 1rem;
         }
 
         .form-label {
             display: block;
-            margin-bottom: 0.4rem;
+            margin-bottom: 0.5rem;
             font-weight: 500;
             color: #374151;
-            font-size: 0.8rem;
         }
 
-        .form-input {
+        .form-control {
             width: 100%;
-            padding: 0.6rem;
+            padding: 0.75rem;
             border: 1px solid #d1d5db;
-            border-radius: 6px;
-            font-size: 0.8rem;
-            transition: all 0.3s ease;
-            box-sizing: border-box;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            transition: border-color 0.2s, box-shadow 0.2s;
         }
 
-            .form-input:focus {
-                outline: none;
-                border-color: #3b82f6;
-                box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
-            }
+        .form-control:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
 
-        .btn-primary {
-            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
-            color: white;
-            padding: 0.6rem 1.2rem;
+        .btn {
+            padding: 0.75rem 1.5rem;
             border: none;
-            border-radius: 6px;
+            border-radius: 8px;
+            font-size: 0.875rem;
             font-weight: 500;
             cursor: pointer;
-            transition: all 0.3s ease;
-            font-size: 0.8rem;
+            transition: all 0.2s;
             display: inline-flex;
             align-items: center;
-            gap: 0.4rem;
+            gap: 0.5rem;
         }
 
-            .btn-primary:hover {
-                background: linear-gradient(135deg, #1d4ed8, #1e40af);
-                transform: translateY(-1px);
-            }
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
 
-            .btn-primary:disabled {
-                background: #9ca3af;
-                cursor: not-allowed;
-                transform: none;
-            }
+        .btn-primary:hover {
+            background: #5a67d8;
+        }
 
         .btn-secondary {
             background: #6b7280;
             color: white;
-            padding: 0.6rem 1.2rem;
-            border: none;
-            border-radius: 6px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            margin-right: 0.5rem;
-            font-size: 0.8rem;
         }
 
-            .btn-secondary:hover {
-                background: #4b5563;
-                transform: translateY(-1px);
-            }
-
-        .password-strength {
-            font-size: 0.7rem;
-            margin-top: 0.3rem;
-            padding: 0.3rem;
-            border-radius: 4px;
-            display: none;
+        .btn-secondary:hover {
+            background: #4b5563;
         }
 
-            .password-strength.weak {
-                background: #fee2e2;
-                color: #dc2626;
-                display: block;
-            }
-
-            .password-strength.medium {
-                background: #fef3c7;
-                color: #d97706;
-                display: block;
-            }
-
-            .password-strength.strong {
-                background: #dcfce7;
-                color: #16a34a;
-                display: block;
-            }
-
-        /* Responsive Design */
-        @@media (max-width: 768px) {
-            .user-card {
-                padding: 0.875rem;
-                min-height: 180px;
-            }
-
-            .user-avatar {
-                width: 32px;
-                height: 32px;
-                font-size: 0.8rem;
-            }
-
-            .modal-content {
-                padding: 1.25rem;
-                max-height: 90vh;
-            }
-
-            .form-row {
-                grid-template-columns: 1fr;
-            }
-
-            .filter-controls {
-                grid-template-columns: 1fr;
-            }
-
-            .user-actions {
-                gap: 0.25rem;
-            }
-
-            .btn-icon {
-                font-size: 0.65rem;
-                padding: 0.25rem 0.4rem;
-                min-width: 45px;
-                min-height: 22px;
-            }
-
-                .btn-icon i {
-                    font-size: 0.65rem;
-                }
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
         }
-
-        @@media (max-width: 480px) {
-            .filters-bar {
-                padding: 0.75rem;
-            }
-
-            .user-card {
-                padding: 0.75rem;
-                min-height: 160px;
-            }
-
-            .user-info h3 {
-                font-size: 0.9rem;
-            }
-
-            .user-email {
-                font-size: 0.7rem;
-            }
-
-            .modal-content {
-                padding: 1rem;
-            }
-
-            .btn-secondary {
-                margin-right: 0;
-                margin-bottom: 0.5rem;
-            }
-        }
-
-        /* Toast Notifications */
-        .toast {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 10000;
-            padding: 0.75rem 1rem;
-            border-radius: 6px;
-            color: white;
-            font-weight: 500;
-            opacity: 0;
-            transform: translateX(100%);
-            transition: all 0.3s ease;
-            max-width: 280px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-            font-size: 0.8rem;
-        }
-
-            .toast.success {
-                background: linear-gradient(135deg, #10b981, #059669);
-            }
-
-            .toast.error {
-                background: linear-gradient(135deg, #ef4444, #dc2626);
-            }
-
-            .toast.warning {
-                background: linear-gradient(135deg, #f59e0b, #d97706);
-            }
-
-            .toast.info {
-                background: linear-gradient(135deg, #3b82f6, #2563eb);
-            }
     </style>
 }
 
@@ -617,7 +793,7 @@
             <button class="sidebar-toggle" id="sidebarToggle">
                 <i class="fas fa-bars"></i>
             </button>
-            <h1 class="page-title">Users Management</h1>
+            <h1 class="page-title">Employee Management</h1>
         </div>
         <div class="header-right">
             <div class="header-actions">
@@ -636,216 +812,257 @@
         </div>
     </header>
 
-    <div class="dashboard-content">
-        <!-- Filters and Actions Bar -->
-        <div class="filters-bar">
-            <div class="filter-controls">
+    <div class="dashboard-content users-container">
+        <!-- Page Header -->
+        <div class="page-header">
+            <h1 class="page-title">
+                <i class="fas fa-users"></i>
+                Employee Management
+            </h1>
+            <p class="page-subtitle">Manage your team members, roles, and employee information</p>
+        </div>
+
+        <!-- Statistics Cards -->
+        <div class="stats-grid">
+            <div class="stat-card employees">
+                <div class="stat-icon">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div class="stat-value">@Model.TotalEmployees</div>
+                <div class="stat-label">Total Employees</div>
+            </div>
+            <div class="stat-card active">
+                <div class="stat-icon">
+                    <i class="fas fa-user-check"></i>
+                </div>
+                <div class="stat-value">@Model.ActiveEmployees</div>
+                <div class="stat-label">Active</div>
+            </div>
+            <div class="stat-card inactive">
+                <div class="stat-icon">
+                    <i class="fas fa-user-times"></i>
+                </div>
+                <div class="stat-value">@Model.InactiveEmployees</div>
+                <div class="stat-label">Inactive</div>
+            </div>
+            <div class="stat-card budget">
+                <div class="stat-icon">
+                    <i class="fas fa-money-bill-wave"></i>
+                </div>
+                <div class="stat-value">KSh @Model.TotalSalariesBudget.ToString("N0")</div>
+                <div class="stat-label">Total Budget</div>
+            </div>
+        </div>
+
+        <!-- Controls Section -->
+        <div class="controls-section">
+            <div class="controls-header">
+                <h3 style="margin: 0; color: #1e293b;">
+                    <i class="fas fa-filter"></i>
+                    Filter & Search Employees
+                </h3>
+                <div>
+                    <button class="btn btn-primary" onclick="openNewEmployeeModal()">
+                        <i class="fas fa-plus"></i>
+                        Add New Employee
+                    </button>
+                    <button class="btn btn-secondary" onclick="exportEmployees()">
+                        <i class="fas fa-download"></i>
+                        Export
+                    </button>
+                </div>
+            </div>
+
+            <form method="get" class="search-filters">
                 <div class="form-group">
-                    <label class="form-label">Role</label>
-                    <select id="roleFilter" class="form-input">
-                        <option value="">All Roles</option>
-                        <option value="Admin">Admin</option>
-                        <option value="Manager">Manager</option>
-                        <option value="Employee">Employee</option>
-                    </select>
+                    <label class="form-label">Search Employees</label>
+                    <input type="text" name="searchTerm" value="@Model.SearchTerm"
+                           class="form-control" placeholder="Search by name, email, or employee number...">
                 </div>
                 <div class="form-group">
                     <label class="form-label">Status</label>
-                    <select id="statusFilter" class="form-input">
+                    <select name="statusFilter" class="form-control" onchange="this.form.submit()">
                         <option value="">All Status</option>
-                        <option value="Active">Active</option>
-                        <option value="Inactive">Inactive</option>
+                        @foreach (var status in Model.AvailableStatuses)
+                        {
+                            <option value="@status" selected="@(status == Model.StatusFilter)">@status</option>
+                        }
                     </select>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Search</label>
-                    <input type="text" id="searchUsers" class="form-input" placeholder="Search users...">
+                    <label class="form-label">User Type</label>
+                    <select name="userTypeFilter" class="form-control" onchange="this.form.submit()">
+                        <option value="">All Types</option>
+                        @foreach (var type in Model.AvailableUserTypes)
+                        {
+                            <option value="@type" selected="@(type == Model.UserTypeFilter)">@type</option>
+                        }
+                    </select>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">&nbsp;</label>
-                    @if (User.IsInRole("Admin"))
-                    {
-                        <button class="btn-primary" onclick="openCreateUserModal()">
-                            <i class="fas fa-plus"></i> Add User
-                        </button>
-                    }
+                    <label class="form-label">Department</label>
+                    <select name="departmentFilter" class="form-control" onchange="this.form.submit()">
+                        <option value="">All Departments</option>
+                        @foreach (var dept in Model.AvailableDepartments)
+                        {
+                            <option value="@dept.DepartmentId" selected="@(dept.DepartmentId.ToString() == Model.DepartmentFilter)">@dept.Name</option>
+                        }
+                    </select>
                 </div>
-            </div>
+                <div class="form-group">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search"></i>
+                        Search
+                    </button>
+                </div>
+            </form>
         </div>
 
-        <!-- Users Grid -->
-        @if (Model != null && Model.Any())
-        {
-            <div id="usersGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1rem;">
-                @foreach (var user in Model)
+        <!-- Employees Grid -->
+        <div class="employees-grid" id="employeesGrid">
+            @if (Model.Employees?.Any() == true)
+            {
+                @foreach (var employee in Model.Employees)
                 {
-                    <div class="user-card @(!user.Status.Equals("Active", StringComparison.OrdinalIgnoreCase) ? "inactive" : "")"
-                         data-user-id="@user.UserId">
-
-                        <div class="status-indicator status-@(user.Status.ToLower())">@user.Status</div>
-
-                        <div class="user-avatar">@(user.FullName.Length >= 2 ? user.FullName.Substring(0, 2).ToUpper() : "U")</div>
-
-                        <div class="user-info">
-                            <h3>@user.FullName</h3>
-                            <div class="user-email">@user.Email</div>
-                            <div class="user-role role-@user.UserType.ToLower()">@user.UserType</div>
-
-                            @if (!string.IsNullOrEmpty(user.DepartmentNames))
-                            {
-                                <div class="user-details">
-                                    <i class="fas fa-building"></i> @user.DepartmentNames
+                    <div class="employee-card @(employee.Status != "Active" ? "inactive" : "")" data-employee-id="@employee.UserId">
+                        <div class="employee-header">
+                            <div class="employee-avatar">
+                                @employee.UserInitials
+                                <div class="status-indicator @employee.Status.ToLower()"></div>
+                            </div>
+                            <div class="employee-info">
+                                <h3>@employee.FullName</h3>
+                                <div class="subtitle">@employee.Email</div>
+                                <div class="employee-badges">
+                                    <span class="badge @employee.Status.ToLower()">@employee.Status</span>
+                                    <span class="badge @employee.UserType.ToLower()">@employee.UserType</span>
+                                    @if (!string.IsNullOrEmpty(employee.EmploymentStatus) && employee.EmploymentStatus != "Active")
+                                    {
+                                        <span class="badge @employee.EmploymentStatus.ToLower()">@employee.EmploymentStatus</span>
+                                    }
                                 </div>
-                            }
-
-                            @if (!string.IsNullOrEmpty(user.Phone))
-                            {
-                                <div class="user-details">
-                                    <i class="fas fa-phone"></i> @user.Phone
-                                </div>
-                            }
-
-                            <div class="user-details">
-                                <i class="fas fa-calendar"></i> @user.CreatedAt.ToString("MMM dd, yyyy")
                             </div>
                         </div>
 
-                        @if (User.IsInRole("Admin"))
-                        {
-                            <div class="user-actions">
-                                <button type="button" class="btn btn-sm btn-outline-primary" onclick="editUser(@user.UserId)">
-                                    <i class="fas fa-edit"></i> Edit
+                        <div class="employee-details">
+                            @if (!string.IsNullOrEmpty(employee.Position))
+                            {
+                                <div class="detail-row">
+                                    <span class="detail-label">Position</span>
+                                    <span class="detail-value">@employee.Position</span>
+                                </div>
+                            }
+                            @if (!string.IsNullOrEmpty(employee.EmployeeNumber))
+                            {
+                                <div class="detail-row">
+                                    <span class="detail-label">Employee #</span>
+                                    <span class="detail-value">@employee.EmployeeNumber</span>
+                                </div>
+                            }
+                            @if (employee.HireDate.HasValue)
+                            {
+                                <div class="detail-row">
+                                    <span class="detail-label">Hire Date</span>
+                                    <span class="detail-value">@employee.HireDate.Value.ToString("MMM dd, yyyy")</span>
+                                </div>
+                            }
+                            @if (employee.BaseSalary.HasValue)
+                            {
+                                <div class="detail-row">
+                                    <span class="detail-label">Salary</span>
+                                    <span class="detail-value highlight">KSh @employee.BaseSalary.Value.ToString("N2")</span>
+                                </div>
+                            }
+                            @if (employee.TotalSales > 0)
+                            {
+                                <div class="detail-row">
+                                    <span class="detail-label">Total Sales</span>
+                                    <span class="detail-value highlight">@employee.TotalSales (@employee.TotalSalesAmount.ToString("C"))</span>
+                                </div>
+                            }
+                            @if (!string.IsNullOrEmpty(employee.DepartmentNames))
+                            {
+                                <div class="detail-row">
+                                    <span class="detail-label">Department</span>
+                                    <span class="detail-value">@employee.DepartmentNames</span>
+                                </div>
+                            }
+                        </div>
+
+                        <div class="employee-actions">
+                            <!-- View Link - Always visible -->
+                            <a class="action-btn view" title="View Details"
+                               href="@Url.Action("UserDetails", "Admin", new { id = employee.UserId })">
+                                <i class="fas fa-eye"></i>
+                                View
+                            </a>
+
+                            @if (User.IsInRole("Admin"))
+                            {
+                                <!-- Edit Button -->
+                                <button class="action-btn edit"
+                                        onclick="editUser(@employee.UserId)"
+                                        title="Edit Employee">
+                                    <i class="fas fa-edit"></i>
+                                    Edit
                                 </button>
-                                @if (user.UserType == "Employee")
+
+                                <!-- Activate/Deactivate Button -->
+                                @if (employee.Status == "Active")
                                 {
-                                    <button type="button" class="btn btn-sm btn-outline-success" onclick="manageEmployeeSalary(@user.UserId, '@user.FullName')">
-                                        <i class="fas fa-money-bill-wave"></i> Salary
-                                    </button>
-                                    <button type="button" class="btn btn-sm btn-outline-warning" onclick="manageEmployeeFines(@user.UserId, '@user.FullName')">
-                                        <i class="fas fa-exclamation-triangle"></i> Fines
-                                    </button>
-                                    <button type="button" class="btn btn-sm btn-outline-info" onclick="processEmployeePayment(@user.UserId, '@user.FullName')">
-                                        <i class="fas fa-credit-card"></i> Payment
+                                    <button class="action-btn deactivate"
+                                            onclick="toggleEmployeeStatus(@employee.UserId, 'Inactive')"
+                                            title="Deactivate Employee">
+                                        <i class="fas fa-user-slash"></i>
+                                        Deactivate
                                     </button>
                                 }
-                                <button type="button" class="btn btn-sm btn-outline-warning btn-toggle" onclick="toggleUserStatus(@user.UserId, '@user.FullName', '@user.Status')">
-                                    @if (user.Status == "Active")
-                                    {
-                                        <i class="fas fa-ban"></i> <text>Deactivate</text>
-                                    }
-                                    else
-                                    {
-                                        <i class="fas fa-check"></i> <text>Activate</text>
-                                    }
+                                else
+                                {
+                                    <button class="action-btn activate"
+                                            onclick="toggleEmployeeStatus(@employee.UserId, 'Active')"
+                                            title="Activate Employee">
+                                        <i class="fas fa-user-check"></i>
+                                        Activate
+                                    </button>
+                                }
+
+                                <!-- Delete Button (optional, can be hidden for production) -->
+                                <button class="action-btn delete"
+                                        onclick="deleteEmployee(@employee.UserId, '@employee.FullName')"
+                                        title="Delete Employee">
+                                    <i class="fas fa-trash"></i>
+                                    Delete
                                 </button>
-                                <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteUser(@user.UserId, '@user.FullName')">
-                                    <i class="fas fa-trash"></i> Delete
-                                </button>
-                            </div>
-                        }
+                            }
+                        </div>
                     </div>
                 }
-            </div>
-        }
-        else
-        {
-            <!-- Empty State -->
-            <div style="text-align: center; padding: 2rem; color: #64748b;">
-                <i class="fas fa-users" style="font-size: 2.5rem; margin-bottom: 1rem; opacity: 0.3;"></i>
-                <h3>No users found</h3>
-                <p>No users are currently available in the system.</p>
-                @if (User.IsInRole("Admin"))
-                {
-                    <button class="btn-primary" onclick="openCreateUserModal()" style="margin-top: 1rem;">
+            }
+            else
+            {
+                <div class="empty-state">
+                    <i class="fas fa-users empty-state-icon"></i>
+                    <h3>No Employees Found</h3>
+                    <p>No employees match your current search criteria.</p>
+                    <button class="btn btn-primary" onclick="openNewEmployeeModal()">
                         <i class="fas fa-plus"></i>
-                        Add Your First User
+                        Add First Employee
                     </button>
-                }
-            </div>
-        }
-    </div>
-</div>
-
-<!-- Employee Salary Management Modal -->
-<div class="modal fade" id="salaryModal" tabindex="-1" aria-labelledby="salaryModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header bg-success text-white">
-                <h5 class="modal-title" id="salaryModalLabel">
-                    <i class="fas fa-money-bill-wave"></i> Employee Salary Management
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <div id="salaryContent">
-                    <div class="text-center">
-                        <div class="spinner-border text-success" role="status">
-                            <span class="visually-hidden">Loading...</span>
-                        </div>
-                        <p class="mt-2">Loading salary information...</p>
-                    </div>
                 </div>
-            </div>
+            }
         </div>
     </div>
 </div>
 
-<!-- Employee Fines Management Modal -->
-<div class="modal fade" id="finesModal" tabindex="-1" aria-labelledby="finesModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header bg-warning text-dark">
-                <h5 class="modal-title" id="finesModalLabel">
-                    <i class="fas fa-exclamation-triangle"></i> Employee Fines Management
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <div id="finesContent">
-                    <div class="text-center">
-                        <div class="spinner-border text-warning" role="status">
-                            <span class="visually-hidden">Loading...</span>
-                        </div>
-                        <p class="mt-2">Loading fines information...</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Employee Payment Processing Modal -->
-<div class="modal fade" id="paymentModal" tabindex="-1" aria-labelledby="paymentModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header bg-info text-white">
-                <h5 class="modal-title" id="paymentModalLabel">
-                    <i class="fas fa-credit-card"></i> Employee Payment Processing
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <div id="paymentContent">
-                    <div class="text-center">
-                        <div class="spinner-border text-info" role="status">
-                            <span class="visually-hidden">Loading...</span>
-                        </div>
-                        <p class="mt-2">Loading payment information...</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Create/Edit User Modal -->
-<div id="userModal" class="modal fade" tabindex="-1" aria-labelledby="userModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 id="modalTitle" class="modal-title">Add New User</h2>
-                <button class="close-btn" onclick="closeUserModal()">
-                    <i class="fas fa-times"></i>
+<!-- Create/Edit User Modal (kept for edit functionality) -->
+<div id="userModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 id="modalTitle" class="modal-title">Edit User</h2>
+            <button class="close-btn" onclick="closeUserModal()">
+                <i class="fas fa-times"></i>
+            </button>
         </div>
         <form id="userForm">
             @Html.AntiForgeryToken()
@@ -854,28 +1071,28 @@
             <div class="form-row">
                 <div class="form-group">
                     <label class="form-label" for="firstName">First Name *</label>
-                    <input type="text" id="firstName" name="FirstName" class="form-input" required maxlength="100">
+                    <input type="text" id="firstName" name="FirstName" class="form-control" required maxlength="100">
                 </div>
                 <div class="form-group">
                     <label class="form-label" for="lastName">Last Name *</label>
-                    <input type="text" id="lastName" name="LastName" class="form-input" required maxlength="100">
+                    <input type="text" id="lastName" name="LastName" class="form-control" required maxlength="100">
                 </div>
             </div>
 
             <div class="form-group">
                 <label class="form-label" for="email">Email Address *</label>
-                <input type="email" id="email" name="Email" class="form-input" required maxlength="255">
+                <input type="email" id="email" name="Email" class="form-control" required maxlength="255">
             </div>
 
             <div class="form-group">
                 <label class="form-label" for="phone">Phone Number</label>
-                <input type="tel" id="phone" name="Phone" class="form-input" maxlength="20">
+                <input type="tel" id="phone" name="Phone" class="form-control" maxlength="20">
             </div>
 
             <div class="form-row">
                 <div class="form-group">
                     <label class="form-label" for="userType">User Type *</label>
-                    <select id="userType" name="UserType" class="form-input" required>
+                    <select id="userType" name="UserType" class="form-control" required>
                         <option value="">Select Role</option>
                         <option value="Admin">Admin</option>
                         <option value="Manager">Manager</option>
@@ -884,39 +1101,29 @@
                 </div>
                 <div class="form-group">
                     <label class="form-label" for="isActive">Status</label>
-                    <select id="isActive" name="IsActive" class="form-input">
+                    <select id="isActive" name="IsActive" class="form-control">
                         <option value="true">Active</option>
                         <option value="false">Inactive</option>
                     </select>
                 </div>
             </div>
 
-            <div class="form-group" id="passwordGroup">
-                <label class="form-label" for="password">Password *</label>
-                <input type="password" id="password" name="Password" class="form-input" minlength="6">
-                <div id="passwordStrength" class="password-strength"></div>
-            </div>
-
-            <div class="form-group" id="confirmPasswordGroup">
-                <label class="form-label" for="confirmPassword">Confirm Password *</label>
-                <input type="password" id="confirmPassword" name="ConfirmPassword" class="form-input" minlength="6">
-            </div>
-
-            <div class="form-group" id="newPasswordGroup" style="display: none;">
+            <div class="form-group">
                 <label class="form-label" for="newPassword">New Password</label>
-                <input type="password" id="newPassword" name="NewPassword" class="form-input" minlength="6">
-                <div id="newPasswordStrength" class="password-strength"></div>
+                <input type="password" id="newPassword" name="NewPassword" class="form-control" minlength="6"
+                       placeholder="Leave blank to keep current password">
             </div>
 
-            <div class="form-group" id="confirmNewPasswordGroup" style="display: none;">
+            <div class="form-group">
                 <label class="form-label" for="confirmNewPassword">Confirm New Password</label>
-                <input type="password" id="confirmNewPassword" name="ConfirmNewPassword" class="form-input" minlength="6">
+                <input type="password" id="confirmNewPassword" name="ConfirmNewPassword" class="form-control" minlength="6"
+                       placeholder="Confirm new password">
             </div>
 
             <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1.25rem;">
-                <button type="button" class="btn-secondary" onclick="closeUserModal()">Cancel</button>
-                <button type="submit" class="btn-primary" id="submitBtn">
-                    <i class="fas fa-save"></i> Save User
+                <button type="button" class="btn btn-secondary" onclick="closeUserModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary" id="submitBtn">
+                    <i class="fas fa-save"></i> Update User
                 </button>
             </div>
         </form>
@@ -925,1152 +1132,299 @@
 
 @section Scripts {
     <script src="~/js/dashboard.js"></script>
-    <script type="text/javascript">
-        var allUsers = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model ?? new List<PixelSolution.ViewModels.UserListViewModel>()));
-        var isEditMode = false;
-        var currentEditUserId = null;
-
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('Initializing Users Management...');
-            setupFilters();
-            setupPasswordValidation();
-            setupFormSubmission();
-            setupModalEventListeners();
-            setupFilterListeners();
-        });
-
-        function setupFilterListeners() {
-            // Add event listeners for filters
-            var roleFilter = document.getElementById('roleFilter');
-            var statusFilter = document.getElementById('statusFilter');
-            var searchInput = document.getElementById('searchUsers');
-
-            if (roleFilter) {
-                roleFilter.addEventListener('change', applyFilters);
-            }
-
-            if (statusFilter) {
-                statusFilter.addEventListener('change', applyFilters);
-            }
-
-            if (searchInput) {
-                searchInput.addEventListener('input', applyFilters);
-            }
-        }
-
-        function setupModalEventListeners() {
-            window.addEventListener('click', function(event) {
-                var modal = document.getElementById('userModal');
-                if (event.target === modal) {
-                    closeUserModal();
-                }
-            });
-
-            document.addEventListener('keydown', function(event) {
-                if (event.key === 'Escape') {
-                    closeUserModal();
-                }
-            });
-        }
-
-        function setupFilters() {
-            var roleFilter = document.getElementById('roleFilter');
-            var statusFilter = document.getElementById('statusFilter');
-            var searchUsers = document.getElementById('searchUsers');
-
-            if (roleFilter) roleFilter.addEventListener('change', applyFilters);
-            if (statusFilter) statusFilter.addEventListener('change', applyFilters);
-            if (searchUsers) searchUsers.addEventListener('input', applyFilters);
-        }
-
-        function setupPasswordValidation() {
-            var password = document.getElementById('password');
-            var newPassword = document.getElementById('newPassword');
-
-            if (password) {
-                password.addEventListener('input', function() {
-                    validatePasswordStrength(this.value, 'passwordStrength');
-                });
-            }
-
-            if (newPassword) {
-                newPassword.addEventListener('input', function() {
-                    validatePasswordStrength(this.value, 'newPasswordStrength');
-                });
-            }
-        }
-
-        function validatePasswordStrength(password, strengthId) {
-            var strengthIndicator = document.getElementById(strengthId);
-            if (!strengthIndicator) return;
-
-            var strength = 0;
-            var message = '';
-
-            if (password.length >= 6) strength++;
-            if (password.match(/[a-z]/)) strength++;
-            if (password.match(/[A-Z]/)) strength++;
-            if (password.match(/[0-9]/)) strength++;
-            if (password.match(/[^a-zA-Z0-9]/)) strength++;
-
-            strengthIndicator.className = 'password-strength';
-
-            if (password.length === 0) {
-                strengthIndicator.style.display = 'none';
-                return;
-            }
-
-            if (strength < 2) {
-                strengthIndicator.classList.add('weak');
-                message = '⚠️ Weak password';
-            } else if (strength < 4) {
-                strengthIndicator.classList.add('medium');
-                message = '⚡ Medium strength';
-            } else {
-                strengthIndicator.classList.add('strong');
-                message = '✅ Strong password';
-            }
-
-            strengthIndicator.textContent = message;
-        }
-
-        function applyFilters() {
-            var roleFilter = document.getElementById('roleFilter') ? document.getElementById('roleFilter').value : '';
-            var statusFilter = document.getElementById('statusFilter') ? document.getElementById('statusFilter').value : '';
-            var searchTerm = document.getElementById('searchUsers') ? document.getElementById('searchUsers').value.toLowerCase() : '';
-
-            var userCards = document.querySelectorAll('.user-card');
-
-            userCards.forEach(function(card) {
-                var userId = parseInt(card.dataset.userId);
-                var user = allUsers.find(function(u) { return u.UserId === userId; });
-
-                if (!user) {
-                    card.style.display = 'none';
-                    return;
-                }
-
-                var shouldShow = true;
-
-                // Filter by role (using PascalCase UserType)
-                if (roleFilter && user.UserType !== roleFilter) {
-                    shouldShow = false;
-                }
-
-                // Filter by status (using PascalCase Status)
-                if (statusFilter && user.Status !== statusFilter) {
-                    shouldShow = false;
-                }
-
-                // Filter by search term (using PascalCase properties)
-                if (searchTerm) {
-                    var searchableText = (
-                        (user.FullName || '') + ' ' +
-                        (user.Email || '') + ' ' +
-                        (user.UserType || '') + ' ' +
-                        (user.DepartmentNames || '')
-                    ).toLowerCase();
-
-                    if (searchableText.indexOf(searchTerm) === -1) {
-                        shouldShow = false;
-                    }
-                }
-
-                card.style.display = shouldShow ? 'block' : 'none';
-            });
-        }
-
-        function openUserModal() {
-            console.log('📝 Opening create user modal');
-            isEditMode = false;
-            currentEditUserId = null;
-
-            document.getElementById('modalTitle').textContent = 'Add New User';
-            document.getElementById('userForm').reset();
-            document.getElementById('userId').value = '';
-
-            // Show password fields for creation
-            document.getElementById('passwordGroup').style.display = 'block';
-            document.getElementById('confirmPasswordGroup').style.display = 'block';
-            document.getElementById('newPasswordGroup').style.display = 'none';
-            document.getElementById('confirmNewPasswordGroup').style.display = 'none';
-
-            // Make passwords required
-            document.getElementById('password').required = true;
-            document.getElementById('confirmPassword').required = true;
-
-            // Reset password strength indicators
-            var passwordStrength = document.getElementById('passwordStrength');
-            var newPasswordStrength = document.getElementById('newPasswordStrength');
-            if (passwordStrength) passwordStrength.style.display = 'none';
-            if (newPasswordStrength) newPasswordStrength.style.display = 'none';
-
-            document.getElementById('userModal').classList.add('show');
-        }
-
-        function openCreateUserModal() {
-            openUserModal();
-        }
-
-        function openCreateUserModal() {
-            console.log('➕ Opening create user modal');
-            isEditMode = false;
-            currentEditUserId = null;
-
-            // Reset form
-            var form = document.getElementById('userForm');
-            if (form) {
-                form.reset();
-            }
-
-            // Set modal title
-            document.getElementById('modalTitle').textContent = 'Add New User';
-            
-            // Clear hidden userId field
-            document.getElementById('userId').value = '';
-
-            // Show creation password fields, hide edit password fields
-            document.getElementById('passwordGroup').style.display = 'block';
-            document.getElementById('confirmPasswordGroup').style.display = 'block';
-            document.getElementById('newPasswordGroup').style.display = 'none';
-            document.getElementById('confirmNewPasswordGroup').style.display = 'none';
-
-            // Make creation passwords required
-            document.getElementById('password').required = true;
-            document.getElementById('confirmPassword').required = true;
-
-            // Set default values
-            document.getElementById('userType').value = 'Employee';
-            document.getElementById('isActive').value = 'true';
-
-            // Reset password strength indicators
-            var passwordStrength = document.getElementById('passwordStrength');
-            var newPasswordStrength = document.getElementById('newPasswordStrength');
-            if (passwordStrength) passwordStrength.style.display = 'none';
-            if (newPasswordStrength) newPasswordStrength.style.display = 'none';
-
-            // Show modal
-            document.getElementById('userModal').classList.add('show');
-        }
+    <script>
+        var allEmployees = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Employees ?? new List<PixelSolution.ViewModels.EmployeeCardViewModel>()));
 
         function editUser(userId) {
-            console.log('✏️ Opening edit user modal for userId:', userId);
-            isEditMode = true;
-            currentEditUserId = userId;
+            console.log('Opening edit modal for user:', userId);
 
-            // Find user from allUsers array
-            var user = allUsers.find(function(u) { return u.UserId === userId || u.userId === userId; });
-            if (!user) {
-                showToast('User data not found. Please refresh the page.', 'error');
+            // Find employee data
+            var employee = allEmployees.find(function(e) { return e.UserId === userId; });
+            if (!employee) {
+                showToast('Employee data not found. Please refresh the page.', 'error');
                 return;
             }
 
-            console.log('Found user for editing:', user);
-
-            // Split full name into first and last name
-            var fullName = user.FullName || user.fullName || '';
-            var nameParts = fullName.split(' ');
+            // Split full name
+            var nameParts = employee.FullName.split(' ');
             var firstName = nameParts[0] || '';
             var lastName = nameParts.slice(1).join(' ') || '';
 
-            document.getElementById('modalTitle').textContent = 'Edit User';
-            document.getElementById('userId').value = user.UserId || user.userId;
+            // Populate form
+            document.getElementById('modalTitle').textContent = 'Edit Employee';
+            document.getElementById('userId').value = employee.UserId;
             document.getElementById('firstName').value = firstName;
             document.getElementById('lastName').value = lastName;
-            document.getElementById('email').value = user.Email || user.email || '';
-            
-            // Fix phone number population - check all possible property names
-            var phoneValue = user.Phone || user.phone || user.PhoneNumber || user.phoneNumber || '';
-            document.getElementById('phone').value = phoneValue;
-            console.log('📱 Setting phone value:', phoneValue);
-            
-            document.getElementById('userType').value = user.UserType || user.userType || 'Employee';
-            document.getElementById('isActive').value = (user.Status === 'Active' || user.status === 'Active') ? 'true' : 'false';
+            document.getElementById('email').value = employee.Email;
+            document.getElementById('phone').value = employee.Phone || '';
+            document.getElementById('userType').value = employee.UserType;
+            document.getElementById('isActive').value = employee.Status === 'Active' ? 'true' : 'false';
 
-            // Hide creation password fields, show edit password fields
-            document.getElementById('passwordGroup').style.display = 'none';
-            document.getElementById('confirmPasswordGroup').style.display = 'none';
-            document.getElementById('newPasswordGroup').style.display = 'block';
-            document.getElementById('confirmNewPasswordGroup').style.display = 'block';
+            // Clear password fields and make them optional for editing
+            document.getElementById('newPassword').value = '';
+            document.getElementById('confirmNewPassword').value = '';
+            document.getElementById('newPassword').required = false;
+            document.getElementById('confirmNewPassword').required = false;
 
-            // Make creation passwords not required
-            document.getElementById('password').required = false;
-            document.getElementById('confirmPassword').required = false;
+            // Update submit button
+            document.getElementById('submitBtn').innerHTML = '<i class="fas fa-save"></i> Update Employee';
 
-            // Clear password fields (don't show encrypted password)
-            // Add placeholder text to indicate password won't be changed unless filled
-            var newPasswordField = document.getElementById('newPassword');
-            var confirmNewPasswordField = document.getElementById('confirmNewPassword');
-            
-            newPasswordField.value = '';
-            confirmNewPasswordField.value = '';
-            newPasswordField.placeholder = 'Leave blank to keep current password';
-            confirmNewPasswordField.placeholder = 'Confirm new password';
-
-            // Reset password strength indicators
-            var passwordStrength = document.getElementById('passwordStrength');
-            var newPasswordStrength = document.getElementById('newPasswordStrength');
-            if (passwordStrength) passwordStrength.style.display = 'none';
-            if (newPasswordStrength) newPasswordStrength.style.display = 'none';
-
-            document.getElementById('userModal').classList.add('show');
+            // Show modal
+            document.getElementById('userModal').style.display = 'flex';
         }
 
         function closeUserModal() {
-            var modal = document.getElementById('userModal');
-            if (modal) {
-                modal.classList.remove('show');
-            }
+            console.log('Closing user modal');
+            document.getElementById('userModal').style.display = 'none';
+            document.getElementById('userForm').reset();
             
-            var form = document.getElementById('userForm');
-            if (form) {
-                form.reset();
-            }
-
-            // Reset password field placeholders
-            var newPasswordField = document.getElementById('newPassword');
-            var confirmNewPasswordField = document.getElementById('confirmNewPassword');
-            if (newPasswordField) newPasswordField.placeholder = '';
-            if (confirmNewPasswordField) confirmNewPasswordField.placeholder = '';
-
-            // Reset password strength indicators
-            var passwordStrength = document.getElementById('passwordStrength');
-            var newPasswordStrength = document.getElementById('newPasswordStrength');
-            if (passwordStrength) passwordStrength.style.display = 'none';
-            if (newPasswordStrength) newPasswordStrength.style.display = 'none';
-
-            // Reset password field visibility to default (creation mode)
-            document.getElementById('passwordGroup').style.display = 'block';
-            document.getElementById('confirmPasswordGroup').style.display = 'block';
-            document.getElementById('newPasswordGroup').style.display = 'none';
-            document.getElementById('confirmNewPasswordGroup').style.display = 'none';
-
-            // Reset password requirements
-            document.getElementById('password').required = true;
-            document.getElementById('confirmPassword').required = true;
-
-            // Reset form state
-            isEditMode = false;
-            currentEditUserId = null;
-
-            // Reset submit button
-            var submitBtn = document.getElementById('submitBtn');
-            if (submitBtn) {
-                submitBtn.innerHTML = '<i class="fas fa-save"></i> Save User';
-                submitBtn.disabled = false;
-            }
-
-            // Reset modal title
-            document.getElementById('modalTitle').textContent = 'Add New User';
+            // Reset password field requirements
+            document.getElementById('newPassword').required = false;
+            document.getElementById('confirmNewPassword').required = false;
         }
 
-        function deleteUser(userId, userName) {
-            if (confirm('Are you sure you want to delete user "' + userName + '"? This action cannot be undone.')) {
-                var token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+        function toggleEmployeeStatus(userId, newStatus) {
+            console.log('Toggling employee status:', userId, newStatus);
+            if (confirm(`Are you sure you want to ${newStatus.toLowerCase()} this employee?`)) {
+                var requestData = {
+                    UserId: userId,
+                    Status: newStatus
+                };
+
+                fetch('@Url.Action("ToggleUserStatus", "Admin")', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': getAntiForgeryToken()
+                    },
+                    body: JSON.stringify(requestData)
+                })
+                .then(response => {
+                    console.log('Response status:', response.status);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Response data:', data);
+                    if (data.success) {
+                        showToast(data.message || `Employee ${newStatus.toLowerCase()}d successfully`, 'success');
+                        setTimeout(() => {
+                            location.reload();
+                        }, 1500);
+                    } else {
+                        showToast(data.message || 'Error updating employee status', 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error details:', error);
+                    showToast('Error updating employee status: ' + error.message, 'error');
+                });
+            }
+        }
+
+        function deleteEmployee(userId, employeeName) {
+            console.log('Deleting employee:', userId, employeeName);
+            if (confirm(`Are you sure you want to delete employee "${employeeName}"? This action cannot be undone.`)) {
+                var requestData = {
+                    UserId: userId
+                };
 
                 fetch('@Url.Action("DeleteUser", "Admin")', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'RequestVerificationToken': token
+                        'RequestVerificationToken': getAntiForgeryToken()
                     },
-                    body: JSON.stringify({ userId: userId })
+                    body: JSON.stringify(requestData)
                 })
-                .then(function(response) {
+                .then(response => {
+                    console.log('Delete response status:', response.status);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
                     return response.json();
                 })
-                .then(function(data) {
+                .then(data => {
+                    console.log('Delete response data:', data);
                     if (data.success) {
-                        showToast('User deleted successfully!', 'success');
-                        setTimeout(function() {
+                        showToast('Employee deleted successfully', 'success');
+                        setTimeout(() => {
                             location.reload();
-                        }, 1000);
+                        }, 1500);
                     } else {
-                        showToast('Error: ' + (data.message || 'Failed to delete user'), 'error');
+                        showToast(data.message || 'Error deleting employee', 'error');
                     }
                 })
-                .catch(function(error) {
-                    console.error('Error:', error);
-                    showToast('An error occurred while deleting the user.', 'error');
+                .catch(error => {
+                    console.error('Delete error details:', error);
+                    showToast('Error deleting employee: ' + error.message, 'error');
                 });
             }
         }
 
-        function setupFormSubmission() {
-            var userForm = document.getElementById('userForm');
-            if (userForm) {
-                userForm.addEventListener('submit', function(e) {
-                    e.preventDefault();
-
-                    var submitBtn = document.getElementById('submitBtn');
-                    var originalText = submitBtn.innerHTML;
-
-                    // Validate form
-                    if (!validateForm()) {
-                        return;
-                    }
-
-                    // Show loading state
-                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ' + (isEditMode ? 'Updating...' : 'Creating...');
-                    submitBtn.disabled = true;
-
-                    var formData = new FormData(userForm);
-
-                    // Prepare data in the exact format expected by your controller
-                    var userData;
-
-                    if (isEditMode) {
-                        // UpdateUserRequest format
-                        userData = {
-                            UserId: parseInt(formData.get('UserId')),
-                            FirstName: formData.get('FirstName').trim(),
-                            LastName: formData.get('LastName').trim(),
-                            Email: formData.get('Email').trim(),
-                            Phone: formData.get('Phone') ? formData.get('Phone').trim() : null,
-                            UserType: formData.get('UserType'),
-                            IsActive: formData.get('IsActive') === 'true'
-                        };
-
-                        var newPassword = formData.get('NewPassword');
-                        var confirmNewPassword = formData.get('ConfirmNewPassword');
-
-                        if (newPassword && newPassword.trim()) {
-                            if (newPassword !== confirmNewPassword) {
-                                showToast('New passwords do not match.', 'error');
-                                submitBtn.innerHTML = originalText;
-                                submitBtn.disabled = false;
-                                return;
-                            }
-                            userData.NewPassword = newPassword;
-                            userData.ConfirmNewPassword = confirmNewPassword;
-                        }
-                    } else {
-                        // CreateUserRequest format
-                        var password = formData.get('Password');
-                        var confirmPassword = formData.get('ConfirmPassword');
-
-                        if (password !== confirmPassword) {
-                            showToast('Passwords do not match.', 'error');
-                            submitBtn.innerHTML = originalText;
-                            submitBtn.disabled = false;
-                            return;
-                        }
-
-                        userData = {
-                            FirstName: formData.get('FirstName').trim(),
-                            LastName: formData.get('LastName').trim(),
-                            Email: formData.get('Email').trim(),
-                            Phone: formData.get('Phone') ? formData.get('Phone').trim() : null,
-                            Password: password,
-                            ConfirmPassword: confirmPassword,
-                            UserType: formData.get('UserType'),
-                            IsActive: formData.get('IsActive') === 'true'
-                        };
-                    }
-
-                    console.log('📤 Sending user data:', userData);
-
-                    var url = isEditMode ? '@Url.Action("UpdateUser", "Admin")' : '@Url.Action("CreateUser", "Admin")';
-                    var token = document.querySelector('input[name="__RequestVerificationToken"]').value;
-
-                    console.log('📍 Posting to URL:', url);
-                    console.log('📋 Request data:', JSON.stringify(userData));
-
-                    fetch(url, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'RequestVerificationToken': token
-                        },
-                        body: JSON.stringify(userData)
-                    })
-                    .then(function(response) {
-                        console.log('📥 Response status:', response.status);
-
-                        if (!response.ok) {
-                            return response.text().then(function(errorText) {
-                                console.error('❌ HTTP Error:', response.status, errorText);
-                                throw new Error('Server error: ' + response.status);
-                            });
-                        }
-
-                        return response.json();
-                    })
-                    .then(function(result) {
-                        console.log('📊 Response result:', result);
-
-                        if (result.success) {
-                            showToast(isEditMode ? 'User updated successfully!' : 'User created successfully!', 'success');
-                            closeUserModal();
-                            setTimeout(function() {
-                                location.reload();
-                            }, 1000);
-                        } else {
-                            showToast('Error: ' + (result.message || 'Failed to save user'), 'error');
-                        }
-                    })
-                    .catch(function(error) {
-                        console.error('❌ Error:', error);
-                        showToast('An error occurred while saving the user.', 'error');
-                    })
-                    .finally(function() {
-                        submitBtn.innerHTML = originalText;
-                        submitBtn.disabled = false;
-                    });
-                });
-            }
+        function viewEmployee(userId) {
+            console.log('Viewing employee details for user:', userId);
+            
+            // Use server-generated route to avoid hardcoded paths
+            var urlTemplate = '@Url.Action("UserDetails", "Admin", new { id = "__ID__" })';
+            var url = urlTemplate.replace('__ID__', userId);
+            console.log('Redirecting to:', url);
+            window.location.href = url;
         }
 
-        function validateForm() {
-            var firstName = document.getElementById('firstName').value.trim();
-            var lastName = document.getElementById('lastName').value.trim();
-            var email = document.getElementById('email').value.trim();
-            var userType = document.getElementById('userType').value;
-
-            if (!firstName || !lastName || !email || !userType) {
-                showToast('Please fill in all required fields.', 'error');
-                return false;
-            }
-
-            // Email validation using indexOf method to avoid regex issues
-            if (email.indexOf('@@') === -1 || email.indexOf('.') === -1 || email.length < 5) {
-                showToast('Please enter a valid email address.', 'error');
-                return false;
-            }
-
-            if (!isEditMode) {
-                var password = document.getElementById('password').value;
-                var confirmPassword = document.getElementById('confirmPassword').value;
-
-                if (!password || password.length < 6) {
-                    showToast('Password must be at least 6 characters long.', 'error');
-                    return false;
-                }
-
-                if (password !== confirmPassword) {
-                    showToast('Passwords do not match.', 'error');
-                    return false;
-                }
-            } else {
-                // For edit mode, validate new password only if provided
-                var newPassword = document.getElementById('newPassword').value;
-                var confirmNewPassword = document.getElementById('confirmNewPassword').value;
-
-                if (newPassword && newPassword.length < 6) {
-                    showToast('New password must be at least 6 characters long.', 'error');
-                    return false;
-                }
-
-                if (newPassword !== confirmNewPassword) {
-                    showToast('New passwords do not match.', 'error');
-                    return false;
-                }
-            }
-
-            return true;
+        function exportEmployees() {
+            window.location.href = '@Url.Action("ExportEmployees", "Admin")';
         }
 
-        function deleteUser(userId, userName) {
-            console.log('🗑️ Attempting to delete user:', userId, userName);
-            
-            if (!confirm('Are you sure you want to delete user "' + userName + '"? This action cannot be undone.')) {
-                return;
-            }
-
-            var token = document.querySelector('input[name="__RequestVerificationToken"]').value;
-            
-            fetch('/Admin/DeleteUser', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'RequestVerificationToken': token
-                },
-                body: JSON.stringify({ UserId: userId })
-            })
-            .then(function(response) {
-                console.log('🔄 Delete response status:', response.status);
-                return response.json();
-            })
-            .then(function(result) {
-                console.log('📊 Delete result:', result);
-                
-                if (result.success) {
-                    showToast('User "' + userName + '" deleted successfully!', 'success');
-                    
-                    // Remove user from allUsers array
-                    allUsers = allUsers.filter(function(user) {
-                        return user.UserId !== userId;
-                    });
-                    
-                    // Remove user card from DOM
-                    var userCard = document.querySelector('.user-card[data-user-id="' + userId + '"]');
-                    if (userCard) {
-                        userCard.remove();
-                    }
-                    
-                    // Check if no users left and show empty state
-                    if (allUsers.length === 0) {
-                        location.reload();
-                    }
-                } else {
-                    showToast('Error deleting user: ' + (result.message || 'Unknown error'), 'error');
-                }
-            })
-            .catch(function(error) {
-                console.error('❌ Delete error:', error);
-                showToast('Error deleting user. Please try again.', 'error');
-            });
-        }
-
-        function toggleUserStatus(userId, userName, currentStatus) {
-            console.log('🔄 Toggling user status:', userId, userName, currentStatus);
-            
-            var newStatus = currentStatus === 'Active' ? 'Inactive' : 'Active';
-            var action = newStatus === 'Active' ? 'activate' : 'deactivate';
-            
-            if (!confirm('Are you sure you want to ' + action + ' user "' + userName + '"?')) {
-                return;
-            }
-
-            var token = document.querySelector('input[name="__RequestVerificationToken"]').value;
-            
-            fetch('/Admin/ToggleUserStatus', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'RequestVerificationToken': token
-                },
-                body: JSON.stringify({ 
-                    UserId: userId,
-                    Status: newStatus
-                })
-            })
-            .then(function(response) {
-                console.log('🔄 Toggle status response:', response.status);
-                return response.json();
-            })
-            .then(function(result) {
-                console.log('📊 Toggle status result:', result);
-                
-                if (result.success) {
-                    showToast('User "' + userName + '" ' + action + 'd successfully!', 'success');
-                    
-                    // Update user in allUsers array
-                    var userIndex = allUsers.findIndex(function(user) {
-                        return user.UserId === userId;
-                    });
-                    
-                    if (userIndex !== -1) {
-                        allUsers[userIndex].Status = newStatus;
-                    }
-                    
-                    // Update user card in DOM
-                    var userCard = document.querySelector('.user-card[data-user-id="' + userId + '"]');
-                    if (userCard) {
-                        var statusIndicator = userCard.querySelector('.status-indicator');
-                        if (statusIndicator) {
-                            statusIndicator.textContent = newStatus;
-                            statusIndicator.className = 'status-indicator status-' + newStatus.toLowerCase();
-                        }
-                        
-                        // Update card class
-                        if (newStatus === 'Active') {
-                            userCard.classList.remove('inactive');
-                        } else {
-                            userCard.classList.add('inactive');
-                        }
-                        
-                        // Update toggle button
-                        var toggleBtn = userCard.querySelector('.btn-toggle');
-                        if (toggleBtn) {
-                            if (newStatus === 'Active') {
-                                toggleBtn.innerHTML = '<i class="fas fa-ban"></i> Deactivate';
-                                toggleBtn.onclick = function() { toggleUserStatus(userId, userName, 'Active'); };
-                            } else {
-                                toggleBtn.innerHTML = '<i class="fas fa-check"></i> Activate';
-                                toggleBtn.onclick = function() { toggleUserStatus(userId, userName, 'Inactive'); };
-                            }
-                        }
-                    }
-                    
-                    // Reapply filters to show/hide based on new status
-                    applyFilters();
-                } else {
-                    showToast('Error updating user status: ' + (result.message || 'Unknown error'), 'error');
-                }
-            })
-            .catch(function(error) {
-                console.error('❌ Toggle status error:', error);
-                showToast('Error updating user status. Please try again.', 'error');
-            });
-        }
-
-        function showToast(message, type) {
-            // Remove existing toasts
-            var existingToasts = document.querySelectorAll('.toast');
-            existingToasts.forEach(function(toast) {
-                toast.remove();
-            });
-
-            var toast = document.createElement('div');
-            toast.className = 'toast ' + type;
-
-            var iconClass = 'info-circle';
-            if (type === 'success') iconClass = 'check-circle';
-            else if (type === 'error') iconClass = 'exclamation-circle';
-
-            toast.innerHTML = '<div style="display: flex; align-items: center; gap: 0.4rem;"><i class="fas fa-' + iconClass + '"></i><span>' + message + '</span></div>';
-
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: ${type === 'error' ? '#ef4444' : type === 'success' ? '#10b981' : '#3b82f6'};
+                color: white;
+                padding: 1rem 1.5rem;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                z-index: 10000;
+                max-width: 300px;
+                font-weight: 500;
+            `;
+            toast.textContent = message;
             document.body.appendChild(toast);
 
-            setTimeout(function() {
-                toast.style.opacity = '1';
-                toast.style.transform = 'translateX(0)';
-            }, 100);
-
-            setTimeout(function() {
-                toast.style.opacity = '0';
-                toast.style.transform = 'translateX(100%)';
-                setTimeout(function() {
-                    if (toast.parentNode) {
-                        toast.remove();
-                    }
-                }, 300);
-            }, 4000);
+            setTimeout(() => {
+                if (toast.parentNode) {
+                    toast.parentNode.removeChild(toast);
+                }
+            }, 5000);
         }
 
-        // Employee Management Functions
-        function manageEmployeeSalary(userId, userName) {
-            console.log('🔄 Managing salary for user:', userId, userName);
-            
-            var modal = new bootstrap.Modal(document.getElementById('salaryModal'));
-            document.getElementById('salaryModalLabel').innerHTML = '<i class="fas fa-money-bill-wave"></i> Salary Management - ' + userName;
-            
-            // Load salary data
-            loadEmployeeSalaryData(userId);
-            modal.show();
+        function getAntiForgeryToken() {
+            const token = document.querySelector('input[name="__RequestVerificationToken"]');
+            return token ? token.value : '';
         }
 
-        function manageEmployeeFines(userId, userName) {
-            console.log('🔄 Managing fines for user:', userId, userName);
+        function openNewEmployeeModal() {
+            console.log('Opening new employee modal');
             
-            var modal = new bootstrap.Modal(document.getElementById('finesModal'));
-            document.getElementById('finesModalLabel').innerHTML = '<i class="fas fa-exclamation-triangle"></i> Fines Management - ' + userName;
+            // Clear form for new employee
+            document.getElementById('modalTitle').textContent = 'Add New Employee';
+            document.getElementById('userId').value = '0';
+            document.getElementById('firstName').value = '';
+            document.getElementById('lastName').value = '';
+            document.getElementById('email').value = '';
+            document.getElementById('phone').value = '';
+            document.getElementById('userType').value = '';
+            document.getElementById('isActive').value = 'true';
+            document.getElementById('newPassword').value = '';
+            document.getElementById('confirmNewPassword').value = '';
             
-            // Load fines data
-            loadEmployeeFinesData(userId);
-            modal.show();
+            // Make password fields required for new employee
+            document.getElementById('newPassword').required = true;
+            document.getElementById('confirmNewPassword').required = true;
+            
+            // Update submit button
+            document.getElementById('submitBtn').innerHTML = '<i class="fas fa-plus"></i> Create Employee';
+            
+            // Show modal
+            document.getElementById('userModal').style.display = 'flex';
         }
 
-        function processEmployeePayment(userId, userName) {
-            console.log('🔄 Processing payment for user:', userId, userName);
-            
-            var modal = new bootstrap.Modal(document.getElementById('paymentModal'));
-            document.getElementById('paymentModalLabel').innerHTML = '<i class="fas fa-credit-card"></i> Payment Processing - ' + userName;
-            
-            // Load payment data
-            loadEmployeePaymentData(userId);
-            modal.show();
-        }
+        // Form submission for edit modal
+        document.getElementById('userForm').addEventListener('submit', function(e) {
+            e.preventDefault();
 
-        function loadEmployeeSalaryData(userId) {
-            var content = document.getElementById('salaryContent');
-            content.innerHTML = `
-                <div class="row">
-                    <div class="col-md-6">
-                        <h6 class="text-success"><i class="fas fa-plus-circle"></i> Set New Salary</h6>
-                        <form id="salaryForm">
-                            <div class="mb-3">
-                                <label class="form-label">Salary Amount (KSh)</label>
-                                <input type="number" class="form-control" id="salaryAmount" step="0.01" min="0" required>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Salary Type</label>
-                                <select class="form-control" id="salaryType" required>
-                                    <option value="Base">Base Salary</option>
-                                    <option value="Bonus">Bonus</option>
-                                    <option value="Overtime">Overtime</option>
-                                    <option value="Commission">Commission</option>
-                                </select>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Effective Date</label>
-                                <input type="date" class="form-control" id="effectiveDate" required>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Notes</label>
-                                <textarea class="form-control" id="salaryNotes" rows="2"></textarea>
-                            </div>
-                            <button type="button" class="btn btn-success" onclick="updateEmployeeSalary(${userId})">
-                                <i class="fas fa-save"></i> Update Salary
-                            </button>
-                        </form>
-                    </div>
-                    <div class="col-md-6">
-                        <h6 class="text-info"><i class="fas fa-history"></i> Salary History</h6>
-                        <div id="salaryHistory">
-                            <div class="text-center">
-                                <div class="spinner-border text-success" role="status">
-                                    <span class="visually-hidden">Loading...</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-            
-            // Set today's date as default
-            document.getElementById('effectiveDate').value = new Date().toISOString().split('T')[0];
-            
-            // Load salary history
-            loadSalaryHistory(userId);
-        }
+            var formData = new FormData(this);
+            var userData = {
+                UserId: parseInt(formData.get('UserId')) || 0,
+                FirstName: formData.get('FirstName').trim(),
+                LastName: formData.get('LastName').trim(),
+                Email: formData.get('Email').trim(),
+                Phone: formData.get('Phone') ? formData.get('Phone').trim() : null,
+                UserType: formData.get('UserType'),
+                IsActive: formData.get('IsActive') === 'true'
+            };
 
-        function loadEmployeeFinesData(userId) {
-            var content = document.getElementById('finesContent');
-            content.innerHTML = `
-                <div class="row">
-                    <div class="col-md-6">
-                        <h6 class="text-warning"><i class="fas fa-plus-circle"></i> Issue New Fine</h6>
-                        <form id="fineForm">
-                            <div class="mb-3">
-                                <label class="form-label">Fine Amount (KSh)</label>
-                                <input type="number" class="form-control" id="fineAmount" step="0.01" min="0" required>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Fine Type</label>
-                                <select class="form-control" id="fineType" required>
-                                    <option value="Lateness">Lateness</option>
-                                    <option value="Absence">Absence</option>
-                                    <option value="Misconduct">Misconduct</option>
-                                    <option value="Damage">Property Damage</option>
-                                    <option value="Other">Other</option>
-                                </select>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Description</label>
-                                <textarea class="form-control" id="fineDescription" rows="3" required></textarea>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Fine Date</label>
-                                <input type="date" class="form-control" id="fineDate" required>
-                            </div>
-                            <button type="button" class="btn btn-warning" onclick="issueFine(${userId})">
-                                <i class="fas fa-exclamation-triangle"></i> Issue Fine
-                            </button>
-                        </form>
-                    </div>
-                    <div class="col-md-6">
-                        <h6 class="text-info"><i class="fas fa-list"></i> Fine History</h6>
-                        <div id="fineHistory">
-                            <div class="text-center">
-                                <div class="spinner-border text-warning" role="status">
-                                    <span class="visually-hidden">Loading...</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-            
-            // Set today's date as default
-            document.getElementById('fineDate').value = new Date().toISOString().split('T')[0];
-            
-            // Load fine history
-            loadFineHistory(userId);
-        }
-
-        function loadEmployeePaymentData(userId) {
-            var content = document.getElementById('paymentContent');
-            content.innerHTML = `
-                <div class="row">
-                    <div class="col-md-6">
-                        <h6 class="text-info"><i class="fas fa-credit-card"></i> Process Payment</h6>
-                        <form id="paymentForm">
-                            <div class="mb-3">
-                                <label class="form-label">Payment Amount (KSh)</label>
-                                <input type="number" class="form-control" id="paymentAmount" step="0.01" min="0" required>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Payment Type</label>
-                                <select class="form-control" id="paymentType" required>
-                                    <option value="Salary">Salary Payment</option>
-                                    <option value="Bonus">Bonus Payment</option>
-                                    <option value="Overtime">Overtime Payment</option>
-                                    <option value="Advance">Salary Advance</option>
-                                </select>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Payment Method</label>
-                                <select class="form-control" id="paymentMethod" required>
-                                    <option value="Bank Transfer">Bank Transfer</option>
-                                    <option value="Cash">Cash</option>
-                                    <option value="Mobile Money">Mobile Money</option>
-                                    <option value="Cheque">Cheque</option>
-                                </select>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Payment Date</label>
-                                <input type="date" class="form-control" id="paymentDate" required>
-                            </div>
-                            <div class="mb-3">
-                                <label class="form-label">Notes</label>
-                                <textarea class="form-control" id="paymentNotes" rows="2"></textarea>
-                            </div>
-                            <button type="button" class="btn btn-info" onclick="processPayment(${userId})">
-                                <i class="fas fa-money-check"></i> Process Payment
-                            </button>
-                        </form>
-                    </div>
-                    <div class="col-md-6">
-                        <h6 class="text-success"><i class="fas fa-history"></i> Payment History</h6>
-                        <div id="paymentHistory">
-                            <div class="text-center">
-                                <div class="spinner-border text-info" role="status">
-                                    <span class="visually-hidden">Loading...</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-            
-            // Set today's date as default
-            document.getElementById('paymentDate').value = new Date().toISOString().split('T')[0];
-            
-            // Load payment history
-            loadPaymentHistory(userId);
-        }
-
-        function updateEmployeeSalary(userId) {
-            var amount = document.getElementById('salaryAmount').value;
-            var type = document.getElementById('salaryType').value;
-            var effectiveDate = document.getElementById('effectiveDate').value;
-            var notes = document.getElementById('salaryNotes').value;
-            
-            if (!amount || !type || !effectiveDate) {
-                showToast('Please fill in all required fields', 'error');
+            // Validation
+            if (!userData.FirstName || !userData.LastName || !userData.Email || !userData.UserType) {
+                showToast('Please fill in all required fields.', 'error');
                 return;
             }
+
+            // For new employees, password is required
+            var isNewEmployee = !userData.UserId || userData.UserId === 0;
+            if (isNewEmployee && (!formData.get('NewPassword') || !formData.get('NewPassword').trim())) {
+                showToast('Password is required for new employees.', 'error');
+                return;
+            }
+
+            var newPassword = formData.get('NewPassword');
+            var confirmNewPassword = formData.get('ConfirmNewPassword');
+
+            if (newPassword && newPassword.trim()) {
+                if (newPassword !== confirmNewPassword) {
+                    showToast('New passwords do not match.', 'error');
+                    return;
+                }
+                userData.NewPassword = newPassword;
+                userData.ConfirmNewPassword = confirmNewPassword;
+            }
+
+            var submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true;
+            var isNewEmployee = !userData.UserId || userData.UserId === 0;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> ' + (isNewEmployee ? 'Creating...' : 'Updating...');
+
+            var isNewEmployee = !userData.UserId || userData.UserId === 0;
+            var actionUrl = isNewEmployee ? '@Url.Action("CreateUser", "Admin")' : '@Url.Action("UpdateUser", "Admin")';
             
-            var token = document.querySelector('input[name="__RequestVerificationToken"]').value;
-            
-            fetch('/api/EmployeeManagement/salary', {
+            fetch(actionUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'RequestVerificationToken': token
+                    'RequestVerificationToken': getAntiForgeryToken()
                 },
-                body: JSON.stringify({
-                    UserId: userId,
-                    Amount: parseFloat(amount),
-                    SalaryType: type,
-                    EffectiveDate: effectiveDate,
-                    Notes: notes
-                })
+                body: JSON.stringify(userData)
             })
             .then(response => response.json())
             .then(result => {
                 if (result.success) {
-                    showToast('Salary updated successfully!', 'success');
-                    loadSalaryHistory(userId);
-                    document.getElementById('salaryForm').reset();
-                    document.getElementById('effectiveDate').value = new Date().toISOString().split('T')[0];
+                    var message = userData.UserId ? 'Employee updated successfully!' : 'Employee created successfully!';
+                    showToast(message, 'success');
+                    closeUserModal();
+                    setTimeout(() => {
+                        location.reload();
+                    }, 1000);
                 } else {
-                    showToast('Error updating salary: ' + (result.message || 'Unknown error'), 'error');
+                    showToast('Error: ' + (result.message || 'Failed to update employee'), 'error');
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                showToast('Error updating salary. Please try again.', 'error');
+                showToast('An error occurred while updating the employee.', 'error');
+            })
+            .finally(() => {
+                submitBtn.disabled = false;
+                var isEdit = document.getElementById('userId').value;
+                submitBtn.innerHTML = isEdit ? '<i class="fas fa-save"></i> Update User' : '<i class="fas fa-plus"></i> Create Employee';
             });
-        }
+        });
 
-        function issueFine(userId) {
-            var amount = document.getElementById('fineAmount').value;
-            var type = document.getElementById('fineType').value;
-            var description = document.getElementById('fineDescription').value;
-            var fineDate = document.getElementById('fineDate').value;
-            
-            if (!amount || !type || !description || !fineDate) {
-                showToast('Please fill in all required fields', 'error');
-                return;
+        // Close modal when clicking outside
+        window.addEventListener('click', function(event) {
+            var modal = document.getElementById('userModal');
+            if (event.target === modal) {
+                closeUserModal();
             }
-            
-            var token = document.querySelector('input[name="__RequestVerificationToken"]').value;
-            
-            fetch('/api/EmployeeManagement/fine', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'RequestVerificationToken': token
-                },
-                body: JSON.stringify({
-                    UserId: userId,
-                    Amount: parseFloat(amount),
-                    FineType: type,
-                    Description: description,
-                    FineDate: fineDate
-                })
-            })
-            .then(response => response.json())
-            .then(result => {
-                if (result.success) {
-                    showToast('Fine issued successfully!', 'success');
-                    loadFineHistory(userId);
-                    document.getElementById('fineForm').reset();
-                    document.getElementById('fineDate').value = new Date().toISOString().split('T')[0];
-                } else {
-                    showToast('Error issuing fine: ' + (result.message || 'Unknown error'), 'error');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                showToast('Error issuing fine. Please try again.', 'error');
-            });
-        }
-
-        function processPayment(userId) {
-            var amount = document.getElementById('paymentAmount').value;
-            var type = document.getElementById('paymentType').value;
-            var method = document.getElementById('paymentMethod').value;
-            var paymentDate = document.getElementById('paymentDate').value;
-            var notes = document.getElementById('paymentNotes').value;
-            
-            if (!amount || !type || !method || !paymentDate) {
-                showToast('Please fill in all required fields', 'error');
-                return;
-            }
-            
-            var token = document.querySelector('input[name="__RequestVerificationToken"]').value;
-            
-            fetch('/api/EmployeeManagement/payment', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'RequestVerificationToken': token
-                },
-                body: JSON.stringify({
-                    UserId: userId,
-                    Amount: parseFloat(amount),
-                    PaymentType: type,
-                    PaymentMethod: method,
-                    PaymentDate: paymentDate,
-                    Notes: notes
-                })
-            })
-            .then(response => response.json())
-            .then(result => {
-                if (result.success) {
-                    showToast('Payment processed successfully!', 'success');
-                    loadPaymentHistory(userId);
-                    document.getElementById('paymentForm').reset();
-                    document.getElementById('paymentDate').value = new Date().toISOString().split('T')[0];
-                } else {
-                    showToast('Error processing payment: ' + (result.message || 'Unknown error'), 'error');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                showToast('Error processing payment. Please try again.', 'error');
-            });
-        }
-
-        function loadSalaryHistory(userId) {
-            fetch(`/api/EmployeeManagement/salary-history/${userId}`)
-            .then(response => response.json())
-            .then(data => {
-                var historyDiv = document.getElementById('salaryHistory');
-                if (data && data.length > 0) {
-                    var html = '<div class="list-group">';
-                    data.forEach(salary => {
-                        html += `
-                            <div class="list-group-item">
-                                <div class="d-flex justify-content-between">
-                                    <strong>KSh ${salary.amount.toLocaleString()}</strong>
-                                    <small class="text-muted">${new Date(salary.effectiveDate).toLocaleDateString()}</small>
-                                </div>
-                                <div class="text-muted">${salary.salaryType}</div>
-                                ${salary.notes ? `<small>${salary.notes}</small>` : ''}
-                            </div>
-                        `;
-                    });
-                    html += '</div>';
-                    historyDiv.innerHTML = html;
-                } else {
-                    historyDiv.innerHTML = '<p class="text-muted">No salary records found.</p>';
-                }
-            })
-            .catch(error => {
-                console.error('Error loading salary history:', error);
-                document.getElementById('salaryHistory').innerHTML = '<p class="text-danger">Error loading salary history.</p>';
-            });
-        }
-
-        function loadFineHistory(userId) {
-            fetch(`/api/EmployeeManagement/fine-history/${userId}`)
-            .then(response => response.json())
-            .then(data => {
-                var historyDiv = document.getElementById('fineHistory');
-                if (data && data.length > 0) {
-                    var html = '<div class="list-group">';
-                    data.forEach(fine => {
-                        html += `
-                            <div class="list-group-item">
-                                <div class="d-flex justify-content-between">
-                                    <strong class="text-warning">KSh ${fine.amount.toLocaleString()}</strong>
-                                    <small class="text-muted">${new Date(fine.fineDate).toLocaleDateString()}</small>
-                                </div>
-                                <div class="text-muted">${fine.fineType}</div>
-                                <small>${fine.description}</small>
-                                <div class="mt-1">
-                                    <span class="badge ${fine.isPaid ? 'bg-success' : 'bg-warning'}">${fine.isPaid ? 'Paid' : 'Unpaid'}</span>
-                                </div>
-                            </div>
-                        `;
-                    });
-                    html += '</div>';
-                    historyDiv.innerHTML = html;
-                } else {
-                    historyDiv.innerHTML = '<p class="text-muted">No fine records found.</p>';
-                }
-            })
-            .catch(error => {
-                console.error('Error loading fine history:', error);
-                document.getElementById('fineHistory').innerHTML = '<p class="text-danger">Error loading fine history.</p>';
-            });
-        }
-
-        function loadPaymentHistory(userId) {
-            fetch(`/api/EmployeeManagement/payment-history/${userId}`)
-            .then(response => response.json())
-            .then(data => {
-                var historyDiv = document.getElementById('paymentHistory');
-                if (data && data.length > 0) {
-                    var html = '<div class="list-group">';
-                    data.forEach(payment => {
-                        html += `
-                            <div class="list-group-item">
-                                <div class="d-flex justify-content-between">
-                                    <strong class="text-success">KSh ${payment.amount.toLocaleString()}</strong>
-                                    <small class="text-muted">${new Date(payment.paymentDate).toLocaleDateString()}</small>
-                                </div>
-                                <div class="text-muted">${payment.paymentType} - ${payment.paymentMethod}</div>
-                                ${payment.notes ? `<small>${payment.notes}</small>` : ''}
-                            </div>
-                        `;
-                    });
-                    html += '</div>';
-                    historyDiv.innerHTML = html;
-                } else {
-                    historyDiv.innerHTML = '<p class="text-muted">No payment records found.</p>';
-                }
-            })
-            .catch(error => {
-                console.error('Error loading payment history:', error);
-                document.getElementById('paymentHistory').innerHTML = '<p class="text-danger">Error loading payment history.</p>';
-            });
-        }
-
+        });
     </script>
 }
+
+@* Hidden form for CSRF token *@
+<form style="display: none;">
+    @Html.AntiForgeryToken()
+</form>

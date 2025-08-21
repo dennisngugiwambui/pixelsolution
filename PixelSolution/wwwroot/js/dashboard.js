@@ -370,7 +370,7 @@ function showUserMenu() {
 
 function checkNotifications() {
     // Check for new notifications from server
-    fetch('/Admin/GetNotifications')
+    fetch('/Employee/GetNotifications')
         .then(response => {
             if (!response.ok) {
                 throw new Error('Network response was not ok');

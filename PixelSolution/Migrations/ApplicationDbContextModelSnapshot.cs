@@ -210,14 +210,17 @@ namespace PixelSolution.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
 
+                    b.Property<DateTime?>("DueDate")
+                        .HasColumnType("datetime2");
+
                     b.Property<int>("EmployeeProfileId")
                         .HasColumnType("int");
 
-                    b.Property<DateTime>("IssueDate")
-                        .HasColumnType("datetime2");
-
                     b.Property<int>("IssuedByUserId")
                         .HasColumnType("int");
+
+                    b.Property<DateTime>("IssuedDate")
+                        .HasColumnType("datetime2");
 
                     b.Property<DateTime?>("PaidDate")
                         .HasColumnType("datetime2");
@@ -371,6 +374,9 @@ namespace PixelSolution.Migrations
                     b.Property<int>("UserId")
                         .HasColumnType("int");
 
+                    b.Property<int?>("UserId1")
+                        .HasColumnType("int");
+
                     b.HasKey("EmployeeProfileId");
 
                     b.HasIndex("EmployeeNumber")
@@ -378,6 +384,10 @@ namespace PixelSolution.Migrations
 
                     b.HasIndex("UserId")
                         .IsUnique();
+
+                    b.HasIndex("UserId1")
+                        .IsUnique()
+                        .HasFilter("[UserId1] IS NOT NULL");
 
                     b.ToTable("EmployeeProfiles");
                 });
@@ -978,6 +988,9 @@ namespace PixelSolution.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<DateTime?>("LastLogin")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("LastName")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -1123,7 +1136,7 @@ namespace PixelSolution.Migrations
             modelBuilder.Entity("PixelSolution.Models.EmployeeFine", b =>
                 {
                     b.HasOne("PixelSolution.Models.EmployeeProfile", "EmployeeProfile")
-                        .WithMany("Fines")
+                        .WithMany("EmployeeFines")
                         .HasForeignKey("EmployeeProfileId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -1142,7 +1155,7 @@ namespace PixelSolution.Migrations
             modelBuilder.Entity("PixelSolution.Models.EmployeePayment", b =>
                 {
                     b.HasOne("PixelSolution.Models.EmployeeProfile", "EmployeeProfile")
-                        .WithMany("Payments")
+                        .WithMany("EmployeePayments")
                         .HasForeignKey("EmployeeProfileId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -1166,13 +1179,17 @@ namespace PixelSolution.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("PixelSolution.Models.User", null)
+                        .WithOne("EmployeeProfile")
+                        .HasForeignKey("PixelSolution.Models.EmployeeProfile", "UserId1");
+
                     b.Navigation("User");
                 });
 
             modelBuilder.Entity("PixelSolution.Models.EmployeeSalary", b =>
                 {
                     b.HasOne("PixelSolution.Models.EmployeeProfile", "EmployeeProfile")
-                        .WithMany("SalaryRecords")
+                        .WithMany("EmployeeSalaries")
                         .HasForeignKey("EmployeeProfileId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -1382,11 +1399,11 @@ namespace PixelSolution.Migrations
 
             modelBuilder.Entity("PixelSolution.Models.EmployeeProfile", b =>
                 {
-                    b.Navigation("Fines");
+                    b.Navigation("EmployeeFines");
 
-                    b.Navigation("Payments");
+                    b.Navigation("EmployeePayments");
 
-                    b.Navigation("SalaryRecords");
+                    b.Navigation("EmployeeSalaries");
                 });
 
             modelBuilder.Entity("PixelSolution.Models.Product", b =>
@@ -1420,6 +1437,8 @@ namespace PixelSolution.Migrations
 
             modelBuilder.Entity("PixelSolution.Models.User", b =>
                 {
+                    b.Navigation("EmployeeProfile");
+
                     b.Navigation("PurchaseRequests");
 
                     b.Navigation("ReceivedMessages");

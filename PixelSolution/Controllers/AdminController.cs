@@ -895,15 +895,39 @@ namespace PixelSolution.Controllers
 
         #region Users Management
         [Authorize(Roles = "Admin,Manager")]
-        public async Task<IActionResult> Users()
+        public async Task<IActionResult> Users(string searchTerm = "", string statusFilter = "", string userTypeFilter = "", string departmentFilter = "")
         {
             try
             {
                 _logger.LogInformation("Starting to load users from database");
                 var users = await _userService.GetAllUsersAsync();
                 _logger.LogInformation($"Retrieved {users.Count()} users from database");
+
+                // Get departments for filtering
+                var departments = await _departmentService.GetAllDepartmentsAsync();
                 
-                var userViewModels = users.Select(u => new UserListViewModel
+                // Apply filters
+                var filteredUsers = users.AsQueryable();
+                
+                if (!string.IsNullOrEmpty(searchTerm))
+                {
+                    filteredUsers = filteredUsers.Where(u => 
+                        u.FirstName.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+                        u.LastName.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
+                        u.Email.Contains(searchTerm, StringComparison.OrdinalIgnoreCase));
+                }
+                
+                if (!string.IsNullOrEmpty(statusFilter))
+                {
+                    filteredUsers = filteredUsers.Where(u => u.Status == statusFilter);
+                }
+                
+                if (!string.IsNullOrEmpty(userTypeFilter))
+                {
+                    filteredUsers = filteredUsers.Where(u => u.UserType == userTypeFilter);
+                }
+
+                var employeeCards = filteredUsers.Select(u => new EmployeeCardViewModel
                 {
                     UserId = u.UserId,
                     FullName = !string.IsNullOrEmpty(u.FirstName) && !string.IsNullOrEmpty(u.LastName) 
@@ -913,32 +937,399 @@ namespace PixelSolution.Controllers
                     Phone = u.Phone ?? "No phone",
                     UserType = u.UserType ?? "Employee",
                     Status = u.Status ?? "Inactive",
-                    DepartmentNames = u.UserDepartments != null && u.UserDepartments.Any() ? string.Join(", ", u.UserDepartments.Select(ud => ud.Department.Name)) : "N/A",
+                    IsActive = u.Status == "Active",
+                    UserInitials = GetUserInitials(u.FirstName, u.LastName),
+                    DepartmentNames = u.UserDepartments != null && u.UserDepartments.Any() 
+                        ? string.Join(", ", u.UserDepartments.Select(ud => ud.Department.Name)) 
+                        : "N/A",
                     TotalSales = u.Sales != null ? u.Sales.Count : 0,
                     TotalSalesAmount = u.Sales != null ? u.Sales.Sum(s => s.TotalAmount) : 0,
-                    CreatedAt = u.CreatedAt
+                    CreatedAt = u.CreatedAt,
+                    LastLogin = u.LastLogin,
+                    HasEmployeeProfile = u.EmployeeProfile != null,
+                    EmployeeNumber = u.EmployeeProfile != null ? u.EmployeeProfile.EmployeeNumber : null,
+                    Position = u.EmployeeProfile != null ? u.EmployeeProfile.Position : null,
+                    HireDate = u.EmployeeProfile != null ? u.EmployeeProfile.HireDate : null,
+                    BaseSalary = u.EmployeeProfile != null ? u.EmployeeProfile.BaseSalary : null,
+                    PaymentFrequency = u.EmployeeProfile != null ? u.EmployeeProfile.PaymentFrequency : null,
+                    EmploymentStatus = u.EmployeeProfile != null ? u.EmployeeProfile.EmploymentStatus : "Active",
+                    OutstandingFines = u.EmployeeProfile != null && u.EmployeeProfile.EmployeeFines != null ? u.EmployeeProfile.EmployeeFines.Where(f => f.Status != "Paid").Sum(f => f.Amount) : 0
                 }).ToList();
                 
-                _logger.LogInformation($"Created {userViewModels.Count} user view models");
-                
-                // Log first user for debugging
-                if (userViewModels.Any())
+                var viewModel = new EmployeeListViewModel
                 {
-                    var firstUser = userViewModels.First();
-                    _logger.LogInformation($"First user view model: {firstUser.FullName} ({firstUser.Email}) - {firstUser.UserType}");
-                }
+                    Employees = employeeCards,
+                    TotalEmployees = users.Count(),
+                    ActiveEmployees = users.Count(u => u.Status == "Active"),
+                    InactiveEmployees = users.Count(u => u.Status != "Active"),
+                    TotalSalariesBudget = users.Where(u => u.EmployeeProfile != null)
+                        .Sum(u => u.EmployeeProfile.BaseSalary),
+                    TotalOutstandingFines = users.Where(u => u.EmployeeProfile != null)
+                        .Sum(u => u.EmployeeProfile.EmployeeFines != null ? u.EmployeeProfile.EmployeeFines.Where(f => f.Status != "Paid").Sum(f => f.Amount) : 0),
+                    EmployeesWithProfiles = users.Count(u => u.EmployeeProfile != null),
+                    EmployeesWithoutProfiles = users.Count(u => u.EmployeeProfile == null),
+                    SearchTerm = searchTerm,
+                    StatusFilter = statusFilter,
+                    UserTypeFilter = userTypeFilter,
+                    DepartmentFilter = departmentFilter,
+                    AvailableStatuses = new List<string> { "Active", "Inactive" },
+                    AvailableUserTypes = new List<string> { "Admin", "Manager", "Employee" },
+                    AvailableDepartments = departments.Select(d => new DepartmentSelectionViewModel 
+                    { 
+                        DepartmentId = d.DepartmentId, 
+                        Name = d.Name 
+                    }).ToList()
+                };
                 
-                ViewBag.UserCount = userViewModels.Count;
-                ViewBag.CurrentUserRole = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ?? "Employee";
+                _logger.LogInformation($"Created employee list with {viewModel.Employees.Count} employees");
                 
-                return View(userViewModels);
+                return View(viewModel);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error loading users");
                 TempData["ErrorMessage"] = "Error loading users. Please try again.";
-                return View(new List<UserListViewModel>());
+                return View(new EmployeeListViewModel());
             }
+        }
+
+
+        [Authorize(Roles = "Admin,Manager")]
+        public async Task<IActionResult> UserDetails(int id)
+        {
+            _logger.LogInformation($"UserDetails action called with ID: {id}");
+            
+            // Simple test to verify routing works
+            if (id == 999)
+            {
+                return Content($"UserDetails action reached with ID: {id}. Routing is working.");
+            }
+            
+            // Test with minimal view model to check if view works
+            if (id == 998)
+            {
+                var testModel = new EmployeeDetailsViewModel
+                {
+                    UserId = 998,
+                    FirstName = "Test",
+                    LastName = "User",
+                    FullName = "Test User",
+                    Email = "test@test.com",
+                    UserType = "Employee",
+                    Status = "Active",
+                    IsActive = true,
+                    CreatedAt = DateTime.Now
+                };
+                _logger.LogInformation("Returning test model to UserDetails view");
+                return View(testModel);
+            }
+            
+            // Add basic validation
+            if (id <= 0)
+            {
+                _logger.LogWarning($"Invalid user ID provided: {id}");
+                TempData["ErrorMessage"] = "Invalid user ID.";
+                return RedirectToAction("Users");
+            }
+            
+            return await UserDetailsInternal(id);
+        }
+        
+        private async Task<IActionResult> UserDetailsInternal(int id)
+        {
+            try
+            {
+                _logger.LogInformation($"Loading user details for user ID: {id}");
+                
+                // First check if user exists at all
+                var userExists = await _context.Users.AnyAsync(u => u.UserId == id);
+                if (!userExists)
+                {
+                    _logger.LogWarning($"User with ID {id} does not exist in database");
+                    TempData["ErrorMessage"] = "Employee not found.";
+                    return RedirectToAction("Users");
+                }
+                
+                var user = await _context.Users
+                    .Include(u => u.EmployeeProfile)
+                        .ThenInclude(ep => ep != null ? ep.EmployeeSalaries : null)
+                    .Include(u => u.EmployeeProfile)
+                        .ThenInclude(ep => ep != null ? ep.EmployeeFines : null)
+                    .Include(u => u.EmployeeProfile)
+                        .ThenInclude(ep => ep != null ? ep.EmployeePayments : null)
+                    .Include(u => u.UserDepartments)
+                        .ThenInclude(ud => ud.Department)
+                    .Include(u => u.Sales)
+                    .FirstOrDefaultAsync(u => u.UserId == id);
+
+                if (user == null)
+                {
+                    _logger.LogError($"User with ID {id} exists but failed to load with includes");
+                    TempData["ErrorMessage"] = "Employee not found.";
+                    return RedirectToAction("Users");
+                }
+                
+                _logger.LogInformation($"Successfully loaded user: {user.FirstName} {user.LastName}");
+
+                var viewModel = new EmployeeDetailsViewModel
+                {
+                    UserId = user.UserId,
+                    FirstName = user.FirstName,
+                    LastName = user.LastName,
+                    FullName = $"{user.FirstName} {user.LastName}",
+                    Email = user.Email,
+                    Phone = user.Phone,
+                    UserType = user.UserType,
+                    Status = user.Status,
+                    IsActive = user.Status == "Active",
+                    CreatedAt = user.CreatedAt,
+                    LastLogin = user.LastLogin,
+                    
+                    // Employee Profile Data
+                    EmployeeProfileId = user.EmployeeProfile?.EmployeeProfileId,
+                    EmployeeNumber = user.EmployeeProfile?.EmployeeNumber,
+                    Position = user.EmployeeProfile?.Position,
+                    HireDate = user.EmployeeProfile?.HireDate,
+                    BaseSalary = user.EmployeeProfile?.BaseSalary,
+                    PaymentFrequency = user.EmployeeProfile?.PaymentFrequency,
+                    BankAccount = user.EmployeeProfile?.BankAccount,
+                    BankName = user.EmployeeProfile?.BankName,
+                    EmploymentStatus = user.EmployeeProfile?.EmploymentStatus ?? "Active",
+                    
+                    // Department Information
+                    DepartmentNames = user.UserDepartments?.Any() == true 
+                        ? string.Join(", ", user.UserDepartments.Select(ud => ud.Department.Name))
+                        : "No Department Assigned",
+                    
+                    // Sales Performance
+                    TotalSales = user.Sales?.Count ?? 0,
+                    TotalSalesAmount = user.Sales?.Sum(s => s.TotalAmount) ?? 0,
+                    
+                    // Financial Information
+                    TotalSalariesPaid = user.EmployeeProfile?.EmployeePayments?.Sum(p => p.NetPay) ?? 0,
+                    OutstandingFines = user.EmployeeProfile?.EmployeeFines?.Where(f => f.Status != "Paid").Sum(f => f.Amount) ?? 0,
+                    TotalFines = user.EmployeeProfile?.EmployeeFines?.Sum(f => f.Amount) ?? 0,
+                    
+                    // Recent Activity
+                    RecentSalaries = user.EmployeeProfile?.EmployeeSalaries?.OrderByDescending(s => s.EffectiveDate).Take(5).ToList() ?? new List<EmployeeSalary>(),
+                    RecentFines = user.EmployeeProfile?.EmployeeFines?.OrderByDescending(f => f.IssuedDate).Take(5).ToList() ?? new List<EmployeeFine>(),
+                    RecentPayments = user.EmployeeProfile?.EmployeePayments?.OrderByDescending(p => p.PaymentDate).Take(5).ToList() ?? new List<EmployeePayment>()
+                };
+
+                _logger.LogInformation($"Successfully loaded details for employee: {viewModel.FullName}");
+                _logger.LogInformation($"Returning UserDetails view with model for user ID: {id}");
+                return View(viewModel);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error loading user details for ID: {id}. Exception: {ex.Message}");
+                _logger.LogError($"Stack trace: {ex.StackTrace}");
+                TempData["ErrorMessage"] = $"Error loading employee details: {ex.Message}";
+                return RedirectToAction("Users");
+            }
+        }
+
+        [HttpPost]
+        [Authorize(Roles = "Admin,Manager")]
+        public async Task<IActionResult> AddEmployeeFine([FromBody] AddEmployeeFineRequest request)
+        {
+            try
+            {
+                var user = await _context.Users
+                    .Include(u => u.EmployeeProfile)
+                    .FirstOrDefaultAsync(u => u.UserId == request.UserId);
+
+                if (user?.EmployeeProfile == null)
+                {
+                    return Json(new { success = false, message = "Employee profile not found." });
+                }
+
+                var fine = new EmployeeFine
+                {
+                    EmployeeProfileId = user.EmployeeProfile.EmployeeProfileId,
+                    Amount = request.Amount,
+                    Reason = request.Reason,
+                    Description = request.Description,
+                    IssuedDate = DateTime.UtcNow,
+                    DueDate = request.DueDate,
+                    Status = "Pending",
+                    IssuedByUserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "1")
+                };
+
+                _context.EmployeeFines.Add(fine);
+                await _context.SaveChangesAsync();
+
+                // Send notification to employee
+                await SendFineNotification(user, fine);
+
+                return Json(new { success = true, message = "Fine added successfully and employee has been notified." });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error adding employee fine");
+                return Json(new { success = false, message = "Error adding fine. Please try again." });
+            }
+        }
+
+        [HttpPost]
+        [Authorize(Roles = "Admin,Manager")]
+        public async Task<IActionResult> SendPaymentReminder([FromBody] PaymentReminderRequest request)
+        {
+            try
+            {
+                var user = await _context.Users
+                    .Include(u => u.EmployeeProfile)
+                        .ThenInclude(ep => ep.EmployeeFines)
+                    .FirstOrDefaultAsync(u => u.UserId == request.UserId);
+
+                if (user == null)
+                {
+                    return Json(new { success = false, message = "Employee not found." });
+                }
+
+                var outstandingFines = user.EmployeeProfile?.EmployeeFines?.Where(f => f.Status != "Paid").ToList() ?? new List<EmployeeFine>();
+                
+                if (!outstandingFines.Any())
+                {
+                    return Json(new { success = false, message = "No outstanding fines found for this employee." });
+                }
+
+                // Send email reminder
+                if (request.SendEmail)
+                {
+                    await SendEmailPaymentReminder(user, outstandingFines);
+                }
+
+                // Send in-app message reminder
+                if (request.SendMessage)
+                {
+                    await SendMessagePaymentReminder(user, outstandingFines);
+                }
+
+                return Json(new { success = true, message = "Payment reminder sent successfully." });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error sending payment reminder");
+                return Json(new { success = false, message = "Error sending reminder. Please try again." });
+            }
+        }
+
+        private async Task SendFineNotification(User employee, EmployeeFine fine)
+        {
+            try
+            {
+                // Send in-app message
+                var message = new Message
+                {
+                    FromUserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "1"),
+                    ToUserId = employee.UserId,
+                    Subject = "New Fine Issued",
+                    Content = $"A fine of KSh {fine.Amount:N2} has been issued for: {fine.Reason}. " +
+                             $"Description: {fine.Description}. Due date: {fine.DueDate:MMM dd, yyyy}.",
+                    MessageType = "Fine",
+                    SentDate = DateTime.UtcNow,
+                    IsRead = false
+                };
+
+                _context.Messages.Add(message);
+                await _context.SaveChangesAsync();
+
+                // Send email notification
+                var emailSubject = "Fine Notification - PixelSolution";
+                var emailBody = $@"
+                    <h2>Fine Notification</h2>
+                    <p>Dear {employee.FirstName} {employee.LastName},</p>
+                    <p>A fine has been issued to your account with the following details:</p>
+                    <ul>
+                        <li><strong>Amount:</strong> KSh {fine.Amount:N2}</li>
+                        <li><strong>Reason:</strong> {fine.Reason}</li>
+                        <li><strong>Description:</strong> {fine.Description}</li>
+                        <li><strong>Due Date:</strong> {fine.DueDate:MMM dd, yyyy}</li>
+                        <li><strong>Issued Date:</strong> {fine.IssuedDate:MMM dd, yyyy}</li>
+                    </ul>
+                    <p>Please ensure payment is made by the due date to avoid additional penalties.</p>
+                    <p>Best regards,<br>PixelSolution Management</p>
+                ";
+
+                await _emailService.SendEmailAsync(employee.Email, emailSubject, emailBody);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error sending fine notification");
+            }
+        }
+
+        private async Task SendEmailPaymentReminder(User employee, List<EmployeeFine> outstandingFines)
+        {
+            try
+            {
+                var totalOutstanding = outstandingFines.Sum(f => f.Amount);
+                var emailSubject = "Payment Reminder - Outstanding Fines";
+                var finesList = string.Join("", outstandingFines.Select(f => 
+                    $"<li>KSh {f.Amount:N2} - {f.Reason} (Due: {f.DueDate:MMM dd, yyyy})</li>"));
+
+                var emailBody = $@"
+                    <h2>Payment Reminder</h2>
+                    <p>Dear {employee.FirstName} {employee.LastName},</p>
+                    <p>This is a reminder that you have outstanding fines totaling <strong>KSh {totalOutstanding:N2}</strong>.</p>
+                    <h3>Outstanding Fines:</h3>
+                    <ul>{finesList}</ul>
+                    <p>Please arrange payment at your earliest convenience to avoid additional penalties.</p>
+                    <p>If you have any questions, please contact the management team.</p>
+                    <p>Best regards,<br>PixelSolution Management</p>
+                ";
+
+                await _emailService.SendEmailAsync(employee.Email, emailSubject, emailBody);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error sending email payment reminder");
+            }
+        }
+
+        private async Task SendMessagePaymentReminder(User employee, List<EmployeeFine> outstandingFines)
+        {
+            try
+            {
+                var totalOutstanding = outstandingFines.Sum(f => f.Amount);
+                var finesList = string.Join("\n", outstandingFines.Select(f => 
+                    $"• KSh {f.Amount:N2} - {f.Reason} (Due: {f.DueDate:MMM dd, yyyy})"));
+
+                var message = new Message
+                {
+                    FromUserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "1"),
+                    ToUserId = employee.UserId,
+                    Subject = "Payment Reminder - Outstanding Fines",
+                    Content = $"You have outstanding fines totaling KSh {totalOutstanding:N2}:\n\n{finesList}\n\nPlease arrange payment at your earliest convenience.",
+                    MessageType = "PaymentReminder",
+                    SentDate = DateTime.UtcNow,
+                    IsRead = false
+                };
+
+                _context.Messages.Add(message);
+                await _context.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error sending message payment reminder");
+            }
+        }
+
+        public class AddEmployeeFineRequest
+        {
+            public int UserId { get; set; }
+            public decimal Amount { get; set; }
+            public string Reason { get; set; } = string.Empty;
+            public string Description { get; set; } = string.Empty;
+            public DateTime DueDate { get; set; }
+        }
+
+        public class PaymentReminderRequest
+        {
+            public int UserId { get; set; }
+            public bool SendEmail { get; set; }
+            public bool SendMessage { get; set; }
         }
 
 

@@ -44,9 +44,9 @@ namespace PixelSolution.Models
         [ForeignKey("UserId")]
         public virtual User User { get; set; } = null!;
 
-        public virtual ICollection<EmployeeSalary> SalaryRecords { get; set; } = new List<EmployeeSalary>();
-        public virtual ICollection<EmployeeFine> Fines { get; set; } = new List<EmployeeFine>();
-        public virtual ICollection<EmployeePayment> Payments { get; set; } = new List<EmployeePayment>();
+        public virtual ICollection<EmployeeSalary> EmployeeSalaries { get; set; } = new List<EmployeeSalary>();
+        public virtual ICollection<EmployeeFine> EmployeeFines { get; set; } = new List<EmployeeFine>();
+        public virtual ICollection<EmployeePayment> EmployeePayments { get; set; } = new List<EmployeePayment>();
     }
 
     public class EmployeeSalary
@@ -99,8 +99,10 @@ namespace PixelSolution.Models
         [StringLength(1000)]
         public string Description { get; set; } = string.Empty;
 
-        public DateTime IssueDate { get; set; } = DateTime.UtcNow;
+        public DateTime IssuedDate { get; set; } = DateTime.UtcNow;
+        public DateTime? DueDate { get; set; }
         public DateTime? PaidDate { get; set; }
+        public bool IsPaid => Status == "Paid";
 
         public int IssuedByUserId { get; set; } // Admin/Manager who issued the fine
 
