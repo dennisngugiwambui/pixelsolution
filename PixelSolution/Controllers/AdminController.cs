@@ -994,41 +994,56 @@ namespace PixelSolution.Controllers
         }
 
 
+        // Debug endpoint to test user data
+        [Authorize(Roles = "Admin,Manager")]
+        public async Task<IActionResult> TestUserData()
+        {
+            try
+            {
+                var users = await _context.Users.Select(u => new { u.UserId, u.FirstName, u.LastName, u.Email }).Take(10).ToListAsync();
+                return Json(new { success = true, users = users });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, error = ex.Message });
+            }
+        }
+
         [Authorize(Roles = "Admin,Manager")]
         public async Task<IActionResult> UserDetails(int id)
         {
-            _logger.LogInformation($"UserDetails action called with ID: {id}");
-            
-            // Simple test to verify routing works
-            if (id == 999)
-            {
-                return Content($"UserDetails action reached with ID: {id}. Routing is working.");
-            }
-            
-            // Test with minimal view model to check if view works
-            if (id == 998)
-            {
-                var testModel = new EmployeeDetailsViewModel
-                {
-                    UserId = 998,
-                    FirstName = "Test",
-                    LastName = "User",
-                    FullName = "Test User",
-                    Email = "test@test.com",
-                    UserType = "Employee",
-                    Status = "Active",
-                    IsActive = true,
-                    CreatedAt = DateTime.Now
-                };
-                _logger.LogInformation("Returning test model to UserDetails view");
-                return View(testModel);
-            }
+            _logger.LogInformation($"=== UserDetails action called with ID: {id} ===");
             
             // Add basic validation
             if (id <= 0)
             {
                 _logger.LogWarning($"Invalid user ID provided: {id}");
                 TempData["ErrorMessage"] = "Invalid user ID.";
+                return RedirectToAction("Users");
+            }
+            
+            // Debug: Check if user exists first
+            try
+            {
+                var userCount = await _context.Users.CountAsync();
+                _logger.LogInformation($"Total users in database: {userCount}");
+                
+                var userExists = await _context.Users.AnyAsync(u => u.UserId == id);
+                _logger.LogInformation($"User with ID {id} exists: {userExists}");
+                
+                if (!userExists)
+                {
+                    // List some existing user IDs for debugging
+                    var existingIds = await _context.Users.Take(5).Select(u => u.UserId).ToListAsync();
+                    _logger.LogWarning($"User ID {id} not found. Existing IDs: {string.Join(", ", existingIds)}");
+                    TempData["ErrorMessage"] = $"Employee with ID {id} not found.";
+                    return RedirectToAction("Users");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error checking if user {id} exists");
+                TempData["ErrorMessage"] = "Database error occurred.";
                 return RedirectToAction("Users");
             }
             

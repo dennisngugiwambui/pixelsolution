@@ -110,6 +110,16 @@ app.UseSession();
 
 // Configure routing
 app.MapControllerRoute(
+    name: "userdetails",
+    pattern: "userdetails/{id:int}",
+    defaults: new { controller = "Admin", action = "UserDetails" });
+
+app.MapControllerRoute(
+    name: "admin",
+    pattern: "admin/{action=Index}/{id?}",
+    defaults: new { controller = "Admin" });
+
+app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Auth}/{action=Login}/{id?}");
 
