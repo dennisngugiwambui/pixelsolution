@@ -344,7 +344,7 @@ namespace PixelSolution.Data
             // Configure EmployeeProfile relationships
             modelBuilder.Entity<EmployeeProfile>()
                 .HasOne(ep => ep.User)
-                .WithOne()
+                .WithOne(u => u.EmployeeProfile)
                 .HasForeignKey<EmployeeProfile>(ep => ep.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
 

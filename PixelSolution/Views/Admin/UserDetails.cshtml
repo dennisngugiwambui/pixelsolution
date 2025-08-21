@@ -867,14 +867,7 @@
                         {
                             <span class="header-badge">@Model.DepartmentNames</span>
                         }
-                    </div>
-                </div>
-            </div>
-
             <div class="quick-actions">
-                <button class="quick-action-btn" onclick="editEmployee()" title="Edit Employee">
-                    <i class="fas fa-edit"></i>
-                </button>
                 <button class="quick-action-btn" onclick="sendMessage()" title="Send Message">
                     <i class="fas fa-envelope"></i>
                 </button>
@@ -1091,12 +1084,12 @@
                         <div class="action-description">Check sales history</div>
                     </div>
 
-                    <div class="action-card" onclick="sendMessage()">
+                    <div class="action-card" onclick="sendEmailToEmployee(@Model.UserId, '@Model.FullName')">
                         <div class="action-icon">
                             <i class="fas fa-envelope"></i>
                         </div>
-                        <div class="action-title">Send Message</div>
-                        <div class="action-description">Communicate with employee</div>
+                        <div class="action-title">Send Email</div>
+                        <div class="action-description">Send email to employee</div>
                     </div>
                 </div>
             </div>
@@ -1427,8 +1420,8 @@
         }
 
         function sendMessage() {
-            // Implementation for sending message
-            showToast('Message functionality would be implemented here', 'info');
+            // Redirect to messages page with pre-filled recipient
+            window.location.href = '/admin/messages?recipient=@Model.UserId';
         }
 
         function printProfile() {
@@ -1520,8 +1513,9 @@
                 </div>
             `;
 
-            // Set today's date as default
-            document.getElementById('effectiveDate').value = new Date().toISOString().split('T')[0];
+            // Set hire date as default, fallback to today
+            const hireDate = '@(Model.HireDate?.ToString("yyyy-MM-dd") ?? "")';
+            document.getElementById('effectiveDate').value = hireDate || new Date().toISOString().split('T')[0];
 
             // Load salary history
             loadSalaryHistory(userId);
@@ -1654,7 +1648,125 @@
 
         // Employee management functions
         function updateEmployeeSalary(userId) {
-            showToast('Salary update functionality - contact admin for implementation', 'info');
+            const form = document.getElementById('salaryForm');
+            const salaryData = {
+                UserId: userId,
+                Amount: parseFloat(document.getElementById('salaryAmount').value),
+                SalaryType: document.getElementById('salaryType').value,
+                EffectiveDate: new Date(document.getElementById('effectiveDate').value),
+                Notes: document.getElementById('salaryNotes').value
+            };
+
+            // Validate
+            if (!salaryData.Amount || salaryData.Amount <= 0) {
+                showToast('Please enter a valid salary amount', 'error');
+                return;
+            }
+            if (!salaryData.SalaryType) {
+                showToast('Please select a salary type', 'error');
+                return;
+            }
+            if (!salaryData.EffectiveDate) {
+                showToast('Please select an effective date', 'error');
+                return;
+            }
+
+            fetch('@Url.Action("UpdateEmployeeSalary", "Admin")', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': getAntiForgeryToken()
+                },
+                body: JSON.stringify(salaryData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('Salary updated successfully and employee notified!', 'success');
+                    closeSalaryModal();
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    showToast('Error: ' + (data.message || 'Failed to update salary'), 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('Error updating salary', 'error');
+            });
+        }
+
+        function sendEmailToEmployee(userId, userName) {
+            // Create email modal content
+            const modalContent = `
+                <div style="max-width: 600px;">
+                    <h6 style="color: #059669; margin-bottom: 1rem;"><i class="fas fa-envelope"></i> Send Email to ${userName}</h6>
+                    <form id="emailForm">
+                        <div class="form-group">
+                            <label class="form-label">Subject</label>
+                            <input type="text" class="form-control" id="emailSubject" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Message</label>
+                            <textarea class="form-control" id="emailBody" rows="6" required></textarea>
+                        </div>
+                        <div class="form-group" style="display: flex; gap: 1rem; justify-content: flex-end;">
+                            <button type="button" class="btn btn-secondary" onclick="closeEmailModal()">Cancel</button>
+                            <button type="button" class="btn btn-success" onclick="sendEmail(${userId})">
+                                <i class="fas fa-paper-plane"></i> Send Email
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            `;
+            
+            // Show modal with email form
+            document.getElementById('salaryContent').innerHTML = modalContent;
+            document.getElementById('salaryModalLabel').textContent = 'Send Email';
+            document.getElementById('salaryModal').classList.add('show');
+        }
+
+        function sendEmail(userId) {
+            const emailData = {
+                UserId: userId,
+                Subject: document.getElementById('emailSubject').value,
+                Body: document.getElementById('emailBody').value
+            };
+
+            // Validate
+            if (!emailData.Subject.trim()) {
+                showToast('Please enter an email subject', 'error');
+                return;
+            }
+            if (!emailData.Body.trim()) {
+                showToast('Please enter an email message', 'error');
+                return;
+            }
+
+            fetch('@Url.Action("SendEmployeeEmail", "Admin")', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': getAntiForgeryToken()
+                },
+                body: JSON.stringify(emailData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('Email sent successfully!', 'success');
+                    closeSalaryModal();
+                } else {
+                    showToast('Error: ' + (data.message || 'Failed to send email'), 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('Error sending email', 'error');
+            });
+        }
+
+        function closeEmailModal() {
+            closeSalaryModal();
         }
 
         function issueFine(userId) {
@@ -1663,7 +1775,58 @@
         }
 
         function processPayment(userId) {
-            showToast('Payment processing functionality - contact admin for implementation', 'info');
+            const form = document.getElementById('paymentForm');
+            const formData = new FormData(form);
+            
+            const paymentData = {
+                UserId: userId,
+                Amount: parseFloat(document.getElementById('paymentAmount').value),
+                PaymentType: document.getElementById('paymentType').value,
+                PaymentMethod: document.getElementById('paymentMethod').value,
+                PaymentDate: new Date(document.getElementById('paymentDate').value),
+                Notes: document.getElementById('paymentNotes').value
+            };
+
+            // Validate
+            if (!paymentData.Amount || paymentData.Amount <= 0) {
+                showToast('Please enter a valid payment amount', 'error');
+                return;
+            }
+            if (!paymentData.PaymentType) {
+                showToast('Please select a payment type', 'error');
+                return;
+            }
+            if (!paymentData.PaymentMethod) {
+                showToast('Please select a payment method', 'error');
+                return;
+            }
+            if (!paymentData.PaymentDate) {
+                showToast('Please select a payment date', 'error');
+                return;
+            }
+
+            fetch('@Url.Action("ProcessEmployeePayment", "Admin")', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': getAntiForgeryToken()
+                },
+                body: JSON.stringify(paymentData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('Payment processed successfully and employee notified!', 'success');
+                    closePaymentModal();
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    showToast('Error: ' + (data.message || 'Failed to process payment'), 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('Error processing payment', 'error');
+            });
         }
 
         function sendPaymentReminder(userId) {
@@ -1836,8 +1999,8 @@
                 historyHtml += `
                     <div class="history-item">
                         <div class="history-details">
-                            <strong>KSh ${payment.amount?.toLocaleString() || '0'}</strong>
-                            <span class="payment-type">${payment.paymentType || 'Salary'}</span>
+                            <strong>KSh ${payment.netPay?.toLocaleString() || '0'}</strong>
+                            <span class="payment-type">${payment.paymentPeriod || 'Salary'}</span>
                             <span class="history-date">${payment.paymentDate ? new Date(payment.paymentDate).toLocaleDateString() : 'Unknown'}</span>
                         </div>
                         <div class="history-meta">

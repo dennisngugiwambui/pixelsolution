@@ -1014,40 +1014,96 @@ namespace PixelSolution.Controllers
         {
             _logger.LogInformation($"=== UserDetails action called with ID: {id} ===");
             
-            // Add basic validation
-            if (id <= 0)
-            {
-                _logger.LogWarning($"Invalid user ID provided: {id}");
-                TempData["ErrorMessage"] = "Invalid user ID.";
-                return RedirectToAction("Users");
-            }
-            
-            // Debug: Check if user exists first
+            // Simple test - just return a basic view with minimal data
             try
             {
-                var userCount = await _context.Users.CountAsync();
-                _logger.LogInformation($"Total users in database: {userCount}");
+                var user = await _context.Users.FirstOrDefaultAsync(u => u.UserId == id);
                 
-                var userExists = await _context.Users.AnyAsync(u => u.UserId == id);
-                _logger.LogInformation($"User with ID {id} exists: {userExists}");
-                
-                if (!userExists)
+                if (user == null)
                 {
-                    // List some existing user IDs for debugging
-                    var existingIds = await _context.Users.Take(5).Select(u => u.UserId).ToListAsync();
-                    _logger.LogWarning($"User ID {id} not found. Existing IDs: {string.Join(", ", existingIds)}");
-                    TempData["ErrorMessage"] = $"Employee with ID {id} not found.";
-                    return RedirectToAction("Users");
+                    var allUsers = await _context.Users.Select(u => new { u.UserId, u.FirstName, u.LastName }).ToListAsync();
+                    _logger.LogWarning($"User ID {id} not found. Available users: {string.Join(", ", allUsers.Select(u => $"{u.UserId}:{u.FirstName} {u.LastName}"))}");
+                    
+                    // Instead of redirecting, show error content
+                    return Content($"User with ID {id} not found. Available users: {string.Join(", ", allUsers.Select(u => $"{u.UserId}:{u.FirstName} {u.LastName}"))}");
                 }
+                
+                // Load complete user data with includes
+                var completeUser = await _context.Users
+                    .Include(u => u.EmployeeProfile)
+                        .ThenInclude(ep => ep != null ? ep.EmployeeSalaries : null)
+                    .Include(u => u.EmployeeProfile)
+                        .ThenInclude(ep => ep != null ? ep.EmployeeFines : null)
+                    .Include(u => u.EmployeeProfile)
+                        .ThenInclude(ep => ep != null ? ep.EmployeePayments : null)
+                    .Include(u => u.UserDepartments)
+                        .ThenInclude(ud => ud.Department)
+                    .Include(u => u.Sales)
+                    .FirstOrDefaultAsync(u => u.UserId == id);
+
+                // Create comprehensive view model
+                var viewModel = new EmployeeDetailsViewModel
+                {
+                    UserId = completeUser.UserId,
+                    FirstName = completeUser.FirstName,
+                    LastName = completeUser.LastName,
+                    FullName = $"{completeUser.FirstName} {completeUser.LastName}",
+                    Email = completeUser.Email,
+                    Phone = completeUser.Phone,
+                    UserType = completeUser.UserType,
+                    Status = completeUser.Status,
+                    IsActive = completeUser.Status == "Active",
+                    CreatedAt = completeUser.CreatedAt,
+                    LastLogin = completeUser.LastLogin,
+                    UserInitials = $"{completeUser.FirstName.Substring(0, 1)}{completeUser.LastName.Substring(0, 1)}".ToUpper(),
+                    
+                    // Employee Profile Data
+                    HasEmployeeProfile = completeUser.EmployeeProfile != null,
+                    EmployeeProfileId = completeUser.EmployeeProfile?.EmployeeProfileId,
+                    EmployeeNumber = completeUser.EmployeeProfile?.EmployeeNumber,
+                    Position = completeUser.EmployeeProfile?.Position,
+                    HireDate = completeUser.EmployeeProfile?.HireDate,
+                    BaseSalary = completeUser.EmployeeProfile?.BaseSalary ?? 0,
+                    PaymentFrequency = completeUser.EmployeeProfile?.PaymentFrequency,
+                    BankAccount = completeUser.EmployeeProfile?.BankAccount,
+                    BankName = completeUser.EmployeeProfile?.BankName,
+                    EmploymentStatus = completeUser.EmployeeProfile?.EmploymentStatus ?? "Active",
+                    
+                    // Department Information
+                    DepartmentNames = completeUser.UserDepartments?.Any() == true 
+                        ? string.Join(", ", completeUser.UserDepartments.Select(ud => ud.Department.Name))
+                        : "No Department Assigned",
+                    
+                    // Performance Metrics - Enhanced
+                    TotalSales = completeUser.Sales?.Count ?? 0,
+                    TotalSalesAmount = completeUser.Sales?.Sum(s => s.TotalAmount) ?? 0,
+                    SalesToday = completeUser.Sales?.Count(s => s.SaleDate.Date == DateTime.Today) ?? 0,
+                    SalesTodayAmount = completeUser.Sales?.Where(s => s.SaleDate.Date == DateTime.Today).Sum(s => s.TotalAmount) ?? 0,
+                    SalesThisMonth = completeUser.Sales?.Count(s => s.SaleDate.Month == DateTime.Now.Month && s.SaleDate.Year == DateTime.Now.Year) ?? 0,
+                    SalesThisMonthAmount = completeUser.Sales?.Where(s => s.SaleDate.Month == DateTime.Now.Month && s.SaleDate.Year == DateTime.Now.Year).Sum(s => s.TotalAmount) ?? 0,
+                    AverageSaleAmount = completeUser.Sales?.Any() == true ? completeUser.Sales.Average(s => s.TotalAmount) : 0,
+                    
+                    // Financial Information
+                    CurrentSalary = completeUser.EmployeeProfile?.BaseSalary ?? 0,
+                    TotalSalariesPaid = completeUser.EmployeeProfile?.EmployeePayments?.Sum(p => p.NetPay) ?? 0,
+                    OutstandingFines = completeUser.EmployeeProfile?.EmployeeFines?.Where(f => f.Status != "Paid").Sum(f => f.Amount) ?? 0,
+                    TotalFines = completeUser.EmployeeProfile?.EmployeeFines?.Sum(f => f.Amount) ?? 0,
+                    TotalPaid = completeUser.EmployeeProfile?.EmployeePayments?.Sum(p => p.NetPay) ?? 0,
+                    
+                    // Recent Activity
+                    RecentSalaries = completeUser.EmployeeProfile?.EmployeeSalaries?.OrderByDescending(s => s.EffectiveDate).Take(5).ToList() ?? new List<EmployeeSalary>(),
+                    RecentFines = completeUser.EmployeeProfile?.EmployeeFines?.OrderByDescending(f => f.IssuedDate).Take(5).ToList() ?? new List<EmployeeFine>(),
+                    RecentPayments = completeUser.EmployeeProfile?.EmployeePayments?.OrderByDescending(p => p.PaymentDate).Take(5).ToList() ?? new List<EmployeePayment>()
+                };
+                
+                _logger.LogInformation($"Successfully created view model for user {user.FirstName} {user.LastName}");
+                return View(viewModel);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error checking if user {id} exists");
-                TempData["ErrorMessage"] = "Database error occurred.";
-                return RedirectToAction("Users");
+                _logger.LogError(ex, $"Error in UserDetails for ID: {id}");
+                return Content($"Error loading user details: {ex.Message}");
             }
-            
-            return await UserDetailsInternal(id);
         }
         
         private async Task<IActionResult> UserDetailsInternal(int id)
@@ -1345,6 +1401,260 @@ namespace PixelSolution.Controllers
             public int UserId { get; set; }
             public bool SendEmail { get; set; }
             public bool SendMessage { get; set; }
+        }
+
+        [HttpPost]
+        [Authorize(Roles = "Admin,Manager")]
+        public async Task<IActionResult> ProcessEmployeePayment([FromBody] ProcessPaymentRequest request)
+        {
+            try
+            {
+                var user = await _context.Users
+                    .Include(u => u.EmployeeProfile)
+                    .FirstOrDefaultAsync(u => u.UserId == request.UserId);
+
+                if (user?.EmployeeProfile == null)
+                {
+                    return Json(new { success = false, message = "Employee profile not found." });
+                }
+
+                var payment = new EmployeePayment
+                {
+                    EmployeeProfileId = user.EmployeeProfile.EmployeeProfileId,
+                    PaymentNumber = $"PAY-{DateTime.UtcNow:yyyyMMdd}-{user.EmployeeProfile.EmployeeProfileId}",
+                    GrossPay = request.Amount,
+                    NetPay = request.Amount, // Simplified - could include deductions
+                    PaymentPeriod = request.PaymentDate.ToString("MMMM yyyy"),
+                    PaymentMethod = request.PaymentMethod,
+                    PaymentDate = request.PaymentDate,
+                    Status = "Paid",
+                    ProcessedByUserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "1"),
+                    Notes = request.Notes
+                };
+
+                _context.EmployeePayments.Add(payment);
+                await _context.SaveChangesAsync();
+
+                // Send payment notification
+                await SendPaymentNotification(user, payment, request.PaymentType);
+
+                return Json(new { success = true, message = "Payment processed successfully and employee has been notified." });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error processing employee payment");
+                return Json(new { success = false, message = "Error processing payment. Please try again." });
+            }
+        }
+
+        [HttpPost]
+        [Authorize(Roles = "Admin,Manager")]
+        public async Task<IActionResult> SendEmployeeEmail([FromBody] SendEmailRequest request)
+        {
+            try
+            {
+                var user = await _context.Users.FirstOrDefaultAsync(u => u.UserId == request.UserId);
+                if (user == null)
+                {
+                    return Json(new { success = false, message = "Employee not found." });
+                }
+
+                await _emailService.SendEmailAsync(user.Email, request.Subject, request.Body);
+
+                // Also send as in-app message
+                var message = new Message
+                {
+                    FromUserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "1"),
+                    ToUserId = user.UserId,
+                    Subject = request.Subject,
+                    Content = request.Body,
+                    MessageType = "Email",
+                    SentDate = DateTime.UtcNow,
+                    IsRead = false
+                };
+
+                _context.Messages.Add(message);
+                await _context.SaveChangesAsync();
+
+                return Json(new { success = true, message = "Email sent successfully." });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error sending employee email");
+                return Json(new { success = false, message = "Error sending email. Please try again." });
+            }
+        }
+
+        private async Task SendPaymentNotification(User employee, EmployeePayment payment, string paymentType)
+        {
+            try
+            {
+                // Send in-app message
+                var message = new Message
+                {
+                    FromUserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "1"),
+                    ToUserId = employee.UserId,
+                    Subject = "Payment Processed",
+                    Content = $"Your {paymentType} payment of KSh {payment.NetPay:N2} has been processed successfully. " +
+                             $"Payment method: {payment.PaymentMethod}. Payment date: {payment.PaymentDate:MMM dd, yyyy}.",
+                    MessageType = "Payment",
+                    SentDate = DateTime.UtcNow,
+                    IsRead = false
+                };
+
+                _context.Messages.Add(message);
+                await _context.SaveChangesAsync();
+
+                // Send email notification
+                var emailSubject = "Payment Confirmation - PixelSolution";
+                var emailBody = $@"
+                    <h2>Payment Confirmation</h2>
+                    <p>Dear {employee.FirstName} {employee.LastName},</p>
+                    <p>Your payment has been processed successfully with the following details:</p>
+                    <ul>
+                        <li><strong>Amount:</strong> KSh {payment.NetPay:N2}</li>
+                        <li><strong>Payment Type:</strong> {paymentType}</li>
+                        <li><strong>Payment Method:</strong> {payment.PaymentMethod}</li>
+                        <li><strong>Payment Date:</strong> {payment.PaymentDate:MMM dd, yyyy}</li>
+                        <li><strong>Pay Period:</strong> {payment.PaymentPeriod}</li>
+                    </ul>
+                    {(string.IsNullOrEmpty(payment.Notes) ? "" : $"<p><strong>Notes:</strong> {payment.Notes}</p>")}
+                    <p>Thank you for your continued service.</p>
+                    <p>Best regards,<br>PixelSolution Management</p>
+                ";
+
+                await _emailService.SendEmailAsync(employee.Email, emailSubject, emailBody);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error sending payment notification");
+            }
+        }
+
+        public class ProcessPaymentRequest
+        {
+            public int UserId { get; set; }
+            public decimal Amount { get; set; }
+            public string PaymentType { get; set; } = string.Empty;
+            public string PaymentMethod { get; set; } = string.Empty;
+            public DateTime PaymentDate { get; set; }
+            public string Notes { get; set; } = string.Empty;
+        }
+
+        public class SendEmailRequest
+        {
+            public int UserId { get; set; }
+            public string Subject { get; set; } = string.Empty;
+            public string Body { get; set; } = string.Empty;
+        }
+
+        [HttpPost]
+        [Authorize(Roles = "Admin,Manager")]
+        public async Task<IActionResult> UpdateEmployeeSalary([FromBody] UpdateSalaryRequest request)
+        {
+            try
+            {
+                var user = await _context.Users
+                    .Include(u => u.EmployeeProfile)
+                    .FirstOrDefaultAsync(u => u.UserId == request.UserId);
+
+                if (user?.EmployeeProfile == null)
+                {
+                    return Json(new { success = false, message = "Employee profile not found." });
+                }
+
+                var salary = new EmployeeSalary
+                {
+                    EmployeeProfileId = user.EmployeeProfile.EmployeeProfileId,
+                    Amount = request.Amount,
+                    SalaryType = request.SalaryType,
+                    EffectiveDate = request.EffectiveDate,
+                    IsActive = true,
+                    Notes = request.Notes
+                };
+
+                // Deactivate previous salary if it's a base salary update
+                if (request.SalaryType == "Base")
+                {
+                    var previousSalaries = await _context.EmployeeSalaries
+                        .Where(s => s.EmployeeProfileId == user.EmployeeProfile.EmployeeProfileId && 
+                               s.SalaryType == "Base" && s.IsActive == true)
+                        .ToListAsync();
+                    
+                    foreach (var prevSalary in previousSalaries)
+                    {
+                        prevSalary.IsActive = false;
+                        prevSalary.EndDate = DateTime.UtcNow;
+                    }
+                }
+
+                _context.EmployeeSalaries.Add(salary);
+                await _context.SaveChangesAsync();
+
+                // Send salary update notification
+                await SendSalaryUpdateNotification(user, salary);
+
+                return Json(new { success = true, message = "Salary updated successfully and employee has been notified." });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating employee salary");
+                return Json(new { success = false, message = "Error updating salary. Please try again." });
+            }
+        }
+
+        private async Task SendSalaryUpdateNotification(User employee, EmployeeSalary salary)
+        {
+            try
+            {
+                // Send in-app message
+                var message = new Message
+                {
+                    FromUserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "1"),
+                    ToUserId = employee.UserId,
+                    Subject = "Salary Update Notification",
+                    Content = $"Your {salary.SalaryType} salary has been updated to KSh {salary.Amount:N2}. " +
+                             $"Effective date: {salary.EffectiveDate:MMM dd, yyyy}. {salary.Notes}",
+                    MessageType = "Salary",
+                    SentDate = DateTime.UtcNow,
+                    IsRead = false
+                };
+
+                _context.Messages.Add(message);
+                await _context.SaveChangesAsync();
+
+                // Send email notification
+                var emailSubject = "Salary Update - PixelSolution";
+                var emailBody = $@"
+                    <h2>Salary Update Notification</h2>
+                    <p>Dear {employee.FirstName} {employee.LastName},</p>
+                    <p>Your salary has been updated with the following details:</p>
+                    <ul>
+                        <li><strong>New Amount:</strong> KSh {salary.Amount:N2}</li>
+                        <li><strong>Salary Type:</strong> {salary.SalaryType}</li>
+                        <li><strong>Effective Date:</strong> {salary.EffectiveDate:MMM dd, yyyy}</li>
+                        <li><strong>Status:</strong> {(salary.IsActive ? "Active" : "Inactive")}</li>
+                    </ul>
+                    {(string.IsNullOrEmpty(salary.Notes) ? "" : $"<p><strong>Notes:</strong> {salary.Notes}</p>")}
+                    <p>This change will be reflected in your next payroll.</p>
+                    <p>Best regards,<br>PixelSolution Management</p>
+                ";
+
+                await _emailService.SendEmailAsync(employee.Email, emailSubject, emailBody);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error sending salary update notification");
+            }
+        }
+
+        public class UpdateSalaryRequest
+        {
+            public int UserId { get; set; }
+            public decimal Amount { get; set; }
+            public string SalaryType { get; set; } = string.Empty;
+            public DateTime EffectiveDate { get; set; }
+            public string Notes { get; set; } = string.Empty;
         }
 
 
