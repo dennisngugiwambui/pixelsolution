@@ -1014,7 +1014,12 @@ namespace PixelSolution.Controllers
         {
             _logger.LogInformation($"=== UserDetails action called with ID: {id} ===");
             
-            // Simple test - just return a basic view with minimal data
+            if (id <= 0)
+            {
+                _logger.LogError($"Invalid user ID received: {id}");
+                return BadRequest($"Invalid user ID: {id}");
+            }
+            
             try
             {
                 var user = await _context.Users.FirstOrDefaultAsync(u => u.UserId == id);
@@ -1028,20 +1033,40 @@ namespace PixelSolution.Controllers
                     return Content($"User with ID {id} not found. Available users: {string.Join(", ", allUsers.Select(u => $"{u.UserId}:{u.FirstName} {u.LastName}"))}");
                 }
                 
-                // Load complete user data with includes
-                var completeUser = await _context.Users
-                    .Include(u => u.EmployeeProfile)
-                        .ThenInclude(ep => ep != null ? ep.EmployeeSalaries : null)
-                    .Include(u => u.EmployeeProfile)
-                        .ThenInclude(ep => ep != null ? ep.EmployeeFines : null)
-                    .Include(u => u.EmployeeProfile)
-                        .ThenInclude(ep => ep != null ? ep.EmployeePayments : null)
-                    .Include(u => u.UserDepartments)
-                        .ThenInclude(ud => ud.Department)
-                    .Include(u => u.Sales)
-                    .FirstOrDefaultAsync(u => u.UserId == id);
+                // Load user data separately to avoid circular references
+                var completeUser = user;
+                
+                // Load employee profile separately
+                var employeeProfile = await _context.EmployeeProfiles
+                    .FirstOrDefaultAsync(ep => ep.UserId == id);
+                
+                // Load related data separately
+                var salaryHistory = employeeProfile != null ? await _context.EmployeeSalaries
+                    .Where(s => s.EmployeeProfileId == employeeProfile.EmployeeProfileId)
+                    .OrderByDescending(s => s.EffectiveDate)
+                    .ToListAsync() : new List<EmployeeSalary>();
+                
+                var fineHistory = employeeProfile != null ? await _context.EmployeeFines
+                    .Where(f => f.EmployeeProfileId == employeeProfile.EmployeeProfileId)
+                    .OrderByDescending(f => f.IssuedDate)
+                    .ToListAsync() : new List<EmployeeFine>();
+                
+                var paymentHistory = employeeProfile != null ? await _context.EmployeePayments
+                    .Where(p => p.EmployeeProfileId == employeeProfile.EmployeeProfileId)
+                    .OrderByDescending(p => p.PaymentDate)
+                    .ToListAsync() : new List<EmployeePayment>();
+                
+                var userDepartments = await _context.UserDepartments
+                    .Include(ud => ud.Department)
+                    .Where(ud => ud.UserId == id)
+                    .ToListAsync();
+                
+                var sales = await _context.Sales
+                    .Where(s => s.UserId == id)
+                    .ToListAsync();
 
                 // Create comprehensive view model
+                _logger.LogInformation($"Creating ViewModel for user ID: {completeUser.UserId}");
                 var viewModel = new EmployeeDetailsViewModel
                 {
                     UserId = completeUser.UserId,
@@ -1058,42 +1083,78 @@ namespace PixelSolution.Controllers
                     UserInitials = $"{completeUser.FirstName.Substring(0, 1)}{completeUser.LastName.Substring(0, 1)}".ToUpper(),
                     
                     // Employee Profile Data
-                    HasEmployeeProfile = completeUser.EmployeeProfile != null,
-                    EmployeeProfileId = completeUser.EmployeeProfile?.EmployeeProfileId,
-                    EmployeeNumber = completeUser.EmployeeProfile?.EmployeeNumber,
-                    Position = completeUser.EmployeeProfile?.Position,
-                    HireDate = completeUser.EmployeeProfile?.HireDate,
-                    BaseSalary = completeUser.EmployeeProfile?.BaseSalary ?? 0,
-                    PaymentFrequency = completeUser.EmployeeProfile?.PaymentFrequency,
-                    BankAccount = completeUser.EmployeeProfile?.BankAccount,
-                    BankName = completeUser.EmployeeProfile?.BankName,
-                    EmploymentStatus = completeUser.EmployeeProfile?.EmploymentStatus ?? "Active",
+                    HasEmployeeProfile = employeeProfile != null,
+                    EmployeeProfileId = employeeProfile?.EmployeeProfileId,
+                    EmployeeNumber = employeeProfile?.EmployeeNumber,
+                    Position = employeeProfile?.Position,
+                    HireDate = employeeProfile?.HireDate,
+                    BaseSalary = employeeProfile?.BaseSalary ?? 0,
+                    PaymentFrequency = employeeProfile?.PaymentFrequency,
+                    BankAccount = employeeProfile?.BankAccount,
+                    BankName = employeeProfile?.BankName,
+                    EmploymentStatus = employeeProfile?.EmploymentStatus ?? "Active",
                     
                     // Department Information
-                    DepartmentNames = completeUser.UserDepartments?.Any() == true 
-                        ? string.Join(", ", completeUser.UserDepartments.Select(ud => ud.Department.Name))
+                    DepartmentNames = userDepartments?.Any() == true 
+                        ? string.Join(", ", userDepartments.Select(ud => ud.Department.Name))
                         : "No Department Assigned",
                     
                     // Performance Metrics - Enhanced
-                    TotalSales = completeUser.Sales?.Count ?? 0,
-                    TotalSalesAmount = completeUser.Sales?.Sum(s => s.TotalAmount) ?? 0,
-                    SalesToday = completeUser.Sales?.Count(s => s.SaleDate.Date == DateTime.Today) ?? 0,
-                    SalesTodayAmount = completeUser.Sales?.Where(s => s.SaleDate.Date == DateTime.Today).Sum(s => s.TotalAmount) ?? 0,
-                    SalesThisMonth = completeUser.Sales?.Count(s => s.SaleDate.Month == DateTime.Now.Month && s.SaleDate.Year == DateTime.Now.Year) ?? 0,
-                    SalesThisMonthAmount = completeUser.Sales?.Where(s => s.SaleDate.Month == DateTime.Now.Month && s.SaleDate.Year == DateTime.Now.Year).Sum(s => s.TotalAmount) ?? 0,
-                    AverageSaleAmount = completeUser.Sales?.Any() == true ? completeUser.Sales.Average(s => s.TotalAmount) : 0,
+                    TotalSales = sales?.Count ?? 0,
+                    TotalSalesAmount = sales?.Sum(s => s.TotalAmount) ?? 0,
+                    SalesToday = sales?.Count(s => s.SaleDate.Date == DateTime.Today) ?? 0,
+                    SalesTodayAmount = sales?.Where(s => s.SaleDate.Date == DateTime.Today).Sum(s => s.TotalAmount) ?? 0,
+                    SalesThisMonth = sales?.Count(s => s.SaleDate.Month == DateTime.Now.Month && s.SaleDate.Year == DateTime.Now.Year) ?? 0,
+                    SalesThisMonthAmount = sales?.Where(s => s.SaleDate.Month == DateTime.Now.Month && s.SaleDate.Year == DateTime.Now.Year).Sum(s => s.TotalAmount) ?? 0,
+                    AverageSaleAmount = sales?.Any() == true ? sales.Average(s => s.TotalAmount) : 0,
                     
                     // Financial Information
-                    CurrentSalary = completeUser.EmployeeProfile?.BaseSalary ?? 0,
-                    TotalSalariesPaid = completeUser.EmployeeProfile?.EmployeePayments?.Sum(p => p.NetPay) ?? 0,
-                    OutstandingFines = completeUser.EmployeeProfile?.EmployeeFines?.Where(f => f.Status != "Paid").Sum(f => f.Amount) ?? 0,
-                    TotalFines = completeUser.EmployeeProfile?.EmployeeFines?.Sum(f => f.Amount) ?? 0,
-                    TotalPaid = completeUser.EmployeeProfile?.EmployeePayments?.Sum(p => p.NetPay) ?? 0,
+                    CurrentSalary = employeeProfile?.BaseSalary ?? 0,
+                    TotalSalariesPaid = paymentHistory?.Sum(p => p.NetPay) ?? 0,
+                    OutstandingFines = fineHistory?.Where(f => f.Status != "Paid").Sum(f => f.Amount) ?? 0,
+                    TotalFines = fineHistory?.Sum(f => f.Amount) ?? 0,
+                    TotalPaid = paymentHistory?.Sum(p => p.NetPay) ?? 0,
                     
-                    // Recent Activity
-                    RecentSalaries = completeUser.EmployeeProfile?.EmployeeSalaries?.OrderByDescending(s => s.EffectiveDate).Take(5).ToList() ?? new List<EmployeeSalary>(),
-                    RecentFines = completeUser.EmployeeProfile?.EmployeeFines?.OrderByDescending(f => f.IssuedDate).Take(5).ToList() ?? new List<EmployeeFine>(),
-                    RecentPayments = completeUser.EmployeeProfile?.EmployeePayments?.OrderByDescending(p => p.PaymentDate).Take(5).ToList() ?? new List<EmployeePayment>()
+                    // Recent Activity - Include history data
+                    SalaryHistory = salaryHistory.Select(s => new EmployeeSalaryViewModel
+                        {
+                            SalaryId = s.SalaryId,
+                            Amount = s.Amount,
+                            SalaryType = s.SalaryType,
+                            EffectiveDate = s.EffectiveDate,
+                            EndDate = s.EndDate,
+                            Notes = s.Notes,
+                            IsActive = s.IsActive
+                        }).ToList(),
+                    
+                    FineHistory = fineHistory.Select(f => new EmployeeFineViewModel
+                        {
+                            FineId = f.FineId,
+                            Reason = f.Reason,
+                            Amount = f.Amount,
+                            Status = f.Status,
+                            Description = f.Description,
+                            IssuedDate = f.IssuedDate,
+                            PaidDate = f.PaidDate,
+                            IssuedByUserName = "System", // Removed navigation property to avoid cycles
+                            PaymentMethod = f.PaymentMethod
+                        }).ToList(),
+                    
+                    PaymentHistory = paymentHistory.Select(p => new EmployeePaymentViewModel
+                        {
+                            PaymentId = p.PaymentId,
+                            PaymentNumber = p.PaymentNumber,
+                            GrossPay = p.GrossPay,
+                            NetPay = p.NetPay,
+                            PaymentDate = p.PaymentDate,
+                            PaymentPeriod = p.PaymentPeriod,
+                            Status = p.Status
+                        }).ToList(),
+                    
+                    // Recent Activity for timeline (no navigation properties)
+                    RecentSalaries = new List<EmployeeSalary>(),
+                    RecentFines = new List<EmployeeFine>(),
+                    RecentPayments = new List<EmployeePayment>()
                 };
                 
                 _logger.LogInformation($"Successfully created view model for user {user.FirstName} {user.LastName}");
@@ -1207,17 +1268,24 @@ namespace PixelSolution.Controllers
             try
             {
                 var user = await _context.Users
-                    .Include(u => u.EmployeeProfile)
                     .FirstOrDefaultAsync(u => u.UserId == request.UserId);
 
-                if (user?.EmployeeProfile == null)
+                if (user == null)
+                {
+                    return Json(new { success = false, message = "User not found." });
+                }
+
+                var employeeProfile = await _context.EmployeeProfiles
+                    .FirstOrDefaultAsync(ep => ep.UserId == request.UserId);
+
+                if (employeeProfile == null)
                 {
                     return Json(new { success = false, message = "Employee profile not found." });
                 }
 
                 var fine = new EmployeeFine
                 {
-                    EmployeeProfileId = user.EmployeeProfile.EmployeeProfileId,
+                    EmployeeProfileId = employeeProfile.EmployeeProfileId,
                     Amount = request.Amount,
                     Reason = request.Reason,
                     Description = request.Description,
@@ -1233,13 +1301,75 @@ namespace PixelSolution.Controllers
                 // Send notification to employee
                 await SendFineNotification(user, fine);
 
-                return Json(new { success = true, message = "Fine added successfully and employee has been notified." });
+                return Json(new { success = true, message = "Fine added successfully and employee has been notified.", fineId = fine.FineId });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error adding employee fine");
                 return Json(new { success = false, message = "Error adding fine. Please try again." });
             }
+        }
+
+        [HttpPost]
+        [Authorize(Roles = "Admin,Manager")]
+        public async Task<IActionResult> UpdateEmployeeFine([FromBody] UpdateEmployeeFineRequest request)
+        {
+            try
+            {
+                var fine = await _context.EmployeeFines
+                    .FirstOrDefaultAsync(f => f.FineId == request.FineId);
+
+                if (fine == null)
+                {
+                    return Json(new { success = false, message = "Fine not found." });
+                }
+
+                fine.Amount = request.Amount;
+                fine.Reason = request.Reason;
+                fine.Description = request.Description;
+                fine.DueDate = request.DueDate;
+                fine.Status = request.Status;
+
+                await _context.SaveChangesAsync();
+
+                return Json(new { success = true, message = "Fine updated successfully." });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating employee fine");
+                return Json(new { success = false, message = "Error updating fine. Please try again." });
+            }
+        }
+
+        [HttpPost]
+        [Authorize(Roles = "Admin,Manager")]
+        public async Task<IActionResult> DeleteEmployeeFine([FromBody] DeleteEmployeeFineRequest request)
+        {
+            try
+            {
+                var fine = await _context.EmployeeFines
+                    .FirstOrDefaultAsync(f => f.FineId == request.FineId);
+
+                if (fine == null)
+                {
+                    return Json(new { success = false, message = "Fine not found." });
+                }
+
+                _context.EmployeeFines.Remove(fine);
+                await _context.SaveChangesAsync();
+
+                return Json(new { success = true, message = "Fine deleted successfully." });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting employee fine");
+                return Json(new { success = false, message = "Error deleting fine. Please try again." });
+            }
+        }
+
+        public class DeleteEmployeeFineRequest
+        {
+            public int FineId { get; set; }
         }
 
         [HttpPost]
@@ -1396,6 +1526,16 @@ namespace PixelSolution.Controllers
             public DateTime DueDate { get; set; }
         }
 
+        public class UpdateEmployeeFineRequest
+        {
+            public int FineId { get; set; }
+            public decimal Amount { get; set; }
+            public string Reason { get; set; } = string.Empty;
+            public string Description { get; set; } = string.Empty;
+            public DateTime DueDate { get; set; }
+            public string Status { get; set; } = string.Empty;
+        }
+
         public class PaymentReminderRequest
         {
             public int UserId { get; set; }
@@ -1453,22 +1593,28 @@ namespace PixelSolution.Controllers
         {
             try
             {
-                var user = await _context.Users.FirstOrDefaultAsync(u => u.UserId == request.UserId);
+                _logger.LogInformation("=== SendEmployeeEmail called ===");
+                _logger.LogInformation("Raw request object: {@Request}", request);
+                _logger.LogInformation("Request.UserId: {UserId}", request?.UserId);
+                _logger.LogInformation($"Sending email to user {request.UserId}: {request.Subject}");
+
+                var user = await _context.Users.FindAsync(request.UserId);
                 if (user == null)
                 {
-                    return Json(new { success = false, message = "Employee not found." });
+                    _logger.LogWarning($"User with ID {request.UserId} not found for email sending");
+                    return Json(new { success = false, message = $"User with ID {request.UserId} not found." });
                 }
 
+                // Send email to user's actual email address
                 await _emailService.SendEmailAsync(user.Email, request.Subject, request.Body);
 
-                // Also send as in-app message
+                // Also save as internal message for record keeping
                 var message = new Message
                 {
-                    FromUserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "1"),
-                    ToUserId = user.UserId,
-                    Subject = request.Subject,
-                    Content = request.Body,
-                    MessageType = "Email",
+                    FromUserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0"),
+                    ToUserId = request.UserId,
+                    Subject = $"[EMAIL SENT] {request.Subject}",
+                    Content = $"Email sent to: {user.Email}\n\nContent:\n{request.Body}",
                     SentDate = DateTime.UtcNow,
                     IsRead = false
                 };
@@ -1476,12 +1622,58 @@ namespace PixelSolution.Controllers
                 _context.Messages.Add(message);
                 await _context.SaveChangesAsync();
 
-                return Json(new { success = true, message = "Email sent successfully." });
+                return Json(new { success = true, message = $"Email sent successfully to {user.Email}!" });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error sending employee email");
-                return Json(new { success = false, message = "Error sending email. Please try again." });
+                _logger.LogError(ex, "Error sending email to user {UserId}", request.UserId);
+                return Json(new { success = false, message = "Failed to send email. Please try again." });
+            }
+        }
+
+        [HttpPost]
+        [Authorize(Roles = "Admin,Manager")]
+        public async Task<IActionResult> CreateEmployeeProfile([FromBody] CreateEmployeeProfileRequest request)
+        {
+            try
+            {
+                _logger.LogInformation("=== CreateEmployeeProfile called ===");
+                _logger.LogInformation("Raw request object: {@Request}", request);
+                _logger.LogInformation("Request.UserId: {UserId}", request?.UserId);
+                _logger.LogInformation("Creating employee profile for UserId: {UserId}", request.UserId);
+                
+                var user = await _context.Users.FindAsync(request.UserId);
+                if (user == null)
+                {
+                    _logger.LogWarning("User not found with ID: {UserId}", request.UserId);
+                    return Json(new { success = false, message = $"User not found with ID: {request.UserId}" });
+                }
+
+                if (await _context.EmployeeProfiles.AnyAsync(ep => ep.UserId == request.UserId))
+                {
+                    return Json(new { success = false, message = "Employee profile already exists for this user." });
+                }
+
+                var employeeProfile = new EmployeeProfile
+                {
+                    UserId = request.UserId,
+                    HireDate = request.HireDate,
+                    Position = request.Position,
+                    EmploymentStatus = "Active",
+                    EmergencyContact = $"{request.EmergencyContactName}|{request.EmergencyContactPhone}",
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+
+                _context.EmployeeProfiles.Add(employeeProfile);
+                await _context.SaveChangesAsync();
+
+                return Json(new { success = true, message = "Employee profile created successfully!" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating employee profile for user {UserId}", request.UserId);
+                return Json(new { success = false, message = "Failed to create employee profile." });
             }
         }
 
@@ -1555,17 +1747,24 @@ namespace PixelSolution.Controllers
             try
             {
                 var user = await _context.Users
-                    .Include(u => u.EmployeeProfile)
                     .FirstOrDefaultAsync(u => u.UserId == request.UserId);
 
-                if (user?.EmployeeProfile == null)
+                if (user == null)
+                {
+                    return Json(new { success = false, message = "User not found." });
+                }
+
+                var employeeProfile = await _context.EmployeeProfiles
+                    .FirstOrDefaultAsync(ep => ep.UserId == request.UserId);
+
+                if (employeeProfile == null)
                 {
                     return Json(new { success = false, message = "Employee profile not found." });
                 }
 
                 var salary = new EmployeeSalary
                 {
-                    EmployeeProfileId = user.EmployeeProfile.EmployeeProfileId,
+                    EmployeeProfileId = employeeProfile.EmployeeProfileId,
                     Amount = request.Amount,
                     SalaryType = request.SalaryType,
                     EffectiveDate = request.EffectiveDate,
@@ -1577,7 +1776,7 @@ namespace PixelSolution.Controllers
                 if (request.SalaryType == "Base")
                 {
                     var previousSalaries = await _context.EmployeeSalaries
-                        .Where(s => s.EmployeeProfileId == user.EmployeeProfile.EmployeeProfileId && 
+                        .Where(s => s.EmployeeProfileId == employeeProfile.EmployeeProfileId && 
                                s.SalaryType == "Base" && s.IsActive == true)
                         .ToListAsync();
                     
@@ -1594,7 +1793,7 @@ namespace PixelSolution.Controllers
                 // Send salary update notification
                 await SendSalaryUpdateNotification(user, salary);
 
-                return Json(new { success = true, message = "Salary updated successfully and employee has been notified." });
+                return Json(new { success = true, message = "Salary updated successfully and employee has been notified.", salaryId = salary.SalaryId });
             }
             catch (Exception ex)
             {
@@ -1688,6 +1887,16 @@ namespace PixelSolution.Controllers
         {
             public int UserId { get; set; }
         }
+
+        public class CreateEmployeeProfileRequest
+        {
+            public int UserId { get; set; }
+            public DateTime HireDate { get; set; }
+            public string Position { get; set; }
+            public string ManagerName { get; set; }
+            public string EmergencyContactName { get; set; }
+            public string EmergencyContactPhone { get; set; }
+        }
         #endregion
 
         #region Reports and Analytics
@@ -1703,6 +1912,409 @@ namespace PixelSolution.Controllers
                 TempData["ErrorMessage"] = "Error loading reports.";
                 return View();
             }
+        }
+
+        [HttpPost]
+        [Authorize(Roles = "Admin,Manager")]
+        public async Task<IActionResult> GenerateEmployeeReport(int userId)
+        {
+            try
+            {
+                var user = await _context.Users
+                    .Include(u => u.EmployeeProfile)
+                        .ThenInclude(ep => ep.EmployeeSalaries)
+                    .Include(u => u.EmployeeProfile)
+                        .ThenInclude(ep => ep.EmployeeFines)
+                    .Include(u => u.EmployeeProfile)
+                        .ThenInclude(ep => ep.EmployeePayments)
+                    .Include(u => u.UserDepartments)
+                        .ThenInclude(ud => ud.Department)
+                    .Include(u => u.Sales)
+                    .FirstOrDefaultAsync(u => u.UserId == userId);
+
+                if (user == null)
+                {
+                    return NotFound("Employee not found");
+                }
+
+                // Generate PDF content
+                var html = GenerateEmployeeReportHtml(user);
+                var pdf = GeneratePdfFromHtml(html);
+
+                return File(pdf, "application/pdf", $"Employee_Report_{user.FirstName}_{user.LastName}_{DateTime.Now:yyyyMMdd}.pdf");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error generating employee report for user {UserId}", userId);
+                return BadRequest("Error generating report");
+            }
+        }
+
+        private string GenerateEmployeeReportHtml(User user)
+        {
+            var html = $@"
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset='utf-8'>
+                    <title>Employee Report - {user.FirstName} {user.LastName}</title>
+                    <style>
+                        body {{ 
+                            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+                            margin: 0; 
+                            padding: 20px;
+                            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+                            color: #333;
+                        }}
+                        .container {{
+                            max-width: 800px;
+                            margin: 0 auto;
+                            background: white;
+                            border-radius: 15px;
+                            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+                            overflow: hidden;
+                        }}
+                        .header {{ 
+                            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                            color: white;
+                            text-align: center; 
+                            padding: 40px 20px;
+                            position: relative;
+                        }}
+                        .header::before {{
+                            content: '';
+                            position: absolute;
+                            top: -50%;
+                            right: -20%;
+                            width: 200px;
+                            height: 200px;
+                            background: rgba(255,255,255,0.1);
+                            border-radius: 50%;
+                        }}
+                        .company-logo {{
+                            font-size: 2.5em;
+                            font-weight: bold;
+                            margin-bottom: 10px;
+                            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+                        }}
+                        .report-title {{
+                            font-size: 1.8em;
+                            margin-bottom: 10px;
+                            font-weight: 300;
+                        }}
+                        .report-date {{
+                            font-size: 1em;
+                            opacity: 0.9;
+                        }}
+                        .content {{
+                            padding: 30px;
+                        }}
+                        .section {{ 
+                            margin-bottom: 35px;
+                            background: #f8f9fa;
+                            border-radius: 10px;
+                            padding: 25px;
+                            border-left: 5px solid #667eea;
+                        }}
+                        .section h3 {{ 
+                            color: #667eea; 
+                            font-size: 1.4em;
+                            margin-bottom: 20px;
+                            font-weight: 600;
+                        }}
+                        table {{ 
+                            width: 100%; 
+                            border-collapse: collapse; 
+                            margin-top: 15px;
+                            background: white;
+                            border-radius: 8px;
+                            overflow: hidden;
+                            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+                        }}
+                        th, td {{ 
+                            padding: 15px; 
+                            text-align: left;
+                            border-bottom: 1px solid #eee;
+                        }}
+                        th {{ 
+                            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                            color: white;
+                            font-weight: 600;
+                            text-transform: uppercase;
+                            font-size: 0.9em;
+                            letter-spacing: 0.5px;
+                        }}
+                        tr:hover {{
+                            background-color: #f8f9fa;
+                        }}
+                        .info-grid {{ 
+                            display: grid; 
+                            grid-template-columns: 1fr 1fr; 
+                            gap: 25px;
+                            margin-top: 15px;
+                        }}
+                        .info-item {{ 
+                            background: white;
+                            padding: 15px;
+                            border-radius: 8px;
+                            border-left: 3px solid #667eea;
+                            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+                        }}
+                        .label {{ 
+                            font-weight: 600; 
+                            color: #667eea;
+                            display: block;
+                            margin-bottom: 5px;
+                            font-size: 0.9em;
+                            text-transform: uppercase;
+                            letter-spacing: 0.5px;
+                        }}
+                        .value {{
+                            font-size: 1.1em;
+                            color: #333;
+                        }}
+                        .footer {{
+                            background: #f8f9fa;
+                            padding: 20px;
+                            text-align: center;
+                            color: #666;
+                            font-size: 0.9em;
+                            border-top: 1px solid #eee;
+                        }}
+                        .status-badge {{
+                            display: inline-block;
+                            padding: 5px 12px;
+                            border-radius: 20px;
+                            font-size: 0.8em;
+                            font-weight: 600;
+                            text-transform: uppercase;
+                        }}
+                        .status-active {{ background: #d4edda; color: #155724; }}
+                        .status-inactive {{ background: #f8d7da; color: #721c24; }}
+                        .amount {{ font-weight: 600; color: #28a745; }}
+                        .amount-negative {{ font-weight: 600; color: #dc3545; }}
+                    </style>
+                </head>
+                <body>
+                    <div class='container'>
+                        <div class='header'>
+                            <div class='company-logo'>PIXEL SOLUTION LTD</div>
+                            <div class='report-title'>Employee Comprehensive Report</div>
+                            <div class='report-date'>Generated on: {DateTime.Now:MMMM dd, yyyy 'at' HH:mm}</div>
+                        </div>
+                        <div class='content'>
+
+                    <div class='section'>
+                        <h3>Personal Information</h3>
+                        <div class='info-grid'>
+                            <div>
+                                <div class='info-item'>
+                                    <span class='label'>Full Name</span>
+                                    <div class='value'>{user.FirstName} {user.LastName}</div>
+                                </div>
+                                <div class='info-item'>
+                                    <span class='label'>Email Address</span>
+                                    <div class='value'>{user.Email}</div>
+                                </div>
+                                <div class='info-item'>
+                                    <span class='label'>Phone Number</span>
+                                    <div class='value'>{user.Phone ?? "Not Provided"}</div>
+                                </div>
+                                <div class='info-item'>
+                                    <span class='label'>User Role</span>
+                                    <div class='value'>{user.UserType}</div>
+                                </div>
+                            </div>
+                            <div>
+                                <div class='info-item'>
+                                    <span class='label'>Employee ID</span>
+                                    <div class='value'>EMP-{user.UserId:D4}</div>
+                                </div>
+                                <div class='info-item'>
+                                    <span class='label'>Account Status</span>
+                                    <div class='value'><span class='status-badge {(user.Status == "Active" ? "status-active" : "status-inactive")}'>{user.Status}</span></div>
+                                </div>
+                                <div class='info-item'>
+                                    <span class='label'>Join Date</span>
+                                    <div class='value'>{user.CreatedAt:MMMM dd, yyyy}</div>
+                                </div>
+                                <div class='info-item'>
+                                    <span class='label'>Department</span>
+                                    <div class='value'>{string.Join(", ", user.UserDepartments?.Select(ud => ud.Department?.Name) ?? new List<string> { "Not Assigned" })}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>";
+
+            if (user.EmployeeProfile != null)
+            {
+                html += $@"
+                    <div class='section'>
+                        <h3>Employment Details</h3>
+                        <div class='info-grid'>
+                            <div>
+                                <div class='info-item'><span class='label'>Hire Date:</span> {user.EmployeeProfile.HireDate:MMMM dd, yyyy}</div>
+                                <div class='info-item'><span class='label'>Position:</span> {user.EmployeeProfile.Position ?? "N/A"}</div>
+                                <div class='info-item'><span class='label'>Employment Status:</span> {user.EmployeeProfile.EmploymentStatus}</div>
+                            </div>
+                            <div>
+                                <div class='info-item'><span class='label'>Manager:</span> N/A</div>
+                                <div class='info-item'><span class='label'>Emergency Contact:</span> {user.EmployeeProfile.EmergencyContact ?? "N/A"}</div>
+                                <div class='info-item'><span class='label'>Emergency Phone:</span> {user.EmployeeProfile.EmergencyContact ?? "N/A"}</div>
+                            </div>
+                        </div>
+                    </div>";
+
+                // Salary History
+                if (user.EmployeeProfile.EmployeeSalaries?.Any() == true)
+                {
+                    html += @"
+                        <div class='section'>
+                            <h3>Salary History</h3>
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Effective Date</th>
+                                        <th>Type</th>
+                                        <th>Amount (KSh)</th>
+                                        <th>Status</th>
+                                        <th>Notes</th>
+                                    </tr>
+                                </thead>
+                                <tbody>";
+
+                    foreach (var salary in user.EmployeeProfile.EmployeeSalaries.OrderByDescending(s => s.EffectiveDate))
+                    {
+                        html += $@"
+                            <tr>
+                                <td>{salary.EffectiveDate:MMM dd, yyyy}</td>
+                                <td>{salary.SalaryType}</td>
+                                <td>{salary.Amount:N2}</td>
+                                <td>{(salary.IsActive ? "Active" : "Inactive")}</td>
+                                <td>{salary.Notes ?? ""}</td>
+                            </tr>";
+                    }
+
+                    html += @"
+                                </tbody>
+                            </table>
+                        </div>";
+                }
+
+                // Fines History
+                if (user.EmployeeProfile.EmployeeFines?.Any() == true)
+                {
+                    html += @"
+                        <div class='section'>
+                            <h3>Fines & Deductions</h3>
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Issue Date</th>
+                                        <th>Reason</th>
+                                        <th>Amount (KSh)</th>
+                                        <th>Status</th>
+                                        <th>Issued By</th>
+                                    </tr>
+                                </thead>
+                                <tbody>";
+
+                    foreach (var fine in user.EmployeeProfile.EmployeeFines.OrderByDescending(f => f.IssuedDate))
+                    {
+                        html += $@"
+                            <tr>
+                                <td>{fine.IssuedDate:MMM dd, yyyy}</td>
+                                <td>{fine.Reason}</td>
+                                <td>{fine.Amount:N2}</td>
+                                <td>{fine.Status}</td>
+                                <td>{fine.IssuedByUser?.FullName ?? "System"}</td>
+                            </tr>";
+                    }
+
+                    html += @"
+                                </tbody>
+                            </table>
+                        </div>";
+                }
+
+                // Payment History
+                if (user.EmployeeProfile.EmployeePayments?.Any() == true)
+                {
+                    html += @"
+                        <div class='section'>
+                            <h3>Payment History</h3>
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Payment Date</th>
+                                        <th>Period</th>
+                                        <th>Gross Pay (KSh)</th>
+                                        <th>Net Pay (KSh)</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>";
+
+                    foreach (var payment in user.EmployeeProfile.EmployeePayments.OrderByDescending(p => p.PaymentDate))
+                    {
+                        html += $@"
+                            <tr>
+                                <td>{payment.PaymentDate:MMM dd, yyyy}</td>
+                                <td>{payment.PaymentPeriod}</td>
+                                <td>{payment.GrossPay:N2}</td>
+                                <td>{payment.NetPay:N2}</td>
+                                <td>{payment.Status}</td>
+                            </tr>";
+                    }
+
+                    html += @"
+                                </tbody>
+                            </table>
+                        </div>";
+                }
+            }
+
+            // Sales Performance
+            if (user.Sales?.Any() == true)
+            {
+                var totalSales = user.Sales.Count;
+                var totalAmount = user.Sales.Sum(s => s.TotalAmount);
+                var avgSale = totalSales > 0 ? totalAmount / totalSales : 0;
+
+                html += $@"
+                    <div class='section'>
+                        <h3>Sales Performance</h3>
+                        <div class='info-grid'>
+                            <div>
+                                <div class='info-item'><span class='label'>Total Sales:</span> {totalSales}</div>
+                                <div class='info-item'><span class='label'>Total Revenue:</span> KSh {totalAmount:N2}</div>
+                            </div>
+                            <div>
+                                <div class='info-item'><span class='label'>Average Sale:</span> KSh {avgSale:N2}</div>
+                                <div class='info-item'><span class='label'>Last Sale:</span> {user.Sales.OrderByDescending(s => s.SaleDate).FirstOrDefault()?.SaleDate:MMM dd, yyyy}</div>
+                            </div>
+                        </div>
+                    </div>";
+            }
+
+            html += @"
+                        </div>
+                        <div class='footer'>
+                            <p><strong>PIXEL SOLUTION LTD</strong> - Employee Management System</p>
+                            <p>This report is confidential and intended for authorized personnel only.</p>
+                            <p>For questions or concerns, contact HR Department at hr@pixelsolution.com</p>
+                        </div>
+                    </div>
+                </body>
+                </html>";
+
+            return html;
+        }
+
+        private byte[] GeneratePdfFromHtml(string html)
+        {
+            // For now, return HTML as bytes - in production, use a PDF library like iTextSharp or PuppeteerSharp
+            return System.Text.Encoding.UTF8.GetBytes(html);
         }
 
         [HttpGet]
@@ -5125,7 +5737,7 @@ namespace PixelSolution.Controllers
             if (!string.IsNullOrEmpty(realIp) && realIp != "::1" && realIp != "127.0.0.1")
                 return realIp;
 
-            // Fall back to connection remote IP
+            // Get remote IP address
             var remoteIp = HttpContext.Connection.RemoteIpAddress?.ToString();
             if (!string.IsNullOrEmpty(remoteIp))
             {

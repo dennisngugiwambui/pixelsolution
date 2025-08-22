@@ -1264,13 +1264,20 @@
             }
         }
 
-        function viewEmployee(userId) {
+        function viewEmployeeDetails(userId) {
             console.log('Viewing employee details for user:', userId);
+            
+            // Validate userId before navigation
+            if (!userId || userId <= 0) {
+                console.error('Invalid user ID:', userId);
+                showToast('Invalid user ID', 'error');
+                return;
+            }
             
             // Use server-generated route to avoid hardcoded paths
             var urlTemplate = '@Url.Action("UserDetails", "Admin", new { id = "__ID__" })';
             var url = urlTemplate.replace('__ID__', userId);
-            console.log('Redirecting to:', url);
+            console.log('Redirecting to:', url, 'with userId:', userId);
             window.location.href = url;
         }
 

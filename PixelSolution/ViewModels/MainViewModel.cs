@@ -849,6 +849,10 @@ namespace PixelSolution.ViewModels
         public List<EmployeeSalaryViewModel> SalaryHistory { get; set; } = new List<EmployeeSalaryViewModel>();
         public List<EmployeeFineViewModel> Fines { get; set; } = new List<EmployeeFineViewModel>();
         public List<EmployeePaymentViewModel> Payments { get; set; } = new List<EmployeePaymentViewModel>();
+        
+        // History Collections for Tabs
+        public List<EmployeeFineViewModel> FineHistory { get; set; } = new List<EmployeeFineViewModel>();
+        public List<EmployeePaymentViewModel> PaymentHistory { get; set; } = new List<EmployeePaymentViewModel>();
         public decimal CurrentSalary { get; set; }
         public decimal OutstandingFines { get; set; }
         public decimal TotalPaid { get; set; }
