@@ -6207,13 +6207,17 @@ namespace PixelSolution.Controllers
                 await _context.SaveChangesAsync();
 
                 // Log the activity
-                await _activityLogService.LogActivityAsync(
-                    User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "System",
-                    "Department Assignment",
-                    $"Assigned departments to user {user.FirstName} {user.LastName}",
-                    "UserDepartment",
-                    request.UserId.ToString()
-                );
+                var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (int.TryParse(currentUserId, out int logUserId))
+                {
+                    await _activityLogService.LogActivityAsync(
+                        logUserId,
+                        "Department Assignment",
+                        $"Assigned departments to user {user.FirstName} {user.LastName}",
+                        "UserDepartment",
+                        request.UserId
+                    );
+                }
 
                 return Json(new { success = true, message = "Departments assigned successfully" });
             }
