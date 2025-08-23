@@ -49,6 +49,7 @@ builder.Services.AddScoped<ISalesService, SalesService>();
 builder.Services.AddScoped<IBarcodeService, BarcodeService>();
 builder.Services.AddScoped<IReceiptPrintingService, ReceiptPrintingService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<IEnhancedEmailService, EnhancedEmailService>();
 builder.Services.AddScoped<IActivityLogService, ActivityLogService>();
 
 // New Customer and Employee Management Services

@@ -9,7 +9,8 @@
     <style>
         .user-details-container {
             background: #f8fafc;
-            min-height: calc(100vh - 80px);
+            min-height: auto;
+            padding-bottom: 1rem;
         }
 
         /* Header Styles */
@@ -684,6 +685,58 @@
                 padding: 1rem;
             }
 
+        /* Tailwind-style modals */
+        .fixed.inset-0.hidden {
+            display: none;
+        }
+
+        .fixed.inset-0:not(.hidden) {
+            display: flex;
+        }
+
+        /* Pagination Styles */
+        .pagination-controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 1rem;
+            padding: 1rem 0;
+        }
+
+        .pagination-btn {
+            padding: 0.5rem 0.75rem;
+            border: 1px solid #d1d5db;
+            background: white;
+            color: #374151;
+            border-radius: 0.375rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.875rem;
+        }
+
+        .pagination-btn:hover {
+            background: #f3f4f6;
+            border-color: #9ca3af;
+        }
+
+        .pagination-btn.active {
+            background: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+        }
+
+        .pagination-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .pagination-info {
+            font-size: 0.875rem;
+            color: #6b7280;
+            margin: 0 1rem;
+        }
+
         .modal-content {
             background: white;
             padding: 0;
@@ -1186,6 +1239,13 @@
                             </div>
                         }
                         <div class="info-item">
+                            <span class="info-label">Department</span>
+                            <span class="info-value">@Model.DepartmentNames</span>
+                            <button class="btn btn-sm btn-outline-primary" onclick="openDepartmentModal(@Model.UserId)" style="margin-left: 10px;">
+                                <i class="fas fa-edit"></i> Assign
+                            </button>
+                        </div>
+                        <div class="info-item">
                             <span class="info-label">Employment Status</span>
                             <span class="info-value">@Model.EmploymentStatus</span>
                         </div>
@@ -1491,33 +1551,51 @@
                 </div>
                     @if (Model.SalaryHistory?.Any() == true)
                     {
-                        <table class="data-table">
-                            <thead>
-                                <tr>
-                                    <th>Effective Date</th>
-                                    <th>Type</th>
-                                    <th>Amount</th>
-                                    <th>Status</th>
-                                    <th>Notes</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var salary in Model.SalaryHistory)
-                                {
+                        <div id="salaryTableContainer">
+                            <table class="data-table" id="salaryTable">
+                                <thead>
                                     <tr>
-                                        <td>@salary.EffectiveDate.ToString("MMM dd, yyyy")</td>
-                                        <td>@salary.SalaryType</td>
-                                        <td>KSh @salary.Amount.ToString("N2")</td>
-                                        <td>
-                                            <span class="status-badge @(salary.IsActive ? "active" : "")">
-                                                @(salary.IsActive ? "Active" : "Inactive")
-                                            </span>
-                                        </td>
-                                        <td>@salary.Notes</td>
+                                        <th>Effective Date</th>
+                                        <th>Type</th>
+                                        <th>Amount</th>
+                                        <th>Status</th>
+                                        <th>Notes</th>
+                                        <th>Actions</th>
                                     </tr>
-                                }
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody id="salaryTableBody">
+                                    @foreach (var salary in Model.SalaryHistory)
+                                    {
+                                        <tr class="salary-row">
+                                            <td>@salary.EffectiveDate.ToString("MMM dd, yyyy")</td>
+                                            <td>@salary.SalaryType</td>
+                                            <td>KSh @salary.Amount.ToString("N2")</td>
+                                            <td>
+                                                <span class="status-badge @(salary.Status?.ToLower() == "active" ? "active" : "")">
+                                                    @(salary.Status ?? "Inactive")
+                                                </span>
+                                            </td>
+                                            <td>@(salary.Notes ?? "N/A")</td>
+                                            <td>
+                                                <div class="action-buttons">
+                                                    <button class="btn btn-sm btn-primary" 
+                                                            onclick="editSalary(@salary.SalaryId, @salary.Amount, '@salary.SalaryType', '@salary.EffectiveDate.ToString("yyyy-MM-dd")', '@(salary.Status ?? "Active")', '@(salary.Notes ?? "")')"
+                                                            title="Edit Salary">
+                                                        <i class="fas fa-edit"></i>
+                                                    </button>
+                                                    <button class="btn btn-sm btn-danger" 
+                                                            onclick="deleteSalary(@salary.SalaryId)" 
+                                                            title="Delete Salary">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                            <div class="pagination-controls" id="salaryPagination"></div>
+                        </div>
                     }
                     else
                     {
@@ -1530,33 +1608,51 @@
                     <h3>Fines & Deductions</h3>
                     @if (Model.FineHistory?.Any() == true)
                     {
-                        <table class="data-table">
-                            <thead>
-                                <tr>
-                                    <th>Issue Date</th>
-                                    <th>Reason</th>
-                                    <th>Amount</th>
-                                    <th>Status</th>
-                                    <th>Issued By</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var fine in Model.FineHistory)
-                                {
+                        <div id="fineTableContainer">
+                            <table class="data-table" id="fineTable">
+                                <thead>
                                     <tr>
-                                        <td>@fine.IssuedDate.ToString("MMM dd, yyyy")</td>
-                                        <td>@fine.Reason</td>
-                                        <td>KSh @fine.Amount.ToString("N2")</td>
-                                        <td>
-                                            <span class="status-badge @fine.Status.ToLower()">
-                                                @fine.Status
-                                            </span>
-                                        </td>
-                                        <td>@fine.IssuedByUserName</td>
+                                        <th>Issue Date</th>
+                                        <th>Reason</th>
+                                        <th>Amount</th>
+                                        <th>Status</th>
+                                        <th>Issued By</th>
+                                        <th>Actions</th>
                                     </tr>
-                                }
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody id="fineTableBody">
+                                    @foreach (var fine in Model.FineHistory)
+                                    {
+                                        <tr class="fine-row">
+                                            <td>@fine.IssuedDate.ToString("MMM dd, yyyy")</td>
+                                            <td>@fine.Reason</td>
+                                            <td>KSh @fine.Amount.ToString("N2")</td>
+                                            <td>
+                                                <span class="status-badge @fine.Status.ToLower()">
+                                                    @fine.Status
+                                                </span>
+                                            </td>
+                                            <td>@fine.IssuedByUserName</td>
+                                            <td>
+                                                <div class="action-buttons">
+                                                    <button class="btn btn-sm btn-primary" 
+                                                            onclick="editFine(@fine.FineId, @fine.Amount, '@fine.Reason', '@(fine.Description ?? "")', '@(fine.DueDate?.ToString("yyyy-MM-dd") ?? "")', '@fine.Status')"
+                                                            title="Edit Fine">
+                                                        <i class="fas fa-edit"></i>
+                                                    </button>
+                                                    <button class="btn btn-sm btn-danger" 
+                                                            onclick="deleteFine(@fine.FineId)" 
+                                                            title="Delete Fine">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                            <div class="pagination-controls" id="finePagination"></div>
+                        </div>
                     }
                     else
                     {
@@ -1569,35 +1665,38 @@
                     <h3>Payment History</h3>
                     @if (Model.PaymentHistory?.Any() == true)
                     {
-                        <table class="data-table">
-                            <thead>
-                                <tr>
-                                    <th>Payment Date</th>
-                                    <th>Payment #</th>
-                                    <th>Period</th>
-                                    <th>Gross Pay</th>
-                                    <th>Net Pay</th>
-                                    <th>Status</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var payment in Model.PaymentHistory)
-                                {
+                        <div id="paymentTableContainer">
+                            <table class="data-table" id="paymentTable">
+                                <thead>
                                     <tr>
-                                        <td>@payment.PaymentDate.ToString("MMM dd, yyyy")</td>
-                                        <td>@payment.PaymentNumber</td>
-                                        <td>@payment.PaymentPeriod</td>
-                                        <td>KSh @payment.GrossPay.ToString("N2")</td>
-                                        <td>KSh @payment.NetPay.ToString("N2")</td>
-                                        <td>
-                                            <span class="status-badge @payment.Status.ToLower()">
-                                                @payment.Status
-                                            </span>
-                                        </td>
+                                        <th>Payment Date</th>
+                                        <th>Payment #</th>
+                                        <th>Period</th>
+                                        <th>Gross Pay</th>
+                                        <th>Net Pay</th>
+                                        <th>Status</th>
                                     </tr>
-                                }
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody id="paymentTableBody">
+                                    @foreach (var payment in Model.PaymentHistory)
+                                    {
+                                        <tr class="payment-row">
+                                            <td>@payment.PaymentDate.ToString("MMM dd, yyyy")</td>
+                                            <td>@payment.PaymentNumber</td>
+                                            <td>@payment.PaymentPeriod</td>
+                                            <td>KSh @payment.GrossPay.ToString("N2")</td>
+                                            <td>KSh @payment.NetPay.ToString("N2")</td>
+                                            <td>
+                                                <span class="status-badge @payment.Status.ToLower()">
+                                                    @payment.Status
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                            <div class="pagination-controls" id="paymentPagination"></div>
+                        </div>
                     }
                     else
                     {
@@ -1652,7 +1751,6 @@
                     </div>
                 </div>
             </div>
-        }
     </div>
 </div>
 
@@ -2798,24 +2896,35 @@ Pixel Solution Ltd`;
             const historyContainer = document.getElementById('salaryHistory');
             historyContainer.innerHTML = '<div class="loading">Loading salary history...</div>';
             
-            // Display recent salaries from model
-            const recentSalaries = @Html.Raw(Json.Serialize(Model.RecentSalaries ?? new List<EmployeeSalary>()));
+            // Display salary history from model
+            const salaryHistory = @Html.Raw(Json.Serialize(Model.SalaryHistory ?? new List<PixelSolution.ViewModels.EmployeeSalaryViewModel>()));
             
-            if (recentSalaries.length === 0) {
+            if (salaryHistory.length === 0) {
                 historyContainer.innerHTML = '<p class="no-data">No salary history available</p>';
                 return;
             }
 
             let historyHtml = '<div class="history-list">';
-            recentSalaries.forEach(salary => {
+            salaryHistory.forEach(salary => {
+                const statusClass = salary.status === 'Active' ? 'active' : 'inactive';
                 historyHtml += `
                     <div class="history-item">
                         <div class="history-details">
                             <strong>KSh ${salary.amount?.toLocaleString() || '0'}</strong>
                             <span class="history-date">${salary.effectiveDate ? new Date(salary.effectiveDate).toLocaleDateString() : 'Unknown'}</span>
+                            <span class="salary-type">${salary.salaryType || 'Base'}</span>
                         </div>
                         <div class="history-meta">
-                            <span class="frequency">${salary.paymentFrequency || 'Monthly'}</span>
+                            <span class="status ${statusClass}">${salary.status || 'Active'}</span>
+                            <div class="salary-actions">
+                                <button class="btn btn-sm btn-primary" onclick="editSalary(${salary.salaryId}, ${salary.amount}, '${salary.salaryType || 'Base'}', '${salary.effectiveDate}', '${salary.status || 'Active'}', '${salary.notes || ''}')"
+                                        title="Edit Salary">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-sm btn-danger" onclick="deleteSalary(${salary.salaryId})" title="Delete Salary">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 `;
@@ -2830,7 +2939,7 @@ Pixel Solution Ltd`;
             historyContainer.innerHTML = '<div class="loading">Loading fine history...</div>';
             
             // Use FineHistory from ViewModel
-            const fineHistory = @Html.Raw(Json.Serialize(Model.FineHistory ?? new List<EmployeeFineViewModel>()));
+            const fineHistory = @Html.Raw(Json.Serialize(Model.FineHistory ?? new List<PixelSolution.ViewModels.EmployeeFineViewModel>()));
             
             let historyHtml = '<div class="history-list">';
             
@@ -2875,7 +2984,7 @@ Pixel Solution Ltd`;
             historyContainer.innerHTML = '<div class="loading">Loading payment history...</div>';
             
             // Display recent payments from model
-            const recentPayments = @Html.Raw(Json.Serialize(Model.RecentPayments ?? new List<EmployeePayment>()));
+            const recentPayments = @Html.Raw(Json.Serialize(Model.PaymentHistory ?? new List<PixelSolution.ViewModels.EmployeePaymentViewModel>()));
             
             if (recentPayments.length === 0) {
                 historyContainer.innerHTML = '<p class="no-data">No payment history available</p>';
@@ -2884,15 +2993,17 @@ Pixel Solution Ltd`;
 
             let historyHtml = '<div class="history-list">';
             recentPayments.forEach(payment => {
+                const statusClass = payment.status === 'Completed' ? 'paid' : 'pending';
                 historyHtml += `
                     <div class="history-item">
-                        <div class="history-details">
-                            <strong>KSh ${payment.netPay?.toLocaleString() || '0'}</strong>
-                            <span class="payment-type">${payment.paymentPeriod || 'Salary'}</span>
+                        <div class="history-header">
                             <span class="history-date">${payment.paymentDate ? new Date(payment.paymentDate).toLocaleDateString() : 'Unknown'}</span>
+                            <span class="history-type">${payment.paymentPeriod || 'Salary'}</span>
+                            <span class="history-amount">KSh ${payment.netPay?.toLocaleString() || '0'}</span>
+                            <span class="status-badge ${statusClass}">${payment.status || 'Pending'}</span>
                         </div>
-                        <div class="history-meta">
-                            <span class="method">${payment.paymentMethod || 'Bank Transfer'}</span>
+                        <div class="history-details">
+                            <p><strong>Notes:</strong> ${payment.notes || 'N/A'}</p>
                         </div>
                     </div>
                 `;
@@ -2942,18 +3053,826 @@ Pixel Solution Ltd`;
             }, 4000);
         }
 
+        // Initialize pagination when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            initializePagination('salary');
+            initializePagination('fine');
+            initializePagination('payment');
+        });
+
+        // Pagination functionality
+        function initializePagination(tableType) {
+            const rows = document.querySelectorAll(`.${tableType}-row`);
+            const itemsPerPage = 10;
+            const totalPages = Math.ceil(rows.length / itemsPerPage);
+            
+            if (totalPages <= 1) return; // No pagination needed
+            
+            let currentPage = 1;
+            
+            function showPage(page) {
+                rows.forEach((row, index) => {
+                    const start = (page - 1) * itemsPerPage;
+                    const end = start + itemsPerPage;
+                    row.style.display = (index >= start && index < end) ? '' : 'none';
+                });
+                
+                updatePaginationControls(tableType, page, totalPages);
+            }
+            
+            function updatePaginationControls(type, current, total) {
+                const container = document.getElementById(`${type}Pagination`);
+                if (!container) return;
+                
+                container.innerHTML = `
+                    <button class="pagination-btn" onclick="changePage('${type}', ${current - 1})" ${current === 1 ? 'disabled' : ''}>
+                        <i class="fas fa-chevron-left"></i> Previous
+                    </button>
+                    <span class="pagination-info">Page ${current} of ${total}</span>
+                    <button class="pagination-btn" onclick="changePage('${type}', ${current + 1})" ${current === total ? 'disabled' : ''}>
+                        Next <i class="fas fa-chevron-right"></i>
+                    </button>
+                `;
+            }
+            
+            // Store pagination state
+            window[`${tableType}CurrentPage`] = currentPage;
+            window[`${tableType}TotalPages`] = totalPages;
+            
+            showPage(currentPage);
+        }
+        
+        function changePage(tableType, newPage) {
+            const totalPages = window[`${tableType}TotalPages`];
+            if (newPage < 1 || newPage > totalPages) return;
+            
+            window[`${tableType}CurrentPage`] = newPage;
+            
+            const rows = document.querySelectorAll(`.${tableType}-row`);
+            const itemsPerPage = 10;
+            
+            rows.forEach((row, index) => {
+                const start = (newPage - 1) * itemsPerPage;
+                const end = start + itemsPerPage;
+                row.style.display = (index >= start && index < end) ? '' : 'none';
+            });
+            
+            updatePaginationControls(tableType, newPage, totalPages);
+        }
+        
+        function updatePaginationControls(type, current, total) {
+            const container = document.getElementById(`${type}Pagination`);
+            if (!container) return;
+            
+            container.innerHTML = `
+                <button class="pagination-btn" onclick="changePage('${type}', ${current - 1})" ${current === 1 ? 'disabled' : ''}>
+                    <i class="fas fa-chevron-left"></i> Previous
+                </button>
+                <span class="pagination-info">Page ${current} of ${total}</span>
+                <button class="pagination-btn" onclick="changePage('${type}', ${current + 1})" ${current === total ? 'disabled' : ''}>
+                    Next <i class="fas fa-chevron-right"></i>
+                </button>
+            `;
+        }
+
         // Close modals when clicking outside
         window.addEventListener('click', function(event) {
-            var modals = ['salaryModal', 'finesModal', 'paymentModal'];
+            var modals = ['salaryModal', 'finesModal', 'paymentModal', 'departmentModal', 'editSalaryModal', 'editFineModal'];
             modals.forEach(function(modalId) {
                 var modal = document.getElementById(modalId);
-                if (event.target === modal) {
-                    modal.classList.remove('show');
+                if (modal && event.target === modal) {
+                    if (modal.classList.contains('show')) {
+                        modal.classList.remove('show');
+                    } else if (!modal.classList.contains('hidden')) {
+                        modal.classList.add('hidden');
+                    }
                 }
             });
         });
+        // Department assignment functions
+        function openDepartmentModal(userId) {
+            const modal = document.getElementById('departmentModal');
+            modal.dataset.userId = userId;
+            modal.classList.remove('hidden');
+            loadDepartments(userId);
+        }
+
+        function closeDepartmentModal() {
+            document.getElementById('departmentModal').classList.add('hidden');
+        }
+        
+        function closeEditSalaryModal() {
+            const modal = document.getElementById('editSalaryModal');
+            modal.classList.add('hidden');
+            modal.style.display = 'none';
+        }
+
+        function openEditFineModal(fineId, amount, reason, status) {
+            document.getElementById('editFineId').value = fineId;
+            document.getElementById('editFineAmount').value = amount;
+            document.getElementById('editFineReason').value = reason;
+            document.getElementById('editFineStatus').value = status;
+            const modal = document.getElementById('editFineModal');
+            modal.classList.remove('hidden');
+            modal.style.display = 'flex';
+        }
+
+        function closeEditFineModal() {
+            const modal = document.getElementById('editFineModal');
+            modal.classList.add('hidden');
+            modal.style.display = 'none';
+        }
+        
+        async function submitSalaryEdit() {
+            const salaryId = document.getElementById('editSalaryId').value;
+            const amount = document.getElementById('editSalaryAmount').value;
+            const salaryType = document.getElementById('editSalaryType').value;
+            const effectiveDate = document.getElementById('editSalaryEffectiveDate').value;
+            const status = document.getElementById('editSalaryStatus').value;
+            const notes = document.getElementById('editSalaryNotes').value;
+            
+            const data = {
+                SalaryId: parseInt(salaryId),
+                Amount: parseFloat(amount),
+                SalaryType: salaryType,
+                EffectiveDate: effectiveDate,
+                Status: status,
+                Notes: notes
+            };
+            
+            try {
+                const response = await fetch('/Admin/UpdateEmployeeSalaryEntry', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': getAntiForgeryToken()
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    showToast('Salary updated successfully!', 'success');
+                    closeEditSalaryModal();
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showToast(result.message || 'Error updating salary', 'error');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showToast('Error updating salary', 'error');
+            }
+        }
+        
+        async function submitFineEdit() {
+            const fineId = document.getElementById('editFineId').value;
+            const amount = document.getElementById('editFineAmount').value;
+            const reason = document.getElementById('editFineReason').value;
+            const description = document.getElementById('editFineDescription').value;
+            const dueDate = document.getElementById('editFineDueDate').value;
+            const status = document.getElementById('editFineStatus').value;
+            
+            const data = {
+                FineId: parseInt(fineId),
+                Amount: parseFloat(amount),
+                Reason: reason,
+                Description: description,
+                DueDate: dueDate,
+                Status: status
+            };
+            
+            try {
+                const response = await fetch('/Admin/UpdateEmployeeFine', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': getAntiForgeryToken()
+                    },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                if (result.success) {
+                    showToast('Fine updated successfully!', 'success');
+                    closeEditFineModal();
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showToast(result.message || 'Error updating fine', 'error');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showToast('Error updating fine', 'error');
+            }
+        }
+
+        async function loadDepartments(userId) {
+            try {
+                const response = await fetch('/Admin/GetAllDepartments');
+                if (!response.ok) {
+                    throw new Error('Failed to fetch departments');
+                }
+                const departments = await response.json();
+                
+                // Get user's current departments
+                const userDeptResponse = await fetch(`/Admin/GetUserDepartments?userId=${userId}`);
+                let userDepartments = [];
+                if (userDeptResponse.ok) {
+                    userDepartments = await userDeptResponse.json();
+                }
+                
+                const departmentList = document.getElementById('departmentList');
+                departmentList.innerHTML = '';
+                
+                departments.forEach(dept => {
+                    const isChecked = userDepartments.some(ud => ud.departmentId === dept.departmentId);
+                    const checkboxDiv = document.createElement('div');
+                    checkboxDiv.className = 'department-checkbox' + (isChecked ? ' checked' : '');
+                    checkboxDiv.innerHTML = `
+                        <input type="checkbox" id="dept_${dept.departmentId}" value="${dept.departmentId}" 
+                               ${isChecked ? 'checked' : ''} onchange="toggleDepartmentSelection(this)">
+                        <label for="dept_${dept.departmentId}">
+                            <i class="fas fa-building text-blue-500 mr-2"></i>
+                            ${dept.name}
+                        </label>
+                    `;
+                    departmentList.appendChild(checkboxDiv);
+                });
+            } catch (error) {
+                console.error('Error loading departments:', error);
+                showToast('Error loading departments', 'error');
+            }
+        }
+        
+        function toggleDepartmentSelection(checkbox) {
+            const checkboxDiv = checkbox.parentElement;
+            if (checkbox.checked) {
+                checkboxDiv.classList.add('checked');
+            } else {
+                checkboxDiv.classList.remove('checked');
+            }
+        }
+
+        async function assignDepartments() {
+            try {
+                const userId = document.getElementById('departmentModal').dataset.userId;
+                const selectedDepartments = [];
+                
+                document.querySelectorAll('#departmentList input[type="checkbox"]:checked').forEach(checkbox => {
+                    selectedDepartments.push(parseInt(checkbox.value));
+                });
+
+                const response = await fetch('/Admin/AssignDepartments', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                    },
+                    body: JSON.stringify({
+                        userId: userId,
+                        departmentIds: selectedDepartments
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    showToast('Departments assigned successfully', 'success');
+                    closeDepartmentModal();
+                    // Refresh the page to show updated department assignments
+                    setTimeout(() => {
+                        location.reload();
+                    }, 1500);
+                } else {
+                    showToast(result.message || 'Error assigning departments', 'error');
+                }
+            } catch (error) {
+                console.error('Error assigning departments:', error);
+                showToast('Error assigning departments', 'error');
+            }
+        }
+
+        async function submitDepartmentAssignment() {
+            const checkboxes = document.querySelectorAll('#departmentList input[type="checkbox"]:checked');
+            const departmentIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
+            
+            const data = {
+                UserId: @Model.UserId,
+                DepartmentIds: departmentIds
+            };
+
+            try {
+                const response = await fetch('/Admin/AssignUserToDepartments', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': getAntiForgeryToken()
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    showToast('Department assignments updated successfully!', 'success');
+                    closeDepartmentModal();
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showToast(result.message || 'Error updating department assignments', 'error');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showToast('Error updating department assignments', 'error');
+            }
+        }
+
+        // Salary management functions
+        function openEditSalaryModal(salaryId, amount, status) {
+            document.getElementById('editSalaryId').value = salaryId;
+            document.getElementById('editSalaryAmount').value = amount;
+            document.getElementById('editSalaryStatus').value = status;
+            const modal = document.getElementById('editSalaryModal');
+            modal.classList.remove('hidden');
+            modal.style.display = 'flex';
+        }
+
+        async function editSalary(salaryId, amount, salaryType, effectiveDate, status, notes) {
+            openEditSalaryModal(salaryId, amount, status);
+            document.getElementById('editSalaryType').value = salaryType || 'Base';
+            document.getElementById('editSalaryEffectiveDate').value = effectiveDate ? effectiveDate.split('T')[0] : '';
+            document.getElementById('editSalaryNotes').value = notes || '';
+        }
+
+        async function deleteSalary(salaryId) {
+            if (confirm('Are you sure you want to delete this salary entry?')) {
+                try {
+                    const response = await fetch('/Admin/DeleteEmployeeSalaryEntry', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'RequestVerificationToken': getAntiForgeryToken()
+                        },
+                        body: JSON.stringify({ SalaryId: salaryId })
+                    });
+
+                    const result = await response.json();
+                    if (result.success) {
+                        showToast('Salary entry deleted successfully!', 'success');
+                        setTimeout(() => location.reload(), 1000);
+                    } else {
+                        showToast(result.message || 'Error deleting salary entry', 'error');
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    showToast('Error deleting salary entry', 'error');
+                }
+            }
+        }
+
+        // Fine management functions
+        async function editFine(fineId, amount, reason, description, dueDate, status) {
+            // Populate edit modal with current values
+            document.getElementById('editFineId').value = fineId;
+            document.getElementById('editFineAmount').value = amount;
+            document.getElementById('editFineReason').value = reason || '';
+            document.getElementById('editFineDescription').value = description || '';
+            document.getElementById('editFineDueDate').value = dueDate ? dueDate.split('T')[0] : '';
+            document.getElementById('editFineStatus').value = status || 'Pending';
+            
+            // Show edit modal
+            document.getElementById('editFineModal').classList.remove('hidden');
+        }
+
+        async function deleteFine(fineId) {
+            if (confirm('Are you sure you want to delete this fine?')) {
+                try {
+                    const response = await fetch('/Admin/DeleteEmployeeFine', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'RequestVerificationToken': getAntiForgeryToken()
+                        },
+                        body: JSON.stringify({ FineId: fineId })
+                    });
+
+                    const result = await response.json();
+                    if (result.success) {
+                        showToast('Fine deleted successfully!', 'success');
+                        setTimeout(() => location.reload(), 1000);
+                    } else {
+                        showToast(result.message || 'Error deleting fine', 'error');
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    showToast('Error deleting fine', 'error');
+                }
+            }
+        }
     </script>
 }
+
+<!-- Department Assignment Modal -->
+<div class="fixed inset-0 bg-black bg-opacity-50 hidden z-50" id="departmentModal">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full transform transition-all">
+            <!-- Modal Header -->
+            <div class="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-6 rounded-t-2xl">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <div class="bg-white bg-opacity-20 rounded-full p-2">
+                            <i class="fas fa-building text-lg"></i>
+                        </div>
+                        <h2 class="text-xl font-bold">Assign Departments</h2>
+                    </div>
+                    <button onclick="closeDepartmentModal()" class="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors">
+                        <i class="fas fa-times text-lg"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Modal Body -->
+            <div class="p-6">
+                <form id="departmentForm">
+                    <div class="mb-6">
+                        <label class="block text-sm font-semibold text-gray-700 mb-3">
+                            <i class="fas fa-users text-blue-500 mr-2"></i>
+                            Select Departments
+                        </label>
+                        <div id="departmentList" class="space-y-3 max-h-60 overflow-y-auto">
+                            <!-- Departments will be loaded here -->
+                        </div>
+                    </div>
+                    
+                    <!-- Action Buttons -->
+                    <div class="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+                        <button type="button" onclick="closeDepartmentModal()" 
+                                class="px-6 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors">
+                            <i class="fas fa-times mr-2"></i>Cancel
+                        </button>
+                        <button type="button" onclick="submitDepartmentAssignment()" 
+                                class="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-lg font-medium transition-all transform hover:scale-105">
+                            <i class="fas fa-check mr-2"></i>Assign Departments
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Salary Modal -->
+<div class="fixed inset-0 bg-black bg-opacity-50 hidden z-50" id="editSalaryModal">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full transform transition-all">
+            <!-- Modal Header -->
+            <div class="bg-gradient-to-r from-green-600 to-blue-600 text-white p-6 rounded-t-2xl">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <div class="bg-white bg-opacity-20 rounded-full p-2">
+                            <i class="fas fa-money-bill-wave text-lg"></i>
+                        </div>
+                        <h2 class="text-xl font-bold">Edit Salary</h2>
+                    </div>
+                    <button onclick="closeEditSalaryModal()" class="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors">
+                        <i class="fas fa-times text-lg"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Modal Body -->
+            <div class="p-6">
+                <form id="editSalaryForm">
+                    <input type="hidden" id="editSalaryId">
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                <i class="fas fa-dollar-sign text-green-500 mr-2"></i>Amount (KSh)
+                            </label>
+                            <input type="number" id="editSalaryAmount" step="0.01" required
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                <i class="fas fa-tag text-blue-500 mr-2"></i>Salary Type
+                            </label>
+                            <select id="editSalaryType" required
+                                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
+                                <option value="Base">Base Salary</option>
+                                <option value="Bonus">Bonus</option>
+                                <option value="Commission">Commission</option>
+                                <option value="Overtime">Overtime</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                <i class="fas fa-calendar text-purple-500 mr-2"></i>Effective Date
+                            </label>
+                            <input type="date" id="editSalaryEffectiveDate" required
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                <i class="fas fa-info-circle text-orange-500 mr-2"></i>Status
+                            </label>
+                            <select id="editSalaryStatus" required
+                                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all">
+                                <option value="Active">Active</option>
+                                <option value="Inactive">Inactive</option>
+                                <option value="Pending">Pending</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                            <i class="fas fa-sticky-note text-yellow-500 mr-2"></i>Notes
+                        </label>
+                        <textarea id="editSalaryNotes" rows="3" 
+                                  class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                                  placeholder="Optional notes about this salary entry..."></textarea>
+                    </div>
+                    
+                    <!-- Action Buttons -->
+                    <div class="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+                        <button type="button" onclick="closeEditSalaryModal()" 
+                                class="px-6 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors">
+                            <i class="fas fa-times mr-2"></i>Cancel
+                        </button>
+                        <button type="button" onclick="submitSalaryEdit()" 
+                                class="px-6 py-2.5 bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700 text-white rounded-lg font-medium transition-all transform hover:scale-105">
+                            <i class="fas fa-save mr-2"></i>Update Salary
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Fine Modal -->
+<div class="fixed inset-0 bg-black bg-opacity-50 hidden z-50" id="editFineModal">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full transform transition-all">
+            <!-- Modal Header -->
+            <div class="bg-gradient-to-r from-red-600 to-pink-600 text-white p-6 rounded-t-2xl">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <div class="bg-white bg-opacity-20 rounded-full p-2">
+                            <i class="fas fa-exclamation-triangle text-lg"></i>
+                        </div>
+                        <h2 class="text-xl font-bold">Edit Fine</h2>
+                    </div>
+                    <button onclick="closeEditFineModal()" class="text-white hover:bg-white hover:bg-opacity-20 rounded-full p-2 transition-colors">
+                        <i class="fas fa-times text-lg"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Modal Body -->
+            <div class="p-6">
+                <form id="editFineForm">
+                    <input type="hidden" id="editFineId">
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                <i class="fas fa-dollar-sign text-red-500 mr-2"></i>Amount (KSh)
+                            </label>
+                            <input type="number" id="editFineAmount" step="0.01" required
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                <i class="fas fa-calendar text-purple-500 mr-2"></i>Due Date
+                            </label>
+                            <input type="date" id="editFineDueDate"
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all">
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                <i class="fas fa-exclamation-circle text-orange-500 mr-2"></i>Reason
+                            </label>
+                            <input type="text" id="editFineReason" required
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
+                                   placeholder="Reason for fine...">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                <i class="fas fa-info-circle text-blue-500 mr-2"></i>Status
+                            </label>
+                            <select id="editFineStatus" required
+                                    class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all">
+                                <option value="Pending">Pending</option>
+                                <option value="Paid">Paid</option>
+                                <option value="Waived">Waived</option>
+                                <option value="Overdue">Overdue</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-6">
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                            <i class="fas fa-align-left text-gray-500 mr-2"></i>Description
+                        </label>
+                        <textarea id="editFineDescription" rows="3" 
+                                  class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
+                                  placeholder="Additional details about the fine..."></textarea>
+                    </div>
+                    
+                    <!-- Action Buttons -->
+                    <div class="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+                        <button type="button" onclick="closeEditFineModal()" 
+                                class="px-6 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium transition-colors">
+                            <i class="fas fa-times mr-2"></i>Cancel
+                        </button>
+                        <button type="button" onclick="submitFineEdit()" 
+                                class="px-6 py-2.5 bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white rounded-lg font-medium transition-all transform hover:scale-105">
+                            <i class="fas fa-save mr-2"></i>Update Fine
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Custom styles for modals and buttons */
+    .history-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem;
+        border: 1px solid #e5e7eb;
+        border-radius: 0.5rem;
+        margin-bottom: 0.5rem;
+        background: white;
+        transition: all 0.2s;
+    }
+    
+    .history-item:hover {
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        border-color: #d1d5db;
+    }
+    
+    .history-details {
+        flex: 1;
+    }
+    
+    .history-details strong {
+        display: block;
+        font-size: 1.1rem;
+        color: #1f2937;
+        margin-bottom: 0.25rem;
+    }
+    
+    .history-date, .salary-type {
+        display: inline-block;
+        font-size: 0.875rem;
+        color: #6b7280;
+        margin-right: 1rem;
+    }
+    
+    .status {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    
+    .status.active {
+        background-color: #dcfce7;
+        color: #166534;
+    }
+    
+    .status.inactive {
+        background-color: #fef3c7;
+        color: #92400e;
+    }
+    
+    .status.paid {
+        background-color: #dcfce7;
+        color: #166534;
+    }
+    
+    .status.unpaid, .status.pending {
+        background-color: #fef2f2;
+        color: #dc2626;
+    }
+    
+    .salary-actions, .fine-actions {
+        display: flex;
+        gap: 0.5rem;
+        margin-left: 1rem;
+    }
+    
+    .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0.5rem 1rem;
+        border: none;
+        border-radius: 0.375rem;
+        font-weight: 500;
+        text-decoration: none;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .btn-sm {
+        padding: 0.375rem 0.75rem;
+        font-size: 0.875rem;
+    }
+    
+    .btn-primary {
+        background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+        color: white;
+    }
+    
+    .btn-primary:hover {
+        background: linear-gradient(135deg, #2563eb, #7c3aed);
+        transform: translateY(-1px);
+    }
+    
+    .btn-danger {
+        background: linear-gradient(135deg, #ef4444, #f97316);
+        color: white;
+    }
+    
+    .btn-danger:hover {
+        background: linear-gradient(135deg, #dc2626, #ea580c);
+        transform: translateY(-1px);
+    }
+    
+    /* Department checkbox styles */
+    #departmentList .space-y-3 > * + * {
+        margin-top: 0.75rem;
+    }
+    
+    .department-checkbox {
+        display: flex;
+        align-items: center;
+        padding: 0.75rem;
+        border: 2px solid #e5e7eb;
+        border-radius: 0.75rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        background: #f9fafb;
+    }
+    
+    .department-checkbox:hover {
+        border-color: #3b82f6;
+        background: #eff6ff;
+    }
+    
+    .department-checkbox input[type="checkbox"] {
+        margin-right: 0.75rem;
+        width: 1.25rem;
+        height: 1.25rem;
+        accent-color: #3b82f6;
+    }
+    
+    .department-checkbox.checked {
+        border-color: #3b82f6;
+        background: #dbeafe;
+    }
+    
+    .department-checkbox label {
+        flex: 1;
+        font-weight: 500;
+        color: #374151;
+        cursor: pointer;
+    }
+    
+    /* Action buttons in data tables */
+    .action-buttons {
+        display: flex;
+        gap: 0.5rem;
+        justify-content: center;
+    }
+    
+    .data-table .action-buttons .btn {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+        min-width: auto;
+    }
+    
+    .data-table .action-buttons .btn i {
+        font-size: 0.875rem;
+    }
+</style>
 
 @* Hidden form for CSRF token *@
 <form style="display: none;">

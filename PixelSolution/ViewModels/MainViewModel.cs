@@ -889,6 +889,7 @@ namespace PixelSolution.ViewModels
         public DateTime EffectiveDate { get; set; }
         public DateTime? EndDate { get; set; }
         public string Notes { get; set; } = string.Empty;
+        public string Status { get; set; } = string.Empty;
         public bool IsActive { get; set; }
         public string FormattedAmount { get; set; } = string.Empty;
         public string FormattedEffectiveDate { get; set; } = string.Empty;
@@ -903,6 +904,7 @@ namespace PixelSolution.ViewModels
         public string Status { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
         public DateTime IssuedDate { get; set; }
+        public DateTime? DueDate { get; set; }
         public DateTime? PaidDate { get; set; }
         public string IssuedByUserName { get; set; } = string.Empty;
         public string PaymentMethod { get; set; } = string.Empty;

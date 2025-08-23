@@ -374,9 +374,6 @@ namespace PixelSolution.Migrations
                     b.Property<int>("UserId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("UserId1")
-                        .HasColumnType("int");
-
                     b.HasKey("EmployeeProfileId");
 
                     b.HasIndex("EmployeeNumber")
@@ -384,10 +381,6 @@ namespace PixelSolution.Migrations
 
                     b.HasIndex("UserId")
                         .IsUnique();
-
-                    b.HasIndex("UserId1")
-                        .IsUnique()
-                        .HasFilter("[UserId1] IS NOT NULL");
 
                     b.ToTable("EmployeeProfiles");
                 });
@@ -429,6 +422,14 @@ namespace PixelSolution.Migrations
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
 
                     b.HasKey("SalaryId");
 
@@ -1174,14 +1175,10 @@ namespace PixelSolution.Migrations
             modelBuilder.Entity("PixelSolution.Models.EmployeeProfile", b =>
                 {
                     b.HasOne("PixelSolution.Models.User", "User")
-                        .WithOne()
+                        .WithOne("EmployeeProfile")
                         .HasForeignKey("PixelSolution.Models.EmployeeProfile", "UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.HasOne("PixelSolution.Models.User", null)
-                        .WithOne("EmployeeProfile")
-                        .HasForeignKey("PixelSolution.Models.EmployeeProfile", "UserId1");
 
                     b.Navigation("User");
                 });

@@ -27,6 +27,7 @@ namespace PixelSolution.Controllers
         private readonly IReportService _reportService;
         private readonly IActivityLogService _activityLogService;
         private readonly IEmailService _emailService;
+        private readonly IEnhancedEmailService _enhancedEmailService;
         private readonly IBarcodeService _barcodeService;
         private readonly IReceiptPrintingService _receiptPrintingService;
         private readonly IMpesaService _mpesaService;
@@ -45,6 +46,7 @@ namespace PixelSolution.Controllers
             IReportService reportService,
             IActivityLogService activityLogService,
             IEmailService emailService,
+            IEnhancedEmailService enhancedEmailService,
             IBarcodeService barcodeService,
             IReceiptPrintingService receiptPrintingService,
             IMpesaService mpesaService,
@@ -62,6 +64,7 @@ namespace PixelSolution.Controllers
             _reportService = reportService;
             _activityLogService = activityLogService;
             _emailService = emailService;
+            _enhancedEmailService = enhancedEmailService;
             _barcodeService = barcodeService;
             _receiptPrintingService = receiptPrintingService;
             _mpesaService = mpesaService;
@@ -114,8 +117,29 @@ namespace PixelSolution.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error loading departments");
-                TempData["ErrorMessage"] = "Error loading departments data.";
                 return View(new List<DepartmentListViewModel>());
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetAllDepartments()
+        {
+            try
+            {
+                var departments = await _departmentService.GetAllDepartmentsAsync();
+                var departmentList = departments.Select(d => new
+                {
+                    departmentId = d.DepartmentId,
+                    name = d.Name,
+                    description = d.Description
+                }).ToList();
+
+                return Json(departmentList);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading departments for assignment");
+                return Json(new { error = "Failed to load departments" });
             }
         }
 
@@ -929,7 +953,7 @@ namespace PixelSolution.Controllers
 
                 var employeeCards = filteredUsers.Select(u => new EmployeeCardViewModel
                 {
-                    UserId = u.UserId,
+                    UserId = u.UserId, 
                     FullName = !string.IsNullOrEmpty(u.FirstName) && !string.IsNullOrEmpty(u.LastName) 
                         ? $"{u.FirstName} {u.LastName}" 
                         : "Unknown User",
@@ -938,7 +962,7 @@ namespace PixelSolution.Controllers
                     UserType = u.UserType ?? "Employee",
                     Status = u.Status ?? "Inactive",
                     IsActive = u.Status == "Active",
-                    UserInitials = GetUserInitials(u.FirstName, u.LastName),
+                    UserInitials = $"{u.FirstName.Substring(0, 1)}{u.LastName.Substring(0, 1)}".ToUpper(),
                     DepartmentNames = u.UserDepartments != null && u.UserDepartments.Any() 
                         ? string.Join(", ", u.UserDepartments.Select(ud => ud.Department.Name)) 
                         : "N/A",
@@ -1109,7 +1133,7 @@ namespace PixelSolution.Controllers
                     AverageSaleAmount = sales?.Any() == true ? sales.Average(s => s.TotalAmount) : 0,
                     
                     // Financial Information
-                    CurrentSalary = employeeProfile?.BaseSalary ?? 0,
+                    CurrentSalary = salaryHistory?.Where(s => s.Status == "Active").FirstOrDefault()?.Amount ?? 0,
                     TotalSalariesPaid = paymentHistory?.Sum(p => p.NetPay) ?? 0,
                     OutstandingFines = fineHistory?.Where(f => f.Status != "Paid").Sum(f => f.Amount) ?? 0,
                     TotalFines = fineHistory?.Sum(f => f.Amount) ?? 0,
@@ -1122,9 +1146,10 @@ namespace PixelSolution.Controllers
                             Amount = s.Amount,
                             SalaryType = s.SalaryType,
                             EffectiveDate = s.EffectiveDate,
-                            EndDate = s.EndDate,
+                            Status = s.Status,
                             Notes = s.Notes,
-                            IsActive = s.IsActive
+                            FormattedEffectiveDate = s.EffectiveDate.ToString("MMM dd, yyyy"),
+                            FormattedAmount = s.Amount.ToString("N2")
                         }).ToList(),
                     
                     FineHistory = fineHistory.Select(f => new EmployeeFineViewModel
@@ -1543,6 +1568,148 @@ namespace PixelSolution.Controllers
             public bool SendMessage { get; set; }
         }
 
+        public class UpdateSalaryRequest
+        {
+            public int SalaryId { get; set; }
+            public decimal Amount { get; set; }
+            public string SalaryType { get; set; } = "Base";
+            public DateTime EffectiveDate { get; set; }
+            public string Status { get; set; } = "Active";
+            public string Notes { get; set; } = string.Empty;
+        }
+
+        public class UpdateEmployeeSalaryRequest
+        {
+            public int UserId { get; set; }
+            public decimal Amount { get; set; }
+            public string SalaryType { get; set; } = "Base";
+            public DateTime EffectiveDate { get; set; }
+            public string Notes { get; set; } = string.Empty;
+        }
+
+        public class DeleteSalaryRequest
+        {
+            public int SalaryId { get; set; }
+        }
+
+        public class AssignDepartmentRequest
+        {
+            public int UserId { get; set; }
+            public List<int> DepartmentIds { get; set; } = new List<int>();
+        }
+
+        [HttpPost]
+        [Authorize(Roles = "Admin,Manager")]
+        public async Task<IActionResult> UpdateEmployeeSalaryEntry([FromBody] UpdateSalaryRequest request)
+        {
+            try
+            {
+                var salary = await _context.EmployeeSalaries
+                    .Include(s => s.EmployeeProfile)
+                        .ThenInclude(ep => ep.User)
+                    .FirstOrDefaultAsync(s => s.SalaryId == request.SalaryId);
+
+                if (salary == null)
+                {
+                    return Json(new { success = false, message = "Salary entry not found." });
+                }
+
+                // Update salary details
+                salary.Amount = request.Amount;
+                salary.SalaryType = request.SalaryType;
+                salary.EffectiveDate = request.EffectiveDate;
+                salary.Status = request.Status;
+                salary.Notes = request.Notes;
+                salary.UpdatedAt = DateTime.UtcNow;
+
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation($"Salary entry {request.SalaryId} updated successfully for user {salary.EmployeeProfile.User.FullName}");
+                return Json(new { success = true, message = "Salary updated successfully." });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating salary entry {SalaryId}", request.SalaryId);
+                return Json(new { success = false, message = "Error updating salary. Please try again." });
+            }
+        }
+
+        [HttpPost]
+        [Authorize(Roles = "Admin,Manager")]
+        public async Task<IActionResult> DeleteEmployeeSalaryEntry([FromBody] DeleteSalaryRequest request)
+        {
+            try
+            {
+                var salary = await _context.EmployeeSalaries
+                    .Include(s => s.EmployeeProfile)
+                        .ThenInclude(ep => ep.User)
+                    .FirstOrDefaultAsync(s => s.SalaryId == request.SalaryId);
+
+                if (salary == null)
+                {
+                    return Json(new { success = false, message = "Salary entry not found." });
+                }
+
+                _context.EmployeeSalaries.Remove(salary);
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation($"Salary entry {request.SalaryId} deleted successfully for user {salary.EmployeeProfile.User.FullName}");
+                return Json(new { success = true, message = "Salary entry deleted successfully." });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting salary entry {SalaryId}", request.SalaryId);
+                return Json(new { success = false, message = "Error deleting salary. Please try again." });
+            }
+        }
+
+        [HttpPost]
+        [Authorize(Roles = "Admin,Manager")]
+        public async Task<IActionResult> AssignUserToDepartments([FromBody] AssignDepartmentRequest request)
+        {
+            try
+            {
+                var user = await _context.Users
+                    .Include(u => u.UserDepartments)
+                    .FirstOrDefaultAsync(u => u.UserId == request.UserId);
+
+                if (user == null)
+                {
+                    return Json(new { success = false, message = "User not found." });
+                }
+
+                // Remove existing department assignments
+                var existingAssignments = user.UserDepartments.ToList();
+                _context.UserDepartments.RemoveRange(existingAssignments);
+
+                // Add new department assignments
+                foreach (var departmentId in request.DepartmentIds)
+                {
+                    var department = await _context.Departments.FindAsync(departmentId);
+                    if (department != null)
+                    {
+                        var userDepartment = new UserDepartment
+                        {
+                            UserId = request.UserId,
+                            DepartmentId = departmentId,
+                            AssignedAt = DateTime.UtcNow
+                        };
+                        _context.UserDepartments.Add(userDepartment);
+                    }
+                }
+
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation($"User {user.FullName} assigned to {request.DepartmentIds.Count} departments");
+                return Json(new { success = true, message = "Department assignments updated successfully." });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error assigning user {UserId} to departments", request.UserId);
+                return Json(new { success = false, message = "Error updating department assignments. Please try again." });
+            }
+        }
+
         [HttpPost]
         [Authorize(Roles = "Admin,Manager")]
         public async Task<IActionResult> ProcessEmployeePayment([FromBody] ProcessPaymentRequest request)
@@ -1605,8 +1772,26 @@ namespace PixelSolution.Controllers
                     return Json(new { success = false, message = $"User with ID {request.UserId} not found." });
                 }
 
-                // Send email to user's actual email address
-                await _emailService.SendEmailAsync(user.Email, request.Subject, request.Body);
+                // Send fancy email notification using enhanced email service
+                var templateData = new Dictionary<string, string>
+                {
+                    ["EmployeeName"] = user.FullName,
+                    ["Message"] = request.Body
+                };
+
+                var emailSent = await _enhancedEmailService.SendFancyEmployeeEmailAsync(
+                    user.Email, 
+                    user.FullName, 
+                    "default", 
+                    templateData
+                );
+
+                if (!emailSent)
+                {
+                    _logger.LogWarning($"Failed to send fancy email to user {request.UserId}, trying fallback");
+                    // Fallback to regular email service
+                    emailSent = await _emailService.SendEmailAsync(user.Email, request.Subject, request.Body, true);
+                }
 
                 // Also save as internal message for record keeping
                 var message = new Message
@@ -1641,7 +1826,7 @@ namespace PixelSolution.Controllers
                 _logger.LogInformation("Raw request object: {@Request}", request);
                 _logger.LogInformation("Request.UserId: {UserId}", request?.UserId);
                 _logger.LogInformation("Creating employee profile for UserId: {UserId}", request.UserId);
-                
+
                 var user = await _context.Users.FindAsync(request.UserId);
                 if (user == null)
                 {
@@ -1742,7 +1927,7 @@ namespace PixelSolution.Controllers
 
         [HttpPost]
         [Authorize(Roles = "Admin,Manager")]
-        public async Task<IActionResult> UpdateEmployeeSalary([FromBody] UpdateSalaryRequest request)
+        public async Task<IActionResult> UpdateEmployeeSalary([FromBody] UpdateEmployeeSalaryRequest request)
         {
             try
             {
@@ -1847,14 +2032,6 @@ namespace PixelSolution.Controllers
             }
         }
 
-        public class UpdateSalaryRequest
-        {
-            public int UserId { get; set; }
-            public decimal Amount { get; set; }
-            public string SalaryType { get; set; } = string.Empty;
-            public DateTime EffectiveDate { get; set; }
-            public string Notes { get; set; } = string.Empty;
-        }
 
 
 
@@ -4444,7 +4621,7 @@ namespace PixelSolution.Controllers
                     UserType = u.UserType,
                     Status = u.Status,
                     IsOnline = await IsUserOnlineAsync(u.UserId),
-                    UserInitials = GetUserInitials(u.FirstName, u.LastName)
+                    UserInitials = $"{u.FirstName?.Substring(0, 1) ?? "U"}{u.LastName?.Substring(0, 1) ?? "N"}".ToUpper()
                 });
 
                 // Await all the async operations and convert to List
@@ -5966,6 +6143,95 @@ namespace PixelSolution.Controllers
         }
 
         #endregion
+
+        #region Department Assignment APIs
+
+        [HttpGet]
+        public async Task<IActionResult> GetUserDepartments(string userId)
+        {
+            try
+            {
+                var user = await _context.Users
+                    .Include(u => u.UserDepartments)
+                    .ThenInclude(ud => ud.Department)
+                    .FirstOrDefaultAsync(u => u.Id == userId);
+
+                if (user == null)
+                {
+                    return NotFound(new { message = "User not found" });
+                }
+
+                var userDepartments = user.UserDepartments.Select(ud => new
+                {
+                    departmentId = ud.DepartmentId,
+                    departmentName = ud.Department.Name
+                }).ToList();
+
+                return Json(userDepartments);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting user departments for user {UserId}", userId);
+                return StatusCode(500, new { message = "Internal server error" });
+            }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> AssignDepartments([FromBody] AssignDepartmentsRequest request)
+        {
+            try
+            {
+                var user = await _context.Users
+                    .Include(u => u.UserDepartments)
+                    .FirstOrDefaultAsync(u => u.Id == request.UserId);
+
+                if (user == null)
+                {
+                    return NotFound(new { message = "User not found" });
+                }
+
+                // Remove existing department assignments
+                _context.UserDepartments.RemoveRange(user.UserDepartments);
+
+                // Add new department assignments
+                foreach (var deptId in request.DepartmentIds)
+                {
+                    user.UserDepartments.Add(new UserDepartment
+                    {
+                        UserId = request.UserId,
+                        DepartmentId = deptId,
+                        AssignedDate = DateTime.UtcNow
+                    });
+                }
+
+                await _context.SaveChangesAsync();
+
+                // Log the activity
+                await _activityLogService.LogActivityAsync(
+                    User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "System",
+                    "Department Assignment",
+                    $"Assigned departments to user {user.FirstName} {user.LastName}",
+                    "UserDepartment",
+                    request.UserId
+                );
+
+                return Json(new { success = true, message = "Departments assigned successfully" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error assigning departments to user {UserId}", request.UserId);
+                return StatusCode(500, new { message = "Internal server error" });
+            }
+        }
+
+        #endregion
+    }
+
+    // Request model for department assignment
+    public class AssignDepartmentsRequest
+    {
+        public string UserId { get; set; } = string.Empty;
+        public List<int> DepartmentIds { get; set; } = new List<int>();
     }
 
     // Request model for receipt PDF generation

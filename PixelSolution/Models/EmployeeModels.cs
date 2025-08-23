@@ -69,9 +69,13 @@ namespace PixelSolution.Models
         [StringLength(500)]
         public string Notes { get; set; } = string.Empty;
 
+        [StringLength(20)]
+        public string Status { get; set; } = "Active"; // Active, Inactive, Suspended
+
         public bool IsActive { get; set; } = true;
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
         // Navigation Properties
         [ForeignKey("EmployeeProfileId")]
