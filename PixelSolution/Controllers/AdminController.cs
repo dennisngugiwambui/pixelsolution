@@ -6147,14 +6147,14 @@ namespace PixelSolution.Controllers
         #region Department Assignment APIs
 
         [HttpGet]
-        public async Task<IActionResult> GetUserDepartments(string userId)
+        public async Task<IActionResult> GetUserDepartments(int userId)
         {
             try
             {
                 var user = await _context.Users
                     .Include(u => u.UserDepartments)
                     .ThenInclude(ud => ud.Department)
-                    .FirstOrDefaultAsync(u => u.Id == userId);
+                    .FirstOrDefaultAsync(u => u.UserId == userId);
 
                 if (user == null)
                 {
@@ -6183,7 +6183,7 @@ namespace PixelSolution.Controllers
             {
                 var user = await _context.Users
                     .Include(u => u.UserDepartments)
-                    .FirstOrDefaultAsync(u => u.Id == request.UserId);
+                    .FirstOrDefaultAsync(u => u.UserId == request.UserId);
 
                 if (user == null)
                 {
@@ -6200,7 +6200,7 @@ namespace PixelSolution.Controllers
                     {
                         UserId = request.UserId,
                         DepartmentId = deptId,
-                        AssignedDate = DateTime.UtcNow
+                        AssignedAt = DateTime.UtcNow
                     });
                 }
 
@@ -6212,7 +6212,7 @@ namespace PixelSolution.Controllers
                     "Department Assignment",
                     $"Assigned departments to user {user.FirstName} {user.LastName}",
                     "UserDepartment",
-                    request.UserId
+                    request.UserId.ToString()
                 );
 
                 return Json(new { success = true, message = "Departments assigned successfully" });
@@ -6230,7 +6230,7 @@ namespace PixelSolution.Controllers
     // Request model for department assignment
     public class AssignDepartmentsRequest
     {
-        public string UserId { get; set; } = string.Empty;
+        public int UserId { get; set; }
         public List<int> DepartmentIds { get; set; } = new List<int>();
     }
 
