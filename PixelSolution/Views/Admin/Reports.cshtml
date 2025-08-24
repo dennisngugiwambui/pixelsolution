@@ -23,20 +23,318 @@
             --gray-900: #111827;
         }
 
+        /* Responsive Sidebar Styles */
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 280px;
+            height: 100vh;
+            background: var(--gray-900);
+            color: white;
+            overflow-y: auto;
+            z-index: 1000;
+            transition: transform 0.3s ease;
+            transform: translateX(0);
+        }
+
+        /* Desktop sidebar collapsed state */
+        @@media (min-width: 1025px) {
+            .sidebar.collapsed {
+                transform: translateX(-240px);
+                width: 40px;
+            }
+            
+            .sidebar.collapsed .sidebar-header,
+            .sidebar.collapsed .nav-section-title,
+            .sidebar.collapsed .nav-link span {
+                display: none;
+            }
+            
+            .sidebar.collapsed .nav-link {
+                justify-content: center;
+                padding: 1rem 0.5rem;
+            }
+            
+            .sidebar.collapsed .nav-link i {
+                margin-right: 0;
+            }
+        }
+
+        /* Mobile/Tablet sidebar overlay */
+        @@media (max-width: 1024px) {
+            .sidebar {
+                transform: translateX(-100%);
+                box-shadow: 0 0 0 0 rgba(0, 0, 0, 0);
+            }
+            
+            .sidebar.open {
+                transform: translateX(0);
+                box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3);
+            }
+        }
+
+        /* Main Content Responsive Layout */
+        .main-content {
+            min-height: 100vh;
+            background: var(--gray-50);
+            transition: margin-left 0.3s ease;
+            margin-left: 0;
+        }
+
+        /* Desktop main content adjustment */
+        @@media (min-width: 1025px) {
+            .main-content {
+                margin-left: 280px;
+            }
+            
+            .main-content.expanded {
+                margin-left: 40px;
+            }
+        }
+
+        /* Mobile overlay backdrop */
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+        }
+
+        @@media (max-width: 1024px) {
+            .sidebar-overlay.show {
+                display: block;
+            }
+        }
+
+        /* Header Styles */
+        .header {
+            background: white;
+            border-bottom: 1px solid var(--gray-200);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .sidebar-toggle {
+            background: none;
+            border: none;
+            color: var(--gray-600);
+            font-size: 1.25rem;
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .sidebar-toggle:hover {
+            background: var(--gray-100);
+            color: var(--gray-800);
+        }
+
+        .page-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--gray-900);
+            margin: 0;
+        }
+
+        @@media (max-width: 768px) {
+            .page-title {
+                font-size: 1.25rem;
+            }
+            
+            .header {
+                padding: 1rem;
+            }
+        }
+
+        /* Sidebar Header */
+        .sidebar-header {
+            padding: 2rem 1.5rem;
+            border-bottom: 1px solid var(--gray-700);
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--primary-color);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.25rem;
+        }
+
+        .logo-text {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: white;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            background: var(--success-color);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            color: white;
+        }
+
+        .user-details h4 {
+            color: white;
+            margin: 0 0 0.25rem 0;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+
+        .user-details p {
+            color: var(--gray-300);
+            margin: 0;
+            font-size: 0.75rem;
+        }
+
+        /* Navigation Menu */
+        .nav-menu {
+            padding: 1rem 0;
+        }
+
+        .nav-section {
+            margin-bottom: 2rem;
+        }
+
+        .nav-section-title {
+            padding: 0 1.5rem 0.5rem;
+            color: var(--gray-400);
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+
+        .nav-item {
+            margin-bottom: 0.25rem;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 1.5rem;
+            color: var(--gray-300);
+            text-decoration: none;
+            transition: all 0.3s ease;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .nav-link:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
+        .nav-link.active {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .nav-link i {
+            width: 20px;
+            text-align: center;
+            font-size: 1rem;
+        }
+
+        /* Header Actions */
+        .header-right {
+            display: flex;
+            align-items: center;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .action-btn {
+            position: relative;
+            background: none;
+            border: none;
+            color: var(--gray-600);
+            font-size: 1.125rem;
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+        }
+
+        .action-btn:hover {
+            background: var(--gray-100);
+            color: var(--gray-800);
+        }
+
+        .notification-badge {
+            position: absolute;
+            top: 0.25rem;
+            right: 0.25rem;
+            background: var(--danger-color);
+            color: white;
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 0.125rem 0.375rem;
+            border-radius: 10px;
+            min-width: 18px;
+            height: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
         /* Main Container */
         .reports-container {
             background: var(--gray-50);
-            min-height: 100vh;
+            min-height: calc(100vh - 80px);
             padding: 2rem;
         }
 
-            @@media (max-width: 768px) {
-            .reports-container
-
-        {
-            padding: 1rem;
-        }
-
+        @@media (max-width: 768px) {
+            .reports-container {
+                padding: 1rem;
+            }
         }
 
         /* Professional Card Styling */
@@ -50,9 +348,9 @@
             transition: all 0.3s ease;
         }
 
-            .glass-card:hover {
-                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            }
+        .glass-card:hover {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
 
         /* Page Header */
         .page-header {
@@ -74,13 +372,10 @@
             opacity: 0.9;
         }
 
-            @@media (max-width: 768px) {
-            .header-title
-
-        {
-            font-size: 1.875rem;
-        }
-
+        @@media (max-width: 768px) {
+            .header-title {
+                font-size: 1.875rem;
+            }
         }
 
         /* Filter Section */
@@ -100,13 +395,10 @@
             align-items: end;
         }
 
-            @@media (max-width: 640px) {
-            .filter-grid
-
-        {
-            grid-template-columns: 1fr;
-        }
-
+        @@media (max-width: 640px) {
+            .filter-grid {
+                grid-template-columns: 1fr;
+            }
         }
 
         .filter-group {
@@ -135,12 +427,11 @@
             color: var(--gray-700);
         }
 
-            .filter-input:focus {
-                outline: none;
-                border-color: var(--primary-color);
-                ring: 2px;
-                ring-color: rgba(37, 99, 235, 0.2);
-            }
+        .filter-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+        }
 
         .filter-select {
             appearance: none;
@@ -174,50 +465,50 @@
             color: white;
         }
 
-            .btn-action:hover {
-                transform: translateY(-1px);
-                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-            }
+        .btn-action:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
 
         .btn-generate {
             background: var(--primary-color);
         }
 
-            .btn-generate:hover {
-                background: var(--primary-dark);
-            }
+        .btn-generate:hover {
+            background: var(--primary-dark);
+        }
 
         .btn-export {
             background: var(--success-color);
         }
 
-            .btn-export:hover {
-                background: #059669;
-            }
+        .btn-export:hover {
+            background: #059669;
+        }
 
         .btn-email {
             background: var(--warning-color);
         }
 
-            .btn-email:hover {
-                background: #d97706;
-            }
+        .btn-email:hover {
+            background: #d97706;
+        }
 
         .btn-receipt {
             background: var(--primary-color);
         }
 
-            .btn-receipt:hover {
-                background: var(--primary-dark);
-            }
+        .btn-receipt:hover {
+            background: var(--primary-dark);
+        }
 
         .btn-print {
             background: var(--gray-600);
         }
 
-            .btn-print:hover {
-                background: var(--gray-700);
-            }
+        .btn-print:hover {
+            background: var(--gray-700);
+        }
 
         /* Professional Stats Cards */
         .stats-grid {
@@ -227,13 +518,10 @@
             margin-bottom: 2rem;
         }
 
-            @@media (max-width: 640px) {
-            .stats-grid
-
-        {
-            grid-template-columns: 1fr;
-        }
-
+        @@media (max-width: 640px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
         }
 
         .stat-card {
@@ -247,26 +535,26 @@
             overflow: hidden;
         }
 
-            .stat-card:hover {
-                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-                transform: translateY(-2px);
-            }
+        .stat-card:hover {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            transform: translateY(-2px);
+        }
 
-            .stat-card.revenue {
-                border-left: 4px solid var(--success-color);
-            }
+        .stat-card.revenue {
+            border-left: 4px solid var(--success-color);
+        }
 
-            .stat-card.sales {
-                border-left: 4px solid var(--primary-color);
-            }
+        .stat-card.sales {
+            border-left: 4px solid var(--primary-color);
+        }
 
-            .stat-card.products {
-                border-left: 4px solid var(--warning-color);
-            }
+        .stat-card.products {
+            border-left: 4px solid var(--warning-color);
+        }
 
-            .stat-card.customers {
-                border-left: 4px solid #8b5cf6;
-            }
+        .stat-card.customers {
+            border-left: 4px solid #8b5cf6;
+        }
 
         .stat-icon {
             position: absolute;
@@ -299,13 +587,13 @@
             font-weight: 500;
         }
 
-            .stat-change.positive {
-                color: var(--success-color);
-            }
+        .stat-change.positive {
+            color: var(--success-color);
+        }
 
-            .stat-change.negative {
-                color: var(--danger-color);
-            }
+        .stat-change.negative {
+            color: var(--danger-color);
+        }
 
         /* Charts Section */
         .charts-grid {
@@ -315,13 +603,10 @@
             margin-bottom: 2rem;
         }
 
-            @@media (max-width: 1024px) {
-            .charts-grid
-
-        {
-            grid-template-columns: 1fr;
-        }
-
+        @@media (max-width: 1024px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
         }
 
         .chart-container {
@@ -350,6 +635,7 @@
         .chart-controls {
             display: flex;
             gap: 0.5rem;
+            flex-wrap: wrap;
         }
 
         .chart-control-btn {
@@ -364,16 +650,16 @@
             color: var(--gray-700);
         }
 
-            .chart-control-btn:hover {
-                border-color: var(--primary-color);
-                color: var(--primary-color);
-            }
+        .chart-control-btn:hover {
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+        }
 
-            .chart-control-btn.active {
-                background: var(--primary-color);
-                color: white;
-                border-color: var(--primary-color);
-            }
+        .chart-control-btn.active {
+            background: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
 
         .chart-canvas {
             width: 100% !important;
@@ -398,13 +684,10 @@
             margin-top: 1.5rem;
         }
 
-            @@media (max-width: 640px) {
-            .actions-grid
-
-        {
-            grid-template-columns: repeat(2, 1fr);
-        }
-
+        @@media (max-width: 640px) {
+            .actions-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
         }
 
         .action-card {
@@ -418,12 +701,12 @@
             color: var(--gray-700);
         }
 
-            .action-card:hover {
-                background: white;
-                border-color: var(--primary-color);
-                transform: translateY(-2px);
-                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-            }
+        .action-card:hover {
+            background: white;
+            border-color: var(--primary-color);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
 
         .action-card-icon {
             font-size: 2rem;
@@ -445,13 +728,10 @@
             margin-bottom: 2rem;
         }
 
-            @@media (max-width: 1024px) {
-            .tables-grid
-
-        {
-            grid-template-columns: 1fr;
-        }
-
+        @@media (max-width: 1024px) {
+            .tables-grid {
+                grid-template-columns: 1fr;
+            }
         }
 
         .table-container {
@@ -460,54 +740,68 @@
             overflow: hidden;
             border: 1px solid var(--gray-200);
             box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+            margin-bottom: 1rem;
         }
 
         .table-header {
-            background: var(--gray-800);
-            color: white;
+            background: var(--gray-800) !important;
+            color: white !important;
             padding: 1.5rem;
+            border-bottom: 2px solid var(--gray-700);
         }
 
         .table-title {
             font-size: 1.125rem;
             font-weight: 600;
             margin: 0;
+            color: white !important;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .data-table {
             width: 100%;
             border-collapse: collapse;
+            background: white;
         }
 
-            .data-table thead {
-                background: var(--gray-800);
-            }
+        .data-table thead {
+            background: var(--gray-800) !important;
+        }
 
-            .data-table th {
-                padding: 1rem;
-                text-align: left;
-                font-weight: 600;
-                color: white !important;
-                font-size: 0.875rem;
-                text-transform: uppercase;
-                letter-spacing: 0.05em;
-                border-bottom: 1px solid var(--gray-600);
-            }
+        .data-table thead tr {
+            background: var(--gray-800) !important;
+        }
 
-            .data-table td {
-                padding: 1rem;
-                border-bottom: 1px solid var(--gray-200);
-                font-size: 0.875rem;
-                color: var(--gray-700);
-            }
+        .data-table th {
+            padding: 1rem !important;
+            text-align: left;
+            font-weight: 600 !important;
+            color: white !important;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-bottom: 1px solid var(--gray-600) !important;
+            background: var(--gray-800) !important;
+            position: relative;
+        }
 
-            .data-table tbody tr {
-                transition: all 0.3s ease;
-            }
+        .data-table td {
+            padding: 1rem;
+            border-bottom: 1px solid var(--gray-200);
+            font-size: 0.875rem;
+            color: var(--gray-700);
+            background: white;
+        }
 
-                .data-table tbody tr:hover {
-                    background: var(--gray-50);
-                }
+        .data-table tbody tr {
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        .data-table tbody tr:hover {
+            background: var(--gray-50) !important;
+        }
 
         /* Professional Modals */
         .modal {
@@ -555,9 +849,9 @@
             transition: opacity 0.3s ease;
         }
 
-            .modal-close:hover {
-                opacity: 0.7;
-            }
+        .modal-close:hover {
+            opacity: 0.7;
+        }
 
         .modal-body {
             padding: 2rem;
@@ -594,12 +888,11 @@
             color: var(--gray-700);
         }
 
-            .form-control:focus {
-                outline: none;
-                border-color: var(--primary-color);
-                ring: 2px;
-                ring-color: rgba(37, 99, 235, 0.2);
-            }
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+        }
 
         /* Loading & Messages */
         .loading-overlay {
@@ -615,9 +908,9 @@
             align-items: center;
         }
 
-            .loading-overlay.show {
-                display: flex;
-            }
+        .loading-overlay.show {
+            display: flex;
+        }
 
         .loading-spinner {
             width: 40px;
@@ -628,17 +921,13 @@
             animation: spin 1s linear infinite;
         }
 
-            @@keyframes spin {
-            0%
-
-        {
-            transform: rotate(0deg);
-        }
-
-        100% {
-            transform: rotate(360deg);
-        }
-
+        @@keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
         }
 
         .toast {
@@ -655,110 +944,24 @@
             transition: transform 0.3s ease;
         }
 
-            .toast.show {
-                transform: translateX(0);
-            }
-
-            .toast.error {
-                background: #ef4444;
-            }
-
-            .toast.warning {
-                background: var(--warning-color);
-            }
-
-            .toast.success {
-                background: #10b981;
-            }
-
-            .toast.info {
-                background: var(--primary-color);
-            }
-
-        /* Responsive Tables */
-            @@media (max-width: 640px) {
-            .data-table
-
-        {
-            font-size: 0.75rem;
-        }
-
-        .data-table th,
-        .data-table td {
-            padding: 0.5rem;
-        }
-
-        }
-
-        /* Sidebar Styles */
-        .sidebar {
-            position: fixed;
-            left: 0;
-            top: 0;
-            width: 280px;
-            height: 100vh;
-            background: var(--gray-900);
-            color: white;
-            overflow-y: auto;
-            z-index: 1000;
-            transition: transform 0.3s ease;
-        }
-
-            @@media (max-width: 1024px) {
-            .sidebar
-
-        {
-            transform: translateX(-100%);
-        }
-
-        .sidebar.open {
+        .toast.show {
             transform: translateX(0);
         }
 
-        .main-content {
-            margin-left: 0;
+        .toast.error {
+            background: #ef4444;
         }
 
+        .toast.warning {
+            background: var(--warning-color);
         }
 
-        .main-content {
-            margin-left: 280px;
-            min-height: 100vh;
-            background: var(--gray-50);
+        .toast.success {
+            background: #10b981;
         }
 
-        .header {
-            background: white;
-            border-bottom: 1px solid var(--gray-200);
-            padding: 1rem 2rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-
-        .page-title {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: var(--gray-900);
-            margin: 0;
-        }
-
-        .sidebar-toggle {
-            background: none;
-            border: none;
-            color: var(--gray-600);
-            font-size: 1.25rem;
-            cursor: pointer;
-            margin-right: 1rem;
-        }
-
-            @@media (min-width: 1025px) {
-            .sidebar-toggle
-        {
-            display: none;
+        .toast.info {
+            background: var(--primary-color);
         }
 
         /* Badge styles for status indicators */
@@ -795,109 +998,12 @@
             color: white;
             background-color: var(--danger-color);
         }
-
-            /* FIXED CSS - Add this to your existing styles or replace the table-related CSS */
-            /* Table Container Fixes */
-            .table-container {
-                background: white;
-                border-radius: 12px;
-                overflow: hidden;
-                border: 1px solid var(--gray-200);
-                box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
-                margin-bottom: 1rem;
-            }
-            /* Table Header - FIXED */
-            .table-header {
-                background: var(--gray-800) !important;
-                color: white !important;
-                padding: 1.5rem;
-                border-bottom: 2px solid var(--gray-700);
-            }
-            /* Table Title - FIXED */
-            .table-title {
-                font-size: 1.125rem;
-                font-weight: 600;
-                margin: 0;
-                color: white !important;
-                text-transform: uppercase;
-                letter-spacing: 0.5px;
-            }
-            /* Data Table Fixes */
-            .data-table {
-                width: 100%;
-                border-collapse: collapse;
-                background: white;
-            }
-                /* Table Head - FIXED */
-                .data-table thead {
-                    background: var(--gray-800) !important;
-                }
-
-                    .data-table thead tr {
-                        background: var(--gray-800) !important;
-                    }
-                /* Table Headers - FIXED */
-                .data-table th {
-                    padding: 1rem !important;
-                    text-align: left;
-                    font-weight: 600 !important;
-                    color: white !important;
-                    font-size: 0.875rem;
-                    text-transform: uppercase;
-                    letter-spacing: 0.05em;
-                    border-bottom: 1px solid var(--gray-600) !important;
-                    background: var(--gray-800) !important;
-                    position: relative;
-                }
-                /* Table Data Cells */
-                .data-table td {
-                    padding: 1rem;
-                    border-bottom: 1px solid var(--gray-200);
-                    font-size: 0.875rem;
-                    color: var(--gray-700);
-                    background: white;
-                }
-                /* Table Body Rows */
-                .data-table tbody tr {
-                    transition: all 0.3s ease;
-                    background: white;
-                }
-
-                    .data-table tbody tr:hover {
-                        background: var(--gray-50) !important;
-                    }
-                /* Ensure table visibility */
-                .data-table,
-                .data-table * {
-                    visibility: visible !important;
-                    opacity: 1 !important;
-                }
-            /* Chart Title Fixes */
-            .chart-title {
-                font-size: 1.25rem;
-                font-weight: 700;
-                color: var(--gray-900) !important;
-                margin: 0;
-                text-transform: none;
-            }
-            /* Loading state for tables */
-            .data-table.loading {
-                opacity: 0.6;
-            }
-
-                .data-table.loading::after {
-                    content: "Loading...";
-                    position: absolute;
-                    top: 50%;
-                    left: 50%;
-                    transform: translate(-50%, -50%);
-                    font-size: 1rem;
-                    color: var(--gray-600);
-                }
-
-        }</style>
+    </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 }
+
+<!-- Sidebar Overlay for Mobile -->
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
 
 <!-- Sidebar -->
 <div class="sidebar" id="sidebar">
@@ -923,19 +1029,19 @@
             <div class="nav-item">
                 <a href="@Url.Action("Dashboard", "Admin")" class="nav-link">
                     <i class="fas fa-chart-pie"></i>
-                    Dashboard
+                    <span>Dashboard</span>
                 </a>
             </div>
             <div class="nav-item">
                 <a href="@Url.Action("Sales", "Admin")" class="nav-link">
                     <i class="fas fa-shopping-cart"></i>
-                    Sales
+                    <span>Sales</span>
                 </a>
             </div>
             <div class="nav-item">
                 <a href="@Url.Action("Inventory", "Admin")" class="nav-link">
                     <i class="fas fa-box"></i>
-                    Inventory
+                    <span>Inventory</span>
                 </a>
             </div>
         </div>
@@ -945,31 +1051,31 @@
             <div class="nav-item">
                 <a href="@Url.Action("Users", "Admin")" class="nav-link">
                     <i class="fas fa-users"></i>
-                    Employees
+                    <span>Employees</span>
                 </a>
             </div>
             <div class="nav-item">
                 <a href="@Url.Action("Departments", "Admin")" class="nav-link">
                     <i class="fas fa-building"></i>
-                    Departments
+                    <span>Departments</span>
                 </a>
             </div>
             <div class="nav-item">
                 <a href="@Url.Action("Suppliers", "Admin")" class="nav-link">
                     <i class="fas fa-truck"></i>
-                    Suppliers
+                    <span>Suppliers</span>
                 </a>
             </div>
             <div class="nav-item">
                 <a href="@Url.Action("Categories", "Admin")" class="nav-link">
                     <i class="fas fa-tags"></i>
-                    Categories
+                    <span>Categories</span>
                 </a>
             </div>
             <div class="nav-item">
                 <a href="@Url.Action("Products", "Admin")" class="nav-link">
                     <i class="fas fa-cube"></i>
-                    Products
+                    <span>Products</span>
                 </a>
             </div>
         </div>
@@ -979,19 +1085,19 @@
             <div class="nav-item">
                 <a href="@Url.Action("PurchaseRequests", "Admin")" class="nav-link">
                     <i class="fas fa-file-invoice"></i>
-                    Purchase Requests
+                    <span>Purchase Requests</span>
                 </a>
             </div>
             <div class="nav-item">
                 <a href="@Url.Action("Messages", "Admin")" class="nav-link">
                     <i class="fas fa-envelope"></i>
-                    Messages
+                    <span>Messages</span>
                 </a>
             </div>
             <div class="nav-item">
                 <a href="@Url.Action("Reports", "Admin")" class="nav-link active">
                     <i class="fas fa-chart-bar"></i>
-                    Reports
+                    <span>Reports</span>
                 </a>
             </div>
         </div>
@@ -1001,13 +1107,13 @@
             <div class="nav-item">
                 <a href="@Url.Action("Settings", "Admin")" class="nav-link">
                     <i class="fas fa-cog"></i>
-                    Settings
+                    <span>Settings</span>
                 </a>
             </div>
             <div class="nav-item">
                 <a href="@Url.Action("LogoutGet", "Auth")" class="nav-link">
                     <i class="fas fa-sign-out-alt"></i>
-                    Logout
+                    <span>Logout</span>
                 </a>
             </div>
         </div>
@@ -1446,13 +1552,72 @@
                 initializePage();
                 setupSidebarToggle();
                 setupEventListeners();
-
                 console.log('✅ Reports page initialized successfully');
             } catch (error) {
                 console.error('❌ Error initializing reports page:', error);
                 showToast('Error initializing Reports page: ' + error.message, 'error');
             }
         });
+
+        // Setup responsive sidebar toggle functionality
+        function setupSidebarToggle() {
+            const sidebarToggle = document.getElementById('sidebarToggle');
+            const sidebar = document.getElementById('sidebar');
+            const sidebarOverlay = document.getElementById('sidebarOverlay');
+            const mainContent = document.getElementById('mainContent');
+
+            if (sidebarToggle && sidebar && sidebarOverlay && mainContent) {
+                sidebarToggle.addEventListener('click', function() {
+                    const isMobile = window.innerWidth <= 1024;
+                    
+                    if (isMobile) {
+                        // Mobile behavior - toggle overlay
+                        sidebar.classList.toggle('open');
+                        sidebarOverlay.classList.toggle('show');
+                        document.body.style.overflow = sidebar.classList.contains('open') ? 'hidden' : 'auto';
+                    } else {
+                        // Desktop behavior - toggle collapsed state
+                        sidebar.classList.toggle('collapsed');
+                        mainContent.classList.toggle('expanded');
+                    }
+                });
+
+                // Close sidebar when clicking overlay (mobile only)
+                sidebarOverlay.addEventListener('click', function() {
+                    sidebar.classList.remove('open');
+                    sidebarOverlay.classList.remove('show');
+                    document.body.style.overflow = 'auto';
+                });
+
+                // Handle window resize
+                window.addEventListener('resize', function() {
+                    const isMobile = window.innerWidth <= 1024;
+                    
+                    if (!isMobile) {
+                        // Desktop mode - remove mobile classes
+                        sidebar.classList.remove('open');
+                        sidebarOverlay.classList.remove('show');
+                        document.body.style.overflow = 'auto';
+                    } else {
+                        // Mobile mode - remove desktop classes
+                        sidebar.classList.remove('collapsed');
+                        mainContent.classList.remove('expanded');
+                    }
+                });
+
+                // Close sidebar when clicking nav links on mobile
+                const navLinks = sidebar.querySelectorAll('.nav-link');
+                navLinks.forEach(link => {
+                    link.addEventListener('click', function() {
+                        if (window.innerWidth <= 1024) {
+                            sidebar.classList.remove('open');
+                            sidebarOverlay.classList.remove('show');
+                            document.body.style.overflow = 'auto';
+                        }
+                    });
+                });
+            }
+        }
 
         // Setup event listeners
         function setupEventListeners() {
@@ -1463,9 +1628,7 @@
             if (datePreset) {
                 datePreset.addEventListener('change', function() {
                     applyDatePreset();
-                    // Force reload of fresh data when date range changes
-                    console.log('📅 Date preset changed, reloading fresh data...');
-                    setTimeout(() => loadReportsData(), 100); // Small delay to ensure date fields are updated
+                    setTimeout(() => loadReportsData(), 100);
                 });
             }
 
@@ -1475,13 +1638,13 @@
             if (startDate) {
                 startDate.addEventListener('change', function() {
                     console.log('📅 Start date changed, reloading fresh data...');
-                    loadReportsData(); // Force fresh data load
+                    loadReportsData();
                 });
             }
             if (endDate) {
                 endDate.addEventListener('change', function() {
                     console.log('📅 End date changed, reloading fresh data...');
-                    loadReportsData(); // Force fresh data load
+                    loadReportsData();
                 });
             }
 
@@ -1598,18 +1761,6 @@
             console.log('✅ Event listeners setup completed');
         }
 
-        // Setup sidebar toggle functionality
-        function setupSidebarToggle() {
-            const sidebarToggle = document.getElementById('sidebarToggle');
-            const sidebar = document.getElementById('sidebar');
-
-            if (sidebarToggle && sidebar) {
-                sidebarToggle.addEventListener('click', function() {
-                    sidebar.classList.toggle('collapsed');
-                });
-            }
-        }
-
         // Initialize page
         function initializePage() {
             console.log('🚀 Initializing reports page...');
@@ -1646,26 +1797,22 @@
 
             switch(preset) {
                 case 'today':
-                    // Create fresh date objects for today
                     startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
                     endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
                     break;
                 case 'yesterday':
-                    // Create fresh date objects for yesterday
                     const yesterday = new Date(now);
                     yesterday.setDate(now.getDate() - 1);
                     startDate = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate());
                     endDate = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 23, 59, 59);
                     break;
                 case 'thisWeek':
-                    // Start of this week (Sunday)
                     const thisWeekStart = new Date(now);
                     thisWeekStart.setDate(now.getDate() - now.getDay());
                     startDate = new Date(thisWeekStart.getFullYear(), thisWeekStart.getMonth(), thisWeekStart.getDate());
                     endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
                     break;
                 case 'lastWeek':
-                    // Last week Sunday to Saturday
                     const lastWeekEnd = new Date(now);
                     lastWeekEnd.setDate(now.getDate() - now.getDay() - 1);
                     const lastWeekStart = new Date(lastWeekEnd);
@@ -1720,7 +1867,6 @@
             }
 
             currentPeriod = preset;
-            // Don't call loadReportsData here as it will be called by the event listener
         }
 
         // Show/hide loading overlay
@@ -1799,23 +1945,20 @@
                 dateRange: dateRange
             });
             
-            // Always load default data first to ensure dashboard stats are populated
             const requestBody = {
-                reportType: 'default', // Always get default data for dashboard stats
+                reportType: 'default',
                 chartType: currentChartDataType,
                 startDate: startDate,
                 endDate: endDate,
                 dateRange: dateRange
             };
             
-            // Add cache-busting parameters to force fresh data
             const timestamp = new Date().getTime();
             const randomId = Math.random().toString(36).substring(7);
             requestBody.timestamp = timestamp;
             requestBody.cacheBreaker = randomId;
             requestBody.forceRefresh = true;
             
-            // Make actual API call to get real data
             fetch('/Admin/GetReportData', {
                 method: 'POST',
                 headers: {
@@ -1835,13 +1978,11 @@
                 console.log('📊 Raw response data:', data);
                 if (data.success) {
                     console.log('✅ Report data loaded:', data.data);
-                    currentData = data.data; // Store globally for chart switching
+                    currentData = data.data;
                     updateDashboardStats(data.data);
-                    // Don't call updateChartsForSpecificView as updateDashboardStats already handles main chart
                 } else {
                     console.error('❌ Failed to load report data:', data.message);
                     showToast('Failed to load report data', 'error');
-                    // Fallback to mock data
                     const mockData = generateMockData();
                     currentData = mockData;
                     updateDashboardStats(mockData);
@@ -1850,7 +1991,6 @@
             .catch(error => {
                 console.error('❌ Error loading report data:', error);
                 showToast('Error loading report data', 'error');
-                // Fallback to mock data
                 const mockData = generateMockData();
                 currentData = mockData;
                 updateDashboardStats(mockData);
@@ -1891,47 +2031,6 @@
             };
         }
 
-        // Update statistics cards
-        function updateStatistics(data) {
-            try {
-                console.log('📊 updateStatistics called with data:', data);
-
-                const totalRevenue = data.totalSales || 0;
-                const totalOrders = data.totalOrders || 0;
-                const totalProducts = data.totalProducts || 0;
-                const totalCustomers = data.totalCustomers || 0;
-
-                const revenueElement = document.getElementById('totalRevenue');
-                const ordersElement = document.getElementById('totalOrders');
-                const productsElement = document.getElementById('totalProducts');
-                const customersElement = document.getElementById('totalCustomers');
-
-                if (revenueElement) {
-                    revenueElement.textContent = `KSh ${totalRevenue.toLocaleString('en-KE', { minimumFractionDigits: 2 })}`;
-                }
-
-                if (ordersElement) {
-                    ordersElement.textContent = totalOrders.toLocaleString();
-                }
-
-                if (productsElement) {
-                    productsElement.textContent = totalProducts.toLocaleString();
-                }
-
-                if (customersElement) {
-                    customersElement.textContent = totalCustomers.toLocaleString();
-                }
-
-                // Update change indicators
-                updateChangeIndicator('revenueChange', Math.random() * 40 - 20);
-                updateChangeIndicator('salesChange', Math.random() * 40 - 20);
-                updateChangeIndicator('productsChange', Math.random() * 40 - 20);
-                updateChangeIndicator('customersChange', Math.random() * 40 - 20);
-            } catch (error) {
-                console.error('❌ Error updating statistics:', error);
-            }
-        }
-
         // Update change indicator
         function updateChangeIndicator(elementId, percentage) {
             const element = document.getElementById(elementId);
@@ -1953,17 +2052,7 @@
         function updateDashboardStats(data) {
             try {
                 console.log('📊 Updating dashboard stats with:', data);
-                console.log('📊 Data structure check:', {
-                    totalSales: data.totalSales,
-                    totalOrders: data.totalOrders,
-                    totalProducts: data.totalProducts,
-                    totalCustomers: data.totalCustomers,
-                    topProducts: data.topProducts,
-                    recentSales: data.recentSales,
-                    topCategories: data.topCategories
-                });
                 
-                // Use the actual data values from the API response
                 const totalRevenue = data.totalSales || 0;
                 const totalOrders = data.totalOrders || 0;
                 const totalProducts = data.totalProducts || 0;
@@ -1971,18 +2060,10 @@
                 
                 console.log('📊 Calculated values:', { totalRevenue, totalOrders, totalProducts, totalCustomers });
                 
-                // Update stat cards using specific IDs
                 const revenueElement = document.getElementById('totalRevenue');
                 const ordersElement = document.getElementById('totalOrders');
                 const productsElement = document.getElementById('totalProducts');
                 const customersElement = document.getElementById('totalCustomers');
-                
-                console.log('📊 Elements found:', {
-                    revenueElement: !!revenueElement,
-                    ordersElement: !!ordersElement,
-                    productsElement: !!productsElement,
-                    customersElement: !!customersElement
-                });
                 
                 if (revenueElement) {
                     const formattedRevenue = 'KSh ' + totalRevenue.toLocaleString('en-KE', { minimumFractionDigits: 2 });
@@ -2008,26 +2089,345 @@
                     console.log('📊 Customers updated to:', formattedCustomers);
                 }
                 
-                // Update tables with data
-                console.log('📊 Updating tables with:', {
-                    topProducts: data.topProducts?.length || 0,
-                    recentSales: data.recentSales?.length || 0
-                });
                 updateTopProductsTable(data.topProducts || []);
                 updateRecentSalesTable(data.recentSales || []);
-                
-                // Update category chart with all categories
-                console.log('📊 Updating category chart with:', data.topCategories?.length || 0, 'categories');
                 updateCategoryChart(data.topCategories || []);
                 
-                // Update main chart with sales data by default
                 console.log('📊 Updating main chart with sales data');
-                currentData = data; // Store data globally for chart switching
+                currentData = data;
                 updateMainChartWithSalesData(data);
                 
                 console.log('✅ Dashboard stats updated');
             } catch (error) {
                 console.error('❌ Error updating dashboard stats:', error);
+            }
+        }
+
+        // Generate distinct colors for charts
+        function generateDistinctColors(count) {
+            const colors = [
+                '#2563eb', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6',
+                '#06b6d4', '#ec4899', '#84cc16', '#f97316', '#6366f1',
+                '#14b8a6', '#f43f5e', '#a855f7', '#22c55e', '#eab308',
+                '#3b82f6', '#059669', '#dc2626', '#7c3aed', '#0891b2'
+            ];
+            
+            if (count <= colors.length) {
+                return colors.slice(0, count);
+            }
+            
+            const additionalColors = [];
+            const baseColors = colors.slice();
+            
+            for (let i = colors.length; i < count; i++) {
+                const hue = (i * 137.508) % 360;
+                const saturation = 70 + (i % 3) * 10;
+                const lightness = 45 + (i % 4) * 10;
+                additionalColors.push(`hsl(${hue}, ${saturation}%, ${lightness}%)`);
+            }
+            
+            return [...baseColors, ...additionalColors];
+        }
+
+        // Update category chart
+        function updateCategoryChart(categories) {
+            try {
+                console.log('📊 updateCategoryChart called with:', categories);
+                const ctx = document.getElementById('categoryChart');
+                if (!ctx) {
+                    console.error('❌ categoryChart element not found');
+                    return;
+                }
+
+                if (categoryChart) {
+                    categoryChart.destroy();
+                }
+
+                if (!categories || categories.length === 0) {
+                    console.warn('⚠️ No category data available for chart');
+                    return;
+                }
+
+                console.log('📊 Processing', categories.length, 'categories for chart');
+                const chartData = {
+                    labels: categories.map(cat => {
+                        const name = cat.name || cat.categoryName || 'Unknown';
+                        console.log('📊 Category name:', name);
+                        return name;
+                    }),
+                    datasets: [{
+                        label: 'Category Sales (KSh)',
+                        data: categories.map(cat => {
+                            const sales = cat.sales || cat.totalSales || 0;
+                            console.log('📊 Category sales:', sales);
+                            return sales;
+                        }),
+                        backgroundColor: generateDistinctColors(categories.length),
+                        borderWidth: 2,
+                        borderColor: '#ffffff'
+                    }]
+                };
+
+                console.log('📊 Chart data prepared:', chartData);
+
+                categoryChart = new Chart(ctx.getContext('2d'), {
+                    type: 'doughnut',
+                    data: chartData,
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                                labels: {
+                                    padding: 20,
+                                    usePointStyle: true
+                                }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                        const percentage = ((context.parsed / total) * 100).toFixed(1);
+                                        return `${context.label}: KSh ${context.parsed.toLocaleString('en-KE')} (${percentage}%)`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+
+                console.log('✅ Category chart updated with', categories.length, 'categories');
+            } catch (error) {
+                console.error('❌ Error updating category chart:', error);
+            }
+        }
+
+        // Update top products table
+        function updateTopProductsTable(products) {
+            try {
+                console.log('📊 updateTopProductsTable called with:', products);
+                const tableBody = document.getElementById('topProductsTable');
+                if (!tableBody) {
+                    console.error('❌ topProductsTable element not found');
+                    return;
+                }
+
+                if (!products || products.length === 0) {
+                    console.log('⚠️ No products data available, showing empty message');
+                    tableBody.innerHTML = `
+                        <tr>
+                            <td colspan="5" style="text-align: center; padding: 2rem; color: #6b7280;">
+                                No product data available
+                            </td>
+                        </tr>
+                    `;
+                    return;
+                }
+
+                console.log('📊 Processing', products.length, 'products for table');
+                let tableHTML = '';
+                products.forEach((product, index) => {
+                    console.log('📊 Processing product:', product);
+                    const trend = Math.random() > 0.5 ? '↗️' : '↘️';
+                    const trendClass = Math.random() > 0.5 ? 'positive' : 'negative';
+                    
+                    const productName = product.name || product.productName || 'Unknown Product';
+                    const sales = product.sales || product.totalSales || 0;
+                    const revenue = product.revenue || product.totalRevenue || 0;
+                    
+                    tableHTML += `
+                        <tr>
+                            <td>${index + 1}</td>
+                            <td>${productName}</td>
+                            <td>${sales.toLocaleString()}</td>
+                            <td>KSh ${revenue.toLocaleString('en-KE', { minimumFractionDigits: 2 })}</td>
+                            <td><span class="stat-change ${trendClass}">${trend}</span></td>
+                        </tr>
+                    `;
+                });
+
+                tableBody.innerHTML = tableHTML;
+                console.log('✅ Top Products table updated with', products.length, 'items');
+            } catch (error) {
+                console.error('❌ Error updating top products table:', error);
+            }
+        }
+
+        // Update recent sales table
+        function updateRecentSalesTable(sales) {
+            try {
+                console.log('📊 updateRecentSalesTable called with:', sales);
+                const tableBody = document.getElementById('recentSalesTable');
+                if (!tableBody) {
+                    console.error('❌ recentSalesTable element not found');
+                    return;
+                }
+
+                if (!sales || sales.length === 0) {
+                    console.log('⚠️ No sales data available, showing empty message');
+                    tableBody.innerHTML = `
+                        <tr>
+                            <td colspan="5" style="text-align: center; padding: 2rem; color: #6b7280;">
+                                No recent sales data available
+                            </td>
+                        </tr>
+                    `;
+                    return;
+                }
+
+                console.log('📊 Processing', sales.length, 'sales for table');
+                let tableHTML = '';
+                sales.forEach((sale) => {
+                    console.log('📊 Processing sale:', sale);
+                    const statusClass = sale.status === 'Completed' ? 'success' : 
+                                       sale.status === 'Pending' ? 'warning' : 'info';
+                    
+                    const saleId = sale.id || sale.saleNumber || 'N/A';
+                    const customerName = sale.customerName || 'Walk-in Customer';
+                    const amount = sale.totalAmount || sale.amount || 0;
+                    const saleDate = new Date(sale.saleDate || sale.date).toLocaleDateString('en-KE');
+                    const status = sale.status || 'Completed';
+                    
+                    tableHTML += `
+                        <tr>
+                            <td>${saleId}</td>
+                            <td>${customerName}</td>
+                            <td>KSh ${amount.toLocaleString('en-KE', { minimumFractionDigits: 2 })}</td>
+                            <td>${saleDate}</td>
+                            <td><span class="badge badge-${statusClass}">${status}</span></td>
+                        </tr>
+                    `;
+                });
+
+                tableBody.innerHTML = tableHTML;
+                console.log('✅ Recent Sales table updated with', sales.length, 'items');
+            } catch (error) {
+                console.error('❌ Error updating recent sales table:', error);
+            }
+        }
+
+        // Update main chart with sales data by default
+        function updateMainChartWithSalesData(data) {
+            try {
+                console.log('📊 updateMainChartWithSalesData called with:', data);
+                const ctx = document.getElementById('mainChart');
+                if (!ctx) {
+                    console.error('❌ mainChart element not found');
+                    return;
+                }
+
+                if (mainChart) {
+                    mainChart.destroy();
+                }
+
+                const salesTrend = data.salesTrend || [];
+                console.log('📊 Sales trend data:', salesTrend);
+
+                if (salesTrend.length === 0) {
+                    console.warn('⚠️ No sales trend data available');
+                    return;
+                }
+
+                const chartData = {
+                    labels: salesTrend.map(item => item.date || 'N/A'),
+                    datasets: [{
+                        label: 'Sales Amount (KSh)',
+                        data: salesTrend.map(item => item.sales || item.amount || 0),
+                        borderColor: '#2563eb',
+                        backgroundColor: 'rgba(37, 99, 235, 0.1)',
+                        borderWidth: 3,
+                        tension: 0.4,
+                        fill: true,
+                        pointBackgroundColor: '#2563eb',
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 2,
+                        pointRadius: 5
+                    }]
+                };
+
+                console.log('📊 Main chart data prepared:', chartData);
+
+                mainChart = new Chart(ctx.getContext('2d'), {
+                    type: 'line',
+                    data: chartData,
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: true,
+                                position: 'top',
+                                labels: {
+                                    usePointStyle: true,
+                                    padding: 20
+                                }
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                titleColor: '#ffffff',
+                                bodyColor: '#ffffff',
+                                borderColor: '#2563eb',
+                                borderWidth: 1,
+                                callbacks: {
+                                    label: function(context) {
+                                        return context.dataset.label + ': KSh ' + context.parsed.y.toLocaleString('en-KE', { minimumFractionDigits: 2 });
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                grid: {
+                                    color: 'rgba(0, 0, 0, 0.1)'
+                                },
+                                ticks: {
+                                    callback: function(value) {
+                                        return 'KSh ' + value.toLocaleString('en-KE');
+                                    }
+                                }
+                            },
+                            x: {
+                                grid: {
+                                    color: 'rgba(0, 0, 0, 0.1)'
+                                }
+                            }
+                        },
+                        interaction: {
+                            intersect: false,
+                            mode: 'index'
+                        }
+                    }
+                });
+
+                console.log('✅ Main chart updated with sales data');
+            } catch (error) {
+                console.error('❌ Error updating main chart with sales data:', error);
+            }
+        }
+
+        // Switch main chart data
+        function switchMainChart(type) {
+            console.log('🔄 Switching chart to:', type);
+
+            document.querySelectorAll('.chart-control-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            const clickedBtn = document.querySelector(`[data-chart-type="${type}"]`);
+            if (clickedBtn) {
+                clickedBtn.classList.add('active');
+            }
+
+            currentChartDataType = type;
+
+            if (currentData) {
+                console.log('📊 Using stored data for chart switch:', currentData);
+                updateMainChartWithType(currentData, type);
+            } else {
+                console.log('⚠️ No data available, loading fresh data...');
+                loadReportsData();
             }
         }
 
@@ -2140,1643 +2540,930 @@
             }
         }
 
-        // Generate distinct colors for charts
-        function generateDistinctColors(count) {
-            const colors = [
-                '#2563eb', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6',
-                '#06b6d4', '#ec4899', '#84cc16', '#f97316', '#6366f1',
-                '#14b8a6', '#f43f5e', '#a855f7', '#22c55e', '#eab308',
-                '#3b82f6', '#059669', '#dc2626', '#7c3aed', '#0891b2'
-            ];
-            
-            if (count <= colors.length) {
-                return colors.slice(0, count);
-            }
-            
-            // Generate additional colors using HSL
-            const additionalColors = [];
-            const baseColors = colors.slice();
-            
-            for (let i = colors.length; i < count; i++) {
-                const hue = (i * 137.508) % 360; // Golden angle approximation
-                const saturation = 70 + (i % 3) * 10; // Vary saturation
-                const lightness = 45 + (i % 4) * 10; // Vary lightness
-                additionalColors.push(`hsl(${hue}, ${saturation}%, ${lightness}%)`);
-            }
-            
-            return [...baseColors, ...additionalColors];
-        }
-
-        // Update category chart
-        function updateCategoryChart(data) {
-            try {
-                const ctx = document.getElementById('categoryChart');
-                if (!ctx) {
-                    console.warn('⚠️ Category chart canvas not found');
-                    return;
-                }
-
-                if (categoryChart) {
-                    categoryChart.destroy();
-                }
-
-                const topCategories = data.topCategories || [];
-
-                const chartData = {
-                    labels: topCategories.length > 0 ? topCategories.map(item => item.name || 'Unknown') : ['No Data'],
-                    datasets: [{
-                        data: topCategories.length > 0 ? topCategories.map(item => item.sales || 0) : [1],
-                        backgroundColor: generateDistinctColors(topCategories.length || 1),
-                        borderWidth: 2,
-                        borderColor: '#fff'
-                    }]
-                };
-
-                categoryChart = new Chart(ctx.getContext('2d'), {
-                    type: 'doughnut',
-                    data: chartData,
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                position: 'bottom',
-                                labels: {
-                                    padding: 15,
-                                    usePointStyle: true
-                                }
-                            },
-                            tooltip: {
-                                callbacks: {
-                                    label: function(context) {
-                                        if (context.dataset.data.length === 1 && context.dataset.data[0] === 1) {
-                                            return 'No data available';
-                                        }
-                                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                        const percentage = total > 0 ? ((context.parsed / total) * 100).toFixed(1) : 0;
-                                        return context.label + ': KSh ' + context.parsed.toLocaleString() + ' (' + percentage + '%)';
-                                    }
-                                }
-                            }
-                        }
-                    }
-                });
-            } catch (error) {
-                console.error('❌ Error in updateCategoryChart:', error);
-            }
-        }
-
-        // Update tables
-        function updateTables(data) {
-            try {
-                console.log('📋 updateTables called with data:', data);
-
-                updateTopProductsTable(data.topProducts || []);
-                updateRecentSalesTable(data.recentSales || []);
-
-                console.log('✅ Tables updated successfully');
-            } catch (error) {
-                console.error('❌ Error updating tables:', error);
-            }
-        }
-
-        // Update top products table
-        function updateTopProductsTable(products) {
-            const tbody = document.getElementById('topProductsTable');
-            if (!tbody) {
-                console.error('❌ Top products table not found');
-                return;
-            }
-
-            if (!Array.isArray(products) || products.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 2rem;">No data available</td></tr>';
-                return;
-            }
-
-            tbody.innerHTML = products.slice(0, 5).map((product, index) => `
-                <tr>
-                    <td>${index + 1}</td>
-                    <td>${product.name || 'Unknown Product'}</td>
-                    <td>${(product.sales || 0).toLocaleString()}</td>
-                    <td>KSh ${(product.revenue || 0).toLocaleString('en-KE', { minimumFractionDigits: 2 })}</td>
-                    <td>
-                        <span style="color: ${Math.random() > 0.5 ? '#10b981' : '#ef4444'};">
-                            <i class="fas fa-arrow-${Math.random() > 0.5 ? 'up' : 'down'}"></i>
-                        </span>
-                    </td>
-                </tr>
-            `).join('');
-        }
-
-        // Update recent sales table
-        function updateRecentSalesTable(sales) {
-            const tbody = document.getElementById('recentSalesTable');
-            if (!tbody) {
-                console.error('❌ Recent sales table not found');
-                return;
-            }
-
-            if (!Array.isArray(sales) || sales.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 2rem;">No recent sales data available</td></tr>';
-                return;
-            }
-
-            tbody.innerHTML = sales.slice(0, 5).map((sale) => `
-                <tr>
-                    <td>#${sale.id || 'N/A'}</td>
-                    <td>${sale.customer || 'Walk-in Customer'}</td>
-                    <td>KSh ${(sale.total || 0).toLocaleString('en-KE', { minimumFractionDigits: 2 })}</td>
-                    <td>${sale.date ? new Date(sale.date).toLocaleDateString('en-KE') : 'N/A'}</td>
-                    <td>
-                        <span style="padding: 0.25rem 0.75rem; background: #10b981; color: white; border-radius: 20px; font-size: 0.75rem;">
-                            Completed
-                        </span>
-                    </td>
-                </tr>
-            `).join('');
-        }
-
         // Update chart type
-        function updateChartType() {
-            const chartTypeSelect = document.getElementById('chartType');
-            if (chartTypeSelect) {
-                const newChartType = chartTypeSelect.value;
-                console.log('📊 Chart type changed to:', newChartType);
-                
-                currentChartType = newChartType;
-                
-                // Always update charts immediately when chart type changes
-                if (currentData) {
-                    console.log('📊 Updating charts with stored data for new chart type:', newChartType);
-                    updateChartsForSpecificView(currentData, currentDataView, newChartType);
-                } else {
-                    console.log('📊 No stored data, loading fresh data for chart type:', newChartType);
-                    loadSpecificViewData(currentDataView || 'sales');
-                }
-            }
-        }
-
-        // Update data view
-        function updateDataView() {
-            const dataViewSelect = document.getElementById('dataView');
-            if (dataViewSelect) {
-                currentDataView = dataViewSelect.value;
-                console.log('📊 Data view changed to:', currentDataView);
-                
-                // Update chart controls for the new data view
-                updateChartControlsForDataView(currentDataView);
-                
-                // Load appropriate data for the selected view immediately
-                console.log('📊 Loading data immediately for view change:', currentDataView);
-                loadSpecificViewData(currentDataView);
-            }
-        }
-
-        // Load data for specific view
-        function loadSpecificViewData(dataView) {
-            console.log('📊 Loading data for view:', dataView);
-            
-            showLoading(true);
-            
-            const startDate = document.getElementById('startDate')?.value;
-            const endDate = document.getElementById('endDate')?.value;
-            const dateRange = document.getElementById('dateRange')?.value;
-            
-            // Add cache-busting parameter to force fresh data
-            const timestamp = new Date().getTime();
-            
-            const requestBody = {
-                reportType: dataView, // Use the specific view instead of 'default'
-                chartType: currentChartDataType,
-                startDate: startDate,
-                endDate: endDate,
-                dateRange: dateRange,
-                timestamp: timestamp
-            };
-            
-            fetch('/Admin/GetReportData', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || '',
-                    'Cache-Control': 'no-cache, no-store, must-revalidate',
-                    'Pragma': 'no-cache',
-                    'Expires': '0'
-                },
-                body: JSON.stringify(requestBody)
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    console.log('✅ View-specific data loaded:', data.data);
-                    currentData = data.data;
-                    
-                    // Update dashboard stats if it's the default view
-                    if (dataView === 'sales' || dataView === 'default') {
-                        updateDashboardStats(data.data);
-                    }
-                    
-                    // Update charts for the specific view and set default chart data type
-                    setDefaultChartDataType(dataView);
-                    updateChartsForSpecificView(data.data, dataView, currentChartType);
-                } else {
-                    console.error('❌ Failed to load view data:', data.message);
-                    showToast('Failed to load data for ' + dataView + ' view', 'error');
-                }
-            })
-            .catch(error => {
-                console.error('❌ Error loading view data:', error);
-                showToast('Error loading ' + dataView + ' data', 'error');
-            })
-            .finally(() => {
-                showLoading(false);
-            });
-        }
-
-        // Set default chart data type for each view
-        function setDefaultChartDataType(dataView) {
-            switch(dataView) {
-                case 'sales':
-                    currentChartDataType = 'sales';
-                    break;
-                case 'products':
-                    currentChartDataType = 'performance';
-                    break;
-                case 'categories':
-                    currentChartDataType = 'breakdown';
-                    break;
-                case 'inventory':
-                    currentChartDataType = 'levels';
-                    break;
-                default:
-                    currentChartDataType = 'sales';
-            }
-            console.log('📊 Set default chart data type for', dataView, ':', currentChartDataType);
-        }
-
-        // Update chart controls based on data view
-        function updateChartControlsForDataView(dataView) {
-            const chartControls = document.querySelector('.chart-controls');
-            if (!chartControls) return;
-
-            // Clear existing controls
-            chartControls.innerHTML = '';
-
-            let controls = [];
-            switch(dataView) {
-                case 'sales':
-                    controls = [
-                        { type: 'sales', label: 'Sales', active: true },
-                        { type: 'revenue', label: 'Revenue', active: false },
-                        { type: 'profit', label: 'Profit', active: false }
-                    ];
-                    break;
-                case 'products':
-                    controls = [
-                        { type: 'performance', label: 'Performance', active: true },
-                        { type: 'stock', label: 'Stock Levels', active: false },
-                        { type: 'turnover', label: 'Turnover', active: false }
-                    ];
-                    break;
-                case 'categories':
-                    controls = [
-                        { type: 'breakdown', label: 'Breakdown', active: true },
-                        { type: 'trends', label: 'Trends', active: false },
-                        { type: 'comparison', label: 'Comparison', active: false }
-                    ];
-                    break;
-                case 'inventory':
-                    controls = [
-                        { type: 'stock', label: 'Stock Levels', active: true },
-                        { type: 'valuation', label: 'Valuation', active: false },
-                        { type: 'movement', label: 'Movement', active: false }
-                    ];
-                    break;
-                default:
-                    controls = [
-                        { type: 'overview', label: 'Overview', active: true }
-                    ];
-            }
-
-            // Create control buttons
-            controls.forEach(control => {
-                const button = document.createElement('button');
-                button.className = `chart-control-btn ${control.active ? 'active' : ''}`;
-                button.setAttribute('data-chart-type', control.type);
-                button.textContent = control.label;
-                button.addEventListener('click', function() {
-                    // Remove active class from all buttons
-                    chartControls.querySelectorAll('.chart-control-btn').forEach(btn => {
-                        btn.classList.remove('active');
-                    });
-                    // Add active class to clicked button
-                    this.classList.add('active');
-                    
-                    const chartType = this.getAttribute('data-chart-type');
-                    switchMainChartForDataView(chartType, currentDataView);
-                });
-                chartControls.appendChild(button);
-            });
-
-            // Set the current chart data type to the first control
-            currentChartDataType = controls[0].type;
-        }
-
-        // Switch main chart based on data view and chart type
-        function switchMainChartForDataView(chartType, dataView) {
-            currentChartDataType = chartType;
-            
-            // Load specific data based on view and chart type
-            loadSpecificChartData(dataView, chartType);
-        }
-
-        // Load specific chart data
-        function loadSpecificChartData(dataView, chartType) {
-            console.log(`📊 Loading ${chartType} data for ${dataView} view`);
-            
-            // Show loading state
-            showLoading(true);
-            
-            // Make AJAX request for specific data
-            fetch('/Admin/GetReportData', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
-                },
-                body: JSON.stringify({
-                    reportType: dataView,
-                    chartType: chartType,
-                    startDate: document.getElementById('startDate')?.value,
-                    endDate: document.getElementById('endDate')?.value,
-                    dateRange: document.getElementById('dateRange')?.value
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    updateChartsForSpecificView(data.data, dataView, chartType);
-                } else {
-                    console.error('❌ Failed to load chart data:', data.message);
-                    showToast('Failed to load chart data', 'error');
-                }
-            })
-            .catch(error => {
-                console.error('❌ Error loading chart data:', error);
-                showToast('Error loading chart data', 'error');
-            })
-            .finally(() => {
-                showLoading(false);
-            });
-        }
-
-        // Update charts for specific view
-        function updateChartsForSpecificView(data, dataView, chartType) {
-            console.log(`📈 Updating charts for ${dataView} - ${currentChartDataType}:`, data);
-            
-            try {
-                // Destroy existing chart
-                if (mainChart) {
-                    mainChart.destroy();
-                    mainChart = null;
-                }
-
-                const ctx = document.getElementById('mainChart');
-                if (!ctx) {
-                    console.error('❌ Main chart canvas not found');
-                    return;
-                }
-
-                let chartData;
-                let chartTitle = '';
-
-                switch(dataView) {
-                    case 'sales':
-                        chartData = getSalesChartData(data, currentChartDataType);
-                        chartTitle = `Sales ${currentChartDataType.charAt(0).toUpperCase() + currentChartDataType.slice(1)}`;
-                        break;
-                    case 'products':
-                        chartData = getProductsChartData(data, currentChartDataType);
-                        chartTitle = `Product ${currentChartDataType.charAt(0).toUpperCase() + currentChartDataType.slice(1)}`;
-                        break;
-                    case 'categories':
-                        chartData = getCategoriesChartData(data, currentChartDataType);
-                        chartTitle = `Category ${currentChartDataType.charAt(0).toUpperCase() + currentChartDataType.slice(1)}`;
-                        break;
-                    case 'inventory':
-                        chartData = getInventoryChartData(data, currentChartDataType);
-                        chartTitle = `Inventory ${currentChartDataType.charAt(0).toUpperCase() + currentChartDataType.slice(1)}`;
-                        break;
-                }
-
-                // Update chart title
-                const chartTitleElement = document.querySelector('.chart-title');
-                if (chartTitleElement) {
-                    chartTitleElement.textContent = chartTitle;
-                }
-
-                let chartTypeToUse = currentChartType;
-                
-                // Handle area chart as line chart with fill
-                if (currentChartType === 'area') {
-                    chartTypeToUse = 'line';
-                    // Set fill property for area charts
-                    chartData.datasets.forEach(dataset => {
-                        dataset.fill = true;
-                        dataset.backgroundColor = dataset.backgroundColor || dataset.borderColor + '20';
-                    });
-                }
-
-                console.log('📊 Creating main chart with type:', chartTypeToUse, 'for view:', dataView);
-
-                mainChart = new Chart(ctx.getContext('2d'), {
-                    type: chartTypeToUse,
-                    data: chartData,
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                display: true,
-                                position: 'top',
-                                labels: {
-                                    usePointStyle: true,
-                                    padding: 20
-                                }
-                            },
-                            tooltip: {
-                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                                titleColor: '#ffffff',
-                                bodyColor: '#ffffff',
-                                borderColor: '#2563eb',
-                                borderWidth: 1,
-                                callbacks: {
-                                    label: function(context) {
-                                        if (chartTypeToUse === 'doughnut' || chartTypeToUse === 'pie') {
-                                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                            const percentage = total > 0 ? ((context.parsed / total) * 100).toFixed(1) : 0;
-                                            return context.label + ': ' + context.parsed.toLocaleString() + ' (' + percentage + '%)';
-                                        } else {
-                                            return context.dataset.label + ': ' + (context.parsed.y || context.parsed).toLocaleString();
-                                        }
-                                    }
-                                }
-                            }
-                        },
-                        scales: chartTypeToUse !== 'doughnut' && chartTypeToUse !== 'pie' ? {
-                            y: {
-                                beginAtZero: true,
-                                grid: {
-                                    color: 'rgba(0, 0, 0, 0.1)'
-                                },
-                                ticks: {
-                                    callback: function(value) {
-                                        return value.toLocaleString();
-                                    }
-                                }
-                            },
-                            x: {
-                                grid: {
-                                    color: 'rgba(0, 0, 0, 0.1)'
-                                }
-                            }
-                        } : {},
-                        interaction: {
-                            intersect: false,
-                            mode: 'index'
-                        }
-                    }
-                });
-            } catch (error) {
-                console.error('❌ Error updating charts for specific view:', error);
-            }
-        }
-
-        // Update main chart for specific view
-        function updateMainChartForView(data, dataView, chartType) {
-            try {
-                const ctx = document.getElementById('mainChart');
-                if (!ctx) return;
-
-                if (mainChart) {
-                    mainChart.destroy();
-                }
-
-                let chartData = { labels: [], datasets: [] };
-                let chartTitle = '';
-
-                switch(dataView) {
-                    case 'sales':
-                        chartData = getSalesChartData(data, chartType);
-                        chartTitle = `Sales ${chartType.charAt(0).toUpperCase() + chartType.slice(1)}`;
-                        break;
-                    case 'products':
-                        chartData = getProductsChartData(data, chartType);
-                        chartTitle = `Product ${chartType.charAt(0).toUpperCase() + chartType.slice(1)}`;
-                        break;
-                    case 'categories':
-                        chartData = getCategoriesChartData(data, chartType);
-                        chartTitle = `Category ${chartType.charAt(0).toUpperCase() + chartType.slice(1)}`;
-                        break;
-                    case 'inventory':
-                        chartData = getInventoryChartData(data, chartType);
-                        chartTitle = `Inventory ${chartType.charAt(0).toUpperCase() + chartType.slice(1)}`;
-                        break;
-                }
-
-                // Update chart title
-                const chartTitleElement = document.querySelector('.chart-title');
-                if (chartTitleElement) {
-                    chartTitleElement.textContent = chartTitle;
-                }
-
-                let chartTypeToUse = currentChartType;
-                
-                // Handle area chart as line chart with fill
-                if (currentChartType === 'area') {
-                    chartTypeToUse = 'line';
-                    // Set fill property for area charts
-                    chartData.datasets.forEach(dataset => {
-                        dataset.fill = true;
-                        dataset.backgroundColor = dataset.backgroundColor || dataset.borderColor + '20';
-                    });
-                }
-
-                console.log('📊 Creating main chart with type:', chartTypeToUse, 'for view:', dataView);
-
-                mainChart = new Chart(ctx.getContext('2d'), {
-                    type: chartTypeToUse,
-                    data: chartData,
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                display: true,
-                                position: 'top',
-                                labels: {
-                                    usePointStyle: true,
-                                    padding: 20
-                                }
-                            },
-                            tooltip: {
-                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                                titleColor: '#ffffff',
-                                bodyColor: '#ffffff',
-                                borderColor: '#2563eb',
-                                borderWidth: 1,
-                                callbacks: {
-                                    label: function(context) {
-                                        if (chartTypeToUse === 'doughnut' || chartTypeToUse === 'pie') {
-                                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                            const percentage = total > 0 ? ((context.parsed / total) * 100).toFixed(1) : 0;
-                                            return context.label + ': ' + context.parsed.toLocaleString() + ' (' + percentage + '%)';
-                                        } else {
-                                            return context.dataset.label + ': ' + (context.parsed.y || context.parsed).toLocaleString();
-                                        }
-                                    }
-                                }
-                            }
-                        },
-                        scales: chartTypeToUse !== 'doughnut' && chartTypeToUse !== 'pie' ? {
-                            y: {
-                                beginAtZero: true,
-                                grid: {
-                                    color: 'rgba(0, 0, 0, 0.1)'
-                                },
-                                ticks: {
-                                    callback: function(value) {
-                                        return value.toLocaleString();
-                                    }
-                                }
-                            },
-                            x: {
-                                grid: {
-                                    color: 'rgba(0, 0, 0, 0.1)'
-                                }
-                            }
-                        } : {},
-                        interaction: {
-                            intersect: false,
-                            mode: 'index'
-                        }
-                    }
-                });
-            } catch (error) {
-                console.error('❌ Error updating main chart for view:', error);
-            }
-        }
-
-        // Get sales chart data
-        function getSalesChartData(data, chartType) {
-            switch(chartType) {
-                case 'sales':
-                    const salesTrend = data.salesTrend || [];
-                    return {
-                        labels: salesTrend.map(item => item.date || 'N/A'),
-                        datasets: [{
-                            label: 'Sales Amount (KSh)',
-                            data: salesTrend.map(item => item.amount || 0),
-                            backgroundColor: generateDistinctColors(1)[0],
-                            borderColor: generateDistinctColors(1)[0],
-                            borderWidth: 2,
-                            fill: currentChartType === 'area'
-                        }]
-                    };
-                case 'revenue':
-                    const revenueTrend = data.revenueTrend || data.salesTrend || [];
-                    return {
-                        labels: revenueTrend.map(item => item.date || 'N/A'),
-                        datasets: [{
-                            label: 'Revenue (KSh)',
-                            data: revenueTrend.map(item => item.revenue || item.amount || 0),
-                            backgroundColor: generateDistinctColors(1)[0],
-                            borderColor: generateDistinctColors(1)[0],
-                            borderWidth: 2,
-                            fill: currentChartType === 'area'
-                        }]
-                    };
-                case 'profit':
-                    const profitTrend = data.profitTrend || data.salesTrend || [];
-                    return {
-                        labels: profitTrend.map(item => item.date || 'N/A'),
-                        datasets: [{
-                            label: 'Profit (KSh)',
-                            data: profitTrend.map(item => item.profit || (item.amount * 0.2) || 0),
-                            backgroundColor: generateDistinctColors(1)[0],
-                            borderColor: generateDistinctColors(1)[0],
-                            borderWidth: 2,
-                            fill: currentChartType === 'area'
-                        }]
-                    };
-                default:
-                    return { labels: ['No Data'], datasets: [{ data: [0], backgroundColor: ['#e5e7eb'] }] };
-            }
-        }
-
-        // Get products chart data
-        function getProductsChartData(data, chartType) {
-            switch(chartType) {
-                case 'performance':
-                    const topProducts = data.topProducts || [];
-                    return {
-                        labels: topProducts.map(item => item.name || item.productName || 'Unknown'),
-                        datasets: [{
-                            label: 'Revenue (KSh)',
-                            data: topProducts.map(item => item.revenue || item.totalRevenue || 0),
-                            backgroundColor: generateDistinctColors(topProducts.length),
-                            borderWidth: 2
-                        }]
-                    };
-                case 'stock':
-                    const stockLevels = data.stockLevels || data.topProducts || [];
-                    return {
-                        labels: stockLevels.map(item => item.name || item.productName || 'Unknown'),
-                        datasets: [{
-                            label: 'Stock Quantity',
-                            data: stockLevels.map(item => item.stock || item.quantity || 0),
-                            backgroundColor: generateDistinctColors(stockLevels.length),
-                            borderWidth: 2
-                        }]
-                    };
-                case 'turnover':
-                    const turnoverData = data.productTurnover || data.topProducts || [];
-                    return {
-                        labels: turnoverData.map(item => item.name || item.productName || 'Unknown'),
-                        datasets: [{
-                            label: 'Sales Quantity',
-                            data: turnoverData.map(item => item.sales || item.totalSales || 0),
-                            backgroundColor: generateDistinctColors(turnoverData.length),
-                            borderWidth: 2
-                        }]
-                    };
-                default:
-                    return { labels: ['No Data'], datasets: [{ data: [0], backgroundColor: ['#e5e7eb'] }] };
-            }
-        }
-
-        // Get categories chart data
-        function getCategoriesChartData(data, chartType) {
-            switch(chartType) {
-                case 'breakdown':
-                    const topCategories = data.topCategories || [];
-                    return {
-                        labels: topCategories.map(item => item.name || 'Unknown'),
-                        datasets: [{
-                            label: 'Product Count',
-                            data: topCategories.map(item => item.productCount || item.totalProducts || 0),
-                            backgroundColor: generateDistinctColors(topCategories.length),
-                            borderWidth: 2
-                        }]
-                    };
-                case 'trends':
-                    const categoryTrends = data.categoryTrends || data.topCategories || [];
-                    return {
-                        labels: categoryTrends.map(item => item.name || 'Unknown'),
-                        datasets: [{
-                            label: 'Category Sales (KSh)',
-                            data: categoryTrends.map(item => item.sales || item.totalSales || 0),
-                            backgroundColor: generateDistinctColors(categoryTrends.length),
-                            borderWidth: 2
-                        }]
-                    };
-                case 'comparison':
-                    const categoryComparison = data.categoryComparison || data.topCategories || [];
-                    return {
-                        labels: categoryComparison.map(item => item.name || 'Unknown'),
-                        datasets: [{
-                            label: 'Product Count',
-                            data: categoryComparison.map(item => item.productCount || item.totalProducts || 0),
-                            backgroundColor: generateDistinctColors(categoryComparison.length),
-                            borderWidth: 2
-                        }, {
-                            label: 'Stock Value (KSh)',
-                            data: categoryComparison.map(item => item.stockValue || 0),
-                            backgroundColor: generateDistinctColors(categoryComparison.length).map(color => color + '80'),
-                            borderWidth: 2
-                        }]
-                    };
-                default:
-                    return { labels: ['No Data'], datasets: [{ data: [0], backgroundColor: ['#e5e7eb'] }] };
-            }
-        }
-
-        // Get inventory chart data
-        function getInventoryChartData(data, chartType) {
-            switch(chartType) {
-                case 'stock':
-                    const stockData = data.inventoryStock || data.topProducts || [];
-                    return {
-                        labels: stockData.map(item => item.name || 'Unknown'),
-                        datasets: [{
-                            label: 'Current Stock',
-                            data: stockData.map(item => item.currentStock || item.stock || 0),
-                            backgroundColor: generateDistinctColors(stockData.length),
-                            borderWidth: 2
-                        }]
-                    };
-                case 'valuation':
-                    const valuationData = data.inventoryValuation || data.topProducts || [];
-                    return {
-                        labels: valuationData.map(item => item.name || 'Unknown'),
-                        datasets: [{
-                            label: 'Stock Value (KSh)',
-                            data: valuationData.map(item => item.value || (item.stock * item.price) || 0),
-                            backgroundColor: generateDistinctColors(valuationData.length),
-                            borderWidth: 2
-                        }]
-                    };
-                case 'movement':
-                    const movementData = data.inventoryMovement || data.topProducts || [];
-                    return {
-                        labels: movementData.map(item => item.name || 'Unknown'),
-                        datasets: [{
-                            label: 'Items Sold',
-                            data: movementData.map(item => item.sold || item.sales || 0),
-                            backgroundColor: generateDistinctColors(movementData.length),
-                            borderWidth: 2
-                        }]
-                    };
-                default:
-                    return { labels: ['No Data'], datasets: [{ data: [0], backgroundColor: ['#e5e7eb'] }] };
-            }
-        }
-
-        // Update category chart for specific view
-        function updateCategoryChartForView(data, dataView) {
-            try {
-                const ctx = document.getElementById('categoryChart');
-                if (!ctx) return;
-
-                if (categoryChart) {
-                    categoryChart.destroy();
-                }
-
-                let chartData = { labels: [], datasets: [] };
-                let chartTitle = '';
-
-                switch(dataView) {
-                    case 'sales':
-                        const topCategories = data.topCategories || [];
-                        chartData = {
-                            labels: topCategories.map(item => item.name || 'Unknown'),
-                            datasets: [{
-                                data: topCategories.map(item => item.sales || 0),
-                                backgroundColor: generateDistinctColors(topCategories.length || 1),
-                                borderWidth: 2,
-                                borderColor: '#fff'
-                            }]
-                        };
-                        chartTitle = 'Sales by Category';
-                        break;
-                    case 'products':
-                        const topProducts = data.topProducts || [];
-                        chartData = {
-                            labels: topProducts.map(item => item.name || 'Unknown'),
-                            datasets: [{
-                                data: topProducts.map(item => item.sales || 0),
-                                backgroundColor: generateDistinctColors(topProducts.length || 1),
-                                borderWidth: 2,
-                                borderColor: '#fff'
-                            }]
-                        };
-                        chartTitle = 'Top Products';
-                        break;
-                    case 'categories':
-                        const categories = data.topCategories || [];
-                        chartData = {
-                            labels: categories.map(item => item.name || 'Unknown'),
-                            datasets: [{
-                                data: categories.map(item => item.sales || 0),
-                                backgroundColor: generateDistinctColors(categories.length || 1),
-                                borderWidth: 2,
-                                borderColor: '#fff'
-                            }]
-                        };
-                        chartTitle = 'Category Distribution';
-                        break;
-                    case 'inventory':
-                        const inventory = data.inventoryStock || data.topProducts || [];
-                        chartData = {
-                            labels: inventory.map(item => item.name || 'Unknown'),
-                            datasets: [{
-                                data: inventory.map(item => item.currentStock || item.stock || 0),
-                                backgroundColor: generateDistinctColors(inventory.length || 1),
-                                borderWidth: 2,
-                                borderColor: '#fff'
-                            }]
-                        };
-                        chartTitle = 'Inventory Distribution';
-                        break;
-                }
-
-                // Update secondary chart title
-                const secondaryChartTitle = document.querySelectorAll('.chart-title')[1];
-                if (secondaryChartTitle) {
-                    secondaryChartTitle.textContent = chartTitle;
-                }
-
-                categoryChart = new Chart(ctx.getContext('2d'), {
-                    type: 'doughnut',
-                    data: chartData,
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                position: 'bottom',
-                                labels: {
-                                    padding: 15,
-                                    usePointStyle: true
-                                }
-                            },
-                            tooltip: {
-                                callbacks: {
-                                    label: function(context) {
-                                        if (context.dataset.data.length === 1 && context.dataset.data[0] === 1) {
-                                            return 'No data available';
-                                        }
-                                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                        const percentage = total > 0 ? ((context.parsed / total) * 100).toFixed(1) : 0;
-                                        return context.label + ': ' + context.parsed.toLocaleString() + ' (' + percentage + '%)';
-                                    }
-                                }
-                            }
-                        }
-                    }
-                });
-            } catch (error) {
-                console.error('❌ Error updating category chart for view:', error);
-            }
-        }
-
-        // Switch main chart data
-        function switchMainChart(type) {
-            console.log('🔄 Switching chart to:', type);
-
-            // Update button states
-            document.querySelectorAll('.chart-control-btn').forEach(btn => {
-                btn.classList.remove('active');
-            });
-
-            // Find and activate the clicked button
-            const clickedBtn = document.querySelector(`[data-chart-type="${type}"]`);
-            if (clickedBtn) {
-                clickedBtn.classList.add('active');
-            }
-
-            // Update current chart data type
-            currentChartDataType = type;
-
-            // Reload chart with new data type - ensure we have data first
-            if (currentData) {
-                console.log('📊 Using stored data for chart switch:', currentData);
-                updateMainChartWithType(currentData, type);
-            } else {
-                console.log('⚠️ No data available, loading fresh data...');
-                loadReportsData();
-            }
-        }
-
-        // Generate reports
-        function generateReports() {
-            console.log('🔄 Generating reports...');
-            loadReportsData();
-        }
-
-        // Export report function - FIXED VERSION
-        async function exportReport(format) {
-            console.log('📤 Exporting report in format:', format);
-
-            try {
-                showLoading(true);
-
-                if (!currentData) {
-                    showToast('No data available to export. Please wait for data to load.', 'error');
-                    showLoading(false);
-                    return;
-                }
-
-                const startDateInput = document.getElementById('startDate');
-                const endDateInput = document.getElementById('endDate');
-
-                const requestBody = {
-                    reportType: currentDataView || 'sales',
-                    format: format,
-                    startDate: startDateInput ? startDateInput.value : new Date().toISOString().split('T')[0],
-                    endDate: endDateInput ? endDateInput.value : new Date().toISOString().split('T')[0],
-                    includeCharts: true
-                };
-
-                console.log('📤 Export request body:', requestBody);
-
-                const response = await fetch('/Admin/ExportReport', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json, application/octet-stream',
-                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
-                    },
-                    body: JSON.stringify(requestBody)
-                });
-
-                console.log('📡 Export response status:', response.status);
-
-                if (response.ok) {
-                    const contentType = response.headers.get('content-type');
-                    console.log('📄 Response content type:', contentType);
-
-                    // Check if it's a file download
-                    if (contentType && (contentType.includes('application/pdf') ||
-                                       contentType.includes('application/vnd.openxmlformats') ||
-                                       contentType.includes('text/csv'))) {
-                        const blob = await response.blob();
-                        const url = window.URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = `${currentDataView || 'sales'}_report_${new Date().toISOString().split('T')[0]}.${format === 'excel' ? 'xlsx' : format}`;
-                        document.body.appendChild(a);
-                        a.click();
-                        document.body.removeChild(a);
-                        window.URL.revokeObjectURL(url);
-
-                        showToast('Report exported successfully!', 'success');
-                    } else {
-                        // Handle JSON response
-                        const result = await response.json();
-                        if (result.success === false) {
-                            throw new Error(result.message || 'Export failed');
-                        } else {
-                            showToast('Report export completed!', 'success');
-                        }
-                    }
-                } else {
-                    const errorText = await response.text();
-                    console.error('❌ Export error:', errorText);
-                    throw new Error(`Export failed with status ${response.status}`);
-                }
-            } catch (error) {
-                console.error('❌ Export error:', error);
-                showToast('Error exporting report: ' + error.message, 'error');
-            } finally {
-                showLoading(false);
-            }
-        }
-
-        // Print dashboard - Generate comprehensive PDF report
-        async function printDashboard() {
-            console.log('🖨️ Generating comprehensive PDF report...');
-            try {
-                showToast('Generating comprehensive report for printing...', 'info');
-                const response = await fetch('/Admin/ExportReport', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
-                    },
-                    body: JSON.stringify({
-                        reportType: 'comprehensive',
-                        format: 'pdf',
-                        startDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
-                        endDate: new Date().toISOString().split('T')[0]
-                    })
-                });
-
-                if (response.ok) {
-                    const blob = await response.blob();
-                    const url = window.URL.createObjectURL(blob);
-                    
-                    // Open PDF in new window for printing
-                    const printWindow = window.open(url, '_blank');
-                    if (printWindow) {
-                        printWindow.onload = function() {
-                            printWindow.print();
-                        };
-                    } else {
-                        // Fallback: download the PDF
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = `Comprehensive_Business_Report_${new Date().toISOString().split('T')[0]}.pdf`;
-                        document.body.appendChild(a);
-                        a.click();
-                        document.body.removeChild(a);
-                    }
-                    
-                    window.URL.revokeObjectURL(url);
-                    showToast('Comprehensive report generated successfully!', 'success');
-                } else {
-                    throw new Error('Failed to generate comprehensive report');
-                }
-            } catch (error) {
-                console.error('❌ Error generating comprehensive report:', error);
-                showToast('Failed to generate comprehensive report', 'error');
-            }
-        }
-
-        // Additional report functions
-        async function generateInventoryReport() {
-            console.log('📦 Generating Inventory Report PDF...');
-            try {
-                const response = await fetch('/Admin/ExportReport', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
-                    },
-                    body: JSON.stringify({
-                        reportType: 'inventory',
-                        format: 'pdf',
-                        startDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
-                        endDate: new Date().toISOString().split('T')[0]
-                    })
-                });
-
-                if (response.ok) {
-                    const blob = await response.blob();
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `Inventory_Report_${new Date().toISOString().split('T')[0]}.pdf`;
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    window.URL.revokeObjectURL(url);
-                    showToast('Inventory Report downloaded successfully!', 'success');
-                } else {
-                    throw new Error('Failed to generate report');
-                }
-            } catch (error) {
-                console.error('❌ Error generating inventory report:', error);
-                showToast('Failed to generate Inventory Report', 'error');
-            }
-        }
-
-        async function generateSupplierReport() {
-            console.log('🏪 Generating Supplier Report PDF...');
-            try {
-                const response = await fetch('/Admin/ExportReport', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
-                    },
-                    body: JSON.stringify({
-                        reportType: 'suppliers',
-                        format: 'pdf',
-                        startDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
-                        endDate: new Date().toISOString().split('T')[0]
-                    })
-                });
-
-                if (response.ok) {
-                    const blob = await response.blob();
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `Supplier_Report_${new Date().toISOString().split('T')[0]}.pdf`;
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    window.URL.revokeObjectURL(url);
-                    showToast('Supplier Report downloaded successfully!', 'success');
-                } else {
-                    throw new Error('Failed to generate report');
-                }
-            } catch (error) {
-                console.error('❌ Error generating supplier report:', error);
-                showToast('Failed to generate Supplier Report', 'error');
-            }
-        }
-
-        async function generateUserReport() {
-            console.log('👥 Generating User Activity Report PDF...');
-            try {
-                const response = await fetch('/Admin/ExportReport', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
-                    },
-                    body: JSON.stringify({
-                        reportType: 'users',
-                        format: 'pdf',
-                        startDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
-                        endDate: new Date().toISOString().split('T')[0]
-                    })
-                });
-
-                if (response.ok) {
-                    const blob = await response.blob();
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `User_Activity_Report_${new Date().toISOString().split('T')[0]}.pdf`;
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    window.URL.revokeObjectURL(url);
-                    showToast('User Activity Report downloaded successfully!', 'success');
-                } else {
-                    throw new Error('Failed to generate report');
-                }
-            } catch (error) {
-                console.error('❌ Error generating user report:', error);
-                showToast('Failed to generate User Activity Report', 'error');
-            }
-        }
-
-        // Modal functions
-        function showExportModal() {
-            document.getElementById('exportModal').style.display = 'block';
-        }
-
-        function showEmailModal() {
-            document.getElementById('emailModal').style.display = 'block';
-        }
-
-        function showReceiptModal() {
-            document.getElementById('receiptModal').style.display = 'block';
-        }
-
-        // Perform export from modal
-        function performExport() {
-            const reportType = document.getElementById('exportReportType').value;
-            const format = document.getElementById('exportFormat').value;
-
-            console.log('📤 Performing export:', { reportType, format });
-            exportReport(format);
-            closeModal('exportModal');
-        }
-
-        // Send report email
-        async function sendReportEmail() {
-            const email = document.getElementById('emailAddress').value;
-            const reportType = document.getElementById('emailReportType').value;
-            const message = document.getElementById('emailMessage').value;
-
-            if (!email) {
-                showToast('Please enter an email address', 'warning');
-                return;
-            }
-
-            try {
-                showLoading(true);
-
-                const requestBody = {
-                    email: email,
-                    reportType: reportType,
-                    message: message,
-                    startDate: document.getElementById('startDate')?.value || '',
-                    endDate: document.getElementById('endDate')?.value || ''
-                };
-
-                const response = await fetch('/Admin/EmailReport', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(requestBody)
-                });
-
-                const result = await response.json();
-
-                if (result.success) {
-                    showToast('Email sent successfully!', 'success');
-                    closeModal('emailModal');
-                } else {
-                    showToast('Error sending email: ' + result.message, 'error');
-                }
-            } catch (error) {
-                console.error('❌ Error sending email:', error);
-                showToast('Error sending email: ' + error.message, 'error');
-            } finally {
-                showLoading(false);
-            }
-        }
-
-        // Search sales
-        async function searchSales() {
-            const searchTerm = document.getElementById('saleSearch').value;
-            console.log('🔍 Searching sales:', searchTerm);
-
-            try {
-                const response = await fetch(`/Admin/GetSalesForReceipt?search=${encodeURIComponent(searchTerm)}`);
-                const result = await response.json();
-
-                if (result.success) {
-                    const select = document.getElementById('saleSelect');
-                    select.innerHTML = '<option value="">Select a sale...</option>' +
-                        result.sales.map(sale =>
-                            `<option value="${sale.saleId}" data-sale='${JSON.stringify(sale)}'>
-                                Sale #${sale.saleNumber} - ${sale.customerName} - KSh ${sale.totalAmount.toLocaleString()}
-                            </option>`
-                        ).join('');
-                }
-            } catch (error) {
-                console.error('❌ Error searching sales:', error);
-                showToast('Error searching sales', 'error');
-            }
-        }
-
-        // Show sale details
-        function showSaleDetails() {
-            const select = document.getElementById('saleSelect');
-            const selectedOption = select.options[select.selectedIndex];
-
-            if (!selectedOption.value) {
-                document.getElementById('saleDetails').style.display = 'none';
-                return;
-            }
-
-            const sale = JSON.parse(selectedOption.dataset.sale);
-            const detailsDiv = document.getElementById('saleDetails');
-
-            detailsDiv.innerHTML = `
-                <h4>Sale Details</h4>
-                <p><strong>Sale Number:</strong> #${sale.saleNumber}</p>
-                <p><strong>Customer:</strong> ${sale.customerName}</p>
-                <p><strong>Amount:</strong> KSh ${sale.totalAmount.toLocaleString()}</p>
-                <p><strong>Date:</strong> ${new Date(sale.saleDate).toLocaleDateString()}</p>
-            `;
-
-            detailsDiv.style.display = 'block';
-
-            // Auto-fill customer email if available
-            if (sale.customerEmail) {
-                document.getElementById('receiptEmail').value = sale.customerEmail;
-            }
-        }
-
-        // Send receipt email
-        async function sendReceiptEmail() {
-            const select = document.getElementById('saleSelect');
-            const email = document.getElementById('receiptEmail').value;
-
-            if (!select.value) {
-                showToast('Please select a sale', 'warning');
-                return;
-            }
-
-            if (!email) {
-                showToast('Please enter an email address', 'warning');
-                return;
-            }
-
-            try {
-                showLoading(true);
-
-                const requestBody = {
-                    email: email,
-                    saleId: parseInt(select.value)
-                };
-
-                const response = await fetch('/Admin/EmailReceipt', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(requestBody)
-                });
-
-                const result = await response.json();
-
-                if (result.success) {
-                    showToast('Receipt sent successfully!', 'success');
-                    closeModal('receiptModal');
-                } else {
-                    showToast('Error sending receipt: ' + result.message, 'error');
-                }
-            } catch (error) {
-                console.error('❌ Error sending receipt:', error);
-                showToast('Error sending receipt: ' + error.message, 'error');
-            } finally {
-                showLoading(false);
-            }
-        }
-
-        // Update Top Products Table
-        function updateTopProductsTable(products) {
-            try {
-                console.log('📊 updateTopProductsTable called with:', products);
-                const tableBody = document.getElementById('topProductsTable');
-                if (!tableBody) {
-                    console.error('❌ topProductsTable element not found');
-                    return;
-                }
-
-                if (!products || products.length === 0) {
-                    console.log('⚠️ No products data available, showing empty message');
-                    tableBody.innerHTML = `
-                        <tr>
-                            <td colspan="5" style="text-align: center; padding: 2rem; color: #6b7280;">
-                                No product data available
-                            </td>
-                        </tr>
-                    `;
-                    return;
-                }
-
-                console.log('📊 Processing', products.length, 'products for table');
-                let tableHTML = '';
-                products.forEach((product, index) => {
-                    console.log('📊 Processing product:', product);
-                    const trend = Math.random() > 0.5 ? '↗️' : '↘️';
-                    const trendClass = Math.random() > 0.5 ? 'positive' : 'negative';
-                    
-                    const productName = product.name || product.productName || 'Unknown Product';
-                    const sales = product.sales || product.totalSales || 0;
-                    const revenue = product.revenue || product.totalRevenue || 0;
-                    
-                    tableHTML += `
-                        <tr>
-                            <td>${index + 1}</td>
-                            <td>${productName}</td>
-                            <td>${sales.toLocaleString()}</td>
-                            <td>KSh ${revenue.toLocaleString('en-KE', { minimumFractionDigits: 2 })}</td>
-                            <td><span class="stat-change ${trendClass}">${trend}</span></td>
-                        </tr>
-                    `;
-                });
-
-                tableBody.innerHTML = tableHTML;
-                console.log('✅ Top Products table updated with', products.length, 'items');
-            } catch (error) {
-                console.error('❌ Error updating top products table:', error);
-            }
-        }
-
-        // Update Recent Sales Table
-        function updateRecentSalesTable(sales) {
-            try {
-                console.log('📊 updateRecentSalesTable called with:', sales);
-                const tableBody = document.getElementById('recentSalesTable');
-                if (!tableBody) {
-                    console.error('❌ recentSalesTable element not found');
-                    return;
-                }
-
-                if (!sales || sales.length === 0) {
-                    console.log('⚠️ No sales data available, showing empty message');
-                    tableBody.innerHTML = `
-                        <tr>
-                            <td colspan="5" style="text-align: center; padding: 2rem; color: #6b7280;">
-                                No recent sales data available
-                            </td>
-                        </tr>
-                    `;
-                    return;
-                }
-
-                console.log('📊 Processing', sales.length, 'sales for table');
-                let tableHTML = '';
-                sales.forEach((sale) => {
-                    console.log('📊 Processing sale:', sale);
-                    const statusClass = sale.status === 'Completed' ? 'success' : 
-                                       sale.status === 'Pending' ? 'warning' : 'info';
-                    
-                    const saleId = sale.id || sale.saleNumber || 'N/A';
-                    const customerName = sale.customerName || 'Walk-in Customer';
-                    const amount = sale.totalAmount || sale.amount || 0;
-                    const saleDate = new Date(sale.saleDate || sale.date).toLocaleDateString('en-KE');
-                    const status = sale.status || 'Completed';
-                    
-                    tableHTML += `
-                        <tr>
-                            <td>${saleId}</td>
-                            <td>${customerName}</td>
-                            <td>KSh ${amount.toLocaleString('en-KE', { minimumFractionDigits: 2 })}</td>
-                            <td>${saleDate}</td>
-                            <td><span class="badge badge-${statusClass}">${status}</span></td>
-                        </tr>
-                    `;
-                });
-
-                tableBody.innerHTML = tableHTML;
-                console.log('✅ Recent Sales table updated with', sales.length, 'items');
-            } catch (error) {
-                console.error('❌ Error updating recent sales table:', error);
-            }
-        }
-
-        // Update category chart with all categories
-        function updateCategoryChart(categories) {
-            try {
-                console.log('📊 updateCategoryChart called with:', categories);
-                const ctx = document.getElementById('categoryChart');
-                if (!ctx) {
-                    console.error('❌ categoryChart element not found');
-                    return;
-                }
-
-                if (categoryChart) {
-                    categoryChart.destroy();
-                }
-
-                if (!categories || categories.length === 0) {
-                    console.warn('⚠️ No category data available for chart');
-                    return;
-                }
-
-                console.log('📊 Processing', categories.length, 'categories for chart');
-                const chartData = {
-                    labels: categories.map(cat => {
-                        const name = cat.name || cat.categoryName || 'Unknown';
-                        console.log('📊 Category name:', name);
-                        return name;
-                    }),
-                    datasets: [{
-                        label: 'Category Sales (KSh)',
-                        data: categories.map(cat => {
-                            const sales = cat.sales || cat.totalSales || 0;
-                            console.log('📊 Category sales:', sales);
-                            return sales;
-                        }),
-                        backgroundColor: [
-                            '#2563eb', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6',
-                            '#06b6d4', '#84cc16', '#f97316', '#ec4899', '#6366f1'
-                        ],
-                        borderWidth: 2,
-                        borderColor: '#ffffff'
-                    }]
-                };
-
-                console.log('📊 Chart data prepared:', chartData);
-
-                categoryChart = new Chart(ctx.getContext('2d'), {
-                    type: 'doughnut',
-                    data: chartData,
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                position: 'bottom',
-                                labels: {
-                                    padding: 20,
-                                    usePointStyle: true
-                                }
-                            },
-                            tooltip: {
-                                callbacks: {
-                                    label: function(context) {
-                                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                                        const percentage = ((context.parsed / total) * 100).toFixed(1);
-                                        return `${context.label}: KSh ${context.parsed.toLocaleString('en-KE')} (${percentage}%)`;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                });
-
-                console.log('✅ Category chart updated with', categories.length, 'categories');
-            } catch (error) {
-                console.error('❌ Error updating category chart:', error);
-            }
-        }
-
-        // Update main chart with sales data by default
-        function updateMainChartWithSalesData(data) {
-            try {
-                console.log('📊 updateMainChartWithSalesData called with:', data);
-                const ctx = document.getElementById('mainChart');
-                if (!ctx) {
-                    console.error('❌ mainChart element not found');
-                    return;
-                }
-
-                if (mainChart) {
-                    mainChart.destroy();
-                }
-
-                // Use sales trend data for the main chart
-                const salesTrend = data.salesTrend || [];
-                console.log('📊 Sales trend data:', salesTrend);
-
-                if (salesTrend.length === 0) {
-                    console.warn('⚠️ No sales trend data available');
-                    return;
-                }
-
-                const chartData = {
-                    labels: salesTrend.map(item => item.date || 'N/A'),
-                    datasets: [{
-                        label: 'Sales Amount (KSh)',
-                        data: salesTrend.map(item => item.sales || item.amount || 0),
-                        borderColor: '#2563eb',
-                        backgroundColor: 'rgba(37, 99, 235, 0.1)',
-                        borderWidth: 3,
-                        tension: 0.4,
-                        fill: true,
-                        pointBackgroundColor: '#2563eb',
-                        pointBorderColor: '#ffffff',
-                        pointBorderWidth: 2,
-                        pointRadius: 5
-                    }]
-                };
-
-                console.log('📊 Main chart data prepared:', chartData);
-
-                mainChart = new Chart(ctx.getContext('2d'), {
-                    type: 'line',
-                    data: chartData,
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                display: true,
-                                position: 'top',
-                                labels: {
-                                    usePointStyle: true,
-                                    padding: 20
-                                }
-                            },
-                            tooltip: {
-                                backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                                titleColor: '#ffffff',
-                                bodyColor: '#ffffff',
-                                borderColor: '#2563eb',
-                                borderWidth: 1,
-                                callbacks: {
-                                    label: function(context) {
-                                        return context.dataset.label + ': KSh ' + context.parsed.y.toLocaleString('en-KE', { minimumFractionDigits: 2 });
-                                    }
-                                }
-                            }
-                        },
-                        scales: {
-                            y: {
-                                beginAtZero: true,
-                                grid: {
-                                    color: 'rgba(0, 0, 0, 0.1)'
-                                },
-                                ticks: {
-                                    callback: function(value) {
-                                        return 'KSh ' + value.toLocaleString('en-KE');
-                                    }
-                                }
-                            },
-                            x: {
-                                grid: {
-                                    color: 'rgba(0, 0, 0, 0.1)'
-                                }
-                            }
-                        },
-                        interaction: {
-                            intersect: false,
-                            mode: 'index'
-                        }
-                    }
-                });
-
-                console.log('✅ Main chart updated with sales data');
-            } catch (error) {
-                console.error('❌ Error updating main chart with sales data:', error);
-            }
-        }
-
-        console.log('✅ Reports JavaScript loaded successfully');
+         function updateChartType() {
+             const chartTypeSelect = document.getElementById('chartType');
+             if (chartTypeSelect) {
+                 const newChartType = chartTypeSelect.value;
+                 console.log('📊 Chart type changed to:', newChartType);
+
+                 currentChartType = newChartType;
+
+                 if (currentData) {
+                     console.log('📊 Updating charts with stored data for new chart type:', newChartType);
+                     updateChartsForSpecificView(currentData, currentDataView, newChartType);
+                 } else {
+                     console.log('📊 No stored data, loading fresh data for chart type:', newChartType);
+                     loadSpecificViewData(currentDataView || 'sales');
+                 }
+             }
+         }
+
+         // Update data view
+         function updateDataView() {
+             const dataViewSelect = document.getElementById('dataView');
+             if (dataViewSelect) {
+                 currentDataView = dataViewSelect.value;
+                 console.log('📊 Data view changed to:', currentDataView);
+
+                 updateChartControlsForDataView(currentDataView);
+
+                 console.log('📊 Loading data immediately for view change:', currentDataView);
+                 loadSpecificViewData(currentDataView);
+             }
+         }
+
+         // Load data for specific view
+         function loadSpecificViewData(dataView) {
+             console.log('📊 Loading data for view:', dataView);
+
+             showLoading(true);
+
+             const startDate = document.getElementById('startDate')?.value;
+             const endDate = document.getElementById('endDate')?.value;
+             const dateRange = document.getElementById('dateRange')?.value;
+
+             const timestamp = new Date().getTime();
+
+             const requestBody = {
+                 reportType: dataView,
+                 chartType: currentChartDataType,
+                 startDate: startDate,
+                 endDate: endDate,
+                 dateRange: dateRange,
+                 timestamp: timestamp
+             };
+
+             fetch('/Admin/GetReportData', {
+                 method: 'POST',
+                 headers: {
+                     'Content-Type': 'application/json',
+                     'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || '',
+                     'Cache-Control': 'no-cache, no-store, must-revalidate',
+                     'Pragma': 'no-cache',
+                     'Expires': '0'
+                 },
+                 body: JSON.stringify(requestBody)
+             })
+             .then(response => response.json())
+             .then(data => {
+                 if (data.success) {
+                     console.log('✅ View-specific data loaded:', data.data);
+                     currentData = data.data;
+
+                     if (dataView === 'sales' || dataView === 'default') {
+                         updateDashboardStats(data.data);
+                     }
+
+                     setDefaultChartDataType(dataView);
+                     updateChartsForSpecificView(data.data, dataView, currentChartType);
+                 } else {
+                     console.error('❌ Failed to load view data:', data.message);
+                     showToast('Failed to load data for ' + dataView + ' view', 'error');
+                 }
+             })
+             .catch(error => {
+                 console.error('❌ Error loading view data:', error);
+                 showToast('Error loading ' + dataView + ' data', 'error');
+             })
+             .finally(() => {
+                 showLoading(false);
+             });
+         }
+
+         // Set default chart data type for each view
+         function setDefaultChartDataType(dataView) {
+             switch(dataView) {
+                 case 'sales':
+                     currentChartDataType = 'sales';
+                     break;
+                 case 'products':
+                     currentChartDataType = 'performance';
+                     break;
+                 case 'categories':
+                     currentChartDataType = 'breakdown';
+                     break;
+                 case 'inventory':
+                     currentChartDataType = 'levels';
+                     break;
+                 default:
+                     currentChartDataType = 'sales';
+             }
+             console.log('📊 Set default chart data type for', dataView, ':', currentChartDataType);
+         }
+
+         // Update chart controls based on data view
+         function updateChartControlsForDataView(dataView) {
+             const chartControls = document.querySelector('.chart-controls');
+             if (!chartControls) return;
+
+             chartControls.innerHTML = '';
+
+             let controls = [];
+             switch(dataView) {
+                 case 'sales':
+                     controls = [
+                         { type: 'sales', label: 'Sales', active: true },
+                         { type: 'revenue', label: 'Revenue', active: false },
+                         { type: 'profit', label: 'Profit', active: false }
+                     ];
+                     break;
+                 case 'products':
+                     controls = [
+                         { type: 'performance', label: 'Performance', active: true },
+                         { type: 'stock', label: 'Stock Levels', active: false },
+                         { type: 'turnover', label: 'Turnover', active: false }
+                     ];
+                     break;
+                 case 'categories':
+                     controls = [
+                         { type: 'breakdown', label: 'Breakdown', active: true },
+                         { type: 'trends', label: 'Trends', active: false },
+                         { type: 'comparison', label: 'Comparison', active: false }
+                     ];
+                     break;
+                 case 'inventory':
+                     controls = [
+                         { type: 'stock', label: 'Stock Levels', active: true },
+                         { type: 'valuation', label: 'Valuation', active: false },
+                         { type: 'movement', label: 'Movement', active: false }
+                     ];
+                     break;
+                 default:
+                     controls = [
+                         { type: 'overview', label: 'Overview', active: true }
+                     ];
+             }
+
+             controls.forEach(control => {
+                 const button = document.createElement('button');
+                 button.className = `chart-control-btn ${control.active ? 'active' : ''}`;
+                 button.setAttribute('data-chart-type', control.type);
+                 button.textContent = control.label;
+                 button.addEventListener('click', function() {
+                     chartControls.querySelectorAll('.chart-control-btn').forEach(btn => {
+                         btn.classList.remove('active');
+                     });
+                     this.classList.add('active');
+
+                     const chartType = this.getAttribute('data-chart-type');
+                     switchMainChartForDataView(chartType, currentDataView);
+                 });
+                 chartControls.appendChild(button);
+             });
+
+             currentChartDataType = controls[0].type;
+         }
+
+         // Switch main chart based on data view and chart type
+         function switchMainChartForDataView(chartType, dataView) {
+             currentChartDataType = chartType;
+             loadSpecificChartData(dataView, chartType);
+         }
+
+         // Load specific chart data
+         function loadSpecificChartData(dataView, chartType) {
+             console.log(`📊 Loading ${chartType} data for ${dataView} view`);
+
+             showLoading(true);
+
+             fetch('/Admin/GetReportData', {
+                 method: 'POST',
+                 headers: {
+                     'Content-Type': 'application/json',
+                     'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                 },
+                 body: JSON.stringify({
+                     reportType: dataView,
+                     chartType: chartType,
+                     startDate: document.getElementById('startDate')?.value,
+                     endDate: document.getElementById('endDate')?.value,
+                     dateRange: document.getElementById('dateRange')?.value
+                 })
+             })
+             .then(response => response.json())
+             .then(data => {
+                 if (data.success) {
+                     updateChartsForSpecificView(data.data, dataView, chartType);
+                 } else {
+                     console.error('❌ Failed to load chart data:', data.message);
+                     showToast('Failed to load chart data', 'error');
+                 }
+             })
+             .catch(error => {
+                 console.error('❌ Error loading chart data:', error);
+                 showToast('Error loading chart data', 'error');
+             })
+             .finally(() => {
+                 showLoading(false);
+             });
+         }
+
+         // Update charts for specific view
+         function updateChartsForSpecificView(data, dataView, chartType) {
+             console.log(`📈 Updating charts for ${dataView} - ${currentChartDataType}:`, data);
+
+             try {
+                 if (mainChart) {
+                     mainChart.destroy();
+                     mainChart = null;
+                 }
+
+                 const ctx = document.getElementById('mainChart');
+                 if (!ctx) {
+                     console.error('❌ Main chart canvas not found');
+                     return;
+                 }
+
+                 let chartData;
+                 let chartTitle = '';
+
+                 switch(dataView) {
+                     case 'sales':
+                         chartData = getSalesChartData(data, currentChartDataType);
+                         chartTitle = `Sales ${currentChartDataType.charAt(0).toUpperCase() + currentChartDataType.slice(1)}`;
+                         break;
+                     case 'products':
+                         chartData = getProductsChartData(data, currentChartDataType);
+                         chartTitle = `Product ${currentChartDataType.charAt(0).toUpperCase() + currentChartDataType.slice(1)}`;
+                         break;
+                     case 'categories':
+                         chartData = getCategoriesChartData(data, currentChartDataType);
+                         chartTitle = `Category ${currentChartDataType.charAt(0).toUpperCase() + currentChartDataType.slice(1)}`;
+                         break;
+                     case 'inventory':
+                         chartData = getInventoryChartData(data, currentChartDataType);
+                         chartTitle = `Inventory ${currentChartDataType.charAt(0).toUpperCase() + currentChartDataType.slice(1)}`;
+                         break;
+                 }
+
+                 const chartTitleElement = document.querySelector('.chart-title');
+                 if (chartTitleElement) {
+                     chartTitleElement.textContent = chartTitle;
+                 }
+
+                 let chartTypeToUse = currentChartType;
+
+                 if (currentChartType === 'area') {
+                     chartTypeToUse = 'line';
+                     chartData.datasets.forEach(dataset => {
+                         dataset.fill = true;
+                         dataset.backgroundColor = dataset.backgroundColor || dataset.borderColor + '20';
+                     });
+                 }
+
+                 console.log('📊 Creating main chart with type:', chartTypeToUse, 'for view:', dataView);
+
+                 mainChart = new Chart(ctx.getContext('2d'), {
+                     type: chartTypeToUse,
+                     data: chartData,
+                     options: {
+                         responsive: true,
+                         maintainAspectRatio: false,
+                         plugins: {
+                             legend: {
+                                 display: true,
+                                 position: 'top',
+                                 labels: {
+                                     usePointStyle: true,
+                                     padding: 20
+                                 }
+                             },
+                             tooltip: {
+                                 backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                                 titleColor: '#ffffff',
+                                 bodyColor: '#ffffff',
+                                 borderColor: '#2563eb',
+                                 borderWidth: 1,
+                                 callbacks: {
+                                     label: function(context) {
+                                         if (chartTypeToUse === 'doughnut' || chartTypeToUse === 'pie') {
+                                             const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                             const percentage = total > 0 ? ((context.parsed / total) * 100).toFixed(1) : 0;
+                                             return context.label + ': ' + context.parsed.toLocaleString() + ' (' + percentage + '%)';
+                                         } else {
+                                             return context.dataset.label + ': ' + (context.parsed.y || context.parsed).toLocaleString();
+                                         }
+                                     }
+                                 }
+                             }
+                         },
+                         scales: chartTypeToUse !== 'doughnut' && chartTypeToUse !== 'pie' ? {
+                             y: {
+                                 beginAtZero: true,
+                                 grid: {
+                                     color: 'rgba(0, 0, 0, 0.1)'
+                                 },
+                                 ticks: {
+                                     callback: function(value) {
+                                         return value.toLocaleString();
+                                     }
+                                 }
+                             },
+                             x: {
+                                 grid: {
+                                     color: 'rgba(0, 0, 0, 0.1)'
+                                 }
+                             }
+                         } : {},
+                         interaction: {
+                             intersect: false,
+                             mode: 'index'
+                         }
+                     }
+                 });
+             } catch (error) {
+                 console.error('❌ Error updating charts for specific view:', error);
+             }
+         }
+
+         // Get sales chart data
+         function getSalesChartData(data, chartType) {
+             switch(chartType) {
+                 case 'sales':
+                     const salesTrend = data.salesTrend || [];
+                     return {
+                         labels: salesTrend.map(item => item.date || 'N/A'),
+                         datasets: [{
+                             label: 'Sales Amount (KSh)',
+                             data: salesTrend.map(item => item.amount || 0),
+                             backgroundColor: generateDistinctColors(1)[0],
+                             borderColor: generateDistinctColors(1)[0],
+                             borderWidth: 2,
+                             fill: currentChartType === 'area'
+                         }]
+                     };
+                 case 'revenue':
+                     const revenueTrend = data.revenueTrend || data.salesTrend || [];
+                     return {
+                         labels: revenueTrend.map(item => item.date || 'N/A'),
+                         datasets: [{
+                             label: 'Revenue (KSh)',
+                             data: revenueTrend.map(item => item.revenue || item.amount || 0),
+                             backgroundColor: generateDistinctColors(1)[0],
+                             borderColor: generateDistinctColors(1)[0],
+                             borderWidth: 2,
+                             fill: currentChartType === 'area'
+                         }]
+                     };
+                 case 'profit':
+                     const profitTrend = data.profitTrend || data.salesTrend || [];
+                     return {
+                         labels: profitTrend.map(item => item.date || 'N/A'),
+                         datasets: [{
+                             label: 'Profit (KSh)',
+                             data: profitTrend.map(item => item.profit || (item.amount * 0.2) || 0),
+                             backgroundColor: generateDistinctColors(1)[0],
+                             borderColor: generateDistinctColors(1)[0],
+                             borderWidth: 2,
+                             fill: currentChartType === 'area'
+                         }]
+                     };
+                 default:
+                     return { labels: ['No Data'], datasets: [{ data: [0], backgroundColor: ['#e5e7eb'] }] };
+             }
+         }
+
+         // Get products chart data
+         function getProductsChartData(data, chartType) {
+             switch(chartType) {
+                 case 'performance':
+                     const topProducts = data.topProducts || [];
+                     return {
+                         labels: topProducts.map(item => item.name || item.productName || 'Unknown'),
+                         datasets: [{
+                             label: 'Revenue (KSh)',
+                             data: topProducts.map(item => item.revenue || item.totalRevenue || 0),
+                             backgroundColor: generateDistinctColors(topProducts.length),
+                             borderWidth: 2
+                         }]
+                     };
+                 case 'stock':
+                     const stockLevels = data.stockLevels || data.topProducts || [];
+                     return {
+                         labels: stockLevels.map(item => item.name || item.productName || 'Unknown'),
+                         datasets: [{
+                             label: 'Stock Quantity',
+                             data: stockLevels.map(item => item.stock || item.quantity || 0),
+                             backgroundColor: generateDistinctColors(stockLevels.length),
+                             borderWidth: 2
+                         }]
+                     };
+                 case 'turnover':
+                     const turnoverData = data.productTurnover || data.topProducts || [];
+                     return {
+                         labels: turnoverData.map(item => item.name || item.productName || 'Unknown'),
+                         datasets: [{
+                             label: 'Sales Quantity',
+                             data: turnoverData.map(item => item.sales || item.totalSales || 0),
+                             backgroundColor: generateDistinctColors(turnoverData.length),
+                             borderWidth: 2
+                         }]
+                     };
+                 default:
+                     return { labels: ['No Data'], datasets: [{ data: [0], backgroundColor: ['#e5e7eb'] }] };
+             }
+         }
+
+         // Get categories chart data
+         function getCategoriesChartData(data, chartType) {
+             switch(chartType) {
+                 case 'breakdown':
+                     const topCategories = data.topCategories || [];
+                     return {
+                         labels: topCategories.map(item => item.name || 'Unknown'),
+                         datasets: [{
+                             label: 'Product Count',
+                             data: topCategories.map(item => item.productCount || item.totalProducts || 0),
+                             backgroundColor: generateDistinctColors(topCategories.length),
+                             borderWidth: 2
+                         }]
+                     };
+                 case 'trends':
+                     const categoryTrends = data.categoryTrends || data.topCategories || [];
+                     return {
+                         labels: categoryTrends.map(item => item.name || 'Unknown'),
+                         datasets: [{
+                             label: 'Category Sales (KSh)',
+                             data: categoryTrends.map(item => item.sales || item.totalSales || 0),
+                             backgroundColor: generateDistinctColors(categoryTrends.length),
+                             borderWidth: 2
+                         }]
+                     };
+                 case 'comparison':
+                     const categoryComparison = data.categoryComparison || data.topCategories || [];
+                     return {
+                         labels: categoryComparison.map(item => item.name || 'Unknown'),
+                         datasets: [{
+                             label: 'Product Count',
+                             data: categoryComparison.map(item => item.productCount || item.totalProducts || 0),
+                             backgroundColor: generateDistinctColors(categoryComparison.length),
+                             borderWidth: 2
+                         }, {
+                             label: 'Stock Value (KSh)',
+                             data: categoryComparison.map(item => item.stockValue || 0),
+                             backgroundColor: generateDistinctColors(categoryComparison.length).map(color => color + '80'),
+                             borderWidth: 2
+                         }]
+                     };
+                 default:
+                     return { labels: ['No Data'], datasets: [{ data: [0], backgroundColor: ['#e5e7eb'] }] };
+             }
+         }
+
+         // Get inventory chart data
+         function getInventoryChartData(data, chartType) {
+             switch(chartType) {
+                 case 'stock':
+                     const stockData = data.inventoryStock || data.topProducts || [];
+                     return {
+                         labels: stockData.map(item => item.name || 'Unknown'),
+                         datasets: [{
+                             label: 'Current Stock',
+                             data: stockData.map(item => item.currentStock || item.stock || 0),
+                             backgroundColor: generateDistinctColors(stockData.length),
+                             borderWidth: 2
+                         }]
+                     };
+                 case 'valuation':
+                     const valuationData = data.inventoryValuation || data.topProducts || [];
+                     return {
+                         labels: valuationData.map(item => item.name || 'Unknown'),
+                         datasets: [{
+                             label: 'Stock Value (KSh)',
+                             data: valuationData.map(item => item.value || (item.stock * item.price) || 0),
+                             backgroundColor: generateDistinctColors(valuationData.length),
+                             borderWidth: 2
+                         }]
+                     };
+                 case 'movement':
+                     const movementData = data.inventoryMovement || data.topProducts || [];
+                     return {
+                         labels: movementData.map(item => item.name || 'Unknown'),
+                         datasets: [{
+                             label: 'Items Sold',
+                             data: movementData.map(item => item.sold || item.sales || 0),
+                             backgroundColor: generateDistinctColors(movementData.length),
+                             borderWidth: 2
+                         }]
+                     };
+                 default:
+                     return { labels: ['No Data'], datasets: [{ data: [0], backgroundColor: ['#e5e7eb'] }] };
+             }
+         }
+
+         // Generate reports
+         function generateReports() {
+             console.log('🔄 Generating reports...');
+             loadReportsData();
+         }
+
+         // Export report function
+         async function exportReport(format) {
+             console.log('📤 Exporting report in format:', format);
+
+             try {
+                 showLoading(true);
+
+                 if (!currentData) {
+                     showToast('No data available to export. Please wait for data to load.', 'error');
+                     showLoading(false);
+                     return;
+                 }
+
+                 const startDateInput = document.getElementById('startDate');
+                 const endDateInput = document.getElementById('endDate');
+
+                 const requestBody = {
+                     reportType: currentDataView || 'sales',
+                     format: format,
+                     startDate: startDateInput ? startDateInput.value : new Date().toISOString().split('T')[0],
+                     endDate: endDateInput ? endDateInput.value : new Date().toISOString().split('T')[0],
+                     includeCharts: true
+                 };
+
+                 console.log('📤 Export request body:', requestBody);
+
+                 const response = await fetch('/Admin/ExportReport', {
+                     method: 'POST',
+                     headers: {
+                         'Content-Type': 'application/json',
+                         'Accept': 'application/json, application/octet-stream',
+                         'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                     },
+                     body: JSON.stringify(requestBody)
+                 });
+
+                 console.log('📡 Export response status:', response.status);
+
+                 if (response.ok) {
+                     const contentType = response.headers.get('content-type');
+                     console.log('📄 Response content type:', contentType);
+
+                     if (contentType && (contentType.includes('application/pdf') ||
+                                        contentType.includes('application/vnd.openxmlformats') ||
+                                        contentType.includes('text/csv'))) {
+                         const blob = await response.blob();
+                         const url = window.URL.createObjectURL(blob);
+                         const a = document.createElement('a');
+                         a.href = url;
+                         a.download = `${currentDataView || 'sales'}_report_${new Date().toISOString().split('T')[0]}.${format === 'excel' ? 'xlsx' : format}`;
+                         document.body.appendChild(a);
+                         a.click();
+                         document.body.removeChild(a);
+                         window.URL.revokeObjectURL(url);
+
+                         showToast('Report exported successfully!', 'success');
+                     } else {
+                         const result = await response.json();
+                         if (result.success === false) {
+                             throw new Error(result.message || 'Export failed');
+                         } else {
+                             showToast('Report export completed!', 'success');
+                         }
+                     }
+                 } else {
+                     const errorText = await response.text();
+                     console.error('❌ Export error:', errorText);
+                     throw new Error(`Export failed with status ${response.status}`);
+                 }
+             } catch (error) {
+                 console.error('❌ Export error:', error);
+                 showToast('Error exporting report: ' + error.message, 'error');
+             } finally {
+                 showLoading(false);
+             }
+         }
+
+         // Print dashboard
+         async function printDashboard() {
+             console.log('🖨️ Generating comprehensive PDF report...');
+             try {
+                 showToast('Generating comprehensive report for printing...', 'info');
+                 const response = await fetch('/Admin/ExportReport', {
+                     method: 'POST',
+                     headers: {
+                         'Content-Type': 'application/json',
+                         'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                     },
+                     body: JSON.stringify({
+                         reportType: 'comprehensive',
+                         format: 'pdf',
+                         startDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
+                         endDate: new Date().toISOString().split('T')[0]
+                     })
+                 });
+
+                 if (response.ok) {
+                     const blob = await response.blob();
+                     const url = window.URL.createObjectURL(blob);
+
+                     const printWindow = window.open(url, '_blank');
+                     if (printWindow) {
+                         printWindow.onload = function() {
+                             printWindow.print();
+                         };
+                     } else {
+                         const a = document.createElement('a');
+                         a.href = url;
+                         a.download = `Comprehensive_Business_Report_${new Date().toISOString().split('T')[0]}.pdf`;
+                         document.body.appendChild(a);
+                         a.click();
+                         document.body.removeChild(a);
+                     }
+
+                     window.URL.revokeObjectURL(url);
+                     showToast('Comprehensive report generated successfully!', 'success');
+                 } else {
+                     throw new Error('Failed to generate comprehensive report');
+                 }
+             } catch (error) {
+                 console.error('❌ Error generating comprehensive report:', error);
+                 showToast('Failed to generate comprehensive report', 'error');
+             }
+         }
+
+         // Additional report functions
+         async function generateInventoryReport() {
+             console.log('📦 Generating Inventory Report PDF...');
+             try {
+                 const response = await fetch('/Admin/ExportReport', {
+                     method: 'POST',
+                     headers: {
+                         'Content-Type': 'application/json',
+                         'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                     },
+                     body: JSON.stringify({
+                         reportType: 'inventory',
+                         format: 'pdf',
+                         startDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
+                         endDate: new Date().toISOString().split('T')[0]
+                     })
+                 });
+
+                 if (response.ok) {
+                     const blob = await response.blob();
+                     const url = window.URL.createObjectURL(blob);
+                     const a = document.createElement('a');
+                     a.href = url;
+                     a.download = `Inventory_Report_${new Date().toISOString().split('T')[0]}.pdf`;
+                     document.body.appendChild(a);
+                     a.click();
+                     document.body.removeChild(a);
+                     window.URL.revokeObjectURL(url);
+                     showToast('Inventory Report downloaded successfully!', 'success');
+                 } else {
+                     throw new Error('Failed to generate report');
+                 }
+             } catch (error) {
+                 console.error('❌ Error generating inventory report:', error);
+                 showToast('Failed to generate Inventory Report', 'error');
+             }
+         }
+
+         async function generateSupplierReport() {
+             console.log('🏪 Generating Supplier Report PDF...');
+             try {
+                 const response = await fetch('/Admin/ExportReport', {
+                     method: 'POST',
+                     headers: {
+                         'Content-Type': 'application/json',
+                         'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                     },
+                     body: JSON.stringify({
+                         reportType: 'suppliers',
+                         format: 'pdf',
+                         startDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
+                         endDate: new Date().toISOString().split('T')[0]
+                     })
+                 });
+
+                 if (response.ok) {
+                     const blob = await response.blob();
+                     const url = window.URL.createObjectURL(blob);
+                     const a = document.createElement('a');
+                     a.href = url;
+                     a.download = `Supplier_Report_${new Date().toISOString().split('T')[0]}.pdf`;
+                     document.body.appendChild(a);
+                     a.click();
+                     document.body.removeChild(a);
+                     window.URL.revokeObjectURL(url);
+                     showToast('Supplier Report downloaded successfully!', 'success');
+                 } else {
+                     throw new Error('Failed to generate report');
+                 }
+             } catch (error) {
+                 console.error('❌ Error generating supplier report:', error);
+                 showToast('Failed to generate Supplier Report', 'error');
+             }
+         }
+
+         async function generateUserReport() {
+             console.log('👥 Generating User Activity Report PDF...');
+             try {
+                 const response = await fetch('/Admin/ExportReport', {
+                     method: 'POST',
+                     headers: {
+                         'Content-Type': 'application/json',
+                         'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                     },
+                     body: JSON.stringify({
+                         reportType: 'users',
+                         format: 'pdf',
+                         startDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
+                         endDate: new Date().toISOString().split('T')[0]
+                     })
+                 });
+
+                 if (response.ok) {
+                     const blob = await response.blob();
+                     const url = window.URL.createObjectURL(blob);
+                     const a = document.createElement('a');
+                     a.href = url;
+                     a.download = `User_Activity_Report_${new Date().toISOString().split('T')[0]}.pdf`;
+                     document.body.appendChild(a);
+                     a.click();
+                     document.body.removeChild(a);
+                     window.URL.revokeObjectURL(url);
+                     showToast('User Activity Report downloaded successfully!', 'success');
+                 } else {
+                     throw new Error('Failed to generate report');
+                 }
+             } catch (error) {
+                 console.error('❌ Error generating user report:', error);
+                 showToast('Failed to generate User Activity Report', 'error');
+             }
+         }
+
+         // Modal functions
+         function showExportModal() {
+             document.getElementById('exportModal').style.display = 'block';
+         }
+
+         function showEmailModal() {
+             document.getElementById('emailModal').style.display = 'block';
+         }
+
+         function showReceiptModal() {
+             document.getElementById('receiptModal').style.display = 'block';
+         }
+
+         // Perform export from modal
+         function performExport() {
+             const reportType = document.getElementById('exportReportType').value;
+             const format = document.getElementById('exportFormat').value;
+
+             console.log('📤 Performing export:', { reportType, format });
+             exportReport(format);
+             closeModal('exportModal');
+         }
+
+         // Send report email
+         async function sendReportEmail() {
+             const email = document.getElementById('emailAddress').value;
+             const reportType = document.getElementById('emailReportType').value;
+             const message = document.getElementById('emailMessage').value;
+
+             if (!email) {
+                 showToast('Please enter an email address', 'warning');
+                 return;
+             }
+
+             try {
+                 showLoading(true);
+
+                 const requestBody = {
+                     email: email,
+                     reportType: reportType,
+                     message: message,
+                     startDate: document.getElementById('startDate')?.value || '',
+                     endDate: document.getElementById('endDate')?.value || ''
+                 };
+
+                 const response = await fetch('/Admin/EmailReport', {
+                     method: 'POST',
+                     headers: {
+                         'Content-Type': 'application/json'
+                     },
+                     body: JSON.stringify(requestBody)
+                 });
+
+                 const result = await response.json();
+
+                 if (result.success) {
+                     showToast('Email sent successfully!', 'success');
+                     closeModal('emailModal');
+                 } else {
+                     showToast('Error sending email: ' + result.message, 'error');
+                 }
+             } catch (error) {
+                 console.error('❌ Error sending email:', error);
+                 showToast('Error sending email: ' + error.message, 'error');
+             } finally {
+                 showLoading(false);
+             }
+         }
+
+         // Search sales
+         async function searchSales() {
+             const searchTerm = document.getElementById('saleSearch').value;
+             console.log('🔍 Searching sales:', searchTerm);
+
+             try {
+                 const response = await fetch(`/Admin/GetSalesForReceipt?search=${encodeURIComponent(searchTerm)}`);
+                 const result = await response.json();
+
+                 if (result.success) {
+                     const select = document.getElementById('saleSelect');
+                     select.innerHTML = '<option value="">Select a sale...</option>' +
+                         result.sales.map(sale =>
+                             `<option value="${sale.saleId}" data-sale='${JSON.stringify(sale)}'>
+                                 Sale #${sale.saleNumber} - ${sale.customerName} - KSh ${sale.totalAmount.toLocaleString()}
+                             </option>`
+                         ).join('');
+                 }
+             } catch (error) {
+                 console.error('❌ Error searching sales:', error);
+                 showToast('Error searching sales', 'error');
+             }
+         }
+
+         // Show sale details
+         function showSaleDetails() {
+             const select = document.getElementById('saleSelect');
+             const selectedOption = select.options[select.selectedIndex];
+
+             if (!selectedOption.value) {
+                 document.getElementById('saleDetails').style.display = 'none';
+                 return;
+             }
+
+             const sale = JSON.parse(selectedOption.dataset.sale);
+             const detailsDiv = document.getElementById('saleDetails');
+
+             detailsDiv.innerHTML = `
+                 <h4>Sale Details</h4>
+                 <p><strong>Sale Number:</strong> #${sale.saleNumber}</p>
+                 <p><strong>Customer:</strong> ${sale.customerName}</p>
+                 <p><strong>Amount:</strong> KSh ${sale.totalAmount.toLocaleString()}</p>
+                 <p><strong>Date:</strong> ${new Date(sale.saleDate).toLocaleDateString()}</p>
+             `;
+
+             detailsDiv.style.display = 'block';
+
+             if (sale.customerEmail) {
+                 document.getElementById('receiptEmail').value = sale.customerEmail;
+             }
+         }
+
+         // Send receipt email
+         async function sendReceiptEmail() {
+             const select = document.getElementById('saleSelect');
+             const email = document.getElementById('receiptEmail').value;
+
+             if (!select.value) {
+                 showToast('Please select a sale', 'warning');
+                 return;
+             }
+
+             if (!email) {
+                 showToast('Please enter an email address', 'warning');
+                 return;
+             }
+
+             try {
+                 showLoading(true);
+
+                 const requestBody = {
+                     email: email,
+                     saleId: parseInt(select.value)
+                 };
+
+                 const response = await fetch('/Admin/EmailReceipt', {
+                     method: 'POST',
+                     headers: {
+                         'Content-Type': 'application/json'
+                     },
+                     body: JSON.stringify(requestBody)
+                 });
+
+                 const result = await response.json();
+
+                 if (result.success) {
+                     showToast('Receipt sent successfully!', 'success');
+                     closeModal('receiptModal');
+                 } else {
+                     showToast('Error sending receipt: ' + result.message, 'error');
+                 }
+             } catch (error) {
+                 console.error('❌ Error sending receipt:', error);
+                 showToast('Error sending receipt: ' + error.message, 'error');
+             } finally {
+                 showLoading(false);
+             }
+         }
+
+         console.log('✅ Reports JavaScript loaded successfully');
     </script>
 }
 

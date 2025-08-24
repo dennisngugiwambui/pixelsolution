@@ -1315,14 +1315,22 @@
                     <label class="form-label" for="recipientSelect">Send To *</label>
                     <select id="recipientSelect" name="ToUserId" class="form-control" required>
                         <option value="">Search and select recipient...</option>
-                        @foreach (var user in Model.AllUsers)
+                        @if (Model.AllUsers != null && Model.AllUsers.Any())
                         {
-                            <option value="@user.UserId"
-                                    data-email="@user.Email"
-                                    data-usertype="@user.UserType"
-                                    data-initials="@(user.FullName.Split(' ').Select(n => n.FirstOrDefault()).Take(2).Aggregate("", (acc, c) => acc + c).ToUpper())">
-                                @user.FullName (@user.UserType) - @user.Email
-                            </option>
+                            @foreach (var user in Model.AllUsers)
+                            {
+                                <option value="@user.UserId"
+                                        data-email="@user.Email"
+                                        data-usertype="@user.UserType"
+                                        data-status="@user.Status"
+                                        data-initials="@user.UserInitials">
+                                    @user.FullName (@user.UserType) - @user.Email
+                                </option>
+                            }
+                        }
+                        else
+                        {
+                            <option value="" disabled>No users available</option>
                         }
                     </select>
                 </div>
@@ -1476,6 +1484,16 @@
                 const recipientSelect = document.getElementById('recipientSelect');
                 if (!recipientSelect) {
                     console.error('Recipient select element not found');
+                    return;
+                }
+
+                // Check if there are options available
+                const optionCount = recipientSelect.options.length - 1; // Subtract 1 for placeholder
+                console.log('Available users for messaging:', optionCount);
+                
+                if (optionCount === 0) {
+                    console.warn('No users available for messaging');
+                    recipientSelect.innerHTML = '<option value="">No users available</option>';
                     return;
                 }
 
