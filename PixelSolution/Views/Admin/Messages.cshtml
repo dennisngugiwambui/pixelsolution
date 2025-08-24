@@ -8,7 +8,7 @@
     <link href="~/css/dashboard.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <style>
-        /* FIXED SIDEBAR STYLES */
+        /* FIXED SIDEBAR STYLES - HIDDEN BY DEFAULT */
         .sidebar {
             position: fixed;
             left: 0;
@@ -20,43 +20,52 @@
             overflow-y: auto;
             z-index: 1000;
             transition: transform 0.3s ease;
-            transform: translateX(0);
+            transform: translateX(-280px);
         }
 
+            .sidebar.expanded {
+                transform: translateX(0);
+            }
+            
             .sidebar.collapsed {
-                transform: translateX(-280px);
+                transform: translateX(-240px);
+                width: 40px;
             }
 
-        /* FIXED MAIN CONTENT STYLES */
+        /* FIXED MAIN CONTENT STYLES - FULL WIDTH BY DEFAULT */
         .main-content {
-            margin-left: 280px;
+            margin-left: 0;
             min-height: 100vh;
             background: #f8fafc;
             transition: margin-left 0.3s ease;
-            width: calc(100% - 280px);
+            width: 100%;
         }
 
-            .main-content.expanded {
-                margin-left: 0;
-                width: 100%;
+            .main-content.sidebar-open {
+                margin-left: 280px;
+                width: calc(100% - 280px);
+            }
+            
+            .main-content.sidebar-collapsed {
+                margin-left: 40px;
+                width: calc(100% - 40px);
             }
 
         /* RESPONSIVE BEHAVIOR */
-            @@media (max-width: 1024px) {
-            .sidebar
+        @@media (max-width: 1024px) {
+            .sidebar {
+                transform: translateX(-100%);
+                z-index: 1050;
+            }
 
-        {
-            transform: translateX(-100%);
-        }
+            .sidebar.open {
+                transform: translateX(0);
+            }
 
-        .sidebar.open {
-            transform: translateX(0);
-        }
-
-        .main-content {
-            margin-left: 0 !important;
-            width: 100% !important;
-        }
+            .main-content {
+                margin-left: 0 !important;
+                width: 100% !important;
+            }
 
         /* Overlay for mobile */
         .sidebar-overlay {
@@ -1799,8 +1808,12 @@
             }
             document.addEventListener('keydown', handleEscapeKey);
 
-            // Initialize proper state
+            // Initialize proper state - start hidden on desktop
             updateSidebarState();
+            if (window.innerWidth > 1024) {
+                sidebar.classList.remove('expanded', 'collapsed');
+                mainContent.classList.remove('sidebar-open', 'sidebar-collapsed');
+            }
             sidebarState.isInitialized = true;
 
             console.log('🎛️ Sidebar toggle initialized');
@@ -1829,22 +1842,33 @@
              * Slides sidebar in/out and adjusts main content
              */
             function handleDesktopToggle() {
+                const isHidden = !sidebar.classList.contains('expanded') && !sidebar.classList.contains('collapsed');
+                const isExpanded = sidebar.classList.contains('expanded');
                 const isCollapsed = sidebar.classList.contains('collapsed');
 
-                if (isCollapsed) {
-                    // Show sidebar
-                    sidebar.classList.remove('collapsed');
-                    mainContent.classList.remove('expanded');
+                if (isHidden) {
+                    // Show sidebar expanded
+                    sidebar.classList.add('expanded');
+                    mainContent.classList.add('sidebar-open');
                     sidebarToggle.setAttribute('aria-expanded', 'true');
                     sidebarState.isCollapsed = false;
-                    console.log('💻 Desktop: Sidebar expanded');
-                } else {
-                    // Hide sidebar
+                    console.log('💻 Desktop: Sidebar expanded from hidden');
+                } else if (isExpanded) {
+                    // Collapse sidebar
+                    sidebar.classList.remove('expanded');
                     sidebar.classList.add('collapsed');
-                    mainContent.classList.add('expanded');
+                    mainContent.classList.remove('sidebar-open');
+                    mainContent.classList.add('sidebar-collapsed');
                     sidebarToggle.setAttribute('aria-expanded', 'false');
                     sidebarState.isCollapsed = true;
                     console.log('💻 Desktop: Sidebar collapsed');
+                } else if (isCollapsed) {
+                    // Hide sidebar completely
+                    sidebar.classList.remove('collapsed');
+                    mainContent.classList.remove('sidebar-collapsed');
+                    sidebarToggle.setAttribute('aria-expanded', 'false');
+                    sidebarState.isCollapsed = false;
+                    console.log('💻 Desktop: Sidebar hidden');
                 }
 
                 // Save state to localStorage
@@ -1917,6 +1941,13 @@
 
                 if (wasDesktop !== sidebarState.isDesktop) {
                     handleScreenSizeChange();
+                }
+                
+                // Initialize sidebar as hidden on desktop load
+                if (sidebarState.isDesktop && !sidebarState.isInitialized) {
+                    sidebar.classList.remove('expanded', 'collapsed');
+                    mainContent.classList.remove('sidebar-open', 'sidebar-collapsed');
+                }
                 }
             }
 
