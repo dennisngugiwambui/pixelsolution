@@ -6,6 +6,7 @@ using PixelSolution.Models;
 using PixelSolution.Data;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
+using PixelSolution.Services;
 
 namespace PixelSolution.Controllers
 {
@@ -18,6 +19,7 @@ namespace PixelSolution.Controllers
         private readonly ICategoryService _categoryService;
         private readonly ApplicationDbContext _context;
         private readonly ILogger<EmployeeController> _logger;
+        private readonly IActivityLogService _activityLogService;
 
         public EmployeeController(
             IReportService reportService, 
@@ -25,7 +27,8 @@ namespace PixelSolution.Controllers
             IProductService productService,
             ICategoryService categoryService,
             ApplicationDbContext context,
-            ILogger<EmployeeController> logger)
+            ILogger<EmployeeController> logger,
+            IActivityLogService activityLogService)
         {
             _reportService = reportService;
             _saleService = saleService;
@@ -33,6 +36,7 @@ namespace PixelSolution.Controllers
             _categoryService = categoryService;
             _context = context;
             _logger = logger;
+            _activityLogService = activityLogService;
         }
 
         public async Task<IActionResult> Index()
@@ -40,6 +44,19 @@ namespace PixelSolution.Controllers
             try
             {
                 var userId = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "0");
+                
+                // Log employee dashboard access
+                await _activityLogService.LogActivityAsync(
+                    userId, 
+                    "Dashboard Access", 
+                    "Employee accessed dashboard",
+                    "Dashboard",
+                    null,
+                    new { Page = "Employee Dashboard" },
+                    HttpContext.Connection.RemoteIpAddress?.ToString(),
+                    Request.Headers["User-Agent"]
+                );
+                
                 var dashboardData = await _reportService.GetEmployeeDashboardDataAsync(userId);
                 return View(dashboardData);
             }
@@ -61,6 +78,20 @@ namespace PixelSolution.Controllers
         {
             try
             {
+                var userId = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "0");
+                
+                // Log employee sales page access
+                await _activityLogService.LogActivityAsync(
+                    userId, 
+                    "Sales Page Access", 
+                    "Employee accessed sales page",
+                    "Sales",
+                    null,
+                    new { Page = "Sales Management" },
+                    HttpContext.Connection.RemoteIpAddress?.ToString(),
+                    Request.Headers["User-Agent"]
+                );
+                
                 var salesData = await _reportService.GetSalesPageDataAsync();
                 return View(salesData);
             }
@@ -81,6 +112,18 @@ namespace PixelSolution.Controllers
             try
             {
                 var currentUserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+                
+                // Log employee messages access
+                await _activityLogService.LogActivityAsync(
+                    currentUserId, 
+                    "Messages Access", 
+                    "Employee accessed messages",
+                    "Messages",
+                    null,
+                    new { Page = "Internal Messages", TargetUserId = userId },
+                    HttpContext.Connection.RemoteIpAddress?.ToString(),
+                    Request.Headers["User-Agent"]
+                );
                 
                 // Get all users for messaging (excluding current user)
                 var allUsers = await _context.Users
@@ -245,9 +288,38 @@ namespace PixelSolution.Controllers
             return messages;
         }
 
-        public IActionResult Settings()
+        public async Task<IActionResult> Settings()
         {
-            return View();
+            try
+            {
+                var userId = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "0");
+                
+                // Log employee settings access
+                await _activityLogService.LogActivityAsync(
+                    userId, 
+                    "Settings Access", 
+                    "Employee accessed settings page",
+                    "Settings",
+                    null,
+                    new { Page = "Employee Settings" },
+                    HttpContext.Connection.RemoteIpAddress?.ToString(),
+                    Request.Headers["User-Agent"]
+                );
+                
+                var user = await _context.Users.FindAsync(userId);
+                
+                if (user == null)
+                {
+                    return NotFound();
+                }
+                
+                return View(user);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading settings for employee");
+                return View();
+            }
         }
 
         [HttpGet]
@@ -313,6 +385,25 @@ namespace PixelSolution.Controllers
                     return Json(new { success = false, message = "User not authenticated" });
                 }
 
+                var employeeId = int.Parse(userId);
+                
+                // Log employee sale processing
+                await _activityLogService.LogActivityAsync(
+                    employeeId, 
+                    "Sale Processing", 
+                    $"Employee processing sale with {request.Items.Count} items, total: {request.TotalAmount:C}",
+                    "Sale",
+                    null,
+                    new { 
+                        ItemCount = request.Items.Count, 
+                        TotalAmount = request.TotalAmount,
+                        PaymentMethod = request.PaymentMethod,
+                        CustomerPhone = request.CustomerPhone
+                    },
+                    HttpContext.Connection.RemoteIpAddress?.ToString(),
+                    Request.Headers["User-Agent"]
+                );
+
                 // Validate stock availability
                 foreach (var item in request.Items)
                 {
@@ -374,6 +465,23 @@ namespace PixelSolution.Controllers
                 }
 
                 await _context.SaveChangesAsync();
+
+                // Log successful sale completion
+                await _activityLogService.LogActivityAsync(
+                    employeeId, 
+                    "Sale Completed", 
+                    $"Employee completed sale #{sale.SaleNumber} for {request.TotalAmount:C}",
+                    "Sale",
+                    sale.SaleId,
+                    new { 
+                        SaleNumber = sale.SaleNumber,
+                        TotalAmount = request.TotalAmount,
+                        PaymentMethod = request.PaymentMethod,
+                        ItemCount = request.Items.Count
+                    },
+                    HttpContext.Connection.RemoteIpAddress?.ToString(),
+                    Request.Headers["User-Agent"]
+                );
 
                 _logger.LogInformation("Employee sale processed successfully. Sale ID: {SaleId}", sale.SaleId);
 
