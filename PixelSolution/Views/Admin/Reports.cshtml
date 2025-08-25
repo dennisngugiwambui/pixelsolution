@@ -23,7 +23,7 @@
             --gray-900: #111827;
         }
 
-        /* Responsive Sidebar Styles */
+        /* Responsive Sidebar Styles - MOBILE FIRST */
         .sidebar {
             position: fixed;
             left: 0;
@@ -35,7 +35,7 @@
             overflow-y: auto;
             z-index: 1000;
             transition: transform 0.3s ease;
-            transform: translateX(0);
+            transform: translateX(-100%);
         }
 
         /* Desktop sidebar - VISIBLE BY DEFAULT */
@@ -72,21 +72,28 @@
         /* Mobile/Tablet sidebar overlay - HIDDEN BY DEFAULT */
         @@media (max-width: 1024px) {
             .sidebar {
-                transform: translateX(-100%);
+                transform: translateX(-100%) !important;
                 box-shadow: 0 0 0 0 rgba(0, 0, 0, 0);
                 z-index: 1050;
+                width: 280px !important;
             }
             
             .sidebar.open {
-                transform: translateX(0);
+                transform: translateX(0) !important;
                 box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3);
             }
             
             /* Reset desktop classes on mobile */
             .sidebar.hidden,
             .sidebar.collapsed {
-                transform: translateX(-100%);
-                width: 280px;
+                transform: translateX(-100%) !important;
+                width: 280px !important;
+            }
+            
+            /* Main content full width on mobile */
+            .main-content {
+                margin-left: 0 !important;
+                width: 100% !important;
             }
         }
 

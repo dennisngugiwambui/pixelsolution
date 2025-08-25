@@ -84,7 +84,7 @@ namespace PixelSolution.Controllers
                 
                 // Get all users for messaging (excluding current user)
                 var allUsers = await _context.Users
-                    .Where(u => u.UserId != currentUserId && u.IsActive)
+                    .Where(u => u.UserId != currentUserId)
                     .Select(u => new UserSelectViewModel
                     {
                         UserId = u.UserId,
@@ -148,38 +148,63 @@ namespace PixelSolution.Controllers
 
         private async Task<List<ConversationViewModel>> GetUserConversationsAsync(int currentUserId)
         {
-            var sentMessages = _context.Messages
-                .Where(m => m.FromUserId == currentUserId)
-                .GroupBy(m => m.ToUserId)
-                .Select(g => new { UserId = g.Key, LastMessage = g.OrderByDescending(m => m.SentDate).FirstOrDefault() });
+            try
+            {
+                // Get all unique user IDs that the current user has conversations with
+                var conversationUserIds = await _context.Messages
+                    .Where(m => m.FromUserId == currentUserId || m.ToUserId == currentUserId)
+                    .Select(m => m.FromUserId == currentUserId ? m.ToUserId : m.FromUserId)
+                    .Where(userId => userId != currentUserId)
+                    .Distinct()
+                    .ToListAsync();
 
-            var receivedMessages = _context.Messages
-                .Where(m => m.ToUserId == currentUserId)
-                .GroupBy(m => m.FromUserId)
-                .Select(g => new { UserId = g.Key, LastMessage = g.OrderByDescending(m => m.SentDate).FirstOrDefault() });
+                var conversations = new List<ConversationViewModel>();
 
-            var allConversations = await sentMessages.Union(receivedMessages)
-                .GroupBy(c => c.UserId)
-                .Select(g => g.OrderByDescending(c => c.LastMessage.SentDate).First())
-                .Join(_context.Users,
-                    c => c.UserId,
-                    u => u.UserId,
-                    (c, u) => new ConversationViewModel
+                foreach (var userId in conversationUserIds)
+                {
+                    // Get user details
+                    var user = await _context.Users
+                        .Where(u => u.UserId == userId)
+                        .FirstOrDefaultAsync();
+
+                    if (user == null) continue;
+
+                    // Get last message between current user and this user
+                    var lastMessage = await _context.Messages
+                        .Where(m => (m.FromUserId == currentUserId && m.ToUserId == userId) ||
+                                   (m.FromUserId == userId && m.ToUserId == currentUserId))
+                        .OrderByDescending(m => m.SentDate)
+                        .FirstOrDefaultAsync();
+
+                    if (lastMessage == null) continue;
+
+                    // Get unread count (messages from this user to current user that are unread)
+                    var unreadCount = await _context.Messages
+                        .Where(m => m.FromUserId == userId && m.ToUserId == currentUserId && !m.IsRead)
+                        .CountAsync();
+
+                    conversations.Add(new ConversationViewModel
                     {
-                        UserId = u.UserId,
-                        FullName = u.FirstName + " " + u.LastName,
-                        UserInitials = (u.FirstName.Substring(0, 1) + u.LastName.Substring(0, 1)).ToUpper(),
-                        LastMessage = c.LastMessage.Content.Length > 50 ? c.LastMessage.Content.Substring(0, 50) + "..." : c.LastMessage.Content,
-                        LastMessageTime = c.LastMessage.SentDate.ToString("MMM dd, HH:mm"),
-                        IsOnline = false, // You can implement online status logic here
-                        UnreadCount = _context.Messages.Count(m => m.FromUserId == u.UserId && m.ToUserId == currentUserId && !m.IsRead),
+                        UserId = user.UserId,
+                        FullName = user.FirstName + " " + user.LastName,
+                        UserInitials = (user.FirstName.Substring(0, 1) + user.LastName.Substring(0, 1)).ToUpper(),
+                        LastMessage = lastMessage.Content.Length > 50 ? lastMessage.Content.Substring(0, 50) + "..." : lastMessage.Content,
+                        LastMessageTime = lastMessage.SentDate.ToString("MMM dd, HH:mm"),
+                        IsOnline = user.IsActive, // Use IsActive as online status
+                        UnreadCount = unreadCount,
                         LastSeen = DateTime.Now.AddMinutes(-30), // Mock data
                         LastSeenFormatted = "30 min ago"
-                    })
-                .OrderByDescending(c => c.LastMessageTime)
-                .ToListAsync();
+                    });
+                }
 
-            return allConversations;
+                // Sort by last message time (most recent first)
+                return conversations.OrderByDescending(c => c.LastMessageTime).ToList();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in GetUserConversationsAsync");
+                return new List<ConversationViewModel>();
+            }
         }
 
         private async Task<List<MessageViewModel>> GetConversationMessagesAsync(int currentUserId, int otherUserId)
@@ -603,13 +628,103 @@ namespace PixelSolution.Controllers
                 var unreadCount = await _context.Messages
                     .Where(m => m.ToUserId == currentUserId && !m.IsRead)
                     .CountAsync();
-
                 return Json(new { success = true, unreadCount = unreadCount });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error getting unread count for employee");
+                _logger.LogError(ex, "Error getting unread count");
                 return Json(new { success = false, message = "Error getting unread count" });
+            }
+        }
+
+        // Test endpoint to debug messages and users
+        [HttpGet]
+        public async Task<IActionResult> TestMessagesAndUsers()
+        {
+            try
+            {
+                var currentUserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+                
+                // Get all messages where current user is sender or receiver
+                var userMessages = await _context.Messages
+                    .Where(m => m.FromUserId == currentUserId || m.ToUserId == currentUserId)
+                    .Select(m => new {
+                        MessageId = m.MessageId,
+                        FromUserId = m.FromUserId,
+                        ToUserId = m.ToUserId,
+                        Subject = m.Subject,
+                        Content = m.Content.Length > 50 ? m.Content.Substring(0, 50) + "..." : m.Content,
+                        SentDate = m.SentDate,
+                        IsRead = m.IsRead
+                    })
+                    .OrderByDescending(m => m.SentDate)
+                    .ToListAsync();
+
+                // Get all users (for debugging dropdown issue)
+                var allUsers = await _context.Users
+                    .Where(u => u.UserId != currentUserId)
+                    .Select(u => new {
+                        UserId = u.UserId,
+                        FullName = u.FirstName + " " + u.LastName,
+                        Email = u.Email,
+                        UserType = u.UserType,
+                        IsActive = u.IsActive,
+                        Status = u.Status
+                    })
+                    .ToListAsync();
+
+                // Get current user info
+                var currentUser = await _context.Users
+                    .Where(u => u.UserId == currentUserId)
+                    .Select(u => new {
+                        UserId = u.UserId,
+                        FullName = u.FirstName + " " + u.LastName,
+                        Email = u.Email,
+                        UserType = u.UserType
+                    })
+                    .FirstOrDefaultAsync();
+
+                return Json(new { 
+                    success = true, 
+                    currentUser = currentUser,
+                    messagesCount = userMessages.Count,
+                    messages = userMessages,
+                    availableUsersCount = allUsers.Count,
+                    availableUsers = allUsers
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in test endpoint");
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetUsers()
+        {
+            try
+            {
+                var currentUserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+                
+                var users = await _context.Users
+                    .Where(u => u.UserId != currentUserId && u.IsActive == true)
+                    .Select(u => new {
+                        UserId = u.UserId,
+                        FullName = u.FirstName + " " + u.LastName,
+                        Email = u.Email,
+                        UserType = u.UserType,
+                        UserInitials = (u.FirstName.Substring(0, 1) + u.LastName.Substring(0, 1)).ToUpper()
+                    })
+                    .OrderBy(u => u.FullName)
+                    .ToListAsync();
+
+                return Json(new { success = true, users });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting users for employee");
+                return Json(new { success = false, message = "Error loading users" });
             }
         }
 

@@ -8,66 +8,36 @@
     <link href="~/css/dashboard.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <style>
-        /* FIXED SIDEBAR STYLES - HIDDEN BY DEFAULT */
+        :root {
+            --primary: #8b5cf6;
+            --primary-dark: #7c3aed;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-300: #d1d5db;
+            --gray-600: #4b5563;
+            --gray-700: #374151;
+            --gray-800: #1f2937;
+            --gray-900: #111827;
+        }
+
+        /* Sidebar */
         .sidebar {
             position: fixed;
             left: 0;
             top: 0;
             width: 280px;
             height: 100vh;
-            background: #1f2937;
+            background: var(--gray-900);
             color: white;
             overflow-y: auto;
             z-index: 1000;
-            transition: transform 0.3s ease;
-            transform: translateX(-280px);
+            transition: all 0.3s ease;
         }
 
-            .sidebar.expanded {
-                transform: translateX(0);
-            }
-            
-            .sidebar.collapsed {
-                transform: translateX(-240px);
-                width: 40px;
-            }
-
-        /* FIXED MAIN CONTENT STYLES - FULL WIDTH BY DEFAULT */
-        .main-content {
-            margin-left: 0;
-            min-height: 100vh;
-            background: #f8fafc;
-            transition: margin-left 0.3s ease;
-            width: 100%;
-        }
-
-            .main-content.sidebar-open {
-                margin-left: 280px;
-                width: calc(100% - 280px);
-            }
-            
-            .main-content.sidebar-collapsed {
-                margin-left: 40px;
-                width: calc(100% - 40px);
-            }
-
-        /* RESPONSIVE BEHAVIOR */
-        @@media (max-width: 1024px) {
-            .sidebar {
-                transform: translateX(-100%);
-                z-index: 1050;
-            }
-
-            .sidebar.open {
-                transform: translateX(0);
-            }
-
-            .main-content {
-                margin-left: 0 !important;
-                width: 100% !important;
-            }
-
-        /* Overlay for mobile */
         .sidebar-overlay {
             position: fixed;
             top: 0;
@@ -76,65 +46,257 @@
             height: 100%;
             background: rgba(0, 0, 0, 0.5);
             z-index: 999;
-            display: none;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
         }
 
-            .sidebar-overlay.active {
-                display: block;
+            .sidebar-overlay.show {
+                opacity: 1;
+                visibility: visible;
             }
 
+        .main-content {
+            margin-left: 280px;
+            width: calc(100% - 280px);
+            transition: all 0.3s ease;
+            min-height: 100vh;
         }
 
-        /* Header Styles */
+        /* Sidebar States */
+        .sidebar.collapsed {
+            width: 80px;
+        }
+
+            .sidebar.collapsed + .main-content {
+                margin-left: 80px;
+                width: calc(100% - 80px);
+            }
+
+        .sidebar.hidden {
+            transform: translateX(-100%);
+        }
+
+            .sidebar.hidden + .main-content {
+                margin-left: 0;
+                width: 100%;
+            }
+
+        /* Mobile */
+            @@media (max-width: 1024px) {
+            .sidebar
+
+        {
+            transform: translateX(-100%);
+            z-index: 1050;
+        }
+
+        .sidebar.open {
+            transform: translateX(0);
+        }
+
+        .main-content {
+            margin-left: 0 !important;
+            width: 100% !important;
+        }
+
+        }
+
+        /* Sidebar Content */
+        .sidebar-header {
+            padding: 2rem 1.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 1rem;
+            font-size: 1.2rem;
+        }
+
+        .logo-text {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+        }
+
+        .user-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #6366f1, var(--primary));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            margin-right: 1rem;
+        }
+
+        .user-details h4 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin: 0 0 0.25rem 0;
+        }
+
+        .user-details p {
+            font-size: 0.875rem;
+            color: rgba(255, 255, 255, 0.7);
+            margin: 0;
+        }
+
+        /* Navigation */
+        .nav-menu {
+            padding: 1rem 0;
+        }
+
+        .nav-section {
+            margin-bottom: 2rem;
+        }
+
+        .nav-section-title {
+            padding: 0 1.5rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: rgba(255, 255, 255, 0.5);
+            margin-bottom: 0.5rem;
+        }
+
+        .nav-item {
+            margin-bottom: 0.25rem;
+        }
+
+        .nav-link {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1.5rem;
+            color: rgba(255, 255, 255, 0.8);
+            text-decoration: none;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+            .nav-link:hover {
+                background: rgba(255, 255, 255, 0.05);
+                color: white;
+            }
+
+            .nav-link.active {
+                background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+                color: white;
+            }
+
+            .nav-link i {
+                width: 20px;
+                margin-right: 0.75rem;
+                text-align: center;
+            }
+
+        .nav-badge {
+            background: var(--danger);
+            color: white;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            font-weight: 600;
+            margin-left: auto;
+        }
+
+        /* Header */
         .header {
             background: white;
-            border-bottom: 1px solid #e2e8f0;
-            padding: 1rem 2rem;
+            border-bottom: 1px solid var(--gray-200);
+            padding: 1rem 1.5rem;
             display: flex;
             justify-content: space-between;
             align-items: center;
             position: sticky;
             top: 0;
             z-index: 100;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         }
 
         .header-left {
             display: flex;
             align-items: center;
-        }
-
-        .page-title {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: #1f2937;
-            margin: 0;
+            gap: 1rem;
         }
 
         .sidebar-toggle {
             background: none;
             border: none;
-            color: #6b7280;
             font-size: 1.25rem;
+            color: var(--gray-600);
             cursor: pointer;
-            margin-right: 1rem;
             padding: 0.5rem;
-            border-radius: 6px;
+            border-radius: 8px;
             transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
         }
 
             .sidebar-toggle:hover {
-                background: #f3f4f6;
-                color: #1f2937;
+                background: var(--gray-100);
+                color: var(--gray-700);
             }
+
+        .page-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--gray-900);
+            margin: 0;
+        }
 
         .header-right {
             display: flex;
             align-items: center;
             gap: 1rem;
+        }
+
+        .search-container {
+            position: relative;
+        }
+
+        .search-input {
+            padding: 0.5rem 0.75rem 0.5rem 2.5rem;
+            border: 1px solid var(--gray-300);
+            border-radius: 8px;
+            font-size: 0.875rem;
+            width: 300px;
+            transition: all 0.3s ease;
+        }
+
+            .search-input:focus {
+                outline: none;
+                border-color: var(--primary);
+                box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+            }
+
+        .search-icon {
+            position: absolute;
+            left: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--gray-600);
         }
 
         .header-actions {
@@ -146,26 +308,23 @@
             padding: 0.5rem;
             border: none;
             border-radius: 8px;
-            background: #f1f5f9;
-            color: #64748b;
+            background: var(--gray-50);
+            color: var(--gray-600);
             cursor: pointer;
             transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
             position: relative;
         }
 
             .action-btn:hover {
-                background: #e2e8f0;
-                color: #475569;
+                background: var(--gray-200);
+                color: var(--gray-700);
             }
 
         .notification-badge {
             position: absolute;
-            top: -5px;
-            right: -5px;
-            background: #ef4444;
+            top: -4px;
+            right: -4px;
+            background: var(--danger);
             color: white;
             border-radius: 50%;
             width: 18px;
@@ -177,68 +336,33 @@
             font-weight: 600;
         }
 
-        .search-container {
-            position: relative;
-            margin-right: 1rem;
+        /* Dashboard Content */
+        .dashboard-content {
+            padding: 1.5rem;
         }
 
-            .search-container .search-input {
-                width: 300px;
-                padding: 0.5rem 1rem 0.5rem 2.5rem;
-                border: 1px solid #d1d5db;
-                border-radius: 8px;
-                font-size: 0.875rem;
-                background: white;
-                transition: all 0.3s ease;
-            }
-
-                .search-container .search-input:focus {
-                    outline: none;
-                    border-color: #8b5cf6;
-                    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
-                }
-
-            .search-container .search-icon {
-                position: absolute;
-                left: 0.75rem;
-                top: 50%;
-                transform: translateY(-50%);
-                color: #6b7280;
-            }
-
-        /* Messages Container */
         .messages-container {
-            height: calc(100vh - 80px);
+            height: calc(100vh - 140px);
             display: flex;
-            background: #f8fafc;
+            background: var(--gray-50);
             border-radius: 16px;
             overflow: hidden;
             box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-            margin: 1rem;
         }
 
         /* Contacts Sidebar */
         .contacts-sidebar {
             width: 380px;
             background: white;
-            border-right: 1px solid #e2e8f0;
+            border-right: 1px solid var(--gray-200);
             display: flex;
             flex-direction: column;
-            transition: all 0.3s ease;
-            transform: translateX(0);
-        }
-
-        .contacts-sidebar.collapsed {
-            transform: translateX(-100%);
-            width: 0;
-            min-width: 0;
-            overflow: hidden;
         }
 
         .contacts-header {
             padding: 1.5rem;
-            border-bottom: 1px solid #e2e8f0;
-            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+            border-bottom: 1px solid var(--gray-200);
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
             color: white;
             display: flex;
             justify-content: space-between;
@@ -247,37 +371,13 @@
 
         .contacts-search {
             padding: 1rem;
-            background: #f8fafc;
-            border-bottom: 1px solid #e2e8f0;
+            background: var(--gray-50);
+            border-bottom: 1px solid var(--gray-200);
         }
 
         .search-box {
             position: relative;
             width: 100%;
-        }
-
-        .search-input {
-            width: 100%;
-            padding: 0.75rem 1rem 0.75rem 2.5rem;
-            border: 1px solid #d1d5db;
-            border-radius: 12px;
-            font-size: 0.875rem;
-            background: white;
-            transition: all 0.3s ease;
-        }
-
-            .search-input:focus {
-                outline: none;
-                border-color: #8b5cf6;
-                box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
-            }
-
-        .search-icon {
-            position: absolute;
-            left: 0.75rem;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #6b7280;
         }
 
         .contacts-list {
@@ -295,35 +395,22 @@
             cursor: pointer;
             transition: all 0.3s ease;
             position: relative;
-            z-index: 1;
-            user-select: none;
         }
 
             .contact-item:hover {
-                background: #f1f5f9;
-                transform: translateX(4px);
+                background: var(--gray-100);
             }
 
             .contact-item.active {
-                background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+                background: linear-gradient(135deg, var(--primary), var(--primary-dark));
                 color: white;
-                z-index: 2;
-            }
-
-            .contact-item.clicking {
-                pointer-events: none;
-                opacity: 0.7;
-            }
-
-            .contact-item * {
-                pointer-events: none;
             }
 
         .contact-avatar {
             width: 48px;
             height: 48px;
             border-radius: 50%;
-            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            background: linear-gradient(135deg, #6366f1, var(--primary));
             display: flex;
             align-items: center;
             justify-content: center;
@@ -342,16 +429,8 @@
             height: 12px;
             border-radius: 50%;
             border: 2px solid white;
+            background: var(--success);
         }
-
-            .online-indicator.online {
-                background: #10b981;
-                animation: pulse 2s infinite;
-            }
-
-            .online-indicator.offline {
-                background: #6b7280;
-            }
 
         .contact-info {
             flex: 1;
@@ -373,7 +452,6 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            max-width: 200px;
         }
 
         .contact-meta {
@@ -383,7 +461,7 @@
         }
 
         .unread-badge {
-            background: #ef4444;
+            background: var(--danger);
             color: white;
             border-radius: 50%;
             width: 20px;
@@ -402,17 +480,11 @@
             display: flex;
             flex-direction: column;
             background: white;
-            transition: all 0.3s ease;
-        }
-
-        .chat-area.expanded {
-            width: 100%;
         }
 
         .chat-header {
             padding: 1.5rem;
-            border-bottom: 1px solid #e2e8f0;
-            background: white;
+            border-bottom: 1px solid var(--gray-200);
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -427,7 +499,7 @@
             width: 48px;
             height: 48px;
             border-radius: 50%;
-            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            background: linear-gradient(135deg, #6366f1, var(--primary));
             display: flex;
             align-items: center;
             justify-content: center;
@@ -440,21 +512,17 @@
         .chat-user-details h4 {
             font-weight: 600;
             margin: 0;
-            color: #1e293b;
+            color: var(--gray-800);
         }
 
         .chat-user-status {
             font-size: 0.8rem;
-            color: #64748b;
+            color: var(--gray-600);
             margin-top: 0.25rem;
         }
 
         .status-online {
-            color: #10b981;
-        }
-
-        .status-offline {
-            color: #6b7280;
+            color: var(--success);
         }
 
         .chat-actions {
@@ -462,49 +530,23 @@
             gap: 0.5rem;
         }
 
-        .contacts-toggle {
-            background: none;
-            border: none;
-            color: #6b7280;
-            font-size: 1.25rem;
-            cursor: pointer;
-            padding: 0.5rem;
-            border-radius: 6px;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-right: 0.5rem;
-        }
-
-        .contacts-toggle:hover {
-            background: #f3f4f6;
-            color: #1f2937;
-        }
-
-        .contacts-toggle.active {
-            background: #8b5cf6;
-            color: white;
-        }
-
         .messages-container-inner {
             flex: 1;
             overflow-y: auto;
             padding: 1rem;
-            background: #f8fafc;
+            background: var(--gray-50);
             scroll-behavior: smooth;
-            max-height: calc(100vh - 300px);
         }
 
         .message-bubble {
             max-width: 70%;
             margin-bottom: 1rem;
-            animation: slideInMessage 0.3s ease-out;
             display: flex;
             flex-direction: column;
+            animation: slideIn 0.3s ease-out;
         }
 
-            @@keyframes slideInMessage {
+            @@keyframes slideIn {
             from
 
         {
@@ -532,23 +574,20 @@
         .message-content {
             padding: 1rem 1.25rem;
             border-radius: 20px;
-            position: relative;
             word-wrap: break-word;
             line-height: 1.5;
-            max-width: fit-content;
-            display: inline-block;
         }
 
         .message-bubble.sent .message-content {
-            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
             color: white;
             border-bottom-right-radius: 6px;
         }
 
         .message-bubble.received .message-content {
             background: white;
-            color: #1e293b;
-            border: 1px solid #e2e8f0;
+            color: var(--gray-800);
+            border: 1px solid var(--gray-200);
             border-bottom-left-radius: 6px;
         }
 
@@ -559,41 +598,27 @@
             margin-top: 0.5rem;
             font-size: 0.75rem;
             opacity: 0.7;
-            max-width: fit-content;
-        }
-
-        .message-bubble.sent .message-meta {
-            align-self: flex-end;
-        }
-
-        .message-bubble.received .message-meta {
-            align-self: flex-start;
         }
 
         .message-time {
-            color: #64748b;
+            color: var(--gray-600);
         }
 
         .message-status {
             display: flex;
             align-items: center;
             gap: 0.25rem;
-            color: #64748b;
+            color: var(--gray-600);
         }
 
         .message-bubble.sent .message-status {
             color: rgba(255, 255, 255, 0.8);
         }
 
-        .status-icon {
-            width: 16px;
-            height: 16px;
-        }
-
         .message-input-area {
             padding: 1.5rem;
             background: white;
-            border-top: 1px solid #e2e8f0;
+            border-top: 1px solid var(--gray-200);
         }
 
         .message-form {
@@ -604,7 +629,6 @@
 
         .message-input-container {
             flex: 1;
-            position: relative;
         }
 
         .message-input {
@@ -612,23 +636,22 @@
             min-height: 50px;
             max-height: 120px;
             padding: 0.75rem 1rem;
-            border: 1px solid #d1d5db;
+            border: 1px solid var(--gray-300);
             border-radius: 25px;
             resize: none;
             font-size: 0.875rem;
             line-height: 1.5;
             overflow-y: auto;
-            transition: all 0.3s ease;
         }
 
             .message-input:focus {
                 outline: none;
-                border-color: #8b5cf6;
+                border-color: var(--primary);
                 box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
             }
 
         .send-btn {
-            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
             color: white;
             border: none;
             border-radius: 50%;
@@ -639,10 +662,9 @@
             justify-content: center;
             cursor: pointer;
             transition: all 0.3s ease;
-            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
         }
 
-            .send-btn:hover {
+            .send-btn:hover:not(:disabled) {
                 transform: translateY(-2px);
                 box-shadow: 0 6px 20px rgba(139, 92, 246, 0.4);
             }
@@ -651,16 +673,16 @@
                 opacity: 0.5;
                 cursor: not-allowed;
                 transform: none;
-                box-shadow: none;
             }
 
+        /* Empty State */
         .empty-state {
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             height: 100%;
-            color: #64748b;
+            color: var(--gray-600);
             text-align: center;
         }
 
@@ -670,11 +692,11 @@
             opacity: 0.3;
         }
 
-        /* New Message Modal */
-        .new-message-modal {
+        /* Modal */
+        .modal {
             display: none;
             position: fixed;
-            z-index: 1000;
+            z-index: 2000;
             left: 0;
             top: 0;
             width: 100%;
@@ -683,7 +705,7 @@
             backdrop-filter: blur(4px);
         }
 
-        .new-message-content {
+        .modal-content {
             background: white;
             margin: 5% auto;
             padding: 0;
@@ -695,7 +717,7 @@
         }
 
         .modal-header {
-            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
             color: white;
             padding: 1.5rem 2rem;
             border-radius: 16px 16px 0 0;
@@ -708,93 +730,153 @@
             padding: 2rem;
         }
 
-        .typing-indicator {
-            display: none;
-            padding: 0.5rem 1rem;
-            margin: 0.5rem 0;
-            background: #f1f5f9;
-            border-radius: 20px;
-            max-width: 150px;
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: var(--gray-700);
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--gray-300);
+            border-radius: 8px;
+            font-size: 0.875rem;
+        }
+
+            .form-control:focus {
+                outline: none;
+                border-color: var(--primary);
+                box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+            }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
             align-items: center;
+            gap: 0.5rem;
         }
 
-        .typing-dots {
-            display: flex;
-            gap: 0.25rem;
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
         }
 
-        .typing-dot {
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background: #64748b;
-            animation: typingDot 1.4s infinite ease-in-out;
-        }
-
-            .typing-dot:nth-child(2) {
-                animation-delay: 0.2s;
+            .btn-primary:hover:not(:disabled) {
+                transform: translateY(-1px);
             }
 
-            .typing-dot:nth-child(3) {
-                animation-delay: 0.4s;
-            }
+        .btn-secondary {
+            background: var(--gray-600);
+            color: white;
+        }
 
-            @@keyframes typingDot {
-            0%, 80%, 100%
-
-        {
-            transform: scale(0.8);
+        .btn:disabled {
             opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
         }
 
-        40% {
-            transform: scale(1);
-            opacity: 1;
+        /* Select2 Custom Styling */
+        .select2-container--default .select2-selection--single {
+            height: 42px;
+            border: 1px solid var(--gray-300);
+            border-radius: 8px;
         }
 
+            .select2-container--default .select2-selection--single .select2-selection__rendered {
+                line-height: 40px;
+            }
+
+        .select2-dropdown {
+            border: 1px solid var(--gray-300);
+            border-radius: 8px;
         }
 
-            @@keyframes pulse {
-            0%
+        .select2-container--default .select2-results__option--highlighted[aria-selected] {
+            background-color: var(--primary);
+        }
+
+        /* Loading Spinner */
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+            @@keyframes spin {
+            to
 
         {
-            box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
-        }
-
-        70% {
-            box-shadow: 0 0 0 10px rgba(16, 185, 129, 0);
-        }
-
-        100% {
-            box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+            transform: rotate(360deg);
         }
 
         }
 
-        /* Mobile Responsive Enhancements */
+        /* Toast Notification */
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            z-index: 10000;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+            color: white;
+            font-weight: 500;
+        }
+
+            .toast.show {
+                transform: translateX(0);
+            }
+
+            .toast.success {
+                background: var(--success);
+            }
+
+            .toast.error {
+                background: var(--danger);
+            }
+
+            .toast.info {
+                background: #3b82f6;
+            }
+
+        /* Mobile Responsiveness */
             @@media (max-width: 768px) {
-            .messages-container
+            .search-input
 
         {
-            height: calc(100vh - 80px);
+            width: 200px;
+        }
+
+        .messages-container {
+            height: calc(100vh - 100px);
             flex-direction: column;
             position: relative;
-            margin: 0.5rem;
-        }
-
-        .search-container .search-input {
-            width: 200px;
         }
 
         .contacts-sidebar {
             width: 100%;
             height: 100%;
             position: absolute;
-            top: 0;
-            left: 0;
             z-index: 10;
-            transform: translateX(0);
-            transition: transform 0.3s ease;
         }
 
             .contacts-sidebar.hidden {
@@ -805,8 +887,6 @@
             width: 100%;
             height: 100%;
             position: absolute;
-            top: 0;
-            left: 0;
             z-index: 5;
             transform: translateX(100%);
             transition: transform 0.3s ease;
@@ -817,128 +897,39 @@
             }
 
         .mobile-back-btn {
-            display: flex !important;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
             align-items: center;
             gap: 0.5rem;
-            padding: 0.75rem 1rem;
-            background: rgba(255, 255, 255, 0.2);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            color: white;
-            cursor: pointer;
-            font-size: 0.9rem;
-            border-radius: 8px;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            margin-right: 1rem;
-            min-width: 80px;
-            touch-action: manipulation;
-        }
-
-            .mobile-back-btn:hover,
-            .mobile-back-btn:focus {
-                background: rgba(255, 255, 255, 0.3);
-                border-color: rgba(255, 255, 255, 0.5);
-                outline: none;
-            }
-
-            .mobile-back-btn:active {
-                transform: scale(0.95);
-                background: rgba(255, 255, 255, 0.15);
-            }
-
-        /* Enhanced chat header for mobile */
-        .chat-header {
-            padding: 1rem 1.5rem;
-            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
-            color: white;
-            border-bottom: none;
-        }
-
-            .chat-header .chat-user-info h4 {
-                color: white;
-            }
-
-            .chat-header .chat-user-status {
-                color: rgba(255, 255, 255, 0.8);
-            }
-
-            .chat-header .action-btn {
-                background: rgba(255, 255, 255, 0.15);
-                color: white;
-            }
-
-                .chat-header .action-btn:hover {
-                    background: rgba(255, 255, 255, 0.25);
-                }
-
-        .compose-btn {
-            display: flex !important;
-            position: fixed;
-            bottom: 1rem;
-            right: 1rem;
-            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 56px;
-            height: 56px;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            box-shadow: 0 8px 25px rgba(139, 92, 246, 0.4);
-            transition: all 0.3s ease;
-            z-index: 1000;
-            font-size: 1.2rem;
-        }
-
-        .contacts-header .action-btn {
-            display: none;
+            font-weight: 500;
         }
 
         .message-bubble {
             max-width: 85%;
         }
 
-        .contacts-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        /* Enhanced touch targets for mobile */
-        .contact-item {
-            min-height: 72px;
-            touch-action: manipulation;
-            -webkit-tap-highlight-color: rgba(139, 92, 246, 0.2);
-        }
-
-        .send-btn,
         .compose-btn {
-            touch-action: manipulation;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        /* Better mobile message input */
-        .message-input {
-            font-size: 16px; /* Prevents zoom on iOS */
-            -webkit-appearance: none;
-            border-radius: 25px;
-        }
-
-        /* Swipe hint for conversations */
-        .contacts-list::before {
-            content: "👆 Tap any conversation to open • Swipe right in chat to go back";
-            display: block;
-            text-align: center;
-            padding: 0.75rem;
-            font-size: 0.8rem;
-            color: #64748b;
-            background: #f8fafc;
-            border-bottom: 1px solid #e2e8f0;
-            margin-bottom: 0.5rem;
-            font-style: italic;
-            border-radius: 8px 8px 0 0;
-            line-height: 1.3;
+            position: fixed;
+            bottom: 1rem;
+            right: 1rem;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 56px;
+            height: 56px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 8px 25px rgba(139, 92, 246, 0.4);
+            z-index: 1000;
+            font-size: 1.2rem;
         }
 
         }
@@ -964,311 +955,11 @@
             display: none !important;
         }
 
-        .contacts-header .action-btn {
-            display: flex;
-        }
-
-        .chat-header {
-            background: white;
-            color: inherit;
-        }
-
-            .chat-header .chat-user-info h4 {
-                color: #1e293b;
-            }
-
-            .chat-header .chat-user-status {
-                color: #64748b;
-            }
-
-            .chat-header .action-btn {
-                background: #f1f5f9;
-                color: #64748b;
-            }
-
-        }
-
-        .loading-spinner {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid rgba(255,255,255,.3);
-            border-radius: 50%;
-            border-top-color: #fff;
-            animation: spin 1s ease-in-out infinite;
-        }
-
-            @@keyframes spin {
-            to
-
-        {
-            transform: rotate(360deg);
-        }
-
-        }
-
-        .form-group {
-            margin-bottom: 1.5rem;
-        }
-
-        .form-label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-weight: 600;
-            color: #374151;
-        }
-
-        .form-control {
-            width: 100%;
-            padding: 0.75rem;
-            border: 1px solid #d1d5db;
-            border-radius: 8px;
-            font-size: 0.875rem;
-            transition: all 0.3s ease;
-        }
-
-            .form-control:focus {
-                outline: none;
-                border-color: #8b5cf6;
-                box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
-            }
-
-        .btn {
-            padding: 0.75rem 1.5rem;
-            border: none;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            text-decoration: none;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
-            color: white;
-        }
-
-            .btn-primary:hover {
-                transform: translateY(-1px);
-                box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
-            }
-
-        .btn-secondary {
-            background: #6b7280;
-            color: white;
-        }
-
-        .last-seen {
-            font-size: 0.7rem;
-            color: #9ca3af;
-        }
-
-        /* Sidebar Navigation Styles */
-        .sidebar-header {
-            padding: 1.5rem;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .logo-container {
-            display: flex;
-            align-items: center;
-            margin-bottom: 1rem;
-        }
-
-        .logo-icon {
-            width: 40px;
-            height: 40px;
-            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-right: 1rem;
-            color: white;
-            font-size: 1.25rem;
-        }
-
-        .logo-text {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: white;
-        }
-
-        .user-info {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-
-        .user-avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #10b981, #059669);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: 600;
-        }
-
-        .user-details h4 {
-            margin: 0;
-            font-size: 1rem;
-            font-weight: 600;
-            color: white;
-        }
-
-        .user-details p {
-            margin: 0;
-            font-size: 0.875rem;
-            color: rgba(255, 255, 255, 0.7);
-        }
-
-        .nav-menu {
-            padding: 1rem 0;
-        }
-
-        .nav-section {
-            margin-bottom: 2rem;
-        }
-
-        .nav-section-title {
-            padding: 0 1.5rem 0.5rem;
-            font-size: 0.75rem;
-            font-weight: 600;
-            color: rgba(255, 255, 255, 0.5);
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-        }
-
-        .nav-item {
-            margin: 0 1rem 0.25rem;
-        }
-
-        .nav-link {
-            display: flex;
-            align-items: center;
-            padding: 0.75rem 1rem;
-            color: rgba(255, 255, 255, 0.8);
-            text-decoration: none;
-            border-radius: 8px;
-            transition: all 0.3s ease;
-            font-weight: 500;
-        }
-
-            .nav-link:hover {
-                background: rgba(255, 255, 255, 0.1);
-                color: white;
-                transform: translateX(4px);
-            }
-
-            .nav-link.active {
-                background: linear-gradient(135deg, #8b5cf6, #7c3aed);
-                color: white;
-                box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
-            }
-
-            .nav-link i {
-                margin-right: 0.75rem;
-                font-size: 1.1rem;
-                width: 20px;
-                text-align: center;
-            }
-
-        /* Select2 Custom Styling */
-        .select2-container--default .select2-selection--single {
-            height: 42px;
-            border: 1px solid #d1d5db;
-            border-radius: 8px;
-            padding: 0.75rem;
-        }
-
-            .select2-container--default .select2-selection--single .select2-selection__rendered {
-                line-height: 26px;
-                padding-left: 0;
-            }
-
-            .select2-container--default .select2-selection--single .select2-selection__arrow {
-                height: 40px;
-            }
-
-        .select2-dropdown {
-            border: 1px solid #d1d5db;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        }
-
-        .select2-container--default .select2-results__option--highlighted[aria-selected] {
-            background-color: #8b5cf6;
-        }
-
-        .select2-container--default .select2-results__option {
-            padding: 0.75rem;
-            border-bottom: 1px solid #f1f5f9;
-        }
-
-            .select2-container--default .select2-results__option:last-child {
-                border-bottom: none;
-            }
-
-        .user-option {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
-
-        .user-option-avatar {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #6366f1, #8b5cf6);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: 600;
-            font-size: 0.8rem;
-        }
-
-        .user-option-info {
-            flex: 1;
-        }
-
-        .user-option-name {
-            font-weight: 600;
-            color: #1e293b;
-            margin-bottom: 0.125rem;
-        }
-
-        .user-option-details {
-            font-size: 0.8rem;
-            color: #64748b;
-        }
-
-        .message-type-badge {
-            background: #3b82f6;
-            color: white;
-            padding: 0.25rem 0.75rem;
-            border-radius: 12px;
-            font-size: 0.7rem;
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-            width: fit-content;
-        }
-
-            .message-type-badge.type-reminder {
-                background: #f59e0b;
-            }
-
-            .message-type-badge.type-promotion {
-                background: #10b981;
-            }
-    </style>
+        }</style>
 }
+
+<!-- Sidebar Overlay -->
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
 
 <!-- Sidebar -->
 <div class="sidebar" id="sidebar">
@@ -1283,7 +974,7 @@
             <div class="user-avatar">@User.Identity.Name?.Substring(0, 2).ToUpper()</div>
             <div class="user-details">
                 <h4>@User.Identity.Name</h4>
-                <p>@(User.IsInRole("Admin") ? "Administrator" : User.IsInRole("Manager") ? "Manager" : "Employee")</p>
+                <p>System Administrator</p>
             </div>
         </div>
     </div>
@@ -1338,7 +1029,7 @@
                 </a>
             </div>
             <div class="nav-item">
-                <a href="@Url.Action("Products", "Admin")" class="nav-link">
+                <a href="@Url.Action("Products", "Admin")" class="nav-link active">
                     <i class="fas fa-cube"></i>
                     Products
                 </a>
@@ -1354,13 +1045,9 @@
                 </a>
             </div>
             <div class="nav-item">
-                <a href="@Url.Action("Messages", "Admin")" class="nav-link active">
+                <a href="@Url.Action("Messages", "Admin")" class="nav-link">
                     <i class="fas fa-envelope"></i>
                     Messages
-                    @if (Model.UnreadCount > 0)
-                    {
-                        <span class="notification-badge">@Model.UnreadCount</span>
-                    }
                 </a>
             </div>
             <div class="nav-item">
@@ -1389,9 +1076,6 @@
     </nav>
 </div>
 
-<!-- Sidebar Overlay for Mobile -->
-<div class="sidebar-overlay" id="sidebarOverlay"></div>
-
 <!-- Main Content -->
 <div class="main-content" id="mainContent">
     <!-- Header -->
@@ -1408,107 +1092,108 @@
                 <i class="fas fa-search search-icon"></i>
             </div>
             <div class="header-actions">
-                <button class="contacts-toggle" id="contactsToggle" title="Toggle Contacts Sidebar" onclick="toggleContactsSidebar()">
-                    <i class="fas fa-users"></i>
-                </button>
-                <button class="action-btn" title="Notifications">
+                <button class="action-btn" id="notificationBtn" title="Notifications">
                     <i class="fas fa-bell"></i>
-                    <span class="notification-badge">3</span>
+                    @if (Model.UnreadCount > 0)
+                    {
+                        <span class="notification-badge" id="notificationBadge">@Model.UnreadCount</span>
+                    }
                 </button>
-                <button class="action-btn" title="New Message" onclick="openNewMessageModal()">
+                <button class="action-btn" onclick="openNewMessageModal()" title="New Message">
                     <i class="fas fa-plus"></i>
-                </button>
-                <button class="action-btn" title="Profile">
-                    <i class="fas fa-user-circle"></i>
                 </button>
             </div>
         </div>
     </header>
 
     <!-- Messages Container -->
-    <div class="messages-container">
-        <!-- Contacts Sidebar -->
-        <div class="contacts-sidebar" id="contactsSidebar">
-            <div class="contacts-header">
-                <h2 style="margin: 0; font-size: 1.25rem; font-weight: 600;">
-                    <i class="fas fa-comments" style="margin-right: 0.5rem;"></i>
-                    Conversations
-                </h2>
-                <button class="mobile-back-btn" onclick="showContactsList()" style="display: none;">
-                    <i class="fas fa-arrow-left"></i>
-                    Back
-                </button>
-                <button class="action-btn" onclick="openNewMessageModal()" title="New Message" style="background: rgba(255,255,255,0.2); color: white;">
-                    <i class="fas fa-plus"></i>
-                </button>
-            </div>
+    <div class="dashboard-content">
+        <div class="messages-container">
+            <!-- Contacts Sidebar -->
+            <div class="contacts-sidebar" id="contactsSidebar">
+                <div class="contacts-header">
+                    <h2 style="margin: 0; font-size: 1.25rem; font-weight: 600;">
+                        <i class="fas fa-comments" style="margin-right: 0.5rem;"></i>
+                        Conversations
+                    </h2>
+                    <button class="action-btn" onclick="openNewMessageModal()" title="New Message" style="background: rgba(255,255,255,0.2); color: white;">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </div>
 
-            <div class="contacts-search">
-                <div class="search-box">
-                    <input type="text" class="search-input" placeholder="Search conversations..." id="contactsSearchInput">
-                    <i class="fas fa-search search-icon"></i>
+                <div class="contacts-search">
+                    <div class="search-box">
+                        <input type="text" class="search-input" placeholder="Search conversations..." id="contactsSearchInput">
+                        <i class="fas fa-search search-icon"></i>
+                    </div>
+                </div>
+
+                <div class="contacts-list" id="contactsList">
+                    @if (Model?.Conversations != null && Model.Conversations.Any())
+                    {
+                        @foreach (var conversation in Model.Conversations)
+                        {
+                            <div class="contact-item @(Model.SelectedConversation?.UserId == conversation.UserId ? "active" : "")"
+                                 data-user-id="@conversation.UserId"
+                                 data-user-name="@conversation.FullName">
+                                <div class="contact-avatar">
+                                    @conversation.UserInitials
+                                    @if (conversation.IsOnline)
+                                    {
+                                        <div class="online-indicator"></div>
+                                    }
+                                </div>
+                                <div class="contact-info">
+                                    <div class="contact-name">@conversation.FullName</div>
+                                    <div class="contact-last-message">@(string.IsNullOrEmpty(conversation.LastMessage) ? "No messages yet" : conversation.LastMessage)</div>
+                                </div>
+                                <div class="contact-meta">
+                                    <div style="font-size: 0.7rem; margin-bottom: 0.25rem;">
+                                        @conversation.LastMessageTime
+                                    </div>
+                                    @if (conversation.UnreadCount > 0)
+                                    {
+                                        <div class="unread-badge">@conversation.UnreadCount</div>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    }
+                    else
+                    {
+                        <div style="text-align: center; padding: 2rem; color: #64748b;">
+                            <i class="fas fa-inbox" style="font-size: 2rem; margin-bottom: 1rem; opacity: 0.3;"></i>
+                            <p>No conversations yet</p>
+                            <button class="btn btn-primary" onclick="openNewMessageModal()">
+                                <i class="fas fa-plus"></i>
+                                Start Conversation
+                            </button>
+                        </div>
+                    }
                 </div>
             </div>
 
-            <div class="contacts-list" id="contactsList">
-                @if (Model?.Conversations != null)
+            <!-- Chat Area -->
+            <div class="chat-area" id="chatArea">
+                @if (Model.SelectedConversation != null)
                 {
-                    @foreach (var conversation in Model.Conversations)
-                    {
-                        <div class="contact-item @(Model.SelectedConversation?.UserId == conversation.UserId ? "active" : "")"
-                             data-user-id="@conversation.UserId"
-                             data-user-name="@conversation.FullName"
-                             data-user-initials="@conversation.UserInitials"
-                             data-is-online="@conversation.IsOnline.ToString().ToLower()">
-                            <div class="contact-avatar">
-                                @conversation.UserInitials
-                                <div class="online-indicator @(conversation.IsOnline ? "online" : "offline")"></div>
-                            </div>
-                            <div class="contact-info">
-                                <div class="contact-name">@conversation.FullName</div>
-                                <div class="contact-last-message">@(string.IsNullOrEmpty(conversation.LastMessage) ? "No messages yet" : conversation.LastMessage)</div>
-                                @if (!string.IsNullOrEmpty(conversation.LastSeenFormatted))
-                                {
-                                    <div class="last-seen">@conversation.LastSeenFormatted</div>
-                                }
-                            </div>
-                            <div class="contact-meta">
-                                <div style="font-size: 0.7rem; margin-bottom: 0.25rem;">
-                                    @conversation.LastMessageTime
-                                </div>
-                                @if (conversation.UnreadCount > 0)
-                                {
-                                    <div class="unread-badge">@conversation.UnreadCount</div>
-                                }
-                            </div>
-                        </div>
-                    }
-                }
-            </div>
-        </div>
-
-        <!-- Chat Area -->
-        <div class="chat-area" id="chatArea">
-            @if (Model?.SelectedConversation != null)
-            {
-                <!-- Chat Header -->
-                <div class="chat-header">
-                    <div style="display: flex; align-items: center; width: 100%;">
-                        <button class="mobile-back-btn" onclick="goBackToContactsList()">
-                            <i class="fas fa-arrow-left"></i>
-                            <span>Back</span>
-                        </button>
-                        <div class="chat-user-info" style="flex: 1;">
-                            <div class="chat-avatar" style="position: relative;">
+                    <!-- Chat Header -->
+                    <div class="chat-header">
+                        <div class="chat-user-info">
+                            <button class="mobile-back-btn" onclick="showContactsList()" style="display: none;">
+                                <i class="fas fa-arrow-left"></i>
+                                Back
+                            </button>
+                            <div class="chat-avatar">
                                 @Model.SelectedConversation.UserInitials
                                 @if (Model.SelectedConversation.IsOnline)
                                 {
-                                    <div class="online-indicator online"></div>
+                                    <div class="online-indicator"></div>
                                 }
                             </div>
                             <div class="chat-user-details">
                                 <h4>@Model.SelectedConversation.FullName</h4>
-                                <div class="chat-user-status @(Model.SelectedConversation.IsOnline ? "status-online" : "status-offline")" id="userStatus-@Model.SelectedConversation.UserId">
+                                <div class="chat-user-status @(Model.SelectedConversation.IsOnline ? "status-online" : "")">
                                     @if (Model.SelectedConversation.IsOnline)
                                     {
                                         <i class="fas fa-circle" style="font-size: 0.5rem; margin-right: 0.25rem;"></i>
@@ -1516,16 +1201,13 @@
                                     }
                                     else
                                     {
-                                        <span>Last seen @Model.SelectedConversation.LastSeen?.ToString("MMM dd, HH:mm")</span>
+                                        <span>Last seen @Model.SelectedConversation.LastSeenFormatted</span>
                                     }
                                 </div>
                             </div>
                         </div>
                         <div class="chat-actions">
-                            <button class="contacts-toggle" title="Toggle Contacts" onclick="toggleContactsSidebar()">
-                                <i class="fas fa-users"></i>
-                            </button>
-                            <button class="action-btn" title="Search Messages" onclick="toggleMessageSearch()">
+                            <button class="action-btn" title="Search Messages">
                                 <i class="fas fa-search"></i>
                             </button>
                             <button class="action-btn" title="More Options">
@@ -1533,108 +1215,82 @@
                             </button>
                         </div>
                     </div>
-                </div>
 
-                <!-- Messages Container -->
-                <div class="messages-container-inner" id="messagesContainer">
-                    @if (Model?.Messages != null)
-                    {
-                        @foreach (var message in Model.Messages.OrderBy(m => m.SentDate))
+                    <!-- Messages Container -->
+                    <div class="messages-container-inner" id="messagesContainer">
+                        @if (Model.Messages != null && Model.Messages.Any())
                         {
-                            <div class="message-bubble @(message.IsFromCurrentUser ? "sent" : "received")" data-message-id="@message.MessageId">
-                                @if (!string.IsNullOrEmpty(message.MessageType) && message.MessageType != "General")
-                                {
-                                    <div class="message-type-badge type-@message.MessageType.ToLower()">
-                                        @message.MessageType
-                                    </div>
-                                }
-
-                                @if (!string.IsNullOrEmpty(message.Subject))
-                                {
-                                    <div style="font-weight: 600; margin-bottom: 0.5rem; opacity: 0.9;">
-                                        @message.Subject
-                                    </div>
-                                }
-
-                                <div class="message-content">
-                                    @message.Content
-                                </div>
-
-                                <div class="message-meta">
-                                    <span class="message-time">@message.SentDate.ToString("HH:mm")</span>
-                                    @if (message.IsFromCurrentUser)
+                            @foreach (var message in Model.Messages.OrderBy(m => m.SentDate))
+                            {
+                                <div class="message-bubble @(message.IsFromCurrentUser ? "sent" : "received")" data-message-id="@message.MessageId">
+                                    @if (!string.IsNullOrEmpty(message.Subject))
                                     {
-                                        <div class="message-status">
-                                            @if (message.IsRead)
-                                            {
-                                                <i class="fas fa-eye status-icon" title="Read"></i>
-                                                @if (message.ReadDate.HasValue)
-                                                {
-                                                    <span>@message.ReadDate.Value.ToString("HH:mm")</span>
-                                                }
-                                            }
-                                            else
-                                            {
-                                                <i class="fas fa-check status-icon" title="Sent"></i>
-                                            }
+                                        <div style="font-weight: 600; margin-bottom: 0.5rem; font-size: 0.9rem; opacity: 0.8;">
+                                            @message.Subject
                                         </div>
                                     }
+                                    <div class="message-content">
+                                        @message.Content
+                                    </div>
+                                    <div class="message-meta">
+                                        <span class="message-time">@message.SentDate.ToString("HH:mm")</span>
+                                        @if (message.IsFromCurrentUser)
+                                        {
+                                            <span class="message-status">
+                                                @if (message.IsRead)
+                                                {
+                                                    <i class="fas fa-check-double" style="color: #10b981;" title="Read"></i>
+                                                }
+                                                else
+                                                {
+                                                    <i class="fas fa-check" title="Sent"></i>
+                                                }
+                                            </span>
+                                        }
+                                    </div>
                                 </div>
-                            </div>
+                            }
                         }
-                    }
-
-                    <!-- Typing Indicator -->
-                    <div class="typing-indicator" id="typingIndicator">
-                        <div class="typing-dots">
-                            <div class="typing-dot"></div>
-                            <div class="typing-dot"></div>
-                            <div class="typing-dot"></div>
-                        </div>
-                        <span style="margin-left: 0.5rem; font-size: 0.8rem; color: #64748b;">typing...</span>
                     </div>
-                </div>
 
-                <!-- Message Input -->
-                <div class="message-input-area">
-                    <div class="message-form">
-                        <div class="message-input-container">
-                            <textarea id="messageInput"
-                                      class="message-input"
-                                      placeholder="Type your message..."
-                                      rows="1"></textarea>
+                    <!-- Message Input -->
+                    <div class="message-input-area">
+                        <div class="message-form">
+                            <div class="message-input-container">
+                                <textarea id="messageInput" class="message-input" placeholder="Type your message..." rows="1"></textarea>
+                            </div>
+                            <button class="send-btn" id="sendBtn" onclick="sendMessage()" disabled>
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
                         </div>
-                        <button class="send-btn" id="sendBtn" onclick="sendMessage()" disabled>
-                            <i class="fas fa-paper-plane"></i>
+                    </div>
+                }
+                else
+                {
+                    <!-- Empty State -->
+                    <div class="empty-state">
+                        <i class="fas fa-comments empty-state-icon"></i>
+                        <h3>Select a conversation</h3>
+                        <p>Choose a contact from the sidebar to start messaging</p>
+                        <button class="btn btn-primary" onclick="openNewMessageModal()" style="margin-top: 1rem;">
+                            <i class="fas fa-plus"></i>
+                            Start New Conversation
                         </button>
                     </div>
-                </div>
-            }
-            else
-            {
-                <!-- Empty State -->
-                <div class="empty-state">
-                    <i class="fas fa-comments empty-state-icon"></i>
-                    <h3>Select a conversation</h3>
-                    <p>Choose a contact from the sidebar to start messaging</p>
-                    <button class="btn btn-primary" onclick="openNewMessageModal()" style="margin-top: 1rem;">
-                        <i class="fas fa-plus"></i>
-                        Start New Conversation
-                    </button>
-                </div>
-            }
+                }
+            </div>
         </div>
     </div>
 </div>
 
 <!-- Floating Compose Button (Mobile) -->
-<button class="compose-btn" onclick="openNewMessageModal()">
+<button class="compose-btn" onclick="openNewMessageModal()" style="display: none;">
     <i class="fas fa-plus"></i>
 </button>
 
 <!-- New Message Modal -->
-<div id="newMessageModal" class="new-message-modal">
-    <div class="new-message-content">
+<div id="newMessageModal" class="modal">
+    <div class="modal-content">
         <div class="modal-header">
             <h3 style="margin: 0; font-weight: 600;">
                 <i class="fas fa-plus-circle" style="margin-right: 0.5rem;"></i>
@@ -1651,15 +1307,12 @@
                 <div class="form-group">
                     <label class="form-label" for="recipientSelect">Send To *</label>
                     <select id="recipientSelect" name="ToUserId" class="form-control" required>
-                        <option value="">Search and select recipient...</option>
-                        @if (Model?.AllUsers != null)
+                        <option value="">Select recipient...</option>
+                        @if (Model.AllUsers != null && Model.AllUsers.Any())
                         {
                             @foreach (var user in Model.AllUsers)
                             {
-                                <option value="@user.UserId"
-                                        data-email="@user.Email"
-                                        data-usertype="@user.UserType"
-                                        data-initials="@(user.FullName.Split(' ').Select(n => n.FirstOrDefault()).Take(2).Aggregate("", (acc, c) => acc + c).ToUpper())">
+                                <option value="@user.UserId" data-email="@user.Email" data-initials="@user.UserInitials">
                                     @user.FullName (@user.UserType) - @user.Email
                                 </option>
                             }
@@ -1699,663 +1352,186 @@
 </div>
 
 @section Scripts {
-    <script src="~/js/dashboard.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
-        // ========================================
-        // GLOBAL VARIABLES
-        // ========================================
+        // Global variables
         let currentSelectedUserId = @(Model.SelectedConversation?.UserId ?? 0);
         let currentUserId = @Model.CurrentUserId;
-        let isTyping = false;
-        let typingTimeout;
-        let lastMessageCheck = new Date();
-        let allConversations = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Conversations));
         let messagePollingInterval;
-        let onlineStatusInterval;
+        let lastMessageCheck = new Date();
         let isLoadingConversation = false;
-        let sidebarState = {
-            isInitialized: false,
-            isDesktop: window.innerWidth > 1024,
-            isOpen: false,
-            isCollapsed: false
-        };
 
-        // ========================================
-        // MAIN INITIALIZATION
-        // ========================================
+        // Initialize page
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('🚀 Initializing Messages Page...');
-            initializeMessagesPage();
+            initializePage();
         });
 
-        /**
-         * Main initialization function for the messages page
-         * Coordinates all component initialization in the correct order
-         */
-        function initializeMessagesPage() {
-            try {
-                console.log('📋 Starting component initialization...');
+        function initializePage() {
+            console.log('Initializing Messages Page...');
 
-                // Core functionality initialization
-                initializeSidebarToggle();
-                setupMessageInput();
-                setupSearch();
-                setupConversationClickHandlers();
-                initializeSelect2();
-                setupMobileNavigation();
-                addMobileTouchHandlers();
-                setupFormHandlers();
-                setupWindowEventHandlers();
+            setupSidebarToggle();
+            setupMessageInput();
+            setupContactSearch();
+            setupContactSelection();
+            setupMobileView();
 
-                // Initialize current conversation state
-                if (currentSelectedUserId > 0) {
-                    markMessagesAsRead();
-                    scrollToBottom();
-                }
-
-                // Start background processes with delay to avoid interference
-                setTimeout(() => {
-                    if (!isLoadingConversation) {
-                        startMessagePolling();
-                        startOnlineStatusPolling();
-                    }
-                }, 3000);
-
-                console.log('✅ Messages page initialized successfully');
-                console.log('📊 State:', {
-                    selectedUserId: currentSelectedUserId,
-                    isMobile: window.innerWidth <= 768,
-                    conversationCount: allConversations?.length || 0
-                });
-
-            } catch (error) {
-                console.error('❌ Error initializing messages page:', error);
-                showToast('Failed to initialize messages page', 'error');
+            if (currentSelectedUserId > 0) {
+                startMessagePolling();
             }
+
+            // Update unread count periodically
+            setInterval(updateUnreadCount, 30000);
+
+            console.log('Messages Page Initialized Successfully');
         }
 
-        // ========================================
-        // SIDEBAR TOGGLE FUNCTIONALITY
-        // ========================================
-
-        /**
-         * Initialize sidebar toggle functionality for both desktop and mobile
-         * Handles responsive behavior and state management
-         */
-        function initializeSidebarToggle() {
+        // Fixed Sidebar Toggle
+        function setupSidebarToggle() {
             const sidebarToggle = document.getElementById('sidebarToggle');
             const sidebar = document.getElementById('sidebar');
-            const mainContent = document.getElementById('mainContent');
             const sidebarOverlay = document.getElementById('sidebarOverlay');
+            const mainContent = document.getElementById('mainContent');
 
-            if (!sidebarToggle || !sidebar || !mainContent) {
-                console.error('❌ Critical sidebar elements not found');
-                return;
-            }
+            if (!sidebarToggle || !sidebar) return;
 
-            // Clean up existing listeners
-            sidebarToggle.removeEventListener('click', handleSidebarToggle);
-            if (sidebarOverlay) {
-                sidebarOverlay.removeEventListener('click', closeSidebar);
-            }
-            document.removeEventListener('keydown', handleEscapeKey);
-
-            // Add event listeners
-            sidebarToggle.addEventListener('click', handleSidebarToggle);
-            if (sidebarOverlay) {
-                sidebarOverlay.addEventListener('click', closeSidebar);
-            }
-            document.addEventListener('keydown', handleEscapeKey);
-
-            // Initialize proper state - start hidden on desktop
-            updateSidebarState();
-            if (window.innerWidth > 1024) {
-                sidebar.classList.remove('expanded', 'collapsed');
-                mainContent.classList.remove('sidebar-open', 'sidebar-collapsed');
-            }
-            sidebarState.isInitialized = true;
-
-            console.log('🎛️ Sidebar toggle initialized');
-
-            /**
-             * Handle sidebar toggle button clicks
-             * Determines desktop vs mobile behavior
-             */
-            function handleSidebarToggle(event) {
-                event.preventDefault();
-                event.stopPropagation();
-
-                console.log('🔄 Sidebar toggle clicked');
-
-                updateSidebarState();
-
-                if (sidebarState.isDesktop) {
-                    handleDesktopToggle();
-                } else {
-                    handleMobileToggle();
-                }
-            }
-
-            /**
-             * Handle desktop sidebar toggle behavior
-             * Slides sidebar in/out and adjusts main content
-             */
-            function handleDesktopToggle() {
-                const isHidden = !sidebar.classList.contains('expanded') && !sidebar.classList.contains('collapsed');
-                const isExpanded = sidebar.classList.contains('expanded');
-                const isCollapsed = sidebar.classList.contains('collapsed');
-
-                if (isHidden) {
-                    // Show sidebar expanded
-                    sidebar.classList.add('expanded');
-                    mainContent.classList.add('sidebar-open');
-                    sidebarToggle.setAttribute('aria-expanded', 'true');
-                    sidebarState.isCollapsed = false;
-                    console.log('💻 Desktop: Sidebar expanded from hidden');
-                } else if (isExpanded) {
-                    // Collapse sidebar
-                    sidebar.classList.remove('expanded');
-                    sidebar.classList.add('collapsed');
-                    mainContent.classList.remove('sidebar-open');
-                    mainContent.classList.add('sidebar-collapsed');
-                    sidebarToggle.setAttribute('aria-expanded', 'false');
-                    sidebarState.isCollapsed = true;
-                    console.log('💻 Desktop: Sidebar collapsed');
-                } else if (isCollapsed) {
-                    // Hide sidebar completely
-                    sidebar.classList.remove('collapsed');
-                    mainContent.classList.remove('sidebar-collapsed');
-                    sidebarToggle.setAttribute('aria-expanded', 'false');
-                    sidebarState.isCollapsed = false;
-                    console.log('💻 Desktop: Sidebar hidden');
-                }
-
-                // Save state to localStorage
-                localStorage.setItem('sidebarCollapsed', sidebarState.isCollapsed.toString());
-            }
-
-            /**
-             * Handle mobile sidebar toggle behavior
-             * Shows/hides overlay sidebar
-             */
-            function handleMobileToggle() {
-                if (sidebarState.isOpen) {
-                    closeSidebar();
-                } else {
-                    openSidebar();
-                }
-            }
-
-            /**
-             * Open sidebar in mobile mode
-             */
-            function openSidebar() {
-                sidebar.classList.add('open');
-                if (sidebarOverlay) {
-                    sidebarOverlay.classList.add('active');
-                }
-                sidebarToggle.setAttribute('aria-expanded', 'true');
-                document.body.style.overflow = 'hidden';
-                sidebarState.isOpen = true;
-
-                console.log('📱 Mobile: Sidebar opened');
-
-                // Add subtle animation to toggle button
-                sidebarToggle.style.transform = 'rotate(90deg)';
-                setTimeout(() => {
-                    sidebarToggle.style.transform = '';
-                }, 200);
-            }
-
-            /**
-             * Close sidebar in mobile mode
-             */
-            function closeSidebar() {
+            // Initialize mobile sidebar as hidden
+            if (window.innerWidth <= 1024) {
                 sidebar.classList.remove('open');
-                if (sidebarOverlay) {
-                    sidebarOverlay.classList.remove('active');
-                }
-                sidebarToggle.setAttribute('aria-expanded', 'false');
-                document.body.style.overflow = '';
-                sidebarState.isOpen = false;
-
-                console.log('📱 Mobile: Sidebar closed');
+                if (sidebarOverlay) sidebarOverlay.classList.remove('show');
+                document.body.style.overflow = 'auto';
             }
 
-            /**
-             * Handle escape key press to close mobile sidebar
-             */
-            function handleEscapeKey(event) {
-                if (event.key === 'Escape' && !sidebarState.isDesktop && sidebarState.isOpen) {
-                    closeSidebar();
-                }
-            }
+            sidebarToggle.addEventListener('click', function() {
+                const isMobile = window.innerWidth <= 1024;
 
-            /**
-             * Update sidebar state based on current screen size
-             */
-            function updateSidebarState() {
-                const wasDesktop = sidebarState.isDesktop;
-                sidebarState.isDesktop = window.innerWidth > 1024;
-
-                if (wasDesktop !== sidebarState.isDesktop) {
-                    handleScreenSizeChange();
-                }
-                
-                // Initialize sidebar as hidden on desktop load
-                if (sidebarState.isDesktop && !sidebarState.isInitialized) {
-                    sidebar.classList.remove('expanded', 'collapsed');
-                    mainContent.classList.remove('sidebar-open', 'sidebar-collapsed');
-                }
-                }
-            }
-
-            /**
-             * Handle screen size changes between desktop and mobile
-             */
-            function handleScreenSizeChange() {
-                if (sidebarState.isDesktop) {
-                    // Switching to desktop
-                    sidebar.classList.remove('open');
-                    if (sidebarOverlay) {
-                        sidebarOverlay.classList.remove('active');
+                if (isMobile) {
+                    // Mobile: Simple toggle
+                    if (sidebar.classList.contains('open')) {
+                        sidebar.classList.remove('open');
+                        if (sidebarOverlay) sidebarOverlay.classList.remove('show');
+                        document.body.style.overflow = 'auto';
+                    } else {
+                        sidebar.classList.add('open');
+                        if (sidebarOverlay) sidebarOverlay.classList.add('show');
+                        document.body.style.overflow = 'hidden';
                     }
-                    document.body.style.overflow = '';
-                    sidebarState.isOpen = false;
-
-                    // Restore collapsed state from localStorage
-                    const savedCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
-                    if (savedCollapsed) {
-                        sidebar.classList.add('collapsed');
-                        mainContent.classList.add('expanded');
-                        sidebarState.isCollapsed = true;
-                    }
-
-                    console.log('🖥️ Switched to desktop mode');
                 } else {
-                    // Switching to mobile
-                    sidebar.classList.remove('collapsed');
-                    mainContent.classList.remove('expanded');
-                    sidebarState.isCollapsed = false;
-
-                    console.log('📱 Switched to mobile mode');
+                    // Desktop: Show/Hide toggle
+                    if (sidebar.classList.contains('hidden')) {
+                        // Hidden -> Show
+                        sidebar.classList.remove('hidden');
+                    } else {
+                        // Show -> Hide
+                        sidebar.classList.add('hidden');
+                    }
                 }
+            });
+
+            // Close sidebar on overlay click
+            if (sidebarOverlay) {
+                sidebarOverlay.addEventListener('click', function() {
+                    sidebar.classList.remove('open');
+                    sidebarOverlay.classList.remove('show');
+                    document.body.style.overflow = 'auto';
+                });
             }
 
-            // Expose functions globally for external access
-            window.openSidebar = openSidebar;
-            window.closeSidebar = closeSidebar;
-            window.toggleSidebar = handleSidebarToggle;
-
-            // Handle window resize with debouncing
-            let resizeTimeout;
+            // Handle window resize
             window.addEventListener('resize', function() {
-                clearTimeout(resizeTimeout);
-                resizeTimeout = setTimeout(() => {
-                    updateSidebarState();
-                    setupMobileNavigation();
-                }, 150);
+                if (window.innerWidth <= 1024) {
+                    // Mobile: Ensure sidebar is hidden by default
+                    sidebar.classList.remove('hidden');
+                    if (!sidebar.classList.contains('open')) {
+                        if (sidebarOverlay) sidebarOverlay.classList.remove('show');
+                        document.body.style.overflow = 'auto';
+                    }
+                } else {
+                    // Desktop: Remove mobile classes
+                    sidebar.classList.remove('open');
+                    if (sidebarOverlay) sidebarOverlay.classList.remove('show');
+                    document.body.style.overflow = 'auto';
+                }
             });
         }
 
-        // ========================================
-        // MESSAGE INPUT FUNCTIONALITY
-        // ========================================
-
-        /**
-         * Setup message input functionality
-         * Handles typing, auto-resize, and send button state
-         */
+        // Message Input Setup
         function setupMessageInput() {
             const messageInput = document.getElementById('messageInput');
             const sendBtn = document.getElementById('sendBtn');
 
-            if (!messageInput || !sendBtn) {
-                console.warn('⚠️ Message input elements not found');
-                return;
-            }
+            if (!messageInput || !sendBtn) return;
 
-            // Clean up existing listeners
-            messageInput.removeEventListener('input', handleMessageInput);
-            messageInput.removeEventListener('keydown', handleKeyDown);
-
-            // Add event listeners
-            messageInput.addEventListener('input', handleMessageInput);
-            messageInput.addEventListener('keydown', handleKeyDown);
-
-            // Initialize state
-            sendBtn.disabled = true;
-
-            console.log('📝 Message input setup completed');
-
-            function handleMessageInput() {
+            messageInput.addEventListener('input', function() {
                 const hasContent = this.value.trim().length > 0;
                 sendBtn.disabled = !hasContent;
                 autoResizeTextarea(this);
-                handleTyping();
+            });
 
-                // Update send button appearance
-                if (hasContent) {
-                    sendBtn.classList.add('active');
-                } else {
-                    sendBtn.classList.remove('active');
-                }
-            }
-
-            function handleKeyDown(event) {
+            messageInput.addEventListener('keydown', function(event) {
                 if (event.key === 'Enter' && !event.shiftKey) {
                     event.preventDefault();
                     if (!sendBtn.disabled) {
                         sendMessage();
                     }
                 }
-            }
+            });
         }
 
-        /**
-         * Auto-resize textarea based on content
-         */
+        // Auto resize textarea
         function autoResizeTextarea(textarea) {
-            if (!textarea) return;
-
             textarea.style.height = 'auto';
-            const newHeight = Math.min(textarea.scrollHeight, 120);
-            textarea.style.height = newHeight + 'px';
+            textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
+        }
 
-            // Adjust container if needed
-            const container = textarea.closest('.message-input-area');
-            if (container && newHeight > 50) {
-                container.style.paddingTop = '2rem';
-            } else if (container) {
-                container.style.paddingTop = '1.5rem';
+        // Contact Search
+        function setupContactSearch() {
+            const contactsSearchInput = document.getElementById('contactsSearchInput');
+            if (contactsSearchInput) {
+                contactsSearchInput.addEventListener('input', filterContacts);
             }
         }
 
-        /**
-         * Handle typing indicator
-         */
-        function handleTyping() {
-            if (!isTyping && currentSelectedUserId > 0) {
-                isTyping = true;
-                // Note: In production, send typing status to server
-                console.log('👨‍💻 User started typing');
-            }
-
-            clearTimeout(typingTimeout);
-            typingTimeout = setTimeout(() => {
-                if (isTyping) {
-                    isTyping = false;
-                    console.log('⏹️ User stopped typing');
-                }
-            }, 2000);
-        }
-
-        // ========================================
-        // SEARCH FUNCTIONALITY
-        // ========================================
-
-        /**
-         * Setup search functionality for both contacts and messages
-         */
-        function setupSearch() {
-            const contactsSearch = document.getElementById('contactsSearchInput');
-            const headerSearch = document.getElementById('headerSearchInput');
-
-            if (contactsSearch) {
-                contactsSearch.addEventListener('input', debounce(filterContacts, 300));
-                contactsSearch.addEventListener('focus', function() {
-                    this.parentElement.classList.add('focused');
-                });
-                contactsSearch.addEventListener('blur', function() {
-                    this.parentElement.classList.remove('focused');
-                });
-            }
-
-            if (headerSearch) {
-                headerSearch.addEventListener('input', debounce(searchMessages, 300));
-                headerSearch.addEventListener('focus', function() {
-                    this.parentElement.classList.add('focused');
-                });
-                headerSearch.addEventListener('blur', function() {
-                    this.parentElement.classList.remove('focused');
-                });
-            }
-
-            console.log('🔍 Search functionality initialized');
-        }
-
-        /**
-         * Filter contacts list based on search term
-         */
         function filterContacts() {
-            const searchTerm = document.getElementById('contactsSearchInput').value.toLowerCase().trim();
-            const contactItems = document.querySelectorAll('#contactsList .contact-item');
-            let visibleCount = 0;
+            const searchTerm = document.getElementById('contactsSearchInput').value.toLowerCase();
+            const contactItems = document.querySelectorAll('.contact-item');
 
-            contactItems.forEach((item, index) => {
-                try {
-                    const nameElement = item.querySelector('.contact-name');
-                    const lastMessageElement = item.querySelector('.contact-last-message');
+            contactItems.forEach(item => {
+                const name = item.querySelector('.contact-name')?.textContent.toLowerCase() || '';
+                const lastMessage = item.querySelector('.contact-last-message')?.textContent.toLowerCase() || '';
 
-                    if (!nameElement) {
-                        console.warn(`⚠️ Contact name element missing for item ${index}`);
-                        return;
-                    }
-
-                    const name = nameElement.textContent.toLowerCase();
-                    const lastMessage = lastMessageElement ? lastMessageElement.textContent.toLowerCase() : '';
-                    const shouldShow = !searchTerm || name.includes(searchTerm) || lastMessage.includes(searchTerm);
-
-                    item.style.display = shouldShow ? 'flex' : 'none';
-
-                    if (shouldShow) {
-                        visibleCount++;
-                        // Highlight matching text
-                        highlightSearchTerm(nameElement, searchTerm);
-                    }
-                } catch (error) {
-                    console.error(`❌ Error filtering contact item ${index}:`, error);
-                }
-            });
-
-            console.log(`🔍 Filtered contacts: ${visibleCount}/${contactItems.length} visible`);
-
-            // Show no results message if needed
-            showNoResultsMessage(visibleCount === 0 && searchTerm.length > 0, 'contacts');
-        }
-
-        /**
-         * Search messages in current conversation
-         */
-        function searchMessages() {
-            const searchTerm = document.getElementById('headerSearchInput').value.toLowerCase().trim();
-            const messageBubbles = document.querySelectorAll('.message-bubble');
-            let visibleCount = 0;
-
-            messageBubbles.forEach(bubble => {
-                const content = bubble.querySelector('.message-content').textContent.toLowerCase();
-                const subject = bubble.querySelector('[style*="font-weight: 600"]');
-                const subjectText = subject ? subject.textContent.toLowerCase() : '';
-
-                const shouldShow = !searchTerm || content.includes(searchTerm) || subjectText.includes(searchTerm);
-
-                bubble.style.display = shouldShow ? 'flex' : 'none';
-
-                if (shouldShow) {
-                    visibleCount++;
-                    // Highlight matching text
-                    if (searchTerm) {
-                        highlightSearchTerm(bubble.querySelector('.message-content'), searchTerm);
-                    }
-                }
-            });
-
-            console.log(`🔍 Filtered messages: ${visibleCount}/${messageBubbles.length} visible`);
-
-            // Show no results message if needed
-            showNoResultsMessage(visibleCount === 0 && searchTerm.length > 0, 'messages');
-        }
-
-        /**
-         * Highlight search term in text content
-         */
-        function highlightSearchTerm(element, term) {
-            if (!element || !term) return;
-
-            const originalText = element.textContent;
-            const regex = new RegExp(`(${escapeRegex(term)})`, 'gi');
-            const highlightedText = originalText.replace(regex, '<mark>$1</mark>');
-
-            if (highlightedText !== originalText) {
-                element.innerHTML = highlightedText;
-            }
-        }
-
-        /**
-         * Show/hide no results message
-         */
-        function showNoResultsMessage(show, type) {
-            const existingMessage = document.querySelector('.no-results-message');
-
-            if (existingMessage) {
-                existingMessage.remove();
-            }
-
-            if (show) {
-                const container = type === 'contacts' ?
-                    document.getElementById('contactsList') :
-                    document.getElementById('messagesContainer');
-
-                if (container) {
-                    const message = document.createElement('div');
-                    message.className = 'no-results-message';
-                    message.innerHTML = `
-                        <div style="text-align: center; padding: 2rem; color: #64748b;">
-                            <i class="fas fa-search" style="font-size: 2rem; margin-bottom: 1rem; opacity: 0.5;"></i>
-                            <p>No ${type} found matching your search</p>
-                        </div>
-                    `;
-                    container.appendChild(message);
-                }
-            }
-        }
-
-        // ========================================
-        // CONVERSATION MANAGEMENT
-        // ========================================
-
-        /**
-         * Setup conversation click handlers using event delegation
-         */
-        function setupConversationClickHandlers() {
-            const contactsList = document.getElementById('contactsList');
-
-            if (!contactsList) {
-                console.warn('⚠️ Contacts list not found');
-                return;
-            }
-
-            // Clean up existing listeners
-            contactsList.removeEventListener('click', handleConversationClick);
-
-            // Add event delegation listener
-            contactsList.addEventListener('click', handleConversationClick);
-
-            console.log('💬 Conversation click handlers setup');
-        }
-
-        /**
-         * Handle conversation item clicks using event delegation
-         */
-        function handleConversationClick(event) {
-            const contactItem = event.target.closest('.contact-item');
-
-            if (!contactItem) {
-                return;
-            }
-
-            // Prevent multiple clicks or clicks during loading
-            if (contactItem.classList.contains('clicking') || isLoadingConversation) {
-                console.log('⏸️ Click ignored - already processing');
-                return;
-            }
-
-            const userId = parseInt(contactItem.dataset.userId);
-            const userName = contactItem.dataset.userName;
-
-            console.log('👆 Contact clicked:', { userId, userName });
-
-            if (userId && userName && userId !== currentSelectedUserId) {
-                // Add temporary class to prevent double clicks
-                contactItem.classList.add('clicking');
-
-                // Visual feedback
-                contactItem.style.transform = 'scale(0.98)';
-                setTimeout(() => {
-                    contactItem.style.transform = '';
-                    contactItem.classList.remove('clicking');
-                }, 200);
-
-                // Clear existing polling to prevent interference
-                clearInterval(messagePollingInterval);
-                clearInterval(onlineStatusInterval);
-
-                selectConversation(userId, userName);
-            } else if (userId === currentSelectedUserId) {
-                console.log('ℹ️ Same conversation already selected');
-            } else {
-                console.error('❌ Invalid user data:', contactItem.dataset);
-            }
-        }
-
-        /**
-         * Select and load a conversation
-         */
-        function selectConversation(userId, userName) {
-            console.log('🎯 Selecting conversation:', { userId, userName });
-
-            if (!userId || userId <= 0) {
-                console.error('❌ Invalid userId provided:', userId);
-                return;
-            }
-
-            try {
-                // Update active state in contacts list
-                updateContactActiveState(userId);
-
-                // Update current selected user
-                currentSelectedUserId = userId;
-
-                if (window.innerWidth <= 768) {
-                    // Mobile: show chat area and load conversation
-                    console.log('📱 Mobile: Loading conversation');
-                    showChatArea();
-                    loadConversationMessages(userId);
+                if (name.includes(searchTerm) || lastMessage.includes(searchTerm)) {
+                    item.style.display = 'flex';
                 } else {
-                    // Desktop: Update URL and load conversation
-                    console.log('💻 Desktop: Loading conversation');
-                    const newUrl = `/Admin/Messages?userId=${userId}`;
-                    history.pushState({ userId: userId, userName: userName }, '', newUrl);
-                    loadConversationMessages(userId);
+                    item.style.display = 'none';
                 }
+            });
+        }
 
-                // Restart polling after delay
-                setTimeout(() => {
-                    startMessagePolling();
-                    startOnlineStatusPolling();
-                }, 2000);
+        // Contact Selection
+        function setupContactSelection() {
+            const contactsList = document.getElementById('contactsList');
+            if (contactsList) {
+                contactsList.addEventListener('click', function(e) {
+                    const contactItem = e.target.closest('.contact-item');
+                    if (contactItem && !contactItem.classList.contains('loading')) {
+                        const userId = parseInt(contactItem.dataset.userId);
+                        const userName = contactItem.dataset.userName;
 
-            } catch (error) {
-                console.error('❌ Error selecting conversation:', error);
-                showToast('Error selecting conversation', 'error');
+                        if (userId && userId !== currentSelectedUserId) {
+                            selectConversation(userId, userName);
+                        }
+                    }
+                });
             }
         }
 
-        /**
-         * Update active state for contacts
-         */
-        function updateContactActiveState(userId) {
+        // Select Conversation
+        function selectConversation(userId, userName) {
+            if (isLoadingConversation) return;
+
+            console.log('Selecting conversation:', userId, userName);
+
+            // Update active state
             document.querySelectorAll('.contact-item').forEach(item => {
                 item.classList.remove('active');
             });
@@ -2363,172 +1539,121 @@
             const selectedContact = document.querySelector(`[data-user-id="${userId}"]`);
             if (selectedContact) {
                 selectedContact.classList.add('active');
-                console.log('✅ Active state updated for contact:', userId);
-            } else {
-                console.error('❌ Contact item not found for userId:', userId);
             }
+
+            currentSelectedUserId = userId;
+
+            // Mobile view handling
+            if (window.innerWidth <= 768) {
+                showChatArea();
+            }
+
+            loadConversationMessages(userId);
+            startMessagePolling();
         }
 
-        /**
-         * Load conversation messages
-         */
+        // Load Conversation Messages
         async function loadConversationMessages(userId) {
-            console.log('📥 Loading conversation messages for userId:', userId);
-
-            if (!userId || userId <= 0) {
-                console.error('❌ Invalid userId for loading messages');
-                return;
-            }
-
-            if (isLoadingConversation) {
-                console.log('⏳ Already loading conversation, skipping...');
-                return;
-            }
+            if (isLoadingConversation || !userId) return;
 
             isLoadingConversation = true;
-            showLoadingSpinner();
+            console.log('Loading conversation messages for:', userId);
 
             try {
-                const url = `/Admin/GetConversationMessages?userId=${userId}`;
-                const response = await fetch(url);
-
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
+                const response = await fetch(`/Employee/GetConversationMessages?userId=${userId}`);
                 const data = await response.json();
 
-                if (data.success) {
-                    // Ensure we're still on the same conversation
-                    if (userId === currentSelectedUserId) {
-                        updateChatArea(data.conversation, data.messages);
-                        scrollToBottom();
-                        markMessagesAsRead();
-                        console.log('✅ Conversation loaded successfully');
-                    } else {
-                        console.log('ℹ️ User changed conversation while loading');
-                    }
+                if (data.success && data.conversation && data.messages) {
+                    updateChatArea(data.conversation, data.messages);
+                    scrollToBottom();
+                    markMessagesAsRead(userId);
                 } else {
-                    console.error('❌ Server error:', data.message);
-                    showToast(data.message || 'Error loading messages', 'error');
+                    showToast('Error loading conversation', 'error');
                 }
             } catch (error) {
-                console.error('❌ Error loading conversation:', error);
-                showToast('Error loading conversation. Please try again.', 'error');
+                console.error('Error loading conversation:', error);
+                showToast('Error loading conversation', 'error');
             } finally {
                 isLoadingConversation = false;
-                hideLoadingSpinner();
             }
         }
 
-        /**
-         * Update chat area with conversation data
-         */
+        // Update Chat Area
         function updateChatArea(conversation, messages) {
             const chatArea = document.getElementById('chatArea');
 
             if (!conversation) {
-                chatArea.innerHTML = createEmptyStateHtml();
+                chatArea.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-comments empty-state-icon"></i>
+                        <h3>Select a conversation</h3>
+                        <p>Choose a contact from the sidebar to start messaging</p>
+                    </div>
+                `;
                 return;
             }
 
-            const messagesHtml = messages.map(createMessageHtml).join('');
-            chatArea.innerHTML = createChatAreaHtml(conversation, messagesHtml);
+            const messagesHtml = messages.map(message => {
+                const subjectHtml = message.subject ?
+                    `<div style="font-weight: 600; margin-bottom: 0.5rem; font-size: 0.9rem; opacity: 0.8;">${escapeHtml(message.subject)}</div>` : '';
 
-            // Re-initialize components
-            setupMessageInput();
-            addMobileTouchHandlers();
-        }
+                const statusHtml = message.isFromCurrentUser ?
+                    `<span class="message-status">
+                        ${message.isRead ?
+                            '<i class="fas fa-check-double" style="color: #10b981;" title="Read"></i>' :
+                            '<i class="fas fa-check" title="Sent"></i>'}
+                    </span>` : '';
 
-        /**
-         * Create HTML for individual message
-         */
-        function createMessageHtml(message) {
-            const messageTypeHtml = message.messageType && message.messageType !== 'General'
-                ? `<div class="message-type-badge type-${message.messageType.toLowerCase()}">${message.messageType}</div>`
-                : '';
-
-            const subjectHtml = message.subject
-                ? `<div style="font-weight: 600; margin-bottom: 0.5rem; opacity: 0.9;">${escapeHtml(message.subject)}</div>`
-                : '';
-
-            const statusHtml = message.isFromCurrentUser
-                ? `<div class="message-status">
-                     ${message.isRead
-                       ? `<i class="fas fa-eye status-icon" title="Read"></i>${message.readDate ? `<span>${formatTime(message.readDate)}</span>` : ''}`
-                       : `<i class="fas fa-check status-icon" title="Sent"></i>`}
-                   </div>`
-                : '';
-
-            return `
-                <div class="message-bubble ${message.isFromCurrentUser ? 'sent' : 'received'}" data-message-id="${message.messageId}">
-                    ${messageTypeHtml}
-                    ${subjectHtml}
-                    <div class="message-content">${escapeHtml(message.content)}</div>
-                    <div class="message-meta">
-                        <span class="message-time">${formatTime(message.sentDate)}</span>
-                        ${statusHtml}
+                return `
+                    <div class="message-bubble ${message.isFromCurrentUser ? 'sent' : 'received'}" data-message-id="${message.messageId}">
+                        ${subjectHtml}
+                        <div class="message-content">${escapeHtml(message.content)}</div>
+                        <div class="message-meta">
+                            <span class="message-time">${formatTime(message.sentDate)}</span>
+                            ${statusHtml}
+                        </div>
                     </div>
-                </div>
-            `;
-        }
+                `;
+            }).join('');
 
-        /**
-         * Create HTML for complete chat area
-         */
-        function createChatAreaHtml(conversation, messagesHtml) {
-            return `
+            chatArea.innerHTML = `
                 <div class="chat-header">
-                    <div style="display: flex; align-items: center; width: 100%;">
-                        <button class="mobile-back-btn" onclick="goBackToContactsList()">
+                    <div class="chat-user-info">
+                        <button class="mobile-back-btn" onclick="showContactsList()" style="display: none;">
                             <i class="fas fa-arrow-left"></i>
-                            <span>Back</span>
+                            Back
                         </button>
-                        <div class="chat-user-info" style="flex: 1;">
-                            <div class="chat-avatar" style="position: relative;">
-                                ${conversation.userInitials}
-                                ${conversation.isOnline ? '<div class="online-indicator online"></div>' : ''}
-                            </div>
-                            <div class="chat-user-details">
-                                <h4>${escapeHtml(conversation.fullName)}</h4>
-                                <div class="chat-user-status ${conversation.isOnline ? 'status-online' : 'status-offline'}" id="userStatus-${conversation.userId}">
-                                    ${conversation.isOnline
-                                      ? '<i class="fas fa-circle" style="font-size: 0.5rem; margin-right: 0.25rem;"></i><span>Online</span>'
-                                      : `<span>Last seen ${conversation.lastSeenFormatted || 'Unknown'}</span>`}
-                                </div>
+                        <div class="chat-avatar">
+                            ${conversation.userInitials}
+                            ${conversation.isOnline ? '<div class="online-indicator"></div>' : ''}
+                        </div>
+                        <div class="chat-user-details">
+                            <h4>${escapeHtml(conversation.fullName)}</h4>
+                            <div class="chat-user-status ${conversation.isOnline ? 'status-online' : ''}">
+                                ${conversation.isOnline ?
+                                    '<i class="fas fa-circle" style="font-size: 0.5rem; margin-right: 0.25rem;"></i><span>Online</span>' :
+                                    `<span>Last seen ${conversation.lastSeenFormatted || 'Unknown'}</span>`}
                             </div>
                         </div>
-                        <div class="chat-actions">
-                            <button class="action-btn" title="Search Messages" onclick="toggleMessageSearch()">
-                                <i class="fas fa-search"></i>
-                            </button>
-                            <button class="action-btn" title="More Options">
-                                <i class="fas fa-ellipsis-v"></i>
-                            </button>
-                        </div>
+                    </div>
+                    <div class="chat-actions">
+                        <button class="action-btn" title="Search Messages">
+                            <i class="fas fa-search"></i>
+                        </button>
+                        <button class="action-btn" title="More Options">
+                            <i class="fas fa-ellipsis-v"></i>
+                        </button>
                     </div>
                 </div>
 
                 <div class="messages-container-inner" id="messagesContainer">
                     ${messagesHtml}
-                    <div class="typing-indicator" id="typingIndicator">
-                        <div class="typing-dots">
-                            <div class="typing-dot"></div>
-                            <div class="typing-dot"></div>
-                            <div class="typing-dot"></div>
-                        </div>
-                        <span style="margin-left: 0.5rem; font-size: 0.8rem; color: #64748b;">typing...</span>
-                    </div>
                 </div>
 
                 <div class="message-input-area">
                     <div class="message-form">
                         <div class="message-input-container">
-                            <textarea
-                                id="messageInput"
-                                class="message-input"
-                                placeholder="Type your message..."
-                                rows="1"></textarea>
+                            <textarea id="messageInput" class="message-input" placeholder="Type your message..." rows="1"></textarea>
                         </div>
                         <button class="send-btn" id="sendBtn" onclick="sendMessage()" disabled>
                             <i class="fas fa-paper-plane"></i>
@@ -2536,65 +1661,28 @@
                     </div>
                 </div>
             `;
+
+            // Re-initialize message input
+            setupMessageInput();
+            setupMobileView();
         }
 
-        /**
-         * Create HTML for empty state
-         */
-        function createEmptyStateHtml() {
-            return `
-                <div class="empty-state">
-                    <i class="fas fa-comments empty-state-icon"></i>
-                    <h3>Select a conversation</h3>
-                    <p>Choose a contact from the sidebar to start messaging</p>
-                    <button class="btn btn-primary" onclick="openNewMessageModal()" style="margin-top: 1rem;">
-                        <i class="fas fa-plus"></i>
-                        Start New Conversation
-                    </button>
-                </div>
-            `;
-        }
-
-        // ========================================
-        // MESSAGE SENDING
-        // ========================================
-
-        /**
-         * Send a quick message in the current conversation
-         */
+        // Send Message
         async function sendMessage() {
             const messageInput = document.getElementById('messageInput');
             const sendBtn = document.getElementById('sendBtn');
 
-            if (!messageInput || !currentSelectedUserId || !messageInput.value.trim()) {
-                console.log('⚠️ Cannot send message: missing requirements');
+            if (!messageInput || !currentSelectedUserId || messageInput.value.trim() === '') {
                 return;
             }
 
             const messageContent = messageInput.value.trim();
 
-            // Optimistic UI update
-            const tempMessage = {
-                messageId: 'temp-' + Date.now(),
-                content: messageContent,
-                sentDate: new Date().toISOString(),
-                isFromCurrentUser: true,
-                isRead: false,
-                subject: '',
-                messageType: 'General'
-            };
-
             try {
-                // Update UI immediately
                 sendBtn.disabled = true;
                 sendBtn.innerHTML = '<div class="loading-spinner"></div>';
-                messageInput.value = '';
-                autoResizeTextarea(messageInput);
 
-                addMessageToUI(tempMessage);
-                scrollToBottom();
-
-                const response = await fetch('/Admin/SendQuickMessage', {
+                const response = await fetch('/Employee/SendQuickMessage', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -2603,277 +1691,111 @@
                     body: JSON.stringify({
                         ToUserId: currentSelectedUserId,
                         Content: messageContent,
-                        Subject: '',
+                        Subject: 'Quick Message',
                         MessageType: 'General'
                     })
                 });
 
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
                 const result = await response.json();
 
                 if (result.success) {
-                    // Update temporary message with real data
-                    updateTemporaryMessage(tempMessage.messageId, {
-                        messageId: result.messageId,
-                        sentDate: result.sentDate || tempMessage.sentDate
+                    messageInput.value = '';
+                    autoResizeTextarea(messageInput);
+
+                    // Add message to UI immediately
+                    addMessageToUI({
+                        messageId: result.messageId || Date.now(),
+                        content: messageContent,
+                        sentDate: new Date().toISOString(),
+                        isFromCurrentUser: true,
+                        isRead: false
                     });
 
-                    updateContactsList();
-                    console.log('✅ Message sent successfully');
+                    scrollToBottom();
+                    showToast('Message sent!', 'success');
                 } else {
-                    removeTemporaryMessage(tempMessage.messageId);
                     showToast(result.message || 'Error sending message', 'error');
                 }
             } catch (error) {
-                console.error('❌ Error sending message:', error);
-                removeTemporaryMessage(tempMessage.messageId);
-                messageInput.value = messageContent; // Restore message
-                showToast('Error sending message. Please try again.', 'error');
+                console.error('Error sending message:', error);
+                showToast('Error sending message', 'error');
             } finally {
                 sendBtn.disabled = false;
                 sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i>';
             }
         }
 
-        /**
-         * Add message to UI immediately for optimistic updates
-         */
+        // Add Message to UI
         function addMessageToUI(message) {
             const messagesContainer = document.getElementById('messagesContainer');
-            const typingIndicator = document.getElementById('typingIndicator');
-
             if (!messagesContainer) return;
 
-            const messageHtml = createMessageHtml(message);
+            const subjectHtml = message.subject ?
+                `<div style="font-weight: 600; margin-bottom: 0.5rem; font-size: 0.9rem; opacity: 0.8;">${escapeHtml(message.subject)}</div>` : '';
 
-            if (typingIndicator) {
-                typingIndicator.insertAdjacentHTML('beforebegin', messageHtml);
-            } else {
-                messagesContainer.insertAdjacentHTML('beforeend', messageHtml);
-            }
+            const statusHtml = message.isFromCurrentUser ?
+                `<span class="message-status">
+                    ${message.isRead ?
+                        '<i class="fas fa-check-double" style="color: #10b981;" title="Read"></i>' :
+                        '<i class="fas fa-check" title="Sent"></i>'}
+                </span>` : '';
 
-            // Add animation
-            const newMessage = messagesContainer.querySelector(`[data-message-id="${message.messageId}"]`);
-            if (newMessage) {
-                newMessage.style.opacity = '0';
-                newMessage.style.transform = 'translateY(20px)';
-                setTimeout(() => {
-                    newMessage.style.transition = 'all 0.3s ease';
-                    newMessage.style.opacity = '1';
-                    newMessage.style.transform = 'translateY(0)';
-                }, 10);
-            }
+            const messageHtml = `
+                <div class="message-bubble ${message.isFromCurrentUser ? 'sent' : 'received'}" data-message-id="${message.messageId}">
+                    ${subjectHtml}
+                    <div class="message-content">${escapeHtml(message.content)}</div>
+                    <div class="message-meta">
+                        <span class="message-time">${formatTime(message.sentDate)}</span>
+                        ${statusHtml}
+                    </div>
+                </div>
+            `;
+
+            messagesContainer.insertAdjacentHTML('beforeend', messageHtml);
         }
 
-        /**
-         * Update temporary message with real data
-         */
-        function updateTemporaryMessage(tempId, realData) {
-            const messageElement = document.querySelector(`[data-message-id="${tempId}"]`);
-            if (messageElement && realData.messageId) {
-                messageElement.setAttribute('data-message-id', realData.messageId);
-                messageElement.classList.add('sent-success');
-            }
+        // New Message Modal
+        function openNewMessageModal() {
+            const modal = document.getElementById('newMessageModal');
+            modal.style.display = 'block';
+
+            // Reset form
+            document.getElementById('newMessageForm').reset();
+
+            // Initialize Select2
+            setTimeout(initializeSelect2, 100);
         }
 
-        /**
-         * Remove temporary message (on error)
-         */
-        function removeTemporaryMessage(tempId) {
-            const messageElement = document.querySelector(`[data-message-id="${tempId}"]`);
-            if (messageElement) {
-                messageElement.style.opacity = '0';
-                messageElement.style.transform = 'translateX(-20px)';
-                setTimeout(() => {
-                    messageElement.remove();
-                }, 300);
-            }
+        function closeNewMessageModal() {
+            const modal = document.getElementById('newMessageModal');
+            modal.style.display = 'none';
         }
 
-        // ========================================
-        // MOBILE NAVIGATION
-        // ========================================
-
-        /**
-         * Setup mobile navigation behavior
-         */
-        function setupMobileNavigation() {
-            const isMobile = window.innerWidth <= 768;
-            console.log(`📱 Mobile navigation setup: ${isMobile ? 'mobile' : 'desktop'} mode`);
-
-            if (isMobile) {
-                if (currentSelectedUserId > 0) {
-                    showChatArea();
-                } else {
-                    showContactsList();
-                }
-            } else {
-                // Desktop: ensure everything is visible
-                const chatArea = document.getElementById('chatArea');
-                const contactsSidebar = document.getElementById('contactsSidebar');
-
-                if (contactsSidebar) contactsSidebar.classList.remove('hidden');
-                if (chatArea) chatArea.classList.remove('active');
-            }
-        }
-
-        /**
-         * Show chat area (mobile)
-         */
-        function showChatArea() {
-            if (window.innerWidth <= 768) {
-                const chatArea = document.getElementById('chatArea');
-                const contactsSidebar = document.getElementById('contactsSidebar');
-
-                if (contactsSidebar) contactsSidebar.classList.add('hidden');
-                if (chatArea) chatArea.classList.add('active');
-
-                console.log('📱 Chat area shown');
-            }
-        }
-
-        /**
-         * Show contacts list (mobile)
-         */
-        function showContactsList() {
-            if (window.innerWidth <= 768) {
-                const chatArea = document.getElementById('chatArea');
-                const contactsSidebar = document.getElementById('contactsSidebar');
-
-                if (contactsSidebar) contactsSidebar.classList.remove('hidden');
-                if (chatArea) chatArea.classList.remove('active');
-
-                // Clear current selection
-                currentSelectedUserId = 0;
-                document.querySelectorAll('.contact-item').forEach(item => {
-                    item.classList.remove('active');
-                });
-
-                console.log('📱 Contacts list shown');
-            }
-        }
-
-        /**
-         * Go back to contacts list from chat
-         */
-        function goBackToContactsList() {
-            console.log('🔙 Going back to contacts list');
-
-            // Haptic feedback
-            if (navigator.vibrate) {
-                navigator.vibrate(50);
-            }
-
-            // Clear loading states
-            isLoadingConversation = false;
-
-            // Stop polling
-            clearInterval(messagePollingInterval);
-            clearInterval(onlineStatusInterval);
-
-            showContactsList();
-
-            // Update URL
-            if (window.innerWidth <= 768) {
-                history.pushState({ showContacts: true }, '', '/Admin/Messages');
-            }
-        }
-
-        /**
-         * Add mobile touch handlers for better UX
-         */
-        function addMobileTouchHandlers() {
-            if (window.innerWidth <= 768) {
-                // Touch feedback for contact items
-                const contactItems = document.querySelectorAll('.contact-item');
-                contactItems.forEach(addTouchFeedback);
-
-                // Touch feedback for buttons
-                const buttons = document.querySelectorAll('.mobile-back-btn, .send-btn, .compose-btn');
-                buttons.forEach(addTouchFeedback);
-
-                // Add swipe gestures
-                addSwipeGestures();
-
-                console.log('👆 Mobile touch handlers added');
-            }
-        }
-
-        /**
-         * Add touch feedback to element
-         */
-        function addTouchFeedback(element) {
-            element.addEventListener('touchstart', function() {
-                this.style.transform = 'scale(0.96)';
-                this.style.transition = 'transform 0.1s ease';
-            }, { passive: true });
-
-            element.addEventListener('touchend', function() {
-                this.style.transform = 'scale(1)';
-            }, { passive: true });
-
-            element.addEventListener('touchcancel', function() {
-                this.style.transform = 'scale(1)';
-            }, { passive: true });
-        }
-
-        /**
-         * Add swipe gesture support
-         */
-        function addSwipeGestures() {
-            const chatArea = document.getElementById('chatArea');
-            if (!chatArea) return;
-
-            let startX = 0, startY = 0, endX = 0, endY = 0;
-
-            chatArea.addEventListener('touchstart', function(e) {
-                startX = e.touches[0].clientX;
-                startY = e.touches[0].clientY;
-            }, { passive: true });
-
-            chatArea.addEventListener('touchend', function(e) {
-                endX = e.changedTouches[0].clientX;
-                endY = e.changedTouches[0].clientY;
-
-                const deltaX = endX - startX;
-                const deltaY = endY - startY;
-                const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-
-                // Right swipe to go back
-                if (Math.abs(deltaX) > Math.abs(deltaY) &&
-                    deltaX > 50 &&
-                    distance > 50 &&
-                    window.innerWidth <= 768 &&
-                    chatArea.classList.contains('active')) {
-
-                    goBackToContactsList();
-
-                    if (navigator.vibrate) {
-                        navigator.vibrate(50);
-                    }
-                }
-            }, { passive: true });
-        }
-
-        // ========================================
-        // SELECT2 INITIALIZATION
-        // ========================================
-
-        /**
-         * Initialize Select2 for user selection in new message modal
-         */
+        // Fixed Select2 Initialization with Proper User Loading
         function initializeSelect2() {
-            const selectElement = document.getElementById('recipientSelect');
-            if (!selectElement) {
-                console.warn('⚠️ Recipient select element not found');
+            const recipientSelect = document.getElementById('recipientSelect');
+            if (!recipientSelect) {
+                console.error('Recipient select element not found');
                 return;
             }
 
+            // Check if there are options available
+            const optionCount = recipientSelect.options.length - 1; // Subtract 1 for placeholder
+            console.log('Available users for messaging:', optionCount);
+
+            if (optionCount === 0) {
+                console.warn('No users available for messaging');
+                recipientSelect.innerHTML = '<option value="">No users available</option>';
+                return;
+            }
+
+            // Destroy existing Select2 if it exists
+            if (recipientSelect.select2) {
+                $(recipientSelect).select2('destroy');
+            }
+
             try {
-                $(selectElement).select2({
+                $(recipientSelect).select2({
                     placeholder: 'Search and select recipient...',
                     allowClear: true,
                     width: '100%',
@@ -2881,646 +1803,354 @@
                     templateSelection: formatUserSelection,
                     matcher: customUserMatcher,
                     dropdownParent: $('#newMessageModal'),
+                    minimumInputLength: 0,
                     language: {
-                        noResults: () => "No users found",
-                        searching: () => "Searching users...",
-                        inputTooShort: () => "Type to search users"
+                        noResults: function() {
+                            return "No users found";
+                        },
+                        searching: function() {
+                            return "Searching users...";
+                        },
+                        inputTooShort: function() {
+                            return "Start typing to search users...";
+                        }
                     },
-                    minimumInputLength: 0
+                    escapeMarkup: function(markup) {
+                        return markup; // Allow HTML in results
+                    }
                 });
 
-                console.log('🎯 Select2 initialized');
+                console.log('Select2 initialized successfully with', optionCount, 'users');
             } catch (error) {
-                console.error('❌ Error initializing Select2:', error);
+                console.error('Error initializing Select2:', error);
             }
         }
 
-        /**
-         * Format user option for Select2
-         */
+        // Enhanced User Option Formatter
         function formatUserOption(user) {
-            if (!user.id) return user.text;
+            if (!user.id || user.id === '') {
+                return user.text;
+            }
 
             const userElement = user.element;
-            const initials = userElement?.dataset?.initials || user.text.substring(0, 2).toUpperCase();
-            const email = userElement?.dataset?.email || '';
-            const userType = userElement?.dataset?.usertype || '';
+            if (!userElement) {
+                return user.text;
+            }
 
-            const $div = $('<div class="user-option">').append([
-                $('<div class="user-option-avatar">').text(initials),
-                $('<div class="user-option-info">').append([
-                    $('<div class="user-option-name">').text(user.text.split(' (')[0]),
-                    $('<div class="user-option-details">').text(`${userType} • ${email}`)
-                ])
-            ]);
+            const initials = userElement.dataset.initials || user.text.substring(0, 2).toUpperCase();
+            const email = userElement.dataset.email || '';
+            const userType = userElement.dataset.usertype || '';
+            const fullName = user.text.split(' (')[0];
 
-            return $div;
+            return $(`
+                <div class="user-option">
+                    <div class="user-option-avatar">${initials}</div>
+                    <div class="user-option-info">
+                        <div class="user-option-name">${fullName}</div>
+                        <div class="user-option-details">${userType} • ${email}</div>
+                    </div>
+                </div>
+            `);
         }
 
-        /**
-         * Format user selection for Select2
-         */
+        // Enhanced User Selection Formatter
         function formatUserSelection(user) {
-            return user.id ? user.text.split(' (')[0] : user.text;
+            if (!user.id) return user.text;
+            return user.text.split(' (')[0]; // Show only the name
         }
 
-        /**
-         * Custom matcher for Select2 search
-         */
+        // Enhanced Custom Matcher
         function customUserMatcher(params, data) {
-            if (!params.term?.trim()) return data;
+            // If there are no search terms, return all data
+            if ($.trim(params.term) === '') {
+                return data;
+            }
+
+            // Skip the placeholder option
+            if (!data.id || data.id === '') {
+                return null;
+            }
 
             const searchTerm = params.term.toLowerCase();
             const optionElement = data.element;
+
+            if (!optionElement) {
+                return null;
+            }
+
             const name = data.text.toLowerCase();
-            const email = optionElement?.dataset?.email?.toLowerCase() || '';
-            const userType = optionElement?.dataset?.usertype?.toLowerCase() || '';
+            const email = (optionElement.dataset.email || '').toLowerCase();
+            const userType = (optionElement.dataset.usertype || '').toLowerCase();
 
-            return (name.includes(searchTerm) ||
-                    email.includes(searchTerm) ||
-                    userType.includes(searchTerm)) ? data : null;
+            // Search in name, email, and user type
+            if (name.includes(searchTerm) ||
+                email.includes(searchTerm) ||
+                userType.includes(searchTerm)) {
+                return data;
+            }
+
+            return null;
         }
 
-        // ========================================
-        // MODAL MANAGEMENT
-        // ========================================
-
-        /**
-         * Open new message modal
-         */
-        function openNewMessageModal() {
-            console.log('📬 Opening new message modal');
-
-            const modal = document.getElementById('newMessageModal');
+        // Handle new message form submission
+        document.addEventListener('DOMContentLoaded', function() {
             const form = document.getElementById('newMessageForm');
+            if (form) {
+                form.addEventListener('submit', async function(e) {
+                    e.preventDefault();
 
-            if (!modal) {
-                console.error('❌ Modal not found');
-                showToast('Error opening message modal', 'error');
-                return;
+                    const formData = new FormData(this);
+                    const sendBtn = document.getElementById('sendModalBtn');
+
+                    const messageData = {
+                        ToUserId: parseInt(formData.get('ToUserId')),
+                        Subject: formData.get('Subject'),
+                        Content: formData.get('Content'),
+                        MessageType: formData.get('MessageType')
+                    };
+
+                    if (!messageData.ToUserId || !messageData.Subject || !messageData.Content) {
+                        showToast('Please fill in all required fields', 'error');
+                        return;
+                    }
+
+                    try {
+                        sendBtn.disabled = true;
+                        sendBtn.innerHTML = '<div class="loading-spinner"></div> Sending...';
+
+                        const response = await fetch('/Employee/SendQuickMessage', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'RequestVerificationToken': getAntiForgeryToken()
+                            },
+                            body: JSON.stringify(messageData)
+                        });
+
+                        const result = await response.json();
+
+                        if (result.success) {
+                            showToast('Message sent successfully!', 'success');
+                            closeNewMessageModal();
+
+                            // If sent to current conversation, add to UI
+                            if (messageData.ToUserId === currentSelectedUserId) {
+                                addMessageToUI({
+                                    messageId: result.messageId || Date.now(),
+                                    content: messageData.Content,
+                                    subject: messageData.Subject,
+                                    sentDate: new Date().toISOString(),
+                                    isFromCurrentUser: true,
+                                    isRead: false
+                                });
+                                scrollToBottom();
+                            }
+
+                            refreshConversationsList();
+                        } else {
+                            showToast(result.message || 'Error sending message', 'error');
+                        }
+                    } catch (error) {
+                        console.error('Error sending message:', error);
+                        showToast('Error sending message', 'error');
+                    } finally {
+                        sendBtn.disabled = false;
+                        sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Send Message';
+                    }
+                });
+            }
+        });
+
+        // Mobile View Setup
+        function setupMobileView() {
+            const isMobile = window.innerWidth <= 768;
+            const backButtons = document.querySelectorAll('.mobile-back-btn');
+            const composeBtn = document.querySelector('.compose-btn');
+
+            backButtons.forEach(btn => {
+                btn.style.display = isMobile ? 'flex' : 'none';
+            });
+
+            if (composeBtn) {
+                composeBtn.style.display = isMobile ? 'flex' : 'none';
+            }
+        }
+
+        function showChatArea() {
+            if (window.innerWidth <= 768) {
+                const chatArea = document.getElementById('chatArea');
+                const contactsSidebar = document.getElementById('contactsSidebar');
+
+                if (contactsSidebar) contactsSidebar.classList.add('hidden');
+                if (chatArea) chatArea.classList.add('active');
+            }
+        }
+
+        function showContactsList() {
+            if (window.innerWidth <= 768) {
+                const chatArea = document.getElementById('chatArea');
+                const contactsSidebar = document.getElementById('contactsSidebar');
+
+                if (contactsSidebar) contactsSidebar.classList.remove('hidden');
+                if (chatArea) chatArea.classList.remove('active');
+            }
+        }
+
+        // Message Polling for Real-time Updates
+        function startMessagePolling() {
+            if (messagePollingInterval) {
+                clearInterval(messagePollingInterval);
             }
 
-            try {
-                // Reset form
-                if (form) form.reset();
+            messagePollingInterval = setInterval(async () => {
+                if (currentSelectedUserId > 0 && !isLoadingConversation) {
+                    try {
+                        const response = await fetch(`/Employee/CheckNewMessages?userId=${currentSelectedUserId}&lastCheck=${lastMessageCheck.toISOString()}`);
+                        if (response.ok) {
+                            const data = await response.json();
+                            if (data.success && data.newMessages && data.newMessages.length > 0) {
+                                data.newMessages.forEach(message => {
+                                    if ((message.fromUserId === currentSelectedUserId && message.toUserId === currentUserId) ||
+                                        (message.fromUserId === currentUserId && message.toUserId === currentSelectedUserId)) {
+                                        addMessageToUI({
+                                            messageId: message.messageId,
+                                            content: message.content,
+                                            subject: message.subject,
+                                            sentDate: message.sentDate,
+                                            isFromCurrentUser: message.fromUserId === currentUserId,
+                                            isRead: message.isRead
+                                        });
+                                        scrollToBottom();
 
-                // Reset Select2
-                const recipientSelect = $('#recipientSelect');
-                if (recipientSelect.length) {
-                    recipientSelect.val('').trigger('change');
+                                        // Show notification for received messages
+                                        if (message.fromUserId !== currentUserId) {
+                                            showToast(`New message from ${message.fromUserName}`, 'info');
+                                        }
+                                    }
+                                });
+                                lastMessageCheck = new Date();
+                                refreshConversationsList();
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Error polling for new messages:', error);
+                    }
                 }
-
-                // Show modal
-                modal.style.display = 'block';
-                document.body.style.overflow = 'hidden';
-
-                // Focus first input
-                setTimeout(() => {
-                    const firstInput = modal.querySelector('input, select, textarea');
-                    if (firstInput) firstInput.focus();
-                }, 100);
-
-                console.log('✅ Modal opened');
-            } catch (error) {
-                console.error('❌ Error opening modal:', error);
-                showToast('Error opening message modal', 'error');
-            }
+            }, 3000); // Poll every 3 seconds
         }
 
-        /**
-         * Close new message modal
-         */
-        function closeNewMessageModal() {
-            console.log('📪 Closing new message modal');
-
-            const modal = document.getElementById('newMessageModal');
-            const form = document.getElementById('newMessageForm');
-
-            if (modal) {
-                modal.style.display = 'none';
-                document.body.style.overflow = '';
-
-                // Reset form
-                if (form) form.reset();
-
-                // Reset Select2
-                const recipientSelect = $('#recipientSelect');
-                if (recipientSelect.length) {
-                    recipientSelect.val('').trigger('change');
-                }
-
-                console.log('✅ Modal closed');
-            }
-        }
-
-        // ========================================
-        // FORM HANDLERS
-        // ========================================
-
-        /**
-         * Setup form submission handlers
-         */
-        function setupFormHandlers() {
-            const newMessageForm = document.getElementById('newMessageForm');
-
-            if (newMessageForm) {
-                newMessageForm.removeEventListener('submit', handleFormSubmit);
-                newMessageForm.addEventListener('submit', handleFormSubmit);
-                console.log('📝 Form handlers setup');
-            }
-        }
-
-        /**
-         * Handle new message form submission
-         */
-        async function handleFormSubmit(event) {
-            event.preventDefault();
-            console.log('📤 Form submitted');
-
-            const formData = new FormData(event.target);
-            const sendBtn = document.getElementById('sendModalBtn');
-
-            const messageData = {
-                ToUserId: parseInt(formData.get('ToUserId')),
-                Subject: formData.get('Subject'),
-                Content: formData.get('Content'),
-                MessageType: formData.get('MessageType')
-            };
-
-            // Validation
-            if (!messageData.ToUserId || !messageData.Subject || !messageData.Content) {
-                showToast('Please fill in all required fields', 'error');
-                return;
-            }
-
+        // Mark Messages as Read
+        async function markMessagesAsRead(userId) {
             try {
-                sendBtn.disabled = true;
-                sendBtn.innerHTML = '<div class="loading-spinner"></div> Sending...';
-
-                const response = await fetch('/Admin/SendMessage', {
+                await fetch('/Employee/MarkMessagesAsRead', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'RequestVerificationToken': getAntiForgeryToken()
                     },
-                    body: JSON.stringify(messageData)
+                    body: JSON.stringify({ userId: userId })
                 });
+                updateUnreadCount();
+            } catch (error) {
+                console.error('Error marking messages as read:', error);
+            }
+        }
 
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
+        // Update Unread Count
+        async function updateUnreadCount() {
+            try {
+                const response = await fetch('/Employee/GetUnreadCount');
+                const data = await response.json();
 
-                const result = await response.json();
+                if (data.success) {
+                    const badge = document.getElementById('notificationBadge');
+                    const sidebarBadge = document.getElementById('unreadMessagesCount');
 
-                if (result.success) {
-                    showToast('Message sent successfully!', 'success');
-                    closeNewMessageModal();
-                    updateContactsList();
-
-                    // Refresh conversation if sending to current user
-                    if (messageData.ToUserId === currentSelectedUserId) {
-                        setTimeout(() => loadConversationMessages(currentSelectedUserId), 1000);
+                    if (data.unreadCount > 0) {
+                        if (badge) {
+                            badge.textContent = data.unreadCount;
+                            badge.style.display = 'flex';
+                        }
+                        if (sidebarBadge) {
+                            sidebarBadge.textContent = data.unreadCount;
+                            sidebarBadge.style.display = 'flex';
+                        }
+                    } else {
+                        if (badge) badge.style.display = 'none';
+                        if (sidebarBadge) sidebarBadge.style.display = 'none';
                     }
-                } else {
-                    showToast(result.message || 'Error sending message', 'error');
                 }
             } catch (error) {
-                console.error('❌ Error sending message:', error);
-                showToast('Error sending message. Please try again.', 'error');
-            } finally {
-                sendBtn.disabled = false;
-                sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Send Message';
+                console.error('Error updating unread count:', error);
             }
         }
 
-        // ========================================
-        // POLLING AND REAL-TIME UPDATES
-        // ========================================
-
-        /**
-         * Start polling for new messages
-         */
-        function startMessagePolling() {
-            clearInterval(messagePollingInterval);
-
-            messagePollingInterval = setInterval(async function() {
-                if (currentSelectedUserId > 0 && !isLoadingConversation) {
-                    try {
-                        const response = await fetch(`/Admin/GetNewMessages?lastCheck=${lastMessageCheck.toISOString()}`);
-
-                        if (response.ok) {
-                            const data = await response.json();
-
-                            if (data.success && data.newMessages?.length > 0) {
-                                handleNewMessages(data.newMessages);
-                                lastMessageCheck = new Date();
-                            }
-                        }
-                    } catch (error) {
-                        console.error('❌ Error polling messages:', error);
-                    }
-                }
-            }, 5000);
-
-            console.log('🔄 Message polling started');
-        }
-
-        /**
-         * Start polling for online status
-         */
-        function startOnlineStatusPolling() {
-            clearInterval(onlineStatusInterval);
-
-            onlineStatusInterval = setInterval(async function() {
-                if (currentSelectedUserId > 0 && !isLoadingConversation) {
-                    try {
-                        const response = await fetch(`/Admin/GetUserOnlineStatus?userId=${currentSelectedUserId}`);
-
-                        if (response.ok) {
-                            const statusData = await response.json();
-                            updateUserOnlineStatus(currentSelectedUserId, statusData.isOnline, statusData.lastSeen);
-                        }
-                    } catch (error) {
-                        console.error('❌ Error checking online status:', error);
-                    }
-                }
-            }, 30000);
-
-            console.log('🟢 Online status polling started');
-        }
-
-        /**
-         * Handle new incoming messages
-         */
-        function handleNewMessages(newMessages) {
-            newMessages.forEach(message => {
-                // Only show messages for current conversation
-                if ((message.fromUserId === currentSelectedUserId && message.toUserId === currentUserId) ||
-                    (message.fromUserId === currentUserId && message.toUserId === currentSelectedUserId)) {
-
-                    addMessageToUI({
-                        messageId: message.messageId,
-                        content: message.content,
-                        sentDate: message.sentDate,
-                        isFromCurrentUser: message.fromUserId === currentUserId,
-                        isRead: message.isRead,
-                        subject: message.subject,
-                        messageType: message.messageType,
-                        readDate: message.readDate
-                    });
-
-                    scrollToBottom();
-
-                    // Show notification for incoming messages
-                    if (message.fromUserId === currentSelectedUserId) {
-                        showNotification('New message received', message.content.substring(0, 50));
-                    }
-                }
-            });
-
-            updateContactsList();
-        }
-
-        /**
-         * Update user online status in UI
-         */
-        function updateUserOnlineStatus(userId, isOnline, lastSeen) {
-            const statusElement = document.getElementById(`userStatus-${userId}`);
-            const avatarElement = statusElement?.closest('.chat-user-info')?.querySelector('.chat-avatar');
-
-            if (statusElement) {
-                statusElement.className = `chat-user-status ${isOnline ? 'status-online' : 'status-offline'}`;
-
-                if (isOnline) {
-                    statusElement.innerHTML = '<i class="fas fa-circle" style="font-size: 0.5rem; margin-right: 0.25rem;"></i><span>Online</span>';
-
-                    if (avatarElement && !avatarElement.querySelector('.online-indicator')) {
-                        const indicator = document.createElement('div');
-                        indicator.className = 'online-indicator online';
-                        avatarElement.appendChild(indicator);
-                    }
-                } else {
-                    const lastSeenFormatted = formatLastSeen(lastSeen);
-                    statusElement.innerHTML = `<span>Last seen ${lastSeenFormatted}</span>`;
-
-                    const indicator = avatarElement?.querySelector('.online-indicator');
-                    if (indicator) indicator.remove();
-                }
-            }
-
-            // Update in contacts list
-            const contactItem = document.querySelector(`[data-user-id="${userId}"]`);
-            if (contactItem) {
-                const indicator = contactItem.querySelector('.online-indicator');
-                if (indicator) {
-                    indicator.className = `online-indicator ${isOnline ? 'online' : 'offline'}`;
-                }
-            }
-        }
-
-        /**
-         * Update contacts list
-         */
-        async function updateContactsList() {
+        // Refresh Conversations List
+        async function refreshConversationsList() {
             try {
-                const response = await fetch('/Admin/GetConversationsList');
-
+                const response = await fetch('/Employee/GetConversationsList');
                 if (response.ok) {
                     const data = await response.json();
-
-                    if (data.success) {
-                        const previousSelection = currentSelectedUserId;
-                        allConversations = data.conversations;
-
-                        // Only refresh if no conversation is selected
-                        if (!previousSelection || previousSelection <= 0) {
-                            refreshContactsList();
-                        } else {
-                            updateContactsDisplay();
-                        }
+                    if (data.success && data.conversations) {
+                        updateContactsList(data.conversations);
                     }
                 }
             } catch (error) {
-                console.error('❌ Error updating contacts list:', error);
+                console.error('Error refreshing conversations:', error);
             }
         }
 
-        /**
-         * Refresh contacts list HTML
-         */
-        function refreshContactsList() {
+        function updateContactsList(conversations) {
             const contactsList = document.getElementById('contactsList');
+            if (!contactsList) return;
 
-            if (!contactsList || !allConversations) return;
-
-            const contactsHtml = allConversations.map(conversation => `
-                <div class="contact-item ${conversation.userId === currentSelectedUserId ? 'active' : ''}"
-                     data-user-id="${conversation.userId}"
-                     data-user-name="${escapeHtml(conversation.fullName)}"
-                     data-user-initials="${conversation.userInitials}"
-                     data-is-online="${conversation.isOnline}">
+            const conversationsHtml = conversations.map(conv => `
+                <div class="contact-item ${conv.userId === currentSelectedUserId ? 'active' : ''}"
+                     data-user-id="${conv.userId}"
+                     data-user-name="${conv.fullName}">
                     <div class="contact-avatar">
-                        ${conversation.userInitials}
-                        <div class="online-indicator ${conversation.isOnline ? 'online' : 'offline'}"></div>
+                        ${conv.userInitials}
+                        ${conv.isOnline ? '<div class="online-indicator"></div>' : ''}
                     </div>
                     <div class="contact-info">
-                        <div class="contact-name">${escapeHtml(conversation.fullName)}</div>
-                        <div class="contact-last-message">${escapeHtml(conversation.lastMessage || 'No messages yet')}</div>
-                        ${conversation.lastSeenFormatted ? `<div class="last-seen">${conversation.lastSeenFormatted}</div>` : ''}
+                        <div class="contact-name">${escapeHtml(conv.fullName)}</div>
+                        <div class="contact-last-message">${escapeHtml(conv.lastMessage || 'No messages yet')}</div>
                     </div>
                     <div class="contact-meta">
                         <div style="font-size: 0.7rem; margin-bottom: 0.25rem;">
-                            ${conversation.lastMessageTime || ''}
+                            ${conv.lastMessageTime || ''}
                         </div>
-                        ${conversation.unreadCount > 0 ? `<div class="unread-badge">${conversation.unreadCount}</div>` : ''}
+                        ${conv.unreadCount > 0 ? `<div class="unread-badge">${conv.unreadCount}</div>` : ''}
                     </div>
                 </div>
             `).join('');
 
-            contactsList.innerHTML = contactsHtml;
-
-            // Re-setup handlers
-            setupConversationClickHandlers();
-            addMobileTouchHandlers();
+            contactsList.innerHTML = conversationsHtml;
         }
 
-        /**
-         * Update contacts display without full refresh
-         */
-        function updateContactsDisplay() {
-            const contactItems = document.querySelectorAll('#contactsList .contact-item');
-
-            contactItems.forEach(item => {
-                const userId = parseInt(item.dataset.userId);
-                const conversation = allConversations.find(c => c.userId === userId);
-
-                if (conversation) {
-                    // Update last message
-                    const lastMessageElement = item.querySelector('.contact-last-message');
-                    if (lastMessageElement) {
-                        lastMessageElement.textContent = conversation.lastMessage || 'No messages yet';
-                    }
-
-                    // Update unread count
-                    const existingBadge = item.querySelector('.unread-badge');
-                    const metaContainer = item.querySelector('.contact-meta');
-
-                    if (conversation.unreadCount > 0) {
-                        if (!existingBadge && metaContainer) {
-                            const badge = document.createElement('div');
-                            badge.className = 'unread-badge';
-                            badge.textContent = conversation.unreadCount;
-                            metaContainer.appendChild(badge);
-                        } else if (existingBadge) {
-                            existingBadge.textContent = conversation.unreadCount;
-                        }
-                    } else if (existingBadge) {
-                        existingBadge.remove();
-                    }
-
-                    // Update time
-                    const timeElement = metaContainer?.querySelector('div[style*="font-size: 0.7rem"]');
-                    if (timeElement) {
-                        timeElement.textContent = conversation.lastMessageTime || '';
-                    }
-
-                    // Update online status
-                    const indicator = item.querySelector('.online-indicator');
-                    if (indicator) {
-                        indicator.className = `online-indicator ${conversation.isOnline ? 'online' : 'offline'}`;
-                    }
-                }
-            });
-        }
-
-        // ========================================
-        // WINDOW EVENT HANDLERS
-        // ========================================
-
-        /**
-         * Setup window event handlers
-         */
-        function setupWindowEventHandlers() {
-            // Handle window resize
-            window.addEventListener('resize', debounce(() => {
-                setupMobileNavigation();
-                updateSidebarState();
-            }, 150));
-
-            // Handle browser navigation
-            window.addEventListener('popstate', handlePopState);
-
-            // Handle modal clicks
-            window.addEventListener('click', handleModalClick);
-
-            // Handle visibility change for polling
-            document.addEventListener('visibilitychange', handleVisibilityChange);
-
-            console.log('🪟 Window event handlers setup');
-        }
-
-        /**
-         * Handle browser back/forward navigation
-         */
-        function handlePopState(event) {
-            console.log('🔙 Popstate event:', event.state);
-
-            if (event.state?.userId) {
-                const userId = event.state.userId;
-
-                currentSelectedUserId = userId;
-                updateContactActiveState(userId);
-                loadConversationMessages(userId);
-            }
-        }
-
-        /**
-         * Handle modal background clicks
-         */
-        function handleModalClick(event) {
-            const modal = document.getElementById('newMessageModal');
-            if (event.target === modal) {
-                closeNewMessageModal();
-            }
-        }
-
-        /**
-         * Handle page visibility changes
-         */
-        function handleVisibilityChange() {
-            if (document.hidden) {
-                // Page is hidden, reduce polling frequency
-                clearInterval(messagePollingInterval);
-                clearInterval(onlineStatusInterval);
-            } else {
-                // Page is visible, resume normal polling
-                if (currentSelectedUserId > 0) {
-                    startMessagePolling();
-                    startOnlineStatusPolling();
-                }
-            }
-        }
-
-        // ========================================
-        // UTILITY FUNCTIONS
-        // ========================================
-
-        /**
-         * Mark messages as read
-         */
-        function markMessagesAsRead() {
-            if (currentSelectedUserId > 0) {
-                fetch('/Admin/MarkMessagesAsRead', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'RequestVerificationToken': getAntiForgeryToken()
-                    },
-                    body: JSON.stringify({ userId: currentSelectedUserId })
-                }).catch(error => {
-                    console.error('❌ Error marking messages as read:', error);
-                });
-            }
-        }
-
-        /**
-         * Scroll to bottom of messages
-         */
+        // Utility Functions
         function scrollToBottom() {
             const messagesContainer = document.getElementById('messagesContainer');
             if (messagesContainer) {
-                requestAnimationFrame(() => {
+                setTimeout(() => {
                     messagesContainer.scrollTop = messagesContainer.scrollHeight;
-                });
+                }, 100);
             }
         }
 
-        /**
-         * Toggle message search focus
-         */
-        function toggleMessageSearch() {
-            const headerSearch = document.getElementById('headerSearchInput');
-            if (headerSearch) {
-                headerSearch.focus();
-                headerSearch.select();
-            }
-        }
-
-        /**
-         * Toggle contacts sidebar
-         */
-        function toggleContactsSidebar() {
-            const contactsSidebar = document.getElementById('contactsSidebar');
-            const chatArea = document.getElementById('chatArea');
-            const toggleBtn = document.getElementById('contactsToggle');
-
-            if (!contactsSidebar || !chatArea) return;
-
-            const isCollapsed = contactsSidebar.classList.contains('collapsed');
-
-            if (isCollapsed) {
-                contactsSidebar.classList.remove('collapsed');
-                chatArea.classList.remove('expanded');
-                if (toggleBtn) {
-                    toggleBtn.classList.remove('active');
-                    toggleBtn.title = 'Hide Contacts Sidebar';
-                }
-            } else {
-                contactsSidebar.classList.add('collapsed');
-                chatArea.classList.add('expanded');
-                if (toggleBtn) {
-                    toggleBtn.classList.add('active');
-                    toggleBtn.title = 'Show Contacts Sidebar';
-                }
-            }
-        }
-
-        /**
-         * Format time string
-         */
         function formatTime(dateString) {
             try {
-                return new Date(dateString).toLocaleTimeString('en-US', {
+                const date = new Date(dateString);
+                return date.toLocaleTimeString('en-US', {
                     hour: '2-digit',
                     minute: '2-digit',
                     hour12: false
                 });
-            } catch (error) {
-                console.error('❌ Error formatting time:', error);
+            } catch {
                 return '';
             }
         }
 
-        /**
-         * Format last seen time
-         */
-        function formatLastSeen(dateString) {
-            try {
-                const date = new Date(dateString);
-                const now = new Date();
-                const diffMs = now - date;
-                const diffMins = Math.floor(diffMs / 60000);
-
-                if (diffMins < 1) return 'just now';
-                if (diffMins < 60) return `${diffMins}m ago`;
-
-                const diffHours = Math.floor(diffMins / 60);
-                if (diffHours < 24) return `${diffHours}h ago`;
-
-                return date.toLocaleDateString('en-US', {
-                    month: 'short',
-                    day: '2-digit',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                });
-            } catch (error) {
-                return 'Unknown';
-            }
-        }
-
-        /**
-         * Escape HTML characters
-         */
         function escapeHtml(text) {
             if (!text) return '';
             const div = document.createElement('div');
@@ -3528,262 +2158,41 @@
             return div.innerHTML;
         }
 
-        /**
-         * Escape regex special characters
-         */
-        function escapeRegex(string) {
-            return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        }
-
-        /**
-         * Get anti-forgery token
-         */
         function getAntiForgeryToken() {
             const token = document.querySelector('input[name="__RequestVerificationToken"]');
-            return token?.value || '';
+            return token ? token.value : '';
         }
 
-        /**
-         * Debounce function calls
-         */
-        function debounce(func, wait) {
-            let timeout;
-            return function executedFunction(...args) {
-                const later = () => {
-                    clearTimeout(timeout);
-                    func.apply(this, args);
-                };
-                clearTimeout(timeout);
-                timeout = setTimeout(later, wait);
-            };
-        }
-
-        /**
-         * Show loading spinner
-         */
-        function showLoadingSpinner() {
-            const existingSpinner = document.querySelector('.global-loading-spinner');
-            if (existingSpinner) return;
-
-            const spinner = document.createElement('div');
-            spinner.className = 'global-loading-spinner';
-            spinner.style.cssText = `
-                position: fixed;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%);
-                z-index: 10001;
-                background: rgba(139, 92, 246, 0.9);
-                color: white;
-                padding: 1rem 2rem;
-                border-radius: 8px;
-                display: flex;
-                align-items: center;
-                gap: 1rem;
-            `;
-            spinner.innerHTML = '<div class="loading-spinner"></div><span>Loading...</span>';
-
-            document.body.appendChild(spinner);
-        }
-
-        /**
-         * Hide loading spinner
-         */
-        function hideLoadingSpinner() {
-            const spinner = document.querySelector('.global-loading-spinner');
-            if (spinner) {
-                spinner.remove();
-            }
-        }
-
-        /**
-         * Show toast notification
-         */
         function showToast(message, type = 'info') {
             const toast = document.createElement('div');
-            toast.className = `toast toast-${type}`;
-            toast.style.cssText = `
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                background: ${type === 'error' ? '#ef4444' : type === 'success' ? '#10b981' : '#3b82f6'};
-                color: white;
-                padding: 1rem 1.5rem;
-                border-radius: 8px;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-                z-index: 10000;
-                max-width: 350px;
-                font-weight: 500;
-                transform: translateX(100%);
-                transition: transform 0.3s ease;
-                cursor: pointer;
-            `;
-
-            const icon = type === 'error' ? '❌' : type === 'success' ? '✅' : 'ℹ️';
-            toast.innerHTML = `<span style="margin-right: 0.5rem;">${icon}</span>${message}`;
-
+            toast.className = `toast ${type}`;
+            toast.textContent = message;
             document.body.appendChild(toast);
 
-            // Animate in
-            requestAnimationFrame(() => {
-                toast.style.transform = 'translateX(0)';
-            });
-
-            // Click to dismiss
-            toast.addEventListener('click', () => {
-                toast.style.transform = 'translateX(100%)';
-                setTimeout(() => toast.remove(), 300);
-            });
-
-            // Auto dismiss
+            setTimeout(() => toast.classList.add('show'), 100);
             setTimeout(() => {
-                if (toast.parentNode) {
-                    toast.style.transform = 'translateX(100%)';
-                    setTimeout(() => toast.remove(), 300);
-                }
-            }, 5000);
-
-            console.log(`🍞 Toast (${type}): ${message}`);
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
         }
 
-        /**
-         * Show browser notification
-         */
-        function showNotification(title, body) {
-            if ('Notification' in window && Notification.permission === 'granted') {
-                new Notification(title, {
-                    body: body,
-                    icon: '/favicon.ico',
-                    silent: false
-                });
+        // Handle window resize
+        window.addEventListener('resize', setupMobileView);
+
+        // Close modal when clicking outside
+        window.addEventListener('click', function(event) {
+            const modal = document.getElementById('newMessageModal');
+            if (event.target === modal) {
+                closeNewMessageModal();
             }
-        }
-
-        // ========================================
-        // GLOBAL FUNCTION EXPOSURE
-        // ========================================
-
-        // Make functions available globally for HTML onclick handlers
-        window.selectConversation = selectConversation;
-        window.openNewMessageModal = openNewMessageModal;
-        window.closeNewMessageModal = closeNewMessageModal;
-        window.showContactsList = showContactsList;
-        window.showChatArea = showChatArea;
-        window.goBackToContactsList = goBackToContactsList;
-        window.sendMessage = sendMessage;
-        window.loadConversationMessages = loadConversationMessages;
-        window.toggleMessageSearch = toggleMessageSearch;
-        window.toggleContactsSidebar = toggleContactsSidebar;
-
-        // ========================================
-        // DEBUG AND MAINTENANCE FUNCTIONS
-        // ========================================
-
-        /**
-         * Debug conversation state
-         */
-        window.debugConversations = function() {
-            console.log('🔍 === CONVERSATION DEBUG INFO ===');
-            console.log('Current selected user ID:', currentSelectedUserId);
-            console.log('Current user ID:', currentUserId);
-            console.log('Is loading conversation:', isLoadingConversation);
-            console.log('All conversations:', allConversations);
-            console.log('Sidebar state:', sidebarState);
-
-            const contactItems = document.querySelectorAll('.contact-item');
-            console.log('Contact items found:', contactItems.length);
-
-            contactItems.forEach((item, index) => {
-                console.log(`Contact ${index + 1}:`, {
-                    userId: item.dataset.userId,
-                    userName: item.dataset.userName,
-                    isActive: item.classList.contains('active'),
-                    dataset: item.dataset
-                });
-            });
-
-            console.log('Polling states:', {
-                messagePolling: !!messagePollingInterval,
-                onlineStatusPolling: !!onlineStatusInterval
-            });
-            console.log('🔍 === END DEBUG INFO ===');
-        };
-
-        /**
-         * Clear all intervals and timeouts
-         */
-        window.clearAllIntervals = function() {
-            console.log('🧹 Clearing all intervals and timeouts...');
-
-            if (messagePollingInterval) {
-                clearInterval(messagePollingInterval);
-                messagePollingInterval = null;
-            }
-
-            if (onlineStatusInterval) {
-                clearInterval(onlineStatusInterval);
-                onlineStatusInterval = null;
-            }
-
-            if (typingTimeout) {
-                clearTimeout(typingTimeout);
-                typingTimeout = null;
-            }
-
-            isLoadingConversation = false;
-
-            console.log('✅ All intervals cleared');
-        };
-
-        /**
-         * Force refresh conversation
-         */
-        window.forceRefreshConversation = function(userId = currentSelectedUserId) {
-            console.log('🔄 Force refreshing conversation:', userId);
-
-            if (!userId) {
-                console.log('❌ No user ID provided');
-                return;
-            }
-
-            clearInterval(messagePollingInterval);
-            clearInterval(onlineStatusInterval);
-            isLoadingConversation = false;
-
-            selectConversation(userId, 'Force Refresh');
-        };
-
-        /**
-         * Test all conversations (for debugging)
-         */
-        window.testAllConversations = function() {
-            console.log('🧪 Testing all conversations...');
-
-            const contactItems = document.querySelectorAll('.contact-item');
-            contactItems.forEach((item, index) => {
-                setTimeout(() => {
-                    const userId = item.dataset.userId;
-                    const userName = item.dataset.userName;
-                    console.log(`Testing conversation ${index + 1}: ${userName} (${userId})`);
-
-                    // Simulate click
-                    item.dispatchEvent(new Event('click', { bubbles: true }));
-                }, index * 2000);
-            });
-        };
-
-        // ========================================
-        // INITIALIZATION COMPLETE
-        // ========================================
-
-        console.log('🎉 Messages script loaded successfully');
-        console.log('📊 Initial state:', {
-            currentUserId,
-            selectedUserId: currentSelectedUserId,
-            conversationsCount: allConversations?.length || 0,
-            isMobile: window.innerWidth <= 768
         });
 
+        // Make functions globally accessible
+        window.openNewMessageModal = openNewMessageModal;
+        window.closeNewMessageModal = closeNewMessageModal;
+        window.sendMessage = sendMessage;
+        window.showContactsList = showContactsList;
+        window.selectConversation = selectConversation;
     </script>
 }
 
