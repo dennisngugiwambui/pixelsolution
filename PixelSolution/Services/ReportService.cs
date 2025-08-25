@@ -751,7 +751,7 @@ namespace PixelSolution.Services
         public async Task<byte[]> GenerateUserReportAsync()
         {
             // Get the user activity report data
-            var reportData = await GetUserActivityReportAsync();
+            var reportData = await GetUserActivityReportDataAsync();
             var data = (dynamic)reportData;
             
             return GenerateUserActivityReportPdf(data.Users, data.Summary, data.DetailedActivities);
@@ -1377,7 +1377,7 @@ namespace PixelSolution.Services
         {
             try
             {
-                var reportData = await GetSupplierReportAsync();
+                var reportData = await GetSupplierReportDataAsync();
                 var data = (dynamic)reportData;
 
                 using (var stream = new MemoryStream())
@@ -1459,7 +1459,7 @@ namespace PixelSolution.Services
         {
             try
             {
-                var reportData = await GetSupplierReportAsync();
+                var reportData = await GetSupplierReportDataAsync();
                 var data = (dynamic)reportData;
 
                 // Generate CSV format since Excel libraries are not available
