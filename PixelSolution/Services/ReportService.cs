@@ -935,31 +935,31 @@ namespace PixelSolution.Services
                 
                 // Report Title
                 var reportTitleFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 14, BaseColor.BLACK);
-                var reportTitle = new Paragraph("User Activity Report", reportTitleFont);
+                var reportTitle = new Paragraph("Employee Activity Report", reportTitleFont);
                 reportTitle.Alignment = Element.ALIGN_CENTER;
                 reportTitle.SpacingAfter = 20f;
                 document.Add(reportTitle);
                 
-                // Summary Statistics
+                // Enhanced Summary Statistics focusing on employees
                 var summaryFont = FontFactory.GetFont(FontFactory.HELVETICA, 10, BaseColor.BLACK);
-                var summaryText = new Paragraph($"Total Users: {summary.TotalUsers} | Active Users: {summary.ActiveUsers} | Users with Activity: {summary.UsersWithActivity} | Total Activities: {summary.TotalActivities} | Generated: {DateTime.Now:dd/MM/yyyy HH:mm}", summaryFont);
+                var summaryText = new Paragraph($"Total Employees: {summary.TotalEmployees} | Active Employees: {summary.ActiveEmployees} | Employees with Activity: {summary.EmployeesWithActivity} | Employee Activities: {summary.EmployeeActivities} | Top Performer: {summary.TopPerformingEmployee} | Generated: {DateTime.Now:dd/MM/yyyy HH:mm}", summaryFont);
                 summaryText.Alignment = Element.ALIGN_CENTER;
                 summaryText.SpacingAfter = 20f;
                 document.Add(summaryText);
                 
-                // User Summary Table
+                // Employee Activity Summary Table
                 var sectionFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 12, BaseColor.BLACK);
-                var userSummaryTitle = new Paragraph("USER ACTIVITY SUMMARY", sectionFont);
+                var userSummaryTitle = new Paragraph("EMPLOYEE ACTIVITY SUMMARY", sectionFont);
                 userSummaryTitle.SpacingAfter = 10f;
                 document.Add(userSummaryTitle);
                 
-                var table = new PdfPTable(9);
+                var table = new PdfPTable(11);
                 table.WidthPercentage = 100;
-                table.SetWidths(new float[] { 15f, 20f, 10f, 10f, 10f, 10f, 10f, 10f, 15f });
+                table.SetWidths(new float[] { 12f, 15f, 8f, 8f, 8f, 8f, 8f, 8f, 8f, 8f, 12f });
                 
-                // Table headers
-                var headerFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 9, BaseColor.WHITE);
-                var headers = new string[] { "Name", "Email", "Department", "Sales", "Total Activities", "Logins", "Sales Activities", "Report Exports", "Last Activity" };
+                // Enhanced table headers for employee focus
+                var headerFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 8, BaseColor.WHITE);
+                var headers = new string[] { "Name", "Email", "Role", "Department", "Sales", "Total Activities", "Dashboard", "Messages", "Settings", "Employee Score", "Last Activity" };
                 
                 foreach (var header in headers)
                 {
@@ -970,36 +970,44 @@ namespace PixelSolution.Services
                     table.AddCell(cell);
                 }
                 
-                // Table data
-                var dataFont = FontFactory.GetFont(FontFactory.HELVETICA, 8, BaseColor.BLACK);
+                // Enhanced table data with employee focus
+                var dataFont = FontFactory.GetFont(FontFactory.HELVETICA, 7, BaseColor.BLACK);
+                var employeeFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 7, BaseColor.DARK_GRAY);
+                
                 foreach (var user in users)
                 {
-                    table.AddCell(new PdfPCell(new Phrase(user.FullName ?? "N/A", dataFont)) { Padding = 4f });
-                    table.AddCell(new PdfPCell(new Phrase(user.Email ?? "N/A", dataFont)) { Padding = 4f });
-                    table.AddCell(new PdfPCell(new Phrase(user.Department ?? "N/A", dataFont)) { Padding = 4f });
-                    table.AddCell(new PdfPCell(new Phrase(user.SalesCount.ToString(), dataFont)) { Padding = 4f, HorizontalAlignment = Element.ALIGN_RIGHT });
-                    table.AddCell(new PdfPCell(new Phrase(user.TotalActivities.ToString(), dataFont)) { Padding = 4f, HorizontalAlignment = Element.ALIGN_RIGHT });
-                    table.AddCell(new PdfPCell(new Phrase(user.LoginCount.ToString(), dataFont)) { Padding = 4f, HorizontalAlignment = Element.ALIGN_RIGHT });
-                    table.AddCell(new PdfPCell(new Phrase(user.SaleActivities.ToString(), dataFont)) { Padding = 4f, HorizontalAlignment = Element.ALIGN_RIGHT });
-                    table.AddCell(new PdfPCell(new Phrase(user.ReportExports.ToString(), dataFont)) { Padding = 4f, HorizontalAlignment = Element.ALIGN_RIGHT });
-                    table.AddCell(new PdfPCell(new Phrase(user.LastActivity?.ToString("dd/MM/yyyy HH:mm") ?? "Never", dataFont)) { Padding = 4f });
+                    var isEmployee = user.UserType == "Employee";
+                    var cellFont = isEmployee ? employeeFont : dataFont;
+                    var bgColor = isEmployee ? new BaseColor(240, 248, 255) : BaseColor.WHITE; // Light blue for employees
+                    
+                    table.AddCell(new PdfPCell(new Phrase(user.FullName ?? "N/A", cellFont)) { Padding = 4f, BackgroundColor = bgColor });
+                    table.AddCell(new PdfPCell(new Phrase(user.Email ?? "N/A", cellFont)) { Padding = 4f, BackgroundColor = bgColor });
+                    table.AddCell(new PdfPCell(new Phrase(user.UserType ?? "N/A", cellFont)) { Padding = 4f, BackgroundColor = bgColor });
+                    table.AddCell(new PdfPCell(new Phrase(user.Department ?? "N/A", cellFont)) { Padding = 4f, BackgroundColor = bgColor });
+                    table.AddCell(new PdfPCell(new Phrase(user.SalesCount.ToString(), cellFont)) { Padding = 4f, HorizontalAlignment = Element.ALIGN_RIGHT, BackgroundColor = bgColor });
+                    table.AddCell(new PdfPCell(new Phrase(user.TotalActivities.ToString(), cellFont)) { Padding = 4f, HorizontalAlignment = Element.ALIGN_RIGHT, BackgroundColor = bgColor });
+                    table.AddCell(new PdfPCell(new Phrase(user.DashboardAccess.ToString(), cellFont)) { Padding = 4f, HorizontalAlignment = Element.ALIGN_RIGHT, BackgroundColor = bgColor });
+                    table.AddCell(new PdfPCell(new Phrase(user.MessagesAccess.ToString(), cellFont)) { Padding = 4f, HorizontalAlignment = Element.ALIGN_RIGHT, BackgroundColor = bgColor });
+                    table.AddCell(new PdfPCell(new Phrase(user.SettingsAccess.ToString(), cellFont)) { Padding = 4f, HorizontalAlignment = Element.ALIGN_RIGHT, BackgroundColor = bgColor });
+                    table.AddCell(new PdfPCell(new Phrase(user.EmployeeEngagementScore.ToString(), cellFont)) { Padding = 4f, HorizontalAlignment = Element.ALIGN_RIGHT, BackgroundColor = bgColor });
+                    table.AddCell(new PdfPCell(new Phrase(user.LastActivity?.ToString("dd/MM/yyyy HH:mm") ?? "Never", cellFont)) { Padding = 4f, BackgroundColor = bgColor });
                 }
                 
                 document.Add(table);
                 document.Add(new Paragraph(" "));
                 
-                // Detailed Activity Log Section
-                var detailTitle = new Paragraph("RECENT ACTIVITY LOG", sectionFont);
+                // Employee Activity Log Section
+                var detailTitle = new Paragraph("RECENT EMPLOYEE ACTIVITY LOG", sectionFont);
                 detailTitle.SpacingAfter = 10f;
                 document.Add(detailTitle);
                 
-                // Detailed Activities Table
-                var detailTable = new PdfPTable(5);
+                // Enhanced Detailed Activities Table
+                var detailTable = new PdfPTable(6);
                 detailTable.WidthPercentage = 100;
-                detailTable.SetWidths(new float[] { 20f, 15f, 35f, 20f, 10f });
+                detailTable.SetWidths(new float[] { 18f, 12f, 15f, 30f, 18f, 7f });
                 
-                // Detail table headers
-                var detailHeaders = new string[] { "User", "Activity Type", "Description", "Date & Time", "IP Address" };
+                // Enhanced detail table headers
+                var detailHeaders = new string[] { "Employee", "Role", "Activity Type", "Description", "Date & Time", "Category" };
                 foreach (var header in detailHeaders)
                 {
                     var cell = new PdfPCell(new Phrase(header, headerFont));
@@ -1009,14 +1017,19 @@ namespace PixelSolution.Services
                     detailTable.AddCell(cell);
                 }
                 
-                // Detail table data
+                // Enhanced detail table data with employee focus
                 foreach (var activity in detailedActivities)
                 {
-                    detailTable.AddCell(new PdfPCell(new Phrase(activity.UserName ?? "Unknown", dataFont)) { Padding = 4f });
-                    detailTable.AddCell(new PdfPCell(new Phrase(activity.ActivityType ?? "N/A", dataFont)) { Padding = 4f });
-                    detailTable.AddCell(new PdfPCell(new Phrase(activity.Description ?? "N/A", dataFont)) { Padding = 4f });
-                    detailTable.AddCell(new PdfPCell(new Phrase(activity.CreatedAt.ToString("dd/MM/yyyy HH:mm:ss"), dataFont)) { Padding = 4f });
-                    detailTable.AddCell(new PdfPCell(new Phrase(activity.IpAddress ?? "N/A", dataFont)) { Padding = 4f });
+                    var isEmployeeActivity = activity.IsEmployeeActivity;
+                    var activityFont = isEmployeeActivity ? employeeFont : dataFont;
+                    var activityBgColor = isEmployeeActivity ? new BaseColor(240, 248, 255) : BaseColor.WHITE;
+                    
+                    detailTable.AddCell(new PdfPCell(new Phrase(activity.UserName ?? "Unknown", activityFont)) { Padding = 4f, BackgroundColor = activityBgColor });
+                    detailTable.AddCell(new PdfPCell(new Phrase(activity.UserType ?? "N/A", activityFont)) { Padding = 4f, BackgroundColor = activityBgColor });
+                    detailTable.AddCell(new PdfPCell(new Phrase(activity.ActivityType ?? "N/A", activityFont)) { Padding = 4f, BackgroundColor = activityBgColor });
+                    detailTable.AddCell(new PdfPCell(new Phrase(activity.Description ?? "N/A", activityFont)) { Padding = 4f, BackgroundColor = activityBgColor });
+                    detailTable.AddCell(new PdfPCell(new Phrase(activity.CreatedAt.ToString("dd/MM/yyyy HH:mm:ss"), activityFont)) { Padding = 4f, BackgroundColor = activityBgColor });
+                    detailTable.AddCell(new PdfPCell(new Phrase(activity.ActivityCategory ?? "Other", activityFont)) { Padding = 4f, BackgroundColor = activityBgColor });
                 }
                 
                 document.Add(detailTable);
@@ -1278,23 +1291,28 @@ namespace PixelSolution.Services
         {
             try
             {
-                // Get users with activity logs
+                // Get users with activity logs - prioritize employees
                 var users = await _context.Users
                     .Include(u => u.UserDepartments)
                         .ThenInclude(ud => ud.Department)
                     .Include(u => u.Sales)
                     .Include(u => u.PurchaseRequests)
+                    .OrderBy(u => u.UserType == "Employee" ? 0 : 1) // Employees first
+                    .ThenBy(u => u.FirstName)
                     .ToListAsync();
 
-                // Get user activity data from UserActivityLogs table - simplified query
+                // Get user activity data from UserActivityLogs table - focus on employee activities
                 var userActivities = await _context.UserActivityLogs
+                    .Include(ual => ual.User)
                     .ToListAsync();
 
-                // Get detailed activity logs for the report
+                // Get detailed activity logs for the report - prioritize employee activities
                 var detailedActivities = await _context.UserActivityLogs
                     .Include(ual => ual.User)
-                    .OrderByDescending(ual => ual.CreatedAt)
-                    .Take(50) // Latest 50 activities
+                    .Where(ual => ual.User != null)
+                    .OrderBy(ual => ual.User.UserType == "Employee" ? 0 : 1) // Employee activities first
+                    .ThenByDescending(ual => ual.CreatedAt)
+                    .Take(100) // Increased to 100 activities to capture more employee data
                     .ToListAsync();
 
                 // Group activities by user in memory to avoid LINQ translation issues
@@ -1305,8 +1323,15 @@ namespace PixelSolution.Services
                         TotalActivities = g.Count(),
                         LastActivity = g.Max(ual => ual.CreatedAt),
                         LoginCount = g.Count(ual => ual.ActivityType == "Login"),
-                        SaleActivities = g.Count(ual => ual.ActivityType == "Sale"),
-                        ReportExports = g.Count(ual => ual.ActivityType == "ReportExport")
+                        SaleActivities = g.Count(ual => ual.ActivityType.Contains("Sale")),
+                        DashboardAccess = g.Count(ual => ual.ActivityType == "Dashboard Access"),
+                        MessagesAccess = g.Count(ual => ual.ActivityType == "Messages Access"),
+                        SettingsAccess = g.Count(ual => ual.ActivityType == "Settings Access"),
+                        ReportExports = g.Count(ual => ual.ActivityType == "ReportExport"),
+                        EmployeeActivities = g.Count(ual => ual.ActivityType.Contains("Sale") || 
+                                                           ual.ActivityType.Contains("Dashboard") || 
+                                                           ual.ActivityType.Contains("Messages") ||
+                                                           ual.ActivityType.Contains("Settings"))
                     });
 
                 var userReport = users.Select(u => new
@@ -1329,26 +1354,42 @@ namespace PixelSolution.Services
                         .OrderByDescending(s => s.SaleDate)
                         .Select(s => s.SaleDate)
                         .FirstOrDefault(),
-                    // Activity log data - using dictionary lookup
+                    // Enhanced activity log data - using dictionary lookup
                     TotalActivities = activityGroups.ContainsKey(u.UserId) ? activityGroups[u.UserId].TotalActivities : 0,
                     LastActivity = activityGroups.ContainsKey(u.UserId) ? activityGroups[u.UserId].LastActivity : (DateTime?)null,
                     LoginCount = activityGroups.ContainsKey(u.UserId) ? activityGroups[u.UserId].LoginCount : 0,
                     SaleActivities = activityGroups.ContainsKey(u.UserId) ? activityGroups[u.UserId].SaleActivities : 0,
+                    DashboardAccess = activityGroups.ContainsKey(u.UserId) ? activityGroups[u.UserId].DashboardAccess : 0,
+                    MessagesAccess = activityGroups.ContainsKey(u.UserId) ? activityGroups[u.UserId].MessagesAccess : 0,
+                    SettingsAccess = activityGroups.ContainsKey(u.UserId) ? activityGroups[u.UserId].SettingsAccess : 0,
+                    EmployeeActivities = activityGroups.ContainsKey(u.UserId) ? activityGroups[u.UserId].EmployeeActivities : 0,
                     ReportExports = activityGroups.ContainsKey(u.UserId) ? activityGroups[u.UserId].ReportExports : 0,
-                    u.CreatedAt
+                    u.CreatedAt,
+                    // Employee performance metrics
+                    IsActiveEmployee = u.UserType == "Employee" && u.Status == "Active",
+                    EmployeeEngagementScore = u.UserType == "Employee" ? 
+                        (activityGroups.ContainsKey(u.UserId) ? activityGroups[u.UserId].EmployeeActivities : 0) : 0
                 })
-                .OrderBy(u => u.FirstName)
-                .ThenBy(u => u.LastName)
+                .OrderBy(u => u.UserType == "Employee" ? 0 : 1) // Employees first
+                .ThenByDescending(u => u.EmployeeActivities) // Most active employees first
+                .ThenBy(u => u.FirstName)
                 .ToList();
 
                 var summary = new
                 {
                     TotalUsers = userReport.Count,
                     ActiveUsers = userReport.Count(u => u.Status == "Active"),
+                    TotalEmployees = userReport.Count(u => u.UserType == "Employee"),
+                    ActiveEmployees = userReport.Count(u => u.UserType == "Employee" && u.Status == "Active"),
                     TotalSales = userReport.Sum(u => u.TotalSalesAmount),
                     TotalTransactions = userReport.Sum(u => u.SalesCount),
                     TotalActivities = userReport.Sum(u => u.TotalActivities),
-                    UsersWithActivity = userReport.Count(u => u.TotalActivities > 0)
+                    EmployeeActivities = userReport.Sum(u => u.EmployeeActivities),
+                    UsersWithActivity = userReport.Count(u => u.TotalActivities > 0),
+                    EmployeesWithActivity = userReport.Count(u => u.UserType == "Employee" && u.TotalActivities > 0),
+                    AverageEmployeeEngagement = userReport.Where(u => u.UserType == "Employee").Any() ? 
+                        userReport.Where(u => u.UserType == "Employee").Average(u => u.EmployeeEngagementScore) : 0,
+                    TopPerformingEmployee = userReport.Where(u => u.UserType == "Employee").OrderByDescending(u => u.EmployeeActivities).FirstOrDefault()?.FullName ?? "None"
                 };
 
                 return new
@@ -1360,10 +1401,17 @@ namespace PixelSolution.Services
                         da.ActivityId,
                         da.UserId,
                         UserName = da.User != null ? $"{da.User.FirstName} {da.User.LastName}" : "Unknown User",
+                        UserType = da.User?.UserType ?? "Unknown",
                         da.ActivityType,
                         da.Description,
                         da.CreatedAt,
-                        da.IpAddress
+                        da.IpAddress,
+                        IsEmployeeActivity = da.User?.UserType == "Employee",
+                        ActivityCategory = da.ActivityType.Contains("Sale") ? "Sales" :
+                                         da.ActivityType.Contains("Dashboard") ? "Navigation" :
+                                         da.ActivityType.Contains("Messages") ? "Communication" :
+                                         da.ActivityType.Contains("Settings") ? "Profile Management" :
+                                         da.ActivityType.Contains("Login") ? "Authentication" : "Other"
                     }).ToList()
                 };
             }
