@@ -615,6 +615,52 @@
             color: rgba(255, 255, 255, 0.8);
         }
 
+        /* Enhanced Message Status Icons */
+        .message-status i {
+            font-size: 0.875rem;
+            transition: all 0.3s ease;
+            opacity: 1;
+        }
+
+        /* Single tick for sent/delivered messages */
+        .message-status .fa-check {
+            color: rgba(255, 255, 255, 0.9) !important;
+            font-weight: 600;
+        }
+
+        /* Double tick for read messages */
+        .message-status .fa-check-double {
+            color: #10b981 !important;
+            font-weight: 600;
+        }
+
+        /* Ensure visibility on sent messages */
+        .message-bubble.sent .message-status .fa-check {
+            color: rgba(255, 255, 255, 0.95) !important;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+        }
+
+        .message-bubble.sent .message-status .fa-check-double {
+            color: #10b981 !important;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Status for received messages (if needed) */
+        .message-bubble.received .message-status .fa-check,
+        .message-bubble.received .message-status .fa-check-double {
+            color: var(--gray-600);
+        }
+
+        /* Message status animation */
+        .message-status-updating {
+            animation: statusPulse 1s ease-in-out;
+        }
+
+        @@keyframes statusPulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
         .message-input-area {
             padding: 1.5rem;
             background: white;
@@ -1236,14 +1282,14 @@
                                         <span class="message-time">@message.SentDate.ToString("HH:mm")</span>
                                         @if (message.IsFromCurrentUser)
                                         {
-                                            <span class="message-status">
+                                            <span class="message-status" data-message-id="@message.MessageId">
                                                 @if (message.IsRead)
                                                 {
-                                                    <i class="fas fa-check-double" style="color: #10b981;" title="Read"></i>
+                                                    <i class="fas fa-check-double" title="Read"></i>
                                                 }
                                                 else
                                                 {
-                                                    <i class="fas fa-check" title="Sent"></i>
+                                                    <i class="fas fa-check" title="Delivered"></i>
                                                 }
                                             </span>
                                         }
@@ -1565,7 +1611,10 @@
 
                 if (data.success && data.conversation && data.messages) {
                     updateChatArea(data.conversation, data.messages);
-                    scrollToBottom();
+                    // Auto-scroll to latest message with smooth animation
+                    setTimeout(() => {
+                        scrollToLatestMessage();
+                    }, 100);
                     markMessagesAsRead(userId);
                 } else {
                     showToast('Error loading conversation', 'error');
@@ -1598,10 +1647,10 @@
                     `<div style="font-weight: 600; margin-bottom: 0.5rem; font-size: 0.9rem; opacity: 0.8;">${escapeHtml(message.subject)}</div>` : '';
 
                 const statusHtml = message.isFromCurrentUser ?
-                    `<span class="message-status">
+                    `<span class="message-status" data-message-id="${message.messageId}">
                         ${message.isRead ?
-                            '<i class="fas fa-check-double" style="color: #10b981;" title="Read"></i>' :
-                            '<i class="fas fa-check" title="Sent"></i>'}
+                            '<i class="fas fa-check-double" title="Read"></i>' :
+                            '<i class="fas fa-check" title="Delivered"></i>'}
                     </span>` : '';
 
                 return `
@@ -1711,7 +1760,7 @@
                         isRead: false
                     });
 
-                    scrollToBottom();
+                    scrollToLatestMessage();
                     showToast('Message sent!', 'success');
                 } else {
                     showToast(result.message || 'Error sending message', 'error');
@@ -1734,10 +1783,10 @@
                 `<div style="font-weight: 600; margin-bottom: 0.5rem; font-size: 0.9rem; opacity: 0.8;">${escapeHtml(message.subject)}</div>` : '';
 
             const statusHtml = message.isFromCurrentUser ?
-                `<span class="message-status">
+                `<span class="message-status" data-message-id="${message.messageId}">
                     ${message.isRead ?
-                        '<i class="fas fa-check-double" style="color: #10b981;" title="Read"></i>' :
-                        '<i class="fas fa-check" title="Sent"></i>'}
+                        '<i class="fas fa-check-double" title="Read"></i>' :
+                        '<i class="fas fa-check" title="Delivered"></i>'}
                 </span>` : '';
 
             const messageHtml = `
@@ -1943,7 +1992,7 @@
                                     isFromCurrentUser: true,
                                     isRead: false
                                 });
-                                scrollToBottom();
+                                scrollToLatestMessage();
                             }
 
                             refreshConversationsList();
@@ -2020,7 +2069,7 @@
                                             isFromCurrentUser: message.fromUserId === currentUserId,
                                             isRead: message.isRead
                                         });
-                                        scrollToBottom();
+                                        scrollToLatestMessage();
 
                                         // Show notification for received messages
                                         if (message.fromUserId !== currentUserId) {
@@ -2030,6 +2079,13 @@
                                 });
                                 lastMessageCheck = new Date();
                                 refreshConversationsList();
+                                
+                                // Update message statuses for read messages
+                                if (data.updatedStatuses) {
+                                    data.updatedStatuses.forEach(status => {
+                                        updateMessageStatus(status.messageId, status.isRead);
+                                    });
+                                }
                             }
                         }
                     } catch (error) {
@@ -2128,13 +2184,46 @@
             contactsList.innerHTML = conversationsHtml;
         }
 
-        // Utility Functions
+        // Enhanced Scroll Functions
         function scrollToBottom() {
             const messagesContainer = document.getElementById('messagesContainer');
             if (messagesContainer) {
                 setTimeout(() => {
                     messagesContainer.scrollTop = messagesContainer.scrollHeight;
                 }, 100);
+            }
+        }
+
+        function scrollToLatestMessage() {
+            const messagesContainer = document.getElementById('messagesContainer');
+            if (messagesContainer) {
+                // Smooth scroll to bottom to show latest messages
+                messagesContainer.scrollTo({
+                    top: messagesContainer.scrollHeight,
+                    behavior: 'smooth'
+                });
+            }
+        }
+
+        // Update message status in real-time
+        function updateMessageStatus(messageId, isRead) {
+            const statusElement = document.querySelector(`[data-message-id="${messageId}"] .message-status`);
+            if (statusElement) {
+                statusElement.classList.add('message-status-updating');
+                
+                setTimeout(() => {
+                    const icon = statusElement.querySelector('i');
+                    if (icon) {
+                        if (isRead) {
+                            icon.className = 'fas fa-check-double';
+                            icon.title = 'Read';
+                        } else {
+                            icon.className = 'fas fa-check';
+                            icon.title = 'Delivered';
+                        }
+                    }
+                    statusElement.classList.remove('message-status-updating');
+                }, 300);
             }
         }
 
