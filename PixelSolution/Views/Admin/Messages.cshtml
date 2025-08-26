@@ -1179,7 +1179,7 @@
                     {
                         @foreach (var conversation in Model.Conversations)
                         {
-                            <div class="contact-item @(Model.SelectedConversation?.UserId == conversation.UserId ? "active" : "")"
+                            <div class="contact-item"
                                  data-user-id="@conversation.UserId"
                                  data-user-name="@conversation.FullName">
                                 <div class="contact-avatar">
@@ -1221,109 +1221,16 @@
 
             <!-- Chat Area -->
             <div class="chat-area" id="chatArea">
-                @if (Model.SelectedConversation != null)
-                {
-                    <!-- Chat Header -->
-                    <div class="chat-header">
-                        <div class="chat-user-info">
-                            <button class="mobile-back-btn" onclick="showContactsList()" style="display: none;">
-                                <i class="fas fa-arrow-left"></i>
-                                Back
-                            </button>
-                            <div class="chat-avatar">
-                                @Model.SelectedConversation.UserInitials
-                                @if (Model.SelectedConversation.IsOnline)
-                                {
-                                    <div class="online-indicator"></div>
-                                }
-                            </div>
-                            <div class="chat-user-details">
-                                <h4>@Model.SelectedConversation.FullName</h4>
-                                <div class="chat-user-status @(Model.SelectedConversation.IsOnline ? "status-online" : "")">
-                                    @if (Model.SelectedConversation.IsOnline)
-                                    {
-                                        <i class="fas fa-circle" style="font-size: 0.5rem; margin-right: 0.25rem;"></i>
-                                        <span>Online</span>
-                                    }
-                                    else
-                                    {
-                                        <span>Last seen @Model.SelectedConversation.LastSeenFormatted</span>
-                                    }
-                                </div>
-                            </div>
-                        </div>
-                        <div class="chat-actions">
-                            <button class="action-btn" title="Search Messages">
-                                <i class="fas fa-search"></i>
-                            </button>
-                            <button class="action-btn" title="More Options">
-                                <i class="fas fa-ellipsis-v"></i>
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Messages Container -->
-                    <div class="messages-container-inner" id="messagesContainer">
-                        @if (Model.Messages != null && Model.Messages.Any())
-                        {
-                            @foreach (var message in Model.Messages.OrderBy(m => m.SentDate))
-                            {
-                                <div class="message-bubble @(message.IsFromCurrentUser ? "sent" : "received")" data-message-id="@message.MessageId">
-                                    @if (!string.IsNullOrEmpty(message.Subject))
-                                    {
-                                        <div style="font-weight: 600; margin-bottom: 0.5rem; font-size: 0.9rem; opacity: 0.8;">
-                                            @message.Subject
-                                        </div>
-                                    }
-                                    <div class="message-content">
-                                        @message.Content
-                                    </div>
-                                    <div class="message-meta">
-                                        <span class="message-time">@message.SentDate.ToString("HH:mm")</span>
-                                        @if (message.IsFromCurrentUser)
-                                        {
-                                            <span class="message-status" data-message-id="@message.MessageId">
-                                                @if (message.IsRead)
-                                                {
-                                                    <i class="fas fa-check-double" title="Read"></i>
-                                                }
-                                                else
-                                                {
-                                                    <i class="fas fa-check" title="Delivered"></i>
-                                                }
-                                            </span>
-                                        }
-                                    </div>
-                                </div>
-                            }
-                        }
-                    </div>
-
-                    <!-- Message Input -->
-                    <div class="message-input-area">
-                        <div class="message-form">
-                            <div class="message-input-container">
-                                <textarea id="messageInput" class="message-input" placeholder="Type your message..." rows="1"></textarea>
-                            </div>
-                            <button class="send-btn" id="sendBtn" onclick="sendMessage()" disabled>
-                                <i class="fas fa-paper-plane"></i>
-                            </button>
-                        </div>
-                    </div>
-                }
-                else
-                {
-                    <!-- Empty State -->
-                    <div class="empty-state">
-                        <i class="fas fa-comments empty-state-icon"></i>
-                        <h3>Select a conversation</h3>
-                        <p>Choose a contact from the sidebar to start messaging</p>
-                        <button class="btn btn-primary" onclick="openNewMessageModal()" style="margin-top: 1rem;">
-                            <i class="fas fa-plus"></i>
-                            Start New Conversation
-                        </button>
-                    </div>
-                }
+                <!-- Empty State - Always show by default -->
+                <div class="empty-state">
+                    <i class="fas fa-comments empty-state-icon"></i>
+                    <h3>Select a conversation</h3>
+                    <p>Choose a contact from the sidebar to start messaging</p>
+                    <button class="btn btn-primary" onclick="openNewMessageModal()" style="margin-top: 1rem;">
+                        <i class="fas fa-plus"></i>
+                        Start New Conversation
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -1401,7 +1308,7 @@
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
         // Global variables
-        let currentSelectedUserId = @(Model.SelectedConversation?.UserId ?? 0);
+        let currentSelectedUserId = 0; // Always start with no selection
         let currentUserId = @Model.CurrentUserId;
         let messagePollingInterval;
         let lastMessageCheck = new Date();
@@ -1421,9 +1328,7 @@
             setupContactSelection();
             setupMobileView();
 
-            if (currentSelectedUserId > 0) {
-                startMessagePolling();
-            }
+            // Don't auto-start polling - wait for user selection
 
             // Update unread count periodically
             setInterval(updateUnreadCount, 30000);
@@ -2197,11 +2102,16 @@
         function scrollToLatestMessage() {
             const messagesContainer = document.getElementById('messagesContainer');
             if (messagesContainer) {
-                // Smooth scroll to bottom to show latest messages
-                messagesContainer.scrollTo({
-                    top: messagesContainer.scrollHeight,
-                    behavior: 'smooth'
-                });
+                // Force immediate scroll to bottom first, then smooth scroll
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                
+                // Small delay to ensure content is rendered, then smooth scroll
+                setTimeout(() => {
+                    messagesContainer.scrollTo({
+                        top: messagesContainer.scrollHeight,
+                        behavior: 'smooth'
+                    });
+                }, 50);
             }
         }
 
