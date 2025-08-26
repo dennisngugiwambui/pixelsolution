@@ -1,6 +1,6 @@
 {
   "Version": 1,
-  "Hash": "Zh5lyyVsS9aYSoUvmrnrqCUHicKv94jSY/B68XKm2RA=",
+  "Hash": "ys3wLNthhptCZ0+3XSheFkaFI8UQE+dXUnaDaWb1wkQ=",
   "Source": "PixelSolution",
   "BasePath": "_content/PixelSolution",
   "Mode": "Default",
@@ -162,6 +162,69 @@
       "CopyToOutputDirectory": "Never",
       "CopyToPublishDirectory": "PreserveNewest",
       "OriginalItemSpec": "wwwroot\\favicon.ico"
+    },
+    {
+      "Identity": "C:\\Users\\Denno\\source\\repos\\PixelSolution\\PixelSolution\\wwwroot\\favicon.jpg",
+      "SourceId": "PixelSolution",
+      "SourceType": "Discovered",
+      "ContentRoot": "C:\\Users\\Denno\\source\\repos\\PixelSolution\\PixelSolution\\wwwroot\\",
+      "BasePath": "_content/PixelSolution",
+      "RelativePath": "favicon#[.{fingerprint}]?.jpg",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "Fingerprint": "l0ak88qyx0",
+      "Integrity": "S0givHNZ4Vj56o5NwquS/N3GI2+IQtrjLUD84toAfmw=",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\favicon.jpg"
+    },
+    {
+      "Identity": "C:\\Users\\Denno\\source\\repos\\PixelSolution\\PixelSolution\\wwwroot\\favicon1.png",
+      "SourceId": "PixelSolution",
+      "SourceType": "Discovered",
+      "ContentRoot": "C:\\Users\\Denno\\source\\repos\\PixelSolution\\PixelSolution\\wwwroot\\",
+      "BasePath": "_content/PixelSolution",
+      "RelativePath": "favicon1#[.{fingerprint}]?.png",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "Fingerprint": "7ddr76338e",
+      "Integrity": "a6ueiyJrfSANwY2QVO2nwAggyo1bz2vU9WrDLtucmyY=",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\favicon1.png"
+    },
+    {
+      "Identity": "C:\\Users\\Denno\\source\\repos\\PixelSolution\\PixelSolution\\wwwroot\\favicon2.png",
+      "SourceId": "PixelSolution",
+      "SourceType": "Discovered",
+      "ContentRoot": "C:\\Users\\Denno\\source\\repos\\PixelSolution\\PixelSolution\\wwwroot\\",
+      "BasePath": "_content/PixelSolution",
+      "RelativePath": "favicon2#[.{fingerprint}]?.png",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "Fingerprint": "w6n4j7mbgf",
+      "Integrity": "mCKnvkmym+Dm/0KFG/hJyd2v3C+AF1wMU5sSH73Rqdo=",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\favicon2.png"
     },
     {
       "Identity": "C:\\Users\\Denno\\source\\repos\\PixelSolution\\PixelSolution\\wwwroot\\js\\dashboard.js",
@@ -1937,6 +2000,252 @@
         {
           "Name": "integrity",
           "Value": "sha256-Jtxf9L+5ITKRc1gIRl4VbUpGkRNfOBXjYTdhJD4facM="
+        }
+      ]
+    },
+    {
+      "Route": "favicon.jpg",
+      "AssetFile": "C:\\Users\\Denno\\source\\repos\\PixelSolution\\PixelSolution\\wwwroot\\favicon.jpg",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "60964"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "image/jpeg"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"S0givHNZ4Vj56o5NwquS/N3GI2+IQtrjLUD84toAfmw=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Tue, 26 Aug 2025 10:33:47 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=3600, must-revalidate"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "integrity",
+          "Value": "sha256-S0givHNZ4Vj56o5NwquS/N3GI2+IQtrjLUD84toAfmw="
+        }
+      ]
+    },
+    {
+      "Route": "favicon.l0ak88qyx0.jpg",
+      "AssetFile": "C:\\Users\\Denno\\source\\repos\\PixelSolution\\PixelSolution\\wwwroot\\favicon.jpg",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "60964"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "image/jpeg"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"S0givHNZ4Vj56o5NwquS/N3GI2+IQtrjLUD84toAfmw=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Tue, 26 Aug 2025 10:33:47 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=31536000, immutable"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "fingerprint",
+          "Value": "l0ak88qyx0"
+        },
+        {
+          "Name": "label",
+          "Value": "favicon.jpg"
+        },
+        {
+          "Name": "integrity",
+          "Value": "sha256-S0givHNZ4Vj56o5NwquS/N3GI2+IQtrjLUD84toAfmw="
+        }
+      ]
+    },
+    {
+      "Route": "favicon1.7ddr76338e.png",
+      "AssetFile": "C:\\Users\\Denno\\source\\repos\\PixelSolution\\PixelSolution\\wwwroot\\favicon1.png",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "179856"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "image/png"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"a6ueiyJrfSANwY2QVO2nwAggyo1bz2vU9WrDLtucmyY=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Tue, 26 Aug 2025 11:00:29 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=31536000, immutable"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "fingerprint",
+          "Value": "7ddr76338e"
+        },
+        {
+          "Name": "label",
+          "Value": "favicon1.png"
+        },
+        {
+          "Name": "integrity",
+          "Value": "sha256-a6ueiyJrfSANwY2QVO2nwAggyo1bz2vU9WrDLtucmyY="
+        }
+      ]
+    },
+    {
+      "Route": "favicon1.png",
+      "AssetFile": "C:\\Users\\Denno\\source\\repos\\PixelSolution\\PixelSolution\\wwwroot\\favicon1.png",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "179856"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "image/png"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"a6ueiyJrfSANwY2QVO2nwAggyo1bz2vU9WrDLtucmyY=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Tue, 26 Aug 2025 11:00:29 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=3600, must-revalidate"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "integrity",
+          "Value": "sha256-a6ueiyJrfSANwY2QVO2nwAggyo1bz2vU9WrDLtucmyY="
+        }
+      ]
+    },
+    {
+      "Route": "favicon2.png",
+      "AssetFile": "C:\\Users\\Denno\\source\\repos\\PixelSolution\\PixelSolution\\wwwroot\\favicon2.png",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "52365"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "image/png"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"mCKnvkmym+Dm/0KFG/hJyd2v3C+AF1wMU5sSH73Rqdo=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Tue, 26 Aug 2025 10:59:34 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=3600, must-revalidate"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "integrity",
+          "Value": "sha256-mCKnvkmym+Dm/0KFG/hJyd2v3C+AF1wMU5sSH73Rqdo="
+        }
+      ]
+    },
+    {
+      "Route": "favicon2.w6n4j7mbgf.png",
+      "AssetFile": "C:\\Users\\Denno\\source\\repos\\PixelSolution\\PixelSolution\\wwwroot\\favicon2.png",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "52365"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "image/png"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"mCKnvkmym+Dm/0KFG/hJyd2v3C+AF1wMU5sSH73Rqdo=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Tue, 26 Aug 2025 10:59:34 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=31536000, immutable"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "fingerprint",
+          "Value": "w6n4j7mbgf"
+        },
+        {
+          "Name": "label",
+          "Value": "favicon2.png"
+        },
+        {
+          "Name": "integrity",
+          "Value": "sha256-mCKnvkmym+Dm/0KFG/hJyd2v3C+AF1wMU5sSH73Rqdo="
         }
       ]
     },

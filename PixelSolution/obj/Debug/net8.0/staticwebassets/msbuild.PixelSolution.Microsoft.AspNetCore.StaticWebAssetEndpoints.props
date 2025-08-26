@@ -60,6 +60,42 @@
       <EndpointProperties><![CDATA[[{"Name":"integrity","Value":"sha256-Jtxf9L\u002B5ITKRc1gIRl4VbUpGkRNfOBXjYTdhJD4facM="}]]]></EndpointProperties>
       <ResponseHeaders><![CDATA[[{"Name":"Accept-Ranges","Value":"bytes"},{"Name":"Cache-Control","Value":"max-age=3600, must-revalidate"},{"Name":"Content-Length","Value":"5430"},{"Name":"Content-Type","Value":"image/x-icon"},{"Name":"ETag","Value":"\u0022Jtxf9L\u002B5ITKRc1gIRl4VbUpGkRNfOBXjYTdhJD4facM=\u0022"},{"Name":"Last-Modified","Value":"Thu, 24 Jul 2025 17:13:43 GMT"}]]]></ResponseHeaders>
     </StaticWebAssetEndpoint>
+    <StaticWebAssetEndpoint Include="_content/PixelSolution/favicon.jpg">
+      <AssetFile>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\favicon.jpg'))</AssetFile>
+      <Selectors><![CDATA[[]]]></Selectors>
+      <EndpointProperties><![CDATA[[{"Name":"integrity","Value":"sha256-S0givHNZ4Vj56o5NwquS/N3GI2\u002BIQtrjLUD84toAfmw="}]]]></EndpointProperties>
+      <ResponseHeaders><![CDATA[[{"Name":"Accept-Ranges","Value":"bytes"},{"Name":"Cache-Control","Value":"max-age=3600, must-revalidate"},{"Name":"Content-Length","Value":"60964"},{"Name":"Content-Type","Value":"image/jpeg"},{"Name":"ETag","Value":"\u0022S0givHNZ4Vj56o5NwquS/N3GI2\u002BIQtrjLUD84toAfmw=\u0022"},{"Name":"Last-Modified","Value":"Tue, 26 Aug 2025 10:33:47 GMT"}]]]></ResponseHeaders>
+    </StaticWebAssetEndpoint>
+    <StaticWebAssetEndpoint Include="_content/PixelSolution/favicon.l0ak88qyx0.jpg">
+      <AssetFile>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\favicon.jpg'))</AssetFile>
+      <Selectors><![CDATA[[]]]></Selectors>
+      <EndpointProperties><![CDATA[[{"Name":"fingerprint","Value":"l0ak88qyx0"},{"Name":"integrity","Value":"sha256-S0givHNZ4Vj56o5NwquS/N3GI2\u002BIQtrjLUD84toAfmw="},{"Name":"label","Value":"_content/PixelSolution/favicon.jpg"}]]]></EndpointProperties>
+      <ResponseHeaders><![CDATA[[{"Name":"Accept-Ranges","Value":"bytes"},{"Name":"Cache-Control","Value":"max-age=31536000, immutable"},{"Name":"Content-Length","Value":"60964"},{"Name":"Content-Type","Value":"image/jpeg"},{"Name":"ETag","Value":"\u0022S0givHNZ4Vj56o5NwquS/N3GI2\u002BIQtrjLUD84toAfmw=\u0022"},{"Name":"Last-Modified","Value":"Tue, 26 Aug 2025 10:33:47 GMT"}]]]></ResponseHeaders>
+    </StaticWebAssetEndpoint>
+    <StaticWebAssetEndpoint Include="_content/PixelSolution/favicon1.7ddr76338e.png">
+      <AssetFile>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\favicon1.png'))</AssetFile>
+      <Selectors><![CDATA[[]]]></Selectors>
+      <EndpointProperties><![CDATA[[{"Name":"fingerprint","Value":"7ddr76338e"},{"Name":"integrity","Value":"sha256-a6ueiyJrfSANwY2QVO2nwAggyo1bz2vU9WrDLtucmyY="},{"Name":"label","Value":"_content/PixelSolution/favicon1.png"}]]]></EndpointProperties>
+      <ResponseHeaders><![CDATA[[{"Name":"Accept-Ranges","Value":"bytes"},{"Name":"Cache-Control","Value":"max-age=31536000, immutable"},{"Name":"Content-Length","Value":"179856"},{"Name":"Content-Type","Value":"image/png"},{"Name":"ETag","Value":"\u0022a6ueiyJrfSANwY2QVO2nwAggyo1bz2vU9WrDLtucmyY=\u0022"},{"Name":"Last-Modified","Value":"Tue, 26 Aug 2025 11:00:29 GMT"}]]]></ResponseHeaders>
+    </StaticWebAssetEndpoint>
+    <StaticWebAssetEndpoint Include="_content/PixelSolution/favicon1.png">
+      <AssetFile>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\favicon1.png'))</AssetFile>
+      <Selectors><![CDATA[[]]]></Selectors>
+      <EndpointProperties><![CDATA[[{"Name":"integrity","Value":"sha256-a6ueiyJrfSANwY2QVO2nwAggyo1bz2vU9WrDLtucmyY="}]]]></EndpointProperties>
+      <ResponseHeaders><![CDATA[[{"Name":"Accept-Ranges","Value":"bytes"},{"Name":"Cache-Control","Value":"max-age=3600, must-revalidate"},{"Name":"Content-Length","Value":"179856"},{"Name":"Content-Type","Value":"image/png"},{"Name":"ETag","Value":"\u0022a6ueiyJrfSANwY2QVO2nwAggyo1bz2vU9WrDLtucmyY=\u0022"},{"Name":"Last-Modified","Value":"Tue, 26 Aug 2025 11:00:29 GMT"}]]]></ResponseHeaders>
+    </StaticWebAssetEndpoint>
+    <StaticWebAssetEndpoint Include="_content/PixelSolution/favicon2.png">
+      <AssetFile>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\favicon2.png'))</AssetFile>
+      <Selectors><![CDATA[[]]]></Selectors>
+      <EndpointProperties><![CDATA[[{"Name":"integrity","Value":"sha256-mCKnvkmym\u002BDm/0KFG/hJyd2v3C\u002BAF1wMU5sSH73Rqdo="}]]]></EndpointProperties>
+      <ResponseHeaders><![CDATA[[{"Name":"Accept-Ranges","Value":"bytes"},{"Name":"Cache-Control","Value":"max-age=3600, must-revalidate"},{"Name":"Content-Length","Value":"52365"},{"Name":"Content-Type","Value":"image/png"},{"Name":"ETag","Value":"\u0022mCKnvkmym\u002BDm/0KFG/hJyd2v3C\u002BAF1wMU5sSH73Rqdo=\u0022"},{"Name":"Last-Modified","Value":"Tue, 26 Aug 2025 10:59:34 GMT"}]]]></ResponseHeaders>
+    </StaticWebAssetEndpoint>
+    <StaticWebAssetEndpoint Include="_content/PixelSolution/favicon2.w6n4j7mbgf.png">
+      <AssetFile>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\favicon2.png'))</AssetFile>
+      <Selectors><![CDATA[[]]]></Selectors>
+      <EndpointProperties><![CDATA[[{"Name":"fingerprint","Value":"w6n4j7mbgf"},{"Name":"integrity","Value":"sha256-mCKnvkmym\u002BDm/0KFG/hJyd2v3C\u002BAF1wMU5sSH73Rqdo="},{"Name":"label","Value":"_content/PixelSolution/favicon2.png"}]]]></EndpointProperties>
+      <ResponseHeaders><![CDATA[[{"Name":"Accept-Ranges","Value":"bytes"},{"Name":"Cache-Control","Value":"max-age=31536000, immutable"},{"Name":"Content-Length","Value":"52365"},{"Name":"Content-Type","Value":"image/png"},{"Name":"ETag","Value":"\u0022mCKnvkmym\u002BDm/0KFG/hJyd2v3C\u002BAF1wMU5sSH73Rqdo=\u0022"},{"Name":"Last-Modified","Value":"Tue, 26 Aug 2025 10:59:34 GMT"}]]]></ResponseHeaders>
+    </StaticWebAssetEndpoint>
     <StaticWebAssetEndpoint Include="_content/PixelSolution/js/dashboard.js">
       <AssetFile>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\js\dashboard.js'))</AssetFile>
       <Selectors><![CDATA[[]]]></Selectors>

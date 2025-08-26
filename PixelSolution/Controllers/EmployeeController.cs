@@ -627,6 +627,17 @@ namespace PixelSolution.Controllers
             {
                 var currentUserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
                 
+                _logger.LogInformation("📤 Employee {UserId} sending message to {ToUserId}: {Content}", 
+                    currentUserId, request.ToUserId, request.Content);
+
+                // Validate input
+                if (request.ToUserId <= 0 || string.IsNullOrWhiteSpace(request.Content))
+                {
+                    _logger.LogWarning("Invalid message data: ToUserId={ToUserId}, Content={Content}", 
+                        request.ToUserId, request.Content);
+                    return Json(new { success = false, message = "Invalid message data" });
+                }
+
                 var message = new Message
                 {
                     FromUserId = currentUserId,
@@ -634,19 +645,32 @@ namespace PixelSolution.Controllers
                     Subject = request.Subject ?? "",
                     Content = request.Content,
                     MessageType = request.MessageType ?? "General",
-                    SentDate = DateTime.Now,
+                    SentDate = DateTime.UtcNow,
                     IsRead = false
                 };
 
+                _logger.LogInformation("💾 Adding message to database: {MessageId}", message.MessageId);
                 _context.Messages.Add(message);
-                await _context.SaveChangesAsync();
+                
+                var saveResult = await _context.SaveChangesAsync();
+                _logger.LogInformation("✅ Database save result: {SaveResult} rows affected. MessageId: {MessageId}", 
+                    saveResult, message.MessageId);
 
-                return Json(new { success = true, messageId = message.MessageId });
+                // Verify the message was saved
+                var savedMessage = await _context.Messages.FindAsync(message.MessageId);
+                if (savedMessage == null)
+                {
+                    _logger.LogError("❌ Message was not found in database after save!");
+                    return Json(new { success = false, message = "Failed to save message" });
+                }
+
+                _logger.LogInformation("🎉 Message successfully saved with ID: {MessageId}", savedMessage.MessageId);
+                return Json(new { success = true, messageId = savedMessage.MessageId });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error sending quick message for employee");
-                return Json(new { success = false, message = "Error sending message" });
+                _logger.LogError(ex, "❌ Error sending quick message for employee");
+                return Json(new { success = false, message = "Error sending message: " + ex.Message });
             }
         }
 
@@ -873,6 +897,50 @@ namespace PixelSolution.Controllers
             {
                 _logger.LogError(ex, "Error getting user online status for userId: {UserId}", userId);
                 return Json(new { success = false, message = "Error getting user status" });
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> CheckNewMessages(int lastMessageId = 0)
+        {
+            try
+            {
+                var currentUserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0");
+                
+                // Get new messages since lastMessageId
+                var newMessages = await _context.Messages
+                    .Where(m => m.ToUserId == currentUserId && m.MessageId > lastMessageId)
+                    .OrderBy(m => m.SentDate)
+                    .Select(m => new
+                    {
+                        m.MessageId,
+                        m.FromUserId,
+                        m.Content,
+                        m.Subject,
+                        m.SentDate,
+                        m.IsRead,
+                        SenderName = m.FromUser.FirstName + " " + m.FromUser.LastName,
+                        SenderInitials = (m.FromUser.FirstName.Substring(0, 1) + m.FromUser.LastName.Substring(0, 1)).ToUpper()
+                    })
+                    .ToListAsync();
+
+                // Get total unread count
+                var unreadCount = await _context.Messages
+                    .Where(m => m.ToUserId == currentUserId && !m.IsRead)
+                    .CountAsync();
+
+                return Json(new 
+                { 
+                    success = true, 
+                    newMessages = newMessages,
+                    unreadCount = unreadCount,
+                    hasNewMessages = newMessages.Any()
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error checking new messages for employee");
+                return Json(new { success = false, message = "Error checking messages" });
             }
         }
     }

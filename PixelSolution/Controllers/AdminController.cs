@@ -6228,8 +6228,56 @@ namespace PixelSolution.Controllers
             }
         }
 
+
+        [HttpGet]
+        public async Task<IActionResult> CheckNewMessages(int lastMessageId = 0)
+        {
+            try
+            {
+                var currentUserId = GetCurrentUserId();
+                
+                var newMessages = await _context.Messages
+                    .Where(m => m.ToUserId == currentUserId && m.MessageId > lastMessageId)
+                    .OrderBy(m => m.SentDate)
+                    .Select(m => new MessageViewModel
+                    {
+                        MessageId = m.MessageId,
+                        FromUserId = m.FromUserId,
+                        ToUserId = m.ToUserId,
+                        Subject = m.Subject,
+                        Content = m.Content,
+                        MessageType = m.MessageType,
+                        SentDate = m.SentDate,
+                        ReadDate = m.ReadDate,
+                        IsRead = m.IsRead,
+                        FromUserName = m.FromUser.FirstName + " " + m.FromUser.LastName,
+                        ToUserName = m.ToUser.FirstName + " " + m.ToUser.LastName,
+                        FormattedSentDate = m.SentDate.ToString("MMM dd, yyyy HH:mm"),
+                        IsFromCurrentUser = false
+                    })
+                    .ToListAsync();
+
+                var unreadCount = await _context.Messages
+                    .Where(m => m.ToUserId == currentUserId && !m.IsRead)
+                    .CountAsync();
+
+                return Json(new { 
+                    success = true, 
+                    hasNewMessages = newMessages.Any(),
+                    newMessages = newMessages,
+                    unreadCount = unreadCount
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error checking new messages for admin");
+                return Json(new { success = false, message = "Error checking messages" });
+            }
+        }
+
         #endregion
     }
+
 
     // Request model for department assignment
     public class AssignDepartmentsRequest

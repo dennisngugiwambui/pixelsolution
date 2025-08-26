@@ -3,6 +3,9 @@ wwwroot\css\login.css
 wwwroot\css\sales.css
 wwwroot\css\site.css
 wwwroot\favicon.ico
+wwwroot\favicon.jpg
+wwwroot\favicon1.png
+wwwroot\favicon2.png
 wwwroot\js\dashboard.js
 wwwroot\js\login.js
 wwwroot\js\sales.js

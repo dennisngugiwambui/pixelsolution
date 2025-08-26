@@ -1,7 +1,7 @@
 @model PixelSolution.ViewModels.MessagesPageViewModel
 @{
     ViewData["Title"] = "Messages - PixelSolution";
-    Layout = "_AdminLayout";
+    Layout = "_EmployeeLayout";
 }
 
 @section Styles {
@@ -22,320 +22,6 @@
             --gray-700: #374151;
             --gray-800: #1f2937;
             --gray-900: #111827;
-        }
-
-        /* Sidebar */
-        .sidebar {
-            position: fixed;
-            left: 0;
-            top: 0;
-            width: 280px;
-            height: 100vh;
-            background: var(--gray-900);
-            color: white;
-            overflow-y: auto;
-            z-index: 1000;
-            transition: all 0.3s ease;
-        }
-
-        .sidebar-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.5);
-            z-index: 999;
-            opacity: 0;
-            visibility: hidden;
-            transition: all 0.3s ease;
-        }
-
-            .sidebar-overlay.show {
-                opacity: 1;
-                visibility: visible;
-            }
-
-        .main-content {
-            margin-left: 280px;
-            width: calc(100% - 280px);
-            transition: all 0.3s ease;
-            min-height: 100vh;
-        }
-
-        /* Sidebar States */
-        .sidebar.collapsed {
-            width: 80px;
-        }
-
-            .sidebar.collapsed + .main-content {
-                margin-left: 80px;
-                width: calc(100% - 80px);
-            }
-
-        .sidebar.hidden {
-            transform: translateX(-100%);
-        }
-
-            .sidebar.hidden + .main-content {
-                margin-left: 0;
-                width: 100%;
-            }
-
-        /* Mobile */
-        @@media (max-width: 1024px) {
-            .sidebar {
-                transform: translateX(-100%);
-                z-index: 1050;
-            }
-
-            .sidebar.open {
-                transform: translateX(0);
-            }
-
-            .main-content {
-                margin-left: 0 !important;
-                width: 100% !important;
-            }
-        }
-
-        /* Sidebar Content */
-        .sidebar-header {
-            padding: 2rem 1.5rem;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .logo-container {
-            display: flex;
-            align-items: center;
-            margin-bottom: 1.5rem;
-        }
-
-        .logo-icon {
-            width: 40px;
-            height: 40px;
-            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-right: 1rem;
-            font-size: 1.2rem;
-        }
-
-        .logo-text {
-            font-size: 1.5rem;
-            font-weight: 700;
-        }
-
-        .user-info {
-            display: flex;
-            align-items: center;
-        }
-
-        .user-avatar {
-            width: 48px;
-            height: 48px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #6366f1, var(--primary));
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: 600;
-            margin-right: 1rem;
-        }
-
-        .user-details h4 {
-            font-size: 1rem;
-            font-weight: 600;
-            margin: 0 0 0.25rem 0;
-        }
-
-        .user-details p {
-            font-size: 0.875rem;
-            color: rgba(255, 255, 255, 0.7);
-            margin: 0;
-        }
-
-        /* Navigation */
-        .nav-menu {
-            padding: 1rem 0;
-        }
-
-        .nav-section {
-            margin-bottom: 2rem;
-        }
-
-        .nav-section-title {
-            padding: 0 1.5rem;
-            font-size: 0.75rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: rgba(255, 255, 255, 0.5);
-            margin-bottom: 0.5rem;
-        }
-
-        .nav-item {
-            margin-bottom: 0.25rem;
-        }
-
-        .nav-link {
-            display: flex;
-            align-items: center;
-            padding: 0.75rem 1.5rem;
-            color: rgba(255, 255, 255, 0.8);
-            text-decoration: none;
-            transition: all 0.3s ease;
-            position: relative;
-        }
-
-            .nav-link:hover {
-                background: rgba(255, 255, 255, 0.05);
-                color: white;
-            }
-
-            .nav-link.active {
-                background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-                color: white;
-            }
-
-            .nav-link i {
-                width: 20px;
-                margin-right: 0.75rem;
-                text-align: center;
-            }
-
-        .nav-badge {
-            background: var(--danger);
-            color: white;
-            border-radius: 50%;
-            width: 18px;
-            height: 18px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.7rem;
-            font-weight: 600;
-            margin-left: auto;
-        }
-
-        /* Header */
-        .header {
-            background: white;
-            border-bottom: 1px solid var(--gray-200);
-            padding: 1rem 1.5rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-
-        .header-left {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-
-        .sidebar-toggle {
-            background: none;
-            border: none;
-            font-size: 1.25rem;
-            color: var(--gray-600);
-            cursor: pointer;
-            padding: 0.5rem;
-            border-radius: 8px;
-            transition: all 0.3s ease;
-        }
-
-            .sidebar-toggle:hover {
-                background: var(--gray-100);
-                color: var(--gray-700);
-            }
-
-        .page-title {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: var(--gray-900);
-            margin: 0;
-        }
-
-        .header-right {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-
-        .search-container {
-            position: relative;
-        }
-
-        .search-input {
-            padding: 0.5rem 0.75rem 0.5rem 2.5rem;
-            border: 1px solid var(--gray-300);
-            border-radius: 8px;
-            font-size: 0.875rem;
-            width: 300px;
-            transition: all 0.3s ease;
-        }
-
-            .search-input:focus {
-                outline: none;
-                border-color: var(--primary);
-                box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
-            }
-
-        .search-icon {
-            position: absolute;
-            left: 0.75rem;
-            top: 50%;
-            transform: translateY(-50%);
-            color: var(--gray-600);
-        }
-
-        .header-actions {
-            display: flex;
-            gap: 0.5rem;
-        }
-
-        .action-btn {
-            padding: 0.5rem;
-            border: none;
-            border-radius: 8px;
-            background: var(--gray-50);
-            color: var(--gray-600);
-            cursor: pointer;
-            transition: all 0.3s ease;
-            position: relative;
-        }
-
-            .action-btn:hover {
-                background: var(--gray-200);
-                color: var(--gray-700);
-            }
-
-        .notification-badge {
-            position: absolute;
-            top: -4px;
-            right: -4px;
-            background: var(--danger);
-            color: white;
-            border-radius: 50%;
-            width: 18px;
-            height: 18px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 0.7rem;
-            font-weight: 600;
-        }
-
-        /* Dashboard Content */
-        .dashboard-content {
-            padding: 1.5rem;
         }
 
         .messages-container {
@@ -945,7 +631,7 @@
 <!-- Sidebar Overlay -->
 <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
-<!-- Sidebar -->
+<!-- Employee Sidebar -->
 <div class="sidebar" id="sidebar">
     <div class="sidebar-header">
         <div class="logo-container">
@@ -976,6 +662,7 @@
                 <a href="@Url.Action("Sales", "Employee")" class="nav-link">
                     <i class="fas fa-shopping-cart"></i>
                     Sales
+                    <span class="nav-badge" id="salesCount">0</span>
                 </a>
             </div>
         </div>
@@ -986,18 +673,19 @@
                 <a href="@Url.Action("Messages", "Employee")" class="nav-link active">
                     <i class="fas fa-envelope"></i>
                     Messages
-                    @if (Model.UnreadCount > 0)
-                    {
-                        <span class="nav-badge" id="unreadMessagesCount">@Model.UnreadCount</span>
-                    }
+                    <span class="nav-badge" id="unreadMessagesCount">@Model.UnreadCount</span>
                 </a>
             </div>
         </div>
 
-       
-
         <div class="nav-section">
             <div class="nav-section-title">Account</div>
+            <div class="nav-item">
+                <a href="@Url.Action("Settings", "Employee")" class="nav-link">
+                    <i class="fas fa-cog"></i>
+                    Settings
+                </a>
+            </div>
             <div class="nav-item">
                 <a href="@Url.Action("LogoutGet", "Auth")" class="nav-link">
                     <i class="fas fa-sign-out-alt"></i>
@@ -1007,6 +695,7 @@
         </div>
     </nav>
 </div>
+
 
 <!-- Main Content -->
 <div class="main-content" id="mainContent">
@@ -1182,6 +871,14 @@
                                     </div>
                                 </div>
                             }
+                        }
+                        else
+                        {
+                            <div style="text-align: center; padding: 2rem; color: #64748b;">
+                                <i class="fas fa-comment-dots" style="font-size: 2rem; margin-bottom: 1rem; opacity: 0.3;"></i>
+                                <p>No messages in this conversation yet</p>
+                                <p style="font-size: 0.9rem; opacity: 0.7;">Start the conversation by sending a message below</p>
+                            </div>
                         }
                     </div>
 
@@ -1588,7 +1285,13 @@
                 </div>
 
                 <div class="messages-container-inner" id="messagesContainer">
-                    ${messagesHtml}
+                    ${messagesHtml || `
+                        <div style="text-align: center; padding: 2rem; color: #64748b;">
+                            <i class="fas fa-comment-dots" style="font-size: 2rem; margin-bottom: 1rem; opacity: 0.3;"></i>
+                            <p>No messages in this conversation yet</p>
+                            <p style="font-size: 0.9rem; opacity: 0.7;">Start the conversation by sending a message below</p>
+                        </div>
+                    `}
                 </div>
 
                 <div class="message-input-area">
@@ -1635,7 +1338,25 @@
                 </div>
             `;
 
-            messagesContainer.insertAdjacentHTML('beforeend', messageHtml);
+            // Insert message in chronological order
+            const existingMessages = messagesContainer.querySelectorAll('.message-bubble');
+            const messageDate = new Date(message.sentDate);
+            let inserted = false;
+            
+            for (let i = 0; i < existingMessages.length; i++) {
+                const existingMessageId = existingMessages[i].getAttribute('data-message-id');
+                // If we find a message with a higher ID, insert before it
+                if (parseInt(existingMessageId) > message.messageId) {
+                    existingMessages[i].insertAdjacentHTML('beforebegin', messageHtml);
+                    inserted = true;
+                    break;
+                }
+            }
+            
+            // If not inserted yet, append to end
+            if (!inserted) {
+                messagesContainer.insertAdjacentHTML('beforeend', messageHtml);
+            }
         }
 
         // New Message Modal
@@ -1861,14 +1582,18 @@
                 const result = await response.json();
                 
                 if (result.success) {
-                    addMessageToUI({
-                        messageId: result.messageId || Date.now(),
-                        content: content,
-                        subject: 'Quick Message',
-                        sentDate: new Date().toISOString(),
-                        isFromCurrentUser: true,
-                        isRead: false
-                    });
+                    // Only add if message doesn't already exist
+                    const messageId = result.messageId || Date.now();
+                    if (!document.querySelector(`[data-message-id="${messageId}"]`)) {
+                        addMessageToUI({
+                            messageId: messageId,
+                            content: content,
+                            subject: 'Quick Message',
+                            sentDate: new Date().toISOString(),
+                            isFromCurrentUser: true,
+                            isRead: false
+                        });
+                    }
                     
                     messageInput.value = '';
                     messageInput.style.height = 'auto';
@@ -1985,63 +1710,121 @@
                 const chatArea = document.getElementById('chatArea');
                 const contactsSidebar = document.getElementById('contactsSidebar');
 
-                if (contactsSidebar) contactsSidebar.classList.remove('hidden');
-                if (chatArea) chatArea.classList.remove('active');
+        if (contactsSidebar) contactsSidebar.classList.remove('hidden');
+        if (chatArea) chatArea.classList.remove('active');
+    }
+}
+
+// Message Polling for Real-time Updates
+function startMessagePolling() {
+    if (messagePollingInterval) {
+        clearInterval(messagePollingInterval);
+    }
+
+    messagePollingInterval = setInterval(async function() {
+        if (currentSelectedUserId > 0) {
+            try {
+                const response = await fetch(`/Employee/CheckNewMessages?lastMessageId=${getLastMessageId()}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success) {
+                        // Update unread count
+                        updateUnreadCountDisplay(data.unreadCount);
+                        
+                        // Add new messages to UI
+                        if (data.hasNewMessages && data.newMessages) {
+                            data.newMessages.forEach(message => {
+                                if (!document.querySelector(`[data-message-id="${message.messageId}"]`)) {
+                                    addMessageToUI({
+                                        messageId: message.messageId,
+                                        content: message.content,
+                                        subject: message.subject,
+                                        sentDate: message.sentDate,
+                                        isFromCurrentUser: message.fromUserId === currentUserId,
+                                        isRead: message.isRead
+                                    });
+                                    scrollToBottom();
+
+                                    // Show notification for received messages
+                                    if (message.fromUserId !== currentUserId) {
+                                        showToast(`New message from ${message.senderName}`, 'info');
+                                        // Auto-mark as read when conversation is open
+                                        setTimeout(() => markMessagesAsRead(message.fromUserId), 1000);
+                                    }
+                                }
+                            });
+                            refreshConversationsList();
+                        }
+                        
+                        // Update read status for existing messages
+                        updateMessageReadStatus();
+                    }
+                } catch (error) {
+                    console.error('Error polling for new messages:', error);
+                }
             }
         }
+    }, 3000); // Poll every 3 seconds
 
-        // Message Polling for Real-time Updates
-        function startMessagePolling() {
-            if (messagePollingInterval) {
-                clearInterval(messagePollingInterval);
-            }
-
-            messagePollingInterval = setInterval(async () => {
-                if (currentSelectedUserId > 0 && !isLoadingConversation) {
-                    try {
-                        const response = await fetch(`/Employee/CheckNewMessages?userId=${currentSelectedUserId}&lastCheck=${lastMessageCheck.toISOString()}`);
-                        if (response.ok) {
-                            const data = await response.json();
-                            if (data.success && data.newMessages && data.newMessages.length > 0) {
-                                data.newMessages.forEach(message => {
-                                    if ((message.fromUserId === currentSelectedUserId && message.toUserId === currentUserId) ||
-                                        (message.fromUserId === currentUserId && message.toUserId === currentSelectedUserId)) {
-                                        addMessageToUI({
-                                            messageId: message.messageId,
-                                            content: message.content,
-                                            subject: message.subject,
-                                            sentDate: message.sentDate,
-                                            isFromCurrentUser: message.fromUserId === currentUserId,
-                                            isRead: message.isRead
-                                        });
-                                        scrollToBottom();
-
-                                        // Show notification for received messages
-                                        if (message.fromUserId !== currentUserId) {
-                                            showToast(`New message from ${message.fromUserName}`, 'info');
-                                        }
-                                    }
-                                });
-                                lastMessageCheck = new Date();
-                                refreshConversationsList();
+    // Update message read status in real-time
+    function updateMessageReadStatus() {
+        const sentMessages = document.querySelectorAll('.message-bubble.sent');
+        sentMessages.forEach(async (messageElement) => {
+            const messageId = messageElement.getAttribute('data-message-id');
+            const statusIcon = messageElement.querySelector('.message-status i');
+            
+            if (statusIcon && statusIcon.classList.contains('fa-check') && !statusIcon.classList.contains('fa-check-double')) {
+                // Check if this message has been read
+                try {
+                    const response = await fetch(`/Employee/GetConversationMessages/${currentSelectedUserId}`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.success && data.messages) {
+                            const message = data.messages.find(m => m.messageId == messageId);
+                            if (message && message.isRead) {
+                                statusIcon.classList.remove('fa-check');
+                                statusIcon.classList.add('fa-check-double');
+                                statusIcon.style.color = '#10b981';
+                                statusIcon.title = 'Read';
                             }
                         }
-                    } catch (error) {
-                        console.error('Error polling for new messages:', error);
                     }
+                } catch (error) {
+                    console.error('Error checking message read status:', error);
                 }
-            }, 3000); // Poll every 3 seconds
-        }
+            }
+        });
+    }
 
-        // Mark Messages as Read
-        async function markMessagesAsRead(userId) {
-            try {
-                const response = await fetch('/Employee/MarkMessagesAsRead', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'RequestVerificationToken': getAntiForgeryToken()
-                    },
+    // Update unread count display
+    function updateUnreadCountDisplay(count) {
+        const badge = document.getElementById('notificationBadge');
+        const sidebarBadge = document.getElementById('unreadMessagesCount');
+
+        if (count > 0) {
+            if (badge) {
+                badge.textContent = count;
+                badge.style.display = 'flex';
+            }
+            if (sidebarBadge) {
+                sidebarBadge.textContent = count;
+                sidebarBadge.style.display = 'flex';
+            }
+        } else {
+            if (badge) badge.style.display = 'none';
+            if (sidebarBadge) sidebarBadge.style.display = 'none';
+        }
+    }
+
+    // Mark Messages as Read
+    async function markMessagesAsRead(userId) {
+        try {
+            const response = await fetch('/Employee/MarkMessagesAsRead', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': getAntiForgeryToken()
+                },
                     body: JSON.stringify({ UserId: userId })
                 });
 
@@ -2195,6 +1978,7 @@
         window.sendMessage = sendMessage;
         window.showContactsList = showContactsList;
         window.selectConversation = selectConversation;
+        window.loadConversation = loadConversation;
     </script>
 }
 
