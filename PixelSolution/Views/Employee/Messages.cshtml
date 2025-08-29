@@ -1709,10 +1709,23 @@
             if (window.innerWidth <= 768) {
                 const chatArea = document.getElementById('chatArea');
                 const contactsSidebar = document.getElementById('contactsSidebar');
+                
+                if (contactsSidebar) contactsSidebar.classList.remove('hidden');
+                if (chatArea) chatArea.classList.remove('active');
+            }
+        }
 
-        if (contactsSidebar) contactsSidebar.classList.remove('hidden');
-        if (chatArea) chatArea.classList.remove('active');
-    }
+// Get Last Message ID
+function getLastMessageId() {
+    const messages = document.querySelectorAll('.message-bubble[data-message-id]');
+    if (messages.length === 0) return 0;
+    
+    let maxId = 0;
+    messages.forEach(msg => {
+        const id = parseInt(msg.getAttribute('data-message-id'));
+        if (id > maxId) maxId = id;
+    });
+    return maxId;
 }
 
 // Message Polling for Real-time Updates
@@ -1759,65 +1772,67 @@ function startMessagePolling() {
                         // Update read status for existing messages
                         updateMessageReadStatus();
                     }
-                } catch (error) {
-                    console.error('Error polling for new messages:', error);
                 }
+            } catch (error) {
+                console.error('Error polling for new messages:', error);
             }
         }
     }, 3000); // Poll every 3 seconds
 
-    // Update message read status in real-time
-    function updateMessageReadStatus() {
-        const sentMessages = document.querySelectorAll('.message-bubble.sent');
-        sentMessages.forEach(async (messageElement) => {
-            const messageId = messageElement.getAttribute('data-message-id');
-            const statusIcon = messageElement.querySelector('.message-status i');
-            
-            if (statusIcon && statusIcon.classList.contains('fa-check') && !statusIcon.classList.contains('fa-check-double')) {
-                // Check if this message has been read
-                try {
-                    const response = await fetch(`/Employee/GetConversationMessages/${currentSelectedUserId}`);
-                    if (response.ok) {
-                        const data = await response.json();
-                        if (data.success && data.messages) {
-                            const message = data.messages.find(m => m.messageId == messageId);
-                            if (message && message.isRead) {
-                                statusIcon.classList.remove('fa-check');
-                                statusIcon.classList.add('fa-check-double');
-                                statusIcon.style.color = '#10b981';
-                                statusIcon.title = 'Read';
+}
+
+        // Update message read status in real-time
+        function updateMessageReadStatus() {
+            const sentMessages = document.querySelectorAll('.message-bubble.sent');
+            sentMessages.forEach(async (messageElement) => {
+                const messageId = messageElement.getAttribute('data-message-id');
+                const statusIcon = messageElement.querySelector('.message-status i');
+                
+                if (statusIcon && statusIcon.classList.contains('fa-check') && !statusIcon.classList.contains('fa-check-double')) {
+                    // Check if this message has been read
+                    try {
+                        const response = await fetch(`/Employee/GetConversationMessages/${currentSelectedUserId}`);
+                        if (response.ok) {
+                            const data = await response.json();
+                            if (data.success && data.messages) {
+                                const message = data.messages.find(m => m.messageId == messageId);
+                                if (message && message.isRead) {
+                                    statusIcon.classList.remove('fa-check');
+                                    statusIcon.classList.add('fa-check-double');
+                                    statusIcon.style.color = '#10b981';
+                                    statusIcon.title = 'Read';
+                                }
                             }
                         }
+                    } catch (error) {
+                        console.error('Error checking message read status:', error);
                     }
-                } catch (error) {
-                    console.error('Error checking message read status:', error);
                 }
-            }
-        });
-    }
-
-    // Update unread count display
-    function updateUnreadCountDisplay(count) {
-        const badge = document.getElementById('notificationBadge');
-        const sidebarBadge = document.getElementById('unreadMessagesCount');
-
-        if (count > 0) {
-            if (badge) {
-                badge.textContent = count;
-                badge.style.display = 'flex';
-            }
-            if (sidebarBadge) {
-                sidebarBadge.textContent = count;
-                sidebarBadge.style.display = 'flex';
-            }
-        } else {
-            if (badge) badge.style.display = 'none';
-            if (sidebarBadge) sidebarBadge.style.display = 'none';
+            });
         }
-    }
 
-    // Mark Messages as Read
-    async function markMessagesAsRead(userId) {
+        // Update unread count display
+        function updateUnreadCountDisplay(count) {
+            const badge = document.getElementById('notificationBadge');
+            const sidebarBadge = document.getElementById('unreadMessagesCount');
+
+            if (count > 0) {
+                if (badge) {
+                    badge.textContent = count;
+                    badge.style.display = 'flex';
+                }
+                if (sidebarBadge) {
+                    sidebarBadge.textContent = count;
+                    sidebarBadge.style.display = 'flex';
+                }
+            } else {
+                if (badge) badge.style.display = 'none';
+                if (sidebarBadge) sidebarBadge.style.display = 'none';
+            }
+        }
+
+        // Mark Messages as Read
+        async function markMessagesAsRead(userId) {
         try {
             const response = await fetch('/Employee/MarkMessagesAsRead', {
                 method: 'POST',
