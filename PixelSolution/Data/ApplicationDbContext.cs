@@ -27,6 +27,7 @@ namespace PixelSolution.Data
         // Customer Management
         public DbSet<Customer> Customers { get; set; }
         public DbSet<CustomerCart> CustomerCarts { get; set; }
+        public DbSet<CustomerWishlist> CustomerWishlists { get; set; }
         public DbSet<ProductRequest> ProductRequests { get; set; }
         public DbSet<ProductRequestItem> ProductRequestItems { get; set; }
         
@@ -424,6 +425,28 @@ namespace PixelSolution.Data
             modelBuilder.Entity<EmployeePayment>()
                 .Property(ep => ep.NetPay)
                 .HasColumnType("decimal(18,2)");
+
+            // Configure CustomerWishlist relationships
+            modelBuilder.Entity<CustomerWishlist>()
+                .HasOne(cw => cw.Customer)
+                .WithMany(c => c.WishlistItems)
+                .HasForeignKey(cw => cw.CustomerId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<CustomerWishlist>()
+                .HasOne(cw => cw.Product)
+                .WithMany()
+                .HasForeignKey(cw => cw.ProductId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<CustomerWishlist>()
+                .Property(cw => cw.AddedAt)
+                .HasDefaultValueSql("GETUTCDATE()");
+
+            // Unique constraint to prevent duplicate wishlist items
+            modelBuilder.Entity<CustomerWishlist>()
+                .HasIndex(cw => new { cw.CustomerId, cw.ProductId })
+                .IsUnique();
         }
     }
 }

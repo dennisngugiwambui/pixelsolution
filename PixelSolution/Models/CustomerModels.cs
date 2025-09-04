@@ -39,6 +39,7 @@ namespace PixelSolution.Models
 
         // Navigation Properties
         public virtual ICollection<CustomerCart> CartItems { get; set; } = new List<CustomerCart>();
+        public virtual ICollection<CustomerWishlist> WishlistItems { get; set; } = new List<CustomerWishlist>();
         public virtual ICollection<ProductRequest> ProductRequests { get; set; } = new List<ProductRequest>();
 
         // Computed Properties
@@ -147,6 +148,27 @@ namespace PixelSolution.Models
         // Navigation Properties
         [ForeignKey("ProductRequestId")]
         public virtual ProductRequest ProductRequest { get; set; } = null!;
+
+        [ForeignKey("ProductId")]
+        public virtual Product Product { get; set; } = null!;
+    }
+
+    public class CustomerWishlist
+    {
+        [Key]
+        public int WishlistId { get; set; }
+
+        public int CustomerId { get; set; }
+        public int ProductId { get; set; }
+
+        public DateTime AddedAt { get; set; } = DateTime.UtcNow;
+
+        [StringLength(500)]
+        public string Notes { get; set; } = string.Empty;
+
+        // Navigation Properties
+        [ForeignKey("CustomerId")]
+        public virtual Customer Customer { get; set; } = null!;
 
         [ForeignKey("ProductId")]
         public virtual Product Product { get; set; } = null!;
