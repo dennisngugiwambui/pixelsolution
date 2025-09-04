@@ -6276,6 +6276,452 @@ namespace PixelSolution.Controllers
         }
 
         #endregion
+
+        #region Purchase Requests Management
+
+        public async Task<IActionResult> PurchaseRequests()
+        {
+            try
+            {
+                var requests = await _context.ProductRequests
+                    .Include(pr => pr.Customer)
+                    .Include(pr => pr.ProductRequestItems)
+                        .ThenInclude(pri => pri.Product)
+                    .Include(pr => pr.ProcessedByUser)
+                    .OrderByDescending(pr => pr.RequestDate)
+                    .ToListAsync();
+
+                return View(requests);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading purchase requests");
+                ViewBag.ErrorMessage = "Error loading purchase requests.";
+                return View(new List<ProductRequest>());
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetPurchaseRequestDetails(int id)
+        {
+            try
+            {
+                var request = await _context.ProductRequests
+                    .Include(pr => pr.Customer)
+                    .Include(pr => pr.ProductRequestItems)
+                        .ThenInclude(pri => pri.Product)
+                            .ThenInclude(p => p.Category)
+                    .Include(pr => pr.ProcessedByUser)
+                    .FirstOrDefaultAsync(pr => pr.ProductRequestId == id);
+
+                if (request == null)
+                {
+                    return NotFound(new { message = "Purchase request not found" });
+                }
+
+                var result = new
+                {
+                    request.ProductRequestId,
+                    request.RequestNumber,
+                    request.TotalAmount,
+                    request.Status,
+                    request.PaymentStatus,
+                    request.Notes,
+                    request.DeliveryAddress,
+                    request.RequestDate,
+                    request.DeliveryDate,
+                    request.CompletedDate,
+                    Customer = new
+                    {
+                        request.Customer.CustomerId,
+                        request.Customer.FirstName,
+                        request.Customer.LastName,
+                        request.Customer.Email,
+                        request.Customer.Phone,
+                        request.Customer.Address,
+                        request.Customer.City,
+                        FullName = request.Customer.FullName
+                    },
+                    ProcessedBy = request.ProcessedByUser != null ? new
+                    {
+                        request.ProcessedByUser.UserId,
+                        request.ProcessedByUser.FirstName,
+                        request.ProcessedByUser.LastName,
+                        FullName = $"{request.ProcessedByUser.FirstName} {request.ProcessedByUser.LastName}"
+                    } : null,
+                    Items = request.ProductRequestItems.Select(item => new
+                    {
+                        item.ProductRequestItemId,
+                        item.ProductId,
+                        item.Quantity,
+                        item.UnitPrice,
+                        item.TotalPrice,
+                        item.Status,
+                        Product = new
+                        {
+                            item.Product.ProductId,
+                            item.Product.Name,
+                            item.Product.SKU,
+                            item.Product.ImageUrl,
+                            item.Product.StockQuantity,
+                            Category = item.Product.Category?.Name
+                        }
+                    }).ToList()
+                };
+
+                return Json(new { success = true, data = result });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting purchase request details for ID {RequestId}", id);
+                return StatusCode(500, new { message = "Error loading request details" });
+            }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> UpdatePurchaseRequestStatus([FromBody] UpdateRequestStatusRequest request)
+        {
+            try
+            {
+                var purchaseRequest = await _context.ProductRequests
+                    .Include(pr => pr.Customer)
+                    .Include(pr => pr.ProductRequestItems)
+                        .ThenInclude(pri => pri.Product)
+                    .FirstOrDefaultAsync(pr => pr.ProductRequestId == request.RequestId);
+
+                if (purchaseRequest == null)
+                {
+                    return NotFound(new { message = "Purchase request not found" });
+                }
+
+                var currentUserId = GetCurrentUserId();
+                var oldStatus = purchaseRequest.Status;
+
+                purchaseRequest.Status = request.NewStatus;
+                purchaseRequest.ProcessedByUserId = currentUserId;
+
+                if (request.NewStatus == "Delivered")
+                {
+                    purchaseRequest.DeliveryDate = DateTime.UtcNow;
+                    
+                    // Reserve stock for delivered items
+                    foreach (var item in purchaseRequest.ProductRequestItems)
+                    {
+                        if (item.Product.StockQuantity >= item.Quantity)
+                        {
+                            item.Product.StockQuantity -= item.Quantity;
+                            item.Status = "Fulfilled";
+                        }
+                        else
+                        {
+                            item.Status = "OutOfStock";
+                        }
+                    }
+                }
+                else if (request.NewStatus == "Cancelled")
+                {
+                    foreach (var item in purchaseRequest.ProductRequestItems)
+                    {
+                        item.Status = "Cancelled";
+                    }
+                }
+
+                await _context.SaveChangesAsync();
+
+                // Log the activity
+                await _activityLogService.LogActivityAsync(
+                    currentUserId,
+                    "Purchase Request Update",
+                    $"Updated purchase request {purchaseRequest.RequestNumber} status from {oldStatus} to {request.NewStatus}",
+                    "ProductRequest",
+                    purchaseRequest.ProductRequestId
+                );
+
+                return Json(new { success = true, message = $"Request status updated to {request.NewStatus}" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating purchase request status");
+                return StatusCode(500, new { message = "Error updating request status" });
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetCustomerInfo(int customerId)
+        {
+            try
+            {
+                var customer = await _context.Customers
+                    .Include(c => c.CartItems)
+                        .ThenInclude(ci => ci.Product)
+                    .Include(c => c.WishlistItems)
+                        .ThenInclude(wi => wi.Product)
+                    .Include(c => c.ProductRequests)
+                    .FirstOrDefaultAsync(c => c.CustomerId == customerId);
+
+                if (customer == null)
+                {
+                    return NotFound(new { message = "Customer not found" });
+                }
+
+                var result = new
+                {
+                    customer.CustomerId,
+                    customer.FirstName,
+                    customer.LastName,
+                    customer.Email,
+                    customer.Phone,
+                    customer.Address,
+                    customer.City,
+                    customer.Status,
+                    customer.CreatedAt,
+                    FullName = customer.FullName,
+                    TotalOrders = customer.ProductRequests.Count,
+                    CompletedOrders = customer.ProductRequests.Count(pr => pr.Status == "Completed"),
+                    TotalSpent = customer.ProductRequests.Where(pr => pr.Status == "Completed").Sum(pr => pr.TotalAmount),
+                    CartItemsCount = customer.CartItems.Count,
+                    WishlistItemsCount = customer.WishlistItems.Count
+                };
+
+                return Json(new { success = true, data = result });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting customer info for ID {CustomerId}", customerId);
+                return StatusCode(500, new { message = "Error loading customer information" });
+            }
+        }
+
+        public async Task<IActionResult> CartManagement()
+        {
+            try
+            {
+                var cartsWithCustomers = await _context.CustomerCarts
+                    .Include(cc => cc.Customer)
+                    .Include(cc => cc.Product)
+                        .ThenInclude(p => p.Category)
+                    .OrderByDescending(cc => cc.AddedAt)
+                    .GroupBy(cc => cc.CustomerId)
+                    .Select(g => new
+                    {
+                        Customer = g.First().Customer,
+                        Items = g.ToList(),
+                        TotalItems = g.Sum(cc => cc.Quantity),
+                        TotalValue = g.Sum(cc => cc.TotalPrice),
+                        LastUpdated = g.Max(cc => cc.UpdatedAt)
+                    })
+                    .ToListAsync();
+
+                return View(cartsWithCustomers);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading cart management");
+                ViewBag.ErrorMessage = "Error loading cart data.";
+                return View(new List<object>());
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetCustomerCartDetails(int customerId)
+        {
+            try
+            {
+                var cartItems = await _context.CustomerCarts
+                    .Include(cc => cc.Product)
+                        .ThenInclude(p => p.Category)
+                    .Where(cc => cc.CustomerId == customerId)
+                    .OrderByDescending(cc => cc.AddedAt)
+                    .Select(cc => new
+                    {
+                        cc.CartId,
+                        cc.Quantity,
+                        cc.UnitPrice,
+                        cc.TotalPrice,
+                        cc.AddedAt,
+                        cc.UpdatedAt,
+                        Product = new
+                        {
+                            cc.Product.ProductId,
+                            cc.Product.Name,
+                            cc.Product.SKU,
+                            cc.Product.ImageUrl,
+                            cc.Product.StockQuantity,
+                            cc.Product.SellingPrice,
+                            Category = cc.Product.Category.Name
+                        }
+                    })
+                    .ToListAsync();
+
+                return Json(new { success = true, data = cartItems });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting customer cart details for ID {CustomerId}", customerId);
+                return StatusCode(500, new { message = "Error loading cart details" });
+            }
+        }
+
+        public async Task<IActionResult> WishlistManagement()
+        {
+            try
+            {
+                var wishlistsWithCustomers = await _context.CustomerWishlists
+                    .Include(cw => cw.Customer)
+                    .Include(cw => cw.Product)
+                        .ThenInclude(p => p.Category)
+                    .OrderByDescending(cw => cw.AddedAt)
+                    .GroupBy(cw => cw.CustomerId)
+                    .Select(g => new
+                    {
+                        Customer = g.First().Customer,
+                        Items = g.ToList(),
+                        TotalItems = g.Count(),
+                        OldestItem = g.Min(cw => cw.AddedAt),
+                        NewestItem = g.Max(cw => cw.AddedAt),
+                        ItemsOlderThan30Days = g.Count(cw => cw.AddedAt < DateTime.UtcNow.AddDays(-30)),
+                        ItemsOlderThan60Days = g.Count(cw => cw.AddedAt < DateTime.UtcNow.AddDays(-60)),
+                        ItemsOlderThan1Year = g.Count(cw => cw.AddedAt < DateTime.UtcNow.AddYears(-1))
+                    })
+                    .ToListAsync();
+
+                return View(wishlistsWithCustomers);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading wishlist management");
+                ViewBag.ErrorMessage = "Error loading wishlist data.";
+                return View(new List<object>());
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetCustomerWishlistDetails(int customerId)
+        {
+            try
+            {
+                var wishlistItems = await _context.CustomerWishlists
+                    .Include(cw => cw.Product)
+                        .ThenInclude(p => p.Category)
+                    .Where(cw => cw.CustomerId == customerId)
+                    .OrderByDescending(cw => cw.AddedAt)
+                    .Select(cw => new
+                    {
+                        cw.WishlistId,
+                        cw.AddedAt,
+                        cw.Notes,
+                        DaysOld = (int)(DateTime.UtcNow - cw.AddedAt).TotalDays,
+                        Product = new
+                        {
+                            cw.Product.ProductId,
+                            cw.Product.Name,
+                            cw.Product.SKU,
+                            cw.Product.ImageUrl,
+                            cw.Product.StockQuantity,
+                            cw.Product.SellingPrice,
+                            Category = cw.Product.Category.Name
+                        }
+                    })
+                    .ToListAsync();
+
+                return Json(new { success = true, data = wishlistItems });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting customer wishlist details for ID {CustomerId}", customerId);
+                return StatusCode(500, new { message = "Error loading wishlist details" });
+            }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> ClearOldWishlistItems([FromBody] ClearWishlistRequest request)
+        {
+            try
+            {
+                DateTime cutoffDate = request.TimeFilter switch
+                {
+                    "30days" => DateTime.UtcNow.AddDays(-30),
+                    "60days" => DateTime.UtcNow.AddDays(-60),
+                    "1year" => DateTime.UtcNow.AddYears(-1),
+                    _ => throw new ArgumentException("Invalid time filter")
+                };
+
+                var itemsToRemove = await _context.CustomerWishlists
+                    .Where(cw => cw.AddedAt < cutoffDate)
+                    .ToListAsync();
+
+                if (itemsToRemove.Any())
+                {
+                    _context.CustomerWishlists.RemoveRange(itemsToRemove);
+                    await _context.SaveChangesAsync();
+
+                    // Log the activity
+                    var currentUserId = GetCurrentUserId();
+                    await _activityLogService.LogActivityAsync(
+                        currentUserId,
+                        "Wishlist Cleanup",
+                        $"Removed {itemsToRemove.Count} wishlist items older than {request.TimeFilter}",
+                        "CustomerWishlist",
+                        null
+                    );
+                }
+
+                return Json(new { success = true, message = $"Removed {itemsToRemove.Count} old wishlist items" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error clearing old wishlist items");
+                return StatusCode(500, new { message = "Error clearing wishlist items" });
+            }
+        }
+
+        [HttpDelete]
+        public async Task<IActionResult> RemoveCartItem(int cartId)
+        {
+            try
+            {
+                var cartItem = await _context.CustomerCarts.FindAsync(cartId);
+                if (cartItem == null)
+                {
+                    return NotFound(new { message = "Cart item not found" });
+                }
+
+                _context.CustomerCarts.Remove(cartItem);
+                await _context.SaveChangesAsync();
+
+                return Json(new { success = true, message = "Cart item removed successfully" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error removing cart item {CartId}", cartId);
+                return StatusCode(500, new { message = "Error removing cart item" });
+            }
+        }
+
+        [HttpDelete]
+        public async Task<IActionResult> RemoveWishlistItem(int wishlistId)
+        {
+            try
+            {
+                var wishlistItem = await _context.CustomerWishlists.FindAsync(wishlistId);
+                if (wishlistItem == null)
+                {
+                    return NotFound(new { message = "Wishlist item not found" });
+                }
+
+                _context.CustomerWishlists.Remove(wishlistItem);
+                await _context.SaveChangesAsync();
+
+                return Json(new { success = true, message = "Wishlist item removed successfully" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error removing wishlist item {WishlistId}", wishlistId);
+                return StatusCode(500, new { message = "Error removing wishlist item" });
+            }
+        }
+
+        #endregion
     }
 
 
@@ -6309,5 +6755,17 @@ namespace PixelSolution.Controllers
         public int Quantity { get; set; }
         public decimal UnitPrice { get; set; }
         public decimal Total { get; set; }
+    }
+
+    // Request models for Purchase Requests Management
+    public class UpdateRequestStatusRequest
+    {
+        public int RequestId { get; set; }
+        public string NewStatus { get; set; } = string.Empty;
+    }
+
+    public class ClearWishlistRequest
+    {
+        public string TimeFilter { get; set; } = string.Empty; // "30days", "60days", "1year"
     }
 }

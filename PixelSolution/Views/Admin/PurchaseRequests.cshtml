@@ -1,0 +1,741 @@
+@model List<PixelSolution.Models.ProductRequest>
+@{
+    ViewData["Title"] = "Purchase Requests - PixelSolution";
+    Layout = "_AdminLayout";
+}
+
+@section Styles {
+    <style>
+        .purchase-requests-container {
+            display: flex;
+            height: calc(100vh - 120px);
+            background: #f8fafc;
+        }
+
+        .requests-sidebar {
+            width: 350px;
+            background: white;
+            border-right: 1px solid #e5e7eb;
+            overflow-y: auto;
+            flex-shrink: 0;
+        }
+
+        .requests-main {
+            flex: 1;
+            padding: 1.5rem;
+            overflow-y: auto;
+        }
+
+        .sidebar-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid #e5e7eb;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .sidebar-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .sidebar-subtitle {
+            font-size: 0.875rem;
+            opacity: 0.9;
+            margin: 0.25rem 0 0 0;
+        }
+
+        .request-item {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid #f3f4f6;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .request-item:hover {
+            background: #f9fafb;
+        }
+
+        .request-item.active {
+            background: #eff6ff;
+            border-right: 3px solid #3b82f6;
+        }
+
+        .request-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .request-number {
+            font-weight: 600;
+            color: #1f2937;
+            font-size: 0.875rem;
+        }
+
+        .request-status {
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.375rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .status-pending {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .status-processing {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .status-delivered {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .status-cancelled {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .request-customer {
+            color: #6b7280;
+            font-size: 0.875rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .request-amount {
+            font-weight: 600;
+            color: #059669;
+            font-size: 0.875rem;
+        }
+
+        .request-date {
+            color: #9ca3af;
+            font-size: 0.75rem;
+        }
+
+        .details-panel {
+            background: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .details-header {
+            padding: 1.5rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .details-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .details-subtitle {
+            opacity: 0.9;
+            margin: 0.5rem 0 0 0;
+        }
+
+        .details-content {
+            padding: 1.5rem;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .info-card {
+            background: #f9fafb;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            border: 1px solid #e5e7eb;
+        }
+
+        .info-label {
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.25rem;
+        }
+
+        .info-value {
+            font-size: 0.875rem;
+            color: #1f2937;
+            font-weight: 500;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 2rem;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 0.5rem 1rem;
+            border-radius: 0.375rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2563eb;
+        }
+
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #059669;
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #4b5563;
+        }
+
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        .items-table th,
+        .items-table td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .items-table th {
+            background: #f9fafb;
+            font-weight: 600;
+            color: #374151;
+            font-size: 0.875rem;
+        }
+
+        .items-table td {
+            font-size: 0.875rem;
+        }
+
+        .product-image {
+            width: 40px;
+            height: 40px;
+            object-fit: cover;
+            border-radius: 0.25rem;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: #6b7280;
+        }
+
+        .empty-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+
+        .customer-info-modal .modal-content {
+            max-width: 600px;
+        }
+
+        .customer-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .stat-item {
+            background: #f8fafc;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #1f2937;
+        }
+
+        .stat-label {
+            font-size: 0.875rem;
+            color: #6b7280;
+            margin-top: 0.25rem;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1024px) {
+            .purchase-requests-container {
+                flex-direction: column;
+                height: auto;
+            }
+
+            .requests-sidebar {
+                width: 100%;
+                max-height: 300px;
+            }
+
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+            }
+
+            .btn {
+                justify-content: center;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .requests-main {
+                padding: 1rem;
+            }
+
+            .details-header,
+            .details-content {
+                padding: 1rem;
+            }
+
+            .items-table {
+                font-size: 0.75rem;
+            }
+
+            .items-table th,
+            .items-table td {
+                padding: 0.5rem;
+            }
+
+            .customer-stats {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+}
+
+<div class="purchase-requests-container">
+    <!-- Sidebar -->
+    <div class="requests-sidebar">
+        <div class="sidebar-header">
+            <h2 class="sidebar-title">Purchase Requests</h2>
+            <p class="sidebar-subtitle">@Model.Count total requests</p>
+        </div>
+
+        <div class="requests-list">
+            @if (Model.Any())
+            {
+                @foreach (var request in Model)
+                {
+                    <div class="request-item" data-request-id="@request.ProductRequestId">
+                        <div class="request-header">
+                            <span class="request-number">#@request.RequestNumber</span>
+                            <span class="request-status status-@request.Status.ToLower()">@request.Status</span>
+                        </div>
+                        <div class="request-customer">@request.Customer.FullName</div>
+                        <div class="request-amount">KSh @request.TotalAmount.ToString("N0")</div>
+                        <div class="request-date">@request.RequestDate.ToString("MMM dd, yyyy")</div>
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="empty-state">
+                    <div class="empty-icon">
+                        <i class="fas fa-inbox"></i>
+                    </div>
+                    <p>No purchase requests found</p>
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="requests-main">
+        <div id="request-details" class="details-panel" style="display: none;">
+            <div class="details-header">
+                <h1 class="details-title" id="details-title">Select a Request</h1>
+                <p class="details-subtitle" id="details-subtitle">Choose a request from the sidebar to view details</p>
+            </div>
+
+            <div class="details-content">
+                <div class="action-buttons" id="action-buttons" style="display: none;">
+                    <button class="btn btn-success" onclick="updateRequestStatus('Delivered')">
+                        <i class="fas fa-truck"></i>
+                        Mark as Delivered
+                    </button>
+                    <button class="btn btn-danger" onclick="updateRequestStatus('Cancelled')">
+                        <i class="fas fa-times"></i>
+                        Cancel Order
+                    </button>
+                    <button class="btn btn-secondary" onclick="viewCustomerInfo()">
+                        <i class="fas fa-user"></i>
+                        Customer Info
+                    </button>
+                </div>
+
+                <div id="request-info" style="display: none;">
+                    <div class="info-grid">
+                        <div class="info-card">
+                            <div class="info-label">Request Number</div>
+                            <div class="info-value" id="info-request-number">-</div>
+                        </div>
+                        <div class="info-card">
+                            <div class="info-label">Status</div>
+                            <div class="info-value" id="info-status">-</div>
+                        </div>
+                        <div class="info-card">
+                            <div class="info-label">Payment Status</div>
+                            <div class="info-value" id="info-payment-status">-</div>
+                        </div>
+                        <div class="info-card">
+                            <div class="info-label">Total Amount</div>
+                            <div class="info-value" id="info-total-amount">-</div>
+                        </div>
+                        <div class="info-card">
+                            <div class="info-label">Request Date</div>
+                            <div class="info-value" id="info-request-date">-</div>
+                        </div>
+                        <div class="info-card">
+                            <div class="info-label">Delivery Date</div>
+                            <div class="info-value" id="info-delivery-date">-</div>
+                        </div>
+                        <div class="info-card">
+                            <div class="info-label">Customer</div>
+                            <div class="info-value" id="info-customer">-</div>
+                        </div>
+                        <div class="info-card">
+                            <div class="info-label">Processed By</div>
+                            <div class="info-value" id="info-processed-by">-</div>
+                        </div>
+                    </div>
+
+                    <div class="info-card">
+                        <div class="info-label">Delivery Address</div>
+                        <div class="info-value" id="info-delivery-address">-</div>
+                    </div>
+
+                    <div class="info-card" style="margin-top: 1rem;">
+                        <div class="info-label">Notes</div>
+                        <div class="info-value" id="info-notes">-</div>
+                    </div>
+
+                    <h3 style="margin-top: 2rem; margin-bottom: 1rem; color: #374151;">Order Items</h3>
+                    <table class="items-table">
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th>SKU</th>
+                                <th>Quantity</th>
+                                <th>Unit Price</th>
+                                <th>Total</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="items-tbody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div id="default-state" class="empty-state">
+            <div class="empty-icon">
+                <i class="fas fa-file-invoice"></i>
+            </div>
+            <h3>Select a Purchase Request</h3>
+            <p>Choose a request from the sidebar to view its details and manage its status.</p>
+        </div>
+    </div>
+</div>
+
+<!-- Customer Info Modal -->
+<div class="modal fade customer-info-modal" id="customerInfoModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Customer Information</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Personal Information</h6>
+                        <p><strong>Name:</strong> <span id="modal-customer-name">-</span></p>
+                        <p><strong>Email:</strong> <span id="modal-customer-email">-</span></p>
+                        <p><strong>Phone:</strong> <span id="modal-customer-phone">-</span></p>
+                        <p><strong>Address:</strong> <span id="modal-customer-address">-</span></p>
+                        <p><strong>City:</strong> <span id="modal-customer-city">-</span></p>
+                        <p><strong>Status:</strong> <span id="modal-customer-status">-</span></p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Customer Statistics</h6>
+                        <div class="customer-stats">
+                            <div class="stat-item">
+                                <div class="stat-value" id="modal-total-orders">0</div>
+                                <div class="stat-label">Total Orders</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value" id="modal-completed-orders">0</div>
+                                <div class="stat-label">Completed Orders</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value" id="modal-total-spent">KSh 0</div>
+                                <div class="stat-label">Total Spent</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value" id="modal-cart-items">0</div>
+                                <div class="stat-label">Cart Items</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let currentRequestId = null;
+        let currentCustomerId = null;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add click handlers to request items
+            document.querySelectorAll('.request-item').forEach(item => {
+                item.addEventListener('click', function() {
+                    const requestId = this.dataset.requestId;
+                    selectRequest(requestId);
+                });
+            });
+        });
+
+        function selectRequest(requestId) {
+            // Update active state
+            document.querySelectorAll('.request-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            document.querySelector(`[data-request-id="${requestId}"]`).classList.add('active');
+
+            // Load request details
+            loadRequestDetails(requestId);
+        }
+
+        async function loadRequestDetails(requestId) {
+            try {
+                const response = await fetch(`/Admin/GetPurchaseRequestDetails?id=${requestId}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    currentRequestId = requestId;
+                    currentCustomerId = result.data.Customer.CustomerId;
+                    displayRequestDetails(result.data);
+                } else {
+                    showToast('Error loading request details', 'error');
+                }
+            } catch (error) {
+                console.error('Error loading request details:', error);
+                showToast('Error loading request details', 'error');
+            }
+        }
+
+        function displayRequestDetails(data) {
+            // Show details panel
+            document.getElementById('default-state').style.display = 'none';
+            document.getElementById('request-details').style.display = 'block';
+            document.getElementById('action-buttons').style.display = 'flex';
+            document.getElementById('request-info').style.display = 'block';
+
+            // Update header
+            document.getElementById('details-title').textContent = `Request #${data.RequestNumber}`;
+            document.getElementById('details-subtitle').textContent = `${data.Customer.FullName} • ${new Date(data.RequestDate).toLocaleDateString()}`;
+
+            // Update info cards
+            document.getElementById('info-request-number').textContent = data.RequestNumber;
+            document.getElementById('info-status').textContent = data.Status;
+            document.getElementById('info-payment-status').textContent = data.PaymentStatus;
+            document.getElementById('info-total-amount').textContent = `KSh ${data.TotalAmount.toLocaleString()}`;
+            document.getElementById('info-request-date').textContent = new Date(data.RequestDate).toLocaleDateString();
+            document.getElementById('info-delivery-date').textContent = data.DeliveryDate ? new Date(data.DeliveryDate).toLocaleDateString() : 'Not delivered';
+            document.getElementById('info-customer').textContent = data.Customer.FullName;
+            document.getElementById('info-processed-by').textContent = data.ProcessedBy ? data.ProcessedBy.FullName : 'Not processed';
+            document.getElementById('info-delivery-address').textContent = data.DeliveryAddress || 'No address provided';
+            document.getElementById('info-notes').textContent = data.Notes || 'No notes';
+
+            // Update items table
+            const tbody = document.getElementById('items-tbody');
+            tbody.innerHTML = '';
+
+            data.Items.forEach(item => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            ${item.Product.ImageUrl ? `<img src="${item.Product.ImageUrl}" class="product-image" alt="${item.Product.Name}">` : '<div class="product-image" style="background: #f3f4f6; display: flex; align-items: center; justify-content: center;"><i class="fas fa-image text-muted"></i></div>'}
+                            <div>
+                                <div style="font-weight: 500;">${item.Product.Name}</div>
+                                <div style="font-size: 0.75rem; color: #6b7280;">${item.Product.Category || 'No category'}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td>${item.Product.SKU}</td>
+                    <td>${item.Quantity}</td>
+                    <td>KSh ${item.UnitPrice.toLocaleString()}</td>
+                    <td>KSh ${item.TotalPrice.toLocaleString()}</td>
+                    <td><span class="request-status status-${item.Status.toLowerCase()}">${item.Status}</span></td>
+                `;
+                tbody.appendChild(row);
+            });
+
+            // Update action buttons based on status
+            updateActionButtons(data.Status);
+        }
+
+        function updateActionButtons(status) {
+            const buttons = document.getElementById('action-buttons');
+            const deliverBtn = buttons.querySelector('.btn-success');
+            const cancelBtn = buttons.querySelector('.btn-danger');
+
+            if (status === 'Delivered' || status === 'Cancelled') {
+                deliverBtn.style.display = 'none';
+                cancelBtn.style.display = 'none';
+            } else {
+                deliverBtn.style.display = 'inline-flex';
+                cancelBtn.style.display = 'inline-flex';
+            }
+        }
+
+        async function updateRequestStatus(newStatus) {
+            if (!currentRequestId) return;
+
+            const confirmMessage = newStatus === 'Delivered' 
+                ? 'Are you sure you want to mark this request as delivered? This will update inventory levels.'
+                : 'Are you sure you want to cancel this request? This action cannot be undone.';
+
+            if (!confirm(confirmMessage)) return;
+
+            try {
+                const response = await fetch('/Admin/UpdatePurchaseRequestStatus', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        RequestId: currentRequestId,
+                        NewStatus: newStatus
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast(result.message, 'success');
+                    // Reload the page to reflect changes
+                    window.location.reload();
+                } else {
+                    showToast(result.message || 'Error updating request status', 'error');
+                }
+            } catch (error) {
+                console.error('Error updating request status:', error);
+                showToast('Error updating request status', 'error');
+            }
+        }
+
+        async function viewCustomerInfo() {
+            if (!currentCustomerId) return;
+
+            try {
+                const response = await fetch(`/Admin/GetCustomerInfo?customerId=${currentCustomerId}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    displayCustomerInfo(result.data);
+                    const modal = new bootstrap.Modal(document.getElementById('customerInfoModal'));
+                    modal.show();
+                } else {
+                    showToast('Error loading customer information', 'error');
+                }
+            } catch (error) {
+                console.error('Error loading customer info:', error);
+                showToast('Error loading customer information', 'error');
+            }
+        }
+
+        function displayCustomerInfo(customer) {
+            document.getElementById('modal-customer-name').textContent = customer.FullName;
+            document.getElementById('modal-customer-email').textContent = customer.Email;
+            document.getElementById('modal-customer-phone').textContent = customer.Phone;
+            document.getElementById('modal-customer-address').textContent = customer.Address || 'No address';
+            document.getElementById('modal-customer-city').textContent = customer.City || 'No city';
+            document.getElementById('modal-customer-status').textContent = customer.Status;
+            document.getElementById('modal-total-orders').textContent = customer.TotalOrders;
+            document.getElementById('modal-completed-orders').textContent = customer.CompletedOrders;
+            document.getElementById('modal-total-spent').textContent = `KSh ${customer.TotalSpent.toLocaleString()}`;
+            document.getElementById('modal-cart-items').textContent = customer.CartItemsCount;
+        }
+
+        function showToast(message, type = 'info') {
+            // Create toast element
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
+                    <span>${message}</span>
+                </div>
+            `;
+
+            document.body.appendChild(toast);
+
+            // Show toast
+            setTimeout(() => toast.classList.add('show'), 100);
+
+            // Hide and remove toast
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => document.body.removeChild(toast), 300);
+            }, 3000);
+        }
+    </script>
+}
