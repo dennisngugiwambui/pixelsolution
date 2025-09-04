@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
 namespace PixelSolution.Models
 {
@@ -74,6 +75,7 @@ namespace PixelSolution.Models
 
         // Navigation Properties
         [ForeignKey("CustomerId")]
+        [JsonIgnore]
         public virtual Customer Customer { get; set; } = null!;
 
         [ForeignKey("ProductId")]
@@ -115,6 +117,7 @@ namespace PixelSolution.Models
 
         // Navigation Properties
         [ForeignKey("CustomerId")]
+        [JsonIgnore]
         public virtual Customer Customer { get; set; } = null!;
 
         [ForeignKey("ProcessedByUserId")]
@@ -168,6 +171,7 @@ namespace PixelSolution.Models
 
         // Navigation Properties
         [ForeignKey("CustomerId")]
+        [JsonIgnore]
         public virtual Customer Customer { get; set; } = null!;
 
         [ForeignKey("ProductId")]

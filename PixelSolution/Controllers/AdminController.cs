@@ -6283,21 +6283,59 @@ namespace PixelSolution.Controllers
         {
             try
             {
-                var requests = await _context.ProductRequests
-                    .Include(pr => pr.Customer)
-                    .Include(pr => pr.ProductRequestItems)
-                        .ThenInclude(pri => pri.Product)
-                    .Include(pr => pr.ProcessedByUser)
-                    .OrderByDescending(pr => pr.RequestDate)
-                    .ToListAsync();
+                // Try the most basic query first to see if we can access the table
+                _logger.LogInformation("Starting PurchaseRequests query...");
+                
+                var purchaseRequests = await _context.PurchaseRequests.ToListAsync();
+                _logger.LogInformation("Basic query returned {Count} purchase requests", purchaseRequests.Count);
 
-                return View(requests);
+                // Create simple ViewModels with basic data only
+                var purchaseRequestViewModels = purchaseRequests.Select(request => new PurchaseRequestViewModel
+                {
+                    RequestId = request.PurchaseRequestId,
+                    PurchaseRequestId = request.PurchaseRequestId,
+                    RequestNumber = request.RequestNumber,
+                    CustomerId = request.UserId,
+                    CustomerName = "User " + request.UserId, // Simplified for now
+                    CustomerEmail = "",
+                    CustomerPhone = "",
+                    RequestDate = request.RequestDate,
+                    Status = request.Status,
+                    TotalAmount = request.TotalAmount,
+                    TotalItems = 0, // Will be calculated later
+                    TotalQuantity = 0, // Will be calculated later
+                    ProcessedDate = request.ApprovedDate,
+                    DeliveredDate = null,
+                    DeliveryDate = null,
+                    CompletedDate = null,
+                    ProcessedByUserName = "",
+                    Notes = request.Notes,
+                    DeliveryAddress = "",
+                    PaymentStatus = "Pending",
+                    DaysAgo = (int)(DateTime.Now - request.RequestDate).TotalDays,
+                    FormattedRequestDate = request.RequestDate.ToString("MMM dd, yyyy"),
+                    FormattedProcessedDate = request.ApprovedDate?.ToString("MMM dd, yyyy") ?? "",
+                    FormattedDeliveredDate = "",
+                    FormattedCompletedDate = "",
+                    FormattedTotalAmount = request.TotalAmount.ToString("C"),
+                    StatusBadgeClass = GetStatusBadgeClass(request.Status),
+                    CanProcess = request.Status == "Pending",
+                    CanDeliver = request.Status == "Processing",
+                    CanComplete = request.Status == "Delivered",
+                    HasStockIssues = false,
+                    Priority = "Normal",
+                    PriorityBadgeClass = GetPriorityBadgeClass("Normal"),
+                    Items = new List<PurchaseRequestItemViewModel>() // Empty for now
+                }).ToList();
+
+                _logger.LogInformation("Mapped {Count} purchase request ViewModels", purchaseRequestViewModels.Count);
+                return View(purchaseRequestViewModels);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error loading purchase requests");
-                ViewBag.ErrorMessage = "Error loading purchase requests.";
-                return View(new List<ProductRequest>());
+                _logger.LogError(ex, "Error loading purchase requests: {Message}", ex.Message);
+                ViewBag.ErrorMessage = "Error loading purchase requests: " + ex.Message;
+                return View(new List<PurchaseRequestViewModel>());
             }
         }
 
@@ -6306,67 +6344,43 @@ namespace PixelSolution.Controllers
         {
             try
             {
-                var request = await _context.ProductRequests
-                    .Include(pr => pr.Customer)
-                    .Include(pr => pr.ProductRequestItems)
+                var request = await _context.PurchaseRequests
+                    .Include(pr => pr.User)
+                    .Include(pr => pr.PurchaseRequestItems)
                         .ThenInclude(pri => pri.Product)
                             .ThenInclude(p => p.Category)
-                    .Include(pr => pr.ProcessedByUser)
-                    .FirstOrDefaultAsync(pr => pr.ProductRequestId == id);
+                    .FirstOrDefaultAsync(pr => pr.PurchaseRequestId == id);
 
                 if (request == null)
                 {
-                    return NotFound(new { message = "Purchase request not found" });
+                    return Json(new { success = false, message = "Purchase request not found" });
                 }
 
                 var result = new
                 {
-                    request.ProductRequestId,
-                    request.RequestNumber,
-                    request.TotalAmount,
-                    request.Status,
-                    request.PaymentStatus,
-                    request.Notes,
-                    request.DeliveryAddress,
-                    request.RequestDate,
-                    request.DeliveryDate,
-                    request.CompletedDate,
-                    Customer = new
-                    {
-                        request.Customer.CustomerId,
-                        request.Customer.FirstName,
-                        request.Customer.LastName,
-                        request.Customer.Email,
-                        request.Customer.Phone,
-                        request.Customer.Address,
-                        request.Customer.City,
-                        FullName = request.Customer.FullName
-                    },
-                    ProcessedBy = request.ProcessedByUser != null ? new
-                    {
-                        request.ProcessedByUser.UserId,
-                        request.ProcessedByUser.FirstName,
-                        request.ProcessedByUser.LastName,
-                        FullName = $"{request.ProcessedByUser.FirstName} {request.ProcessedByUser.LastName}"
-                    } : null,
-                    Items = request.ProductRequestItems.Select(item => new
-                    {
-                        item.ProductRequestItemId,
-                        item.ProductId,
-                        item.Quantity,
-                        item.UnitPrice,
-                        item.TotalPrice,
-                        item.Status,
-                        Product = new
-                        {
-                            item.Product.ProductId,
-                            item.Product.Name,
-                            item.Product.SKU,
-                            item.Product.ImageUrl,
-                            item.Product.StockQuantity,
-                            Category = item.Product.Category?.Name
-                        }
-                    }).ToList()
+                    requestId = request.PurchaseRequestId,
+                    requestNumber = request.RequestNumber,
+                    status = request.Status,
+                    requestDate = request.RequestDate,
+                    totalAmount = request.TotalAmount,
+                    notes = request.Notes,
+                    processedDate = request.ApprovedDate,
+                    totalItems = request.PurchaseRequestItems?.Count ?? 0,
+                    customerName = request.User != null ? $"{request.User.FirstName} {request.User.LastName}" : "Unknown",
+                    customerEmail = request.User?.Email ?? "",
+                    customerPhone = request.User?.Phone,
+                    items = request.PurchaseRequestItems == null ? 
+                           new List<object>() : 
+                           request.PurchaseRequestItems.Select(item => new
+                           {
+                               productId = item.ProductId,
+                               productName = item.Product?.Name ?? "Unknown Product",
+                               categoryName = item.Product?.Category?.Name ?? "Unknown Category",
+                               quantity = item.Quantity,
+                               unitPrice = item.UnitPrice,
+                               totalPrice = item.TotalPrice,
+                               productImageUrl = item.Product?.ImageUrl
+                           }).Cast<object>().ToList()
                 };
 
                 return Json(new { success = true, data = result });
@@ -6374,76 +6388,162 @@ namespace PixelSolution.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting purchase request details for ID {RequestId}", id);
-                return StatusCode(500, new { message = "Error loading request details" });
+                return Json(new { success = false, message = "Error loading request details" });
             }
         }
 
         [HttpPost]
-        public async Task<IActionResult> UpdatePurchaseRequestStatus([FromBody] UpdateRequestStatusRequest request)
+        public async Task<IActionResult> UpdateRequestStatus(int requestId, string newStatus)
         {
             try
             {
-                var purchaseRequest = await _context.ProductRequests
-                    .Include(pr => pr.Customer)
-                    .Include(pr => pr.ProductRequestItems)
-                        .ThenInclude(pri => pri.Product)
-                    .FirstOrDefaultAsync(pr => pr.ProductRequestId == request.RequestId);
+                var purchaseRequest = await _context.PurchaseRequests
+                    .Include(pr => pr.User)
+                    .FirstOrDefaultAsync(pr => pr.PurchaseRequestId == requestId);
 
                 if (purchaseRequest == null)
                 {
-                    return NotFound(new { message = "Purchase request not found" });
+                    return Json(new { success = false, message = "Purchase request not found" });
                 }
 
-                var currentUserId = GetCurrentUserId();
                 var oldStatus = purchaseRequest.Status;
+                purchaseRequest.Status = newStatus;
 
-                purchaseRequest.Status = request.NewStatus;
-                purchaseRequest.ProcessedByUserId = currentUserId;
-
-                if (request.NewStatus == "Delivered")
+                // Update approval date if approved
+                if (newStatus == "Approved" && oldStatus != "Approved")
                 {
-                    purchaseRequest.DeliveryDate = DateTime.UtcNow;
-                    
-                    // Reserve stock for delivered items
-                    foreach (var item in purchaseRequest.ProductRequestItems)
-                    {
-                        if (item.Product.StockQuantity >= item.Quantity)
-                        {
-                            item.Product.StockQuantity -= item.Quantity;
-                            item.Status = "Fulfilled";
-                        }
-                        else
-                        {
-                            item.Status = "OutOfStock";
-                        }
-                    }
-                }
-                else if (request.NewStatus == "Cancelled")
-                {
-                    foreach (var item in purchaseRequest.ProductRequestItems)
-                    {
-                        item.Status = "Cancelled";
-                    }
+                    purchaseRequest.ApprovedDate = DateTime.UtcNow;
                 }
 
                 await _context.SaveChangesAsync();
 
-                // Log the activity
-                await _activityLogService.LogActivityAsync(
-                    currentUserId,
-                    "Purchase Request Update",
-                    $"Updated purchase request {purchaseRequest.RequestNumber} status from {oldStatus} to {request.NewStatus}",
-                    "ProductRequest",
-                    purchaseRequest.ProductRequestId
-                );
+                // Send email notification to customer
+                await SendStatusChangeEmail(purchaseRequest, oldStatus, newStatus);
 
-                return Json(new { success = true, message = $"Request status updated to {request.NewStatus}" });
+                _logger.LogInformation("Purchase request {RequestId} status updated from {OldStatus} to {NewStatus}", 
+                    requestId, oldStatus, newStatus);
+
+                return Json(new { success = true, message = "Status updated successfully" });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error updating purchase request status");
-                return StatusCode(500, new { message = "Error updating request status" });
+                _logger.LogError(ex, "Error updating request status");
+                return Json(new { success = false, message = "Error updating status" });
             }
+        }
+
+        private async Task SendStatusChangeEmail(PurchaseRequest request, string oldStatus, string newStatus)
+        {
+            try
+            {
+                if (request.User?.Email == null) return;
+
+                var subject = $"Purchase Request {request.RequestNumber} - Status Update";
+                var statusMessage = GetStatusMessage(newStatus);
+                var statusColor = GetStatusColor(newStatus);
+
+                var emailBody = $@"
+                    <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;'>
+                        <div style='background: linear-gradient(135deg, #3b82f6, #1e40af); color: white; padding: 2rem; text-align: center;'>
+                            <h1 style='margin: 0; font-size: 1.5rem;'>PixelSolution</h1>
+                            <p style='margin: 0.5rem 0 0 0; opacity: 0.9;'>Purchase Request Update</p>
+                        </div>
+                        
+                        <div style='padding: 2rem; background: white;'>
+                            <h2 style='color: #1e293b; margin-top: 0;'>Hello {request.User.FirstName},</h2>
+                            
+                            <p style='color: #64748b; line-height: 1.6;'>
+                                Your purchase request <strong>{request.RequestNumber}</strong> has been updated.
+                            </p>
+                            
+                            <div style='background: #f8fafc; border-radius: 8px; padding: 1.5rem; margin: 1.5rem 0;'>
+                                <div style='display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;'>
+                                    <span style='color: #64748b;'>Status Changed:</span>
+                                    <div>
+                                        <span style='background: #fee2e2; color: #991b1b; padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.875rem; margin-right: 0.5rem;'>{oldStatus}</span>
+                                        <span style='color: #64748b;'>→</span>
+                                        <span style='background: {statusColor}; color: white; padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.875rem; margin-left: 0.5rem;'>{newStatus}</span>
+                                    </div>
+                                </div>
+                                
+                                <div style='display: flex; justify-content: space-between; margin-bottom: 0.5rem;'>
+                                    <span style='color: #64748b;'>Request Number:</span>
+                                    <span style='font-weight: 600; color: #1e293b;'>{request.RequestNumber}</span>
+                                </div>
+                                
+                                <div style='display: flex; justify-content: space-between; margin-bottom: 0.5rem;'>
+                                    <span style='color: #64748b;'>Total Amount:</span>
+                                    <span style='font-weight: 600; color: #059669;'>KSh {request.TotalAmount:N0}</span>
+                                </div>
+                                
+                                <div style='display: flex; justify-content: space-between;'>
+                                    <span style='color: #64748b;'>Request Date:</span>
+                                    <span style='color: #1e293b;'>{request.RequestDate:MMM dd, yyyy}</span>
+                                </div>
+                            </div>
+                            
+                            <div style='background: {statusColor}; color: white; padding: 1rem; border-radius: 8px; margin: 1.5rem 0;'>
+                                <p style='margin: 0; font-weight: 500;'>{statusMessage}</p>
+                            </div>
+                            
+                            <p style='color: #64748b; line-height: 1.6;'>
+                                If you have any questions about your purchase request, please don't hesitate to contact our support team.
+                            </p>
+                        </div>
+                        
+                        <div style='background: #f8fafc; padding: 1rem; text-align: center; color: #64748b; font-size: 0.875rem;'>
+                            <p style='margin: 0;'>© 2024 PixelSolution. All rights reserved.</p>
+                        </div>
+                    </div>";
+
+                // Create internal message for notification
+                var message = new Message
+                {
+                    FromUserId = 1, // System user
+                    ToUserId = request.UserId,
+                    Subject = subject,
+                    Content = emailBody,
+                    SentDate = DateTime.UtcNow,
+                    IsRead = false,
+                    MessageType = "System"
+                };
+
+                _context.Messages.Add(message);
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation("Status change notification sent to user {UserId} for request {RequestNumber}", 
+                    request.UserId, request.RequestNumber);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error sending status change notification");
+            }
+        }
+
+        private string GetStatusMessage(string status)
+        {
+            return status.ToLower() switch
+            {
+                "approved" => "Great news! Your purchase request has been approved and is being processed.",
+                "shipped" => "Your order has been shipped and is on its way to you. You'll receive tracking information soon.",
+                "delivered" => "Your order has been delivered successfully. Thank you for your business!",
+                "completed" => "Your purchase request has been completed. We hope you're satisfied with your order.",
+                "declined" => "Unfortunately, your purchase request has been declined. Please contact support for more information.",
+                _ => "Your purchase request status has been updated."
+            };
+        }
+
+        private string GetStatusColor(string status)
+        {
+            return status.ToLower() switch
+            {
+                "approved" => "#10b981",
+                "shipped" => "#3b82f6",
+                "delivered" => "#059669",
+                "completed" => "#8b5cf6",
+                "declined" => "#ef4444",
+                _ => "#64748b"
+            };
         }
 
         [HttpGet]
@@ -6508,17 +6608,64 @@ namespace PixelSolution.Controllers
                         Items = g.ToList(),
                         TotalItems = g.Sum(cc => cc.Quantity),
                         TotalValue = g.Sum(cc => cc.TotalPrice),
-                        LastUpdated = g.Max(cc => cc.UpdatedAt)
+                        LastUpdated = g.Max(cc => cc.UpdatedAt) as DateTime?
                     })
+                    .Take(12) // Limit to 12 customers for pagination
                     .ToListAsync();
 
-                return View(cartsWithCustomers);
+                // Map to CartManagementViewModel
+                var cartViewModels = cartsWithCustomers.Select(cart => new CartManagementViewModel
+                {
+                    CartId = cart.Items.FirstOrDefault()?.CartId ?? 0,
+                    CustomerId = cart.Customer.CustomerId,
+                    CustomerName = $"{cart.Customer.FirstName} {cart.Customer.LastName}",
+                    CustomerEmail = cart.Customer.Email,
+                    CustomerPhone = cart.Customer.Phone,
+                    CreatedDate = cart.Items.Min(i => i.AddedAt),
+                    UpdatedDate = cart.LastUpdated,
+                    LastActivity = cart.LastUpdated ?? cart.Items.Min(i => i.AddedAt),
+                    Status = cart.Items.Any() ? "Active" : "Empty",
+                    TotalAmount = cart.TotalValue,
+                    TotalValue = cart.TotalValue,
+                    TotalItems = cart.Items.Count,
+                    TotalQuantity = cart.TotalItems,
+                    IsActive = cart.LastUpdated.HasValue && cart.LastUpdated >= DateTime.Now.AddDays(-7), // Active if updated within 7 days
+                    DaysInactive = cart.LastUpdated.HasValue ? (int)(DateTime.Now - cart.LastUpdated.Value).TotalDays : (int)(DateTime.Now - cart.Items.Min(i => i.AddedAt)).TotalDays,
+                    FormattedCreatedDate = cart.Items.Min(i => i.AddedAt).ToString("MMM dd, yyyy"),
+                    FormattedUpdatedDate = cart.LastUpdated?.ToString("MMM dd, yyyy") ?? "Never",
+                    FormattedTotalAmount = cart.TotalValue.ToString("C"),
+                    StatusBadgeClass = cart.Items.Any() ? "badge-success" : "badge-secondary",
+                    CanConvertToRequest = cart.Items.Any(),
+                    HasStockIssues = false, // Will be calculated based on product availability
+                    Items = cart.Items.Select(item => new CartItemViewModel
+                    {
+                        CartItemId = item.CartId,
+                        ProductId = item.ProductId,
+                        ProductName = item.Product.Name,
+                        ProductSKU = item.Product.SKU,
+                        ProductImageUrl = item.Product.ImageUrl,
+                        ProductImage = item.Product.ImageUrl,
+                        Quantity = item.Quantity,
+                        UnitPrice = item.Product.SellingPrice,
+                        TotalPrice = item.TotalPrice,
+                        AvailableStock = item.Product.StockQuantity,
+                        IsInStock = item.Product.StockQuantity >= item.Quantity,
+                        CategoryName = item.Product.Category?.Name ?? "Unknown",
+                        FormattedUnitPrice = item.Product.SellingPrice.ToString("C"),
+                        FormattedTotalPrice = item.TotalPrice.ToString("C"),
+                        StockStatus = item.Product.StockQuantity >= item.Quantity ? "In Stock" : "Low Stock",
+                        StockStatusClass = item.Product.StockQuantity >= item.Quantity ? "text-success" : "text-warning"
+                    }).ToList()
+                }).ToList();
+
+                _logger.LogInformation($"Found {cartViewModels.Count} customers with cart items");
+                return View(cartViewModels);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error loading cart management");
+                _logger.LogError(ex, "Error loading cart management: {Error}", ex.Message);
                 ViewBag.ErrorMessage = "Error loading cart data.";
-                return View(new List<object>());
+                return View(new List<CartManagementViewModel>());
             }
         }
 
@@ -6577,21 +6724,70 @@ namespace PixelSolution.Controllers
                         Customer = g.First().Customer,
                         Items = g.ToList(),
                         TotalItems = g.Count(),
+                        TotalValue = g.Sum(cw => cw.Product.SellingPrice),
                         OldestItem = g.Min(cw => cw.AddedAt),
                         NewestItem = g.Max(cw => cw.AddedAt),
                         ItemsOlderThan30Days = g.Count(cw => cw.AddedAt < DateTime.UtcNow.AddDays(-30)),
                         ItemsOlderThan60Days = g.Count(cw => cw.AddedAt < DateTime.UtcNow.AddDays(-60)),
                         ItemsOlderThan1Year = g.Count(cw => cw.AddedAt < DateTime.UtcNow.AddYears(-1))
                     })
+                    .Take(12) // Limit to 12 customers for pagination
                     .ToListAsync();
 
-                return View(wishlistsWithCustomers);
+                var wishlistViewModels = wishlistsWithCustomers.Select(wishlist => new WishlistManagementViewModel
+                {
+                    WishlistId = wishlist.Items.FirstOrDefault()?.WishlistId ?? 0,
+                    CustomerId = wishlist.Customer.CustomerId,
+                    CustomerName = $"{wishlist.Customer.FirstName} {wishlist.Customer.LastName}",
+                    CustomerEmail = wishlist.Customer.Email,
+                    CustomerPhone = wishlist.Customer.Phone,
+                    ProductId = wishlist.Items.FirstOrDefault()?.ProductId ?? 0,
+                    ProductName = wishlist.Items.FirstOrDefault()?.Product?.Name ?? "",
+                    ProductSKU = wishlist.Items.FirstOrDefault()?.Product?.SKU ?? "",
+                    ProductImage = wishlist.Items.FirstOrDefault()?.Product?.ImageUrl,
+                    SellingPrice = wishlist.Items.FirstOrDefault()?.Product?.SellingPrice ?? 0,
+                    StockQuantity = wishlist.Items.FirstOrDefault()?.Product?.StockQuantity ?? 0,
+                    InStock = (wishlist.Items.FirstOrDefault()?.Product?.StockQuantity ?? 0) > 0,
+                    CreatedAt = wishlist.OldestItem,
+                    LastActivity = wishlist.NewestItem,
+                    CategoryName = wishlist.Items.FirstOrDefault()?.Product?.Category?.Name ?? "Unknown",
+                    SupplierName = wishlist.Items.FirstOrDefault()?.Product?.Supplier?.CompanyName,
+                    FormattedPrice = (wishlist.Items.FirstOrDefault()?.Product?.SellingPrice ?? 0).ToString("C"),
+                    FormattedCreatedDate = wishlist.OldestItem.ToString("MMM dd, yyyy"),
+                    StockStatus = (wishlist.Items.FirstOrDefault()?.Product?.StockQuantity ?? 0) > 0 ? "In Stock" : "Out of Stock",
+                    StockStatusClass = (wishlist.Items.FirstOrDefault()?.Product?.StockQuantity ?? 0) > 0 ? "text-success" : "text-danger",
+                    DaysInWishlist = (int)(DateTime.Now - wishlist.OldestItem).TotalDays,
+                    DaysOld = (int)(DateTime.Now - wishlist.OldestItem).TotalDays,
+                    TotalItems = wishlist.TotalItems,
+                    TotalValue = wishlist.TotalValue,
+                    IsAvailable = (wishlist.Items.FirstOrDefault()?.Product?.StockQuantity ?? 0) > 0,
+                    CanAddToCart = (wishlist.Items.FirstOrDefault()?.Product?.StockQuantity ?? 0) > 0,
+                    Items = wishlist.Items.Select(item => new WishlistItemViewModel
+                    {
+                        WishlistId = item.WishlistId,
+                        ProductId = item.ProductId,
+                        ProductName = item.Product?.Name ?? "Unknown",
+                        ProductDescription = item.Product?.Description,
+                        ProductImage = item.Product?.ImageUrl,
+                        SellingPrice = item.Product?.SellingPrice ?? 0,
+                        StockQuantity = item.Product?.StockQuantity ?? 0,
+                        InStock = (item.Product?.StockQuantity ?? 0) > 0,
+                        CreatedAt = item.AddedAt,
+                        CategoryName = item.Product?.Category?.Name ?? "Unknown",
+                        FormattedPrice = (item.Product?.SellingPrice ?? 0).ToString("C"),
+                        StockStatus = (item.Product?.StockQuantity ?? 0) > 0 ? "In Stock" : "Out of Stock",
+                        CanAddToCart = (item.Product?.StockQuantity ?? 0) > 0
+                    }).ToList()
+                }).ToList();
+
+                _logger.LogInformation("Found {Count} customers with wishlist items", wishlistViewModels.Count);
+                return View(wishlistViewModels);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error loading wishlist management");
+                _logger.LogError(ex, "Error loading wishlist management: {Error}", ex.Message);
                 ViewBag.ErrorMessage = "Error loading wishlist data.";
-                return View(new List<object>());
+                return View(new List<WishlistManagementViewModel>());
             }
         }
 
@@ -6721,6 +6917,34 @@ namespace PixelSolution.Controllers
             }
         }
 
+        #region Helper Methods
+
+        private string GetStatusBadgeClass(string status)
+        {
+            return status?.ToLower() switch
+            {
+                "pending" => "badge-warning",
+                "processing" => "badge-info",
+                "delivered" => "badge-primary",
+                "completed" => "badge-success",
+                "cancelled" => "badge-danger",
+                _ => "badge-secondary"
+            };
+        }
+
+        private string GetPriorityBadgeClass(string priority)
+        {
+            return priority?.ToLower() switch
+            {
+                "high" => "badge-danger",
+                "medium" => "badge-warning",
+                "low" => "badge-info",
+                _ => "badge-secondary"
+            };
+        }
+
+        #endregion
+
         #endregion
     }
 
@@ -6756,6 +6980,7 @@ namespace PixelSolution.Controllers
         public decimal UnitPrice { get; set; }
         public decimal Total { get; set; }
     }
+
 
     // Request models for Purchase Requests Management
     public class UpdateRequestStatusRequest

@@ -1095,4 +1095,188 @@ namespace PixelSolution.ViewModels
         public EmployeeDetailsViewModel? Employee { get; set; }
     }
 
+    // ======================================
+    // CART MANAGEMENT VIEW MODELS
+    // ======================================
+
+    public class CartManagementViewModel
+    {
+        public int CartId { get; set; }
+        public int CustomerId { get; set; }
+        public string CustomerName { get; set; } = string.Empty;
+        public string CustomerEmail { get; set; } = string.Empty;
+        public string? CustomerPhone { get; set; }
+        public DateTime CreatedDate { get; set; }
+        public DateTime? UpdatedDate { get; set; }
+        public DateTime LastActivity { get; set; }
+        public string Status { get; set; } = string.Empty;
+        public decimal TotalAmount { get; set; }
+        public decimal TotalValue { get; set; }
+        public int TotalItems { get; set; }
+        public int TotalQuantity { get; set; }
+        public bool IsActive { get; set; }
+        public int DaysInactive { get; set; }
+        public List<CartItemViewModel> Items { get; set; } = new List<CartItemViewModel>();
+        public string FormattedCreatedDate { get; set; } = string.Empty;
+        public string FormattedUpdatedDate { get; set; } = string.Empty;
+        public string FormattedTotalAmount { get; set; } = string.Empty;
+        public string StatusBadgeClass { get; set; } = string.Empty;
+        public bool CanConvertToRequest { get; set; }
+        public bool HasStockIssues { get; set; }
+    }
+
+    public class CartItemViewModel
+    {
+        public int CartItemId { get; set; }
+        public int ProductId { get; set; }
+        public string ProductName { get; set; } = string.Empty;
+        public string ProductSKU { get; set; } = string.Empty;
+        public string? ProductImageUrl { get; set; }
+        public string? ProductImage { get; set; }
+        public int Quantity { get; set; }
+        public decimal UnitPrice { get; set; }
+        public decimal TotalPrice { get; set; }
+        public int AvailableStock { get; set; }
+        public bool IsInStock { get; set; }
+        public string CategoryName { get; set; } = string.Empty;
+        public string FormattedUnitPrice { get; set; } = string.Empty;
+        public string FormattedTotalPrice { get; set; } = string.Empty;
+        public string StockStatus { get; set; } = string.Empty;
+        public string StockStatusClass { get; set; } = string.Empty;
+    }
+
+    // ======================================
+    // PURCHASE REQUEST VIEW MODELS
+    // ======================================
+
+    public class PurchaseRequestViewModel
+    {
+        public int RequestId { get; set; }
+        public int PurchaseRequestId { get; set; }
+        public string RequestNumber { get; set; } = string.Empty;
+        public int CustomerId { get; set; }
+        public string CustomerName { get; set; } = string.Empty;
+        public string CustomerEmail { get; set; } = string.Empty;
+        public string? CustomerPhone { get; set; }
+        public DateTime RequestDate { get; set; }
+        public string Status { get; set; } = string.Empty;
+        public decimal TotalAmount { get; set; }
+        public int TotalItems { get; set; }
+        public int TotalQuantity { get; set; }
+        public DateTime? ProcessedDate { get; set; }
+        public DateTime? DeliveredDate { get; set; }
+        public DateTime? DeliveryDate { get; set; }
+        public DateTime? CompletedDate { get; set; }
+        public string? ProcessedByUserName { get; set; }
+        public string? Notes { get; set; }
+        public string? DeliveryAddress { get; set; }
+        public string PaymentStatus { get; set; } = string.Empty;
+        public int DaysAgo { get; set; }
+        public List<PurchaseRequestItemViewModel> Items { get; set; } = new List<PurchaseRequestItemViewModel>();
+        public string FormattedRequestDate { get; set; } = string.Empty;
+        public string FormattedProcessedDate { get; set; } = string.Empty;
+        public string FormattedDeliveredDate { get; set; } = string.Empty;
+        public string FormattedCompletedDate { get; set; } = string.Empty;
+        public string FormattedTotalAmount { get; set; } = string.Empty;
+        public string StatusBadgeClass { get; set; } = string.Empty;
+        public bool CanProcess { get; set; }
+        public bool CanDeliver { get; set; }
+        public bool CanComplete { get; set; }
+        public bool HasStockIssues { get; set; }
+        public string Priority { get; set; } = "Normal";
+        public string PriorityBadgeClass { get; set; } = string.Empty;
+    }
+
+    public class PurchaseRequestItemViewModel
+    {
+        public int RequestItemId { get; set; }
+        public int ProductId { get; set; }
+        public string ProductName { get; set; } = string.Empty;
+        public string ProductSKU { get; set; } = string.Empty;
+        public string? ProductImageUrl { get; set; }
+        public int RequestedQuantity { get; set; }
+        public int? DeliveredQuantity { get; set; }
+        public decimal UnitPrice { get; set; }
+        public decimal TotalPrice { get; set; }
+        public int AvailableStock { get; set; }
+        public bool IsInStock { get; set; }
+        public string CategoryName { get; set; } = string.Empty;
+        public string? SupplierName { get; set; }
+        public string FormattedUnitPrice { get; set; } = string.Empty;
+        public string FormattedTotalPrice { get; set; } = string.Empty;
+        public string StockStatus { get; set; } = string.Empty;
+        public string StockStatusClass { get; set; } = string.Empty;
+        public bool IsPartialDelivery { get; set; }
+        public int PendingQuantity { get; set; }
+    }
+
+    public class UpdateRequestStatusViewModel
+    {
+        public int RequestId { get; set; }
+        public string RequestNumber { get; set; } = string.Empty;
+        public string CurrentStatus { get; set; } = string.Empty;
+        public string NewStatus { get; set; } = string.Empty;
+        public string? Notes { get; set; }
+        public List<UpdateRequestItemViewModel> Items { get; set; } = new List<UpdateRequestItemViewModel>();
+    }
+
+    public class UpdateRequestItemViewModel
+    {
+        public int RequestItemId { get; set; }
+        public int ProductId { get; set; }
+        public string ProductName { get; set; } = string.Empty;
+        public int RequestedQuantity { get; set; }
+        public int DeliveredQuantity { get; set; }
+        public int AvailableStock { get; set; }
+        public bool IsInStock { get; set; }
+    }
+
+    public class WishlistManagementViewModel
+    {
+        public int WishlistId { get; set; }
+        public int CustomerId { get; set; }
+        public string CustomerName { get; set; } = string.Empty;
+        public string CustomerEmail { get; set; } = string.Empty;
+        public string? CustomerPhone { get; set; }
+        public int ProductId { get; set; }
+        public string ProductName { get; set; } = string.Empty;
+        public string ProductSKU { get; set; } = string.Empty;
+        public string? ProductImage { get; set; }
+        public decimal SellingPrice { get; set; }
+        public int StockQuantity { get; set; }
+        public bool InStock { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public DateTime LastActivity { get; set; }
+        public string CategoryName { get; set; } = string.Empty;
+        public string? SupplierName { get; set; }
+        public string FormattedPrice { get; set; } = string.Empty;
+        public string FormattedCreatedDate { get; set; } = string.Empty;
+        public string StockStatus { get; set; } = string.Empty;
+        public string StockStatusClass { get; set; } = string.Empty;
+        public int DaysInWishlist { get; set; }
+        public int DaysOld { get; set; }
+        public int TotalItems { get; set; }
+        public decimal TotalValue { get; set; }
+        public bool IsAvailable { get; set; }
+        public bool CanAddToCart { get; set; }
+        public List<WishlistItemViewModel> Items { get; set; } = new List<WishlistItemViewModel>();
+    }
+
+    public class WishlistItemViewModel
+    {
+        public int WishlistId { get; set; }
+        public int ProductId { get; set; }
+        public string ProductName { get; set; } = string.Empty;
+        public string? ProductDescription { get; set; }
+        public string? ProductImage { get; set; }
+        public decimal SellingPrice { get; set; }
+        public int StockQuantity { get; set; }
+        public bool InStock { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public string CategoryName { get; set; } = string.Empty;
+        public string FormattedPrice { get; set; } = string.Empty;
+        public string StockStatus { get; set; } = string.Empty;
+        public bool CanAddToCart { get; set; }
+    }
+
 }

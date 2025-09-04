@@ -187,6 +187,31 @@
         </div>
 
         <div class="nav-section">
+            <div class="nav-section-title">Customer Management</div>
+            <div class="nav-item">
+                <a href="@Url.Action("PurchaseRequests", "Admin")" class="nav-link">
+                    <i class="fas fa-file-invoice"></i>
+                    Purchase Requests
+                    <span class="nav-badge" id="pendingRequestsCount">0</span>
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("CartManagement", "Admin")" class="nav-link">
+                    <i class="fas fa-shopping-cart"></i>
+                    Cart Management
+                    <span class="nav-badge" id="activeCartsCount">0</span>
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("WishlistManagement", "Admin")" class="nav-link">
+                    <i class="fas fa-heart"></i>
+                    Wishlist Management
+                    <span class="nav-badge" id="activeWishlistsCount">0</span>
+                </a>
+            </div>
+        </div>
+
+        <div class="nav-section">
             <div class="nav-section-title">System</div>
             <div class="nav-item">
                 <a href="@Url.Action("Settings", "Admin")" class="nav-link">

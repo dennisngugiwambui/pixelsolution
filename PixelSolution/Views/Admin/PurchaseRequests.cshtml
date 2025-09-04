@@ -1,322 +1,570 @@
-@model List<PixelSolution.Models.ProductRequest>
+@model List<PixelSolution.ViewModels.PurchaseRequestViewModel>
 @{
-    ViewData["Title"] = "Purchase Requests - PixelSolution";
+    ViewData["Title"] = "Purchase Requests Management - PixelSolution";
     Layout = "_AdminLayout";
 }
 
 @section Styles {
+    <link href="~/css/dashboard.css" rel="stylesheet">
     <style>
         .purchase-requests-container {
-            display: flex;
-            height: calc(100vh - 120px);
-            background: #f8fafc;
-        }
-
-        .requests-sidebar {
-            width: 350px;
-            background: white;
-            border-right: 1px solid #e5e7eb;
-            overflow-y: auto;
-            flex-shrink: 0;
-        }
-
-        .requests-main {
-            flex: 1;
-            padding: 1.5rem;
-            overflow-y: auto;
-        }
-
-        .sidebar-header {
-            padding: 1.5rem;
-            border-bottom: 1px solid #e5e7eb;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
+            min-height: 100vh;
+            padding: 2rem 0;
         }
 
-        .sidebar-title {
-            font-size: 1.25rem;
-            font-weight: 600;
+        .content-wrapper {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 1rem;
+        }
+
+        .page-header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .page-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin: 0;
+            text-align: center;
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .page-subtitle {
+            color: #64748b;
+            text-align: center;
+            margin: 0.5rem 0 0 0;
+            font-size: 1.1rem;
+            font-weight: 500;
+        }
+
+        .stats-overview {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin: 1.5rem 0;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 1rem;
+            border-radius: 12px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #3b82f6;
             margin: 0;
         }
 
-        .sidebar-subtitle {
+        .stat-label {
+            color: #64748b;
             font-size: 0.875rem;
-            opacity: 0.9;
+            font-weight: 500;
             margin: 0.25rem 0 0 0;
         }
 
-        .request-item {
-            padding: 1rem 1.5rem;
-            border-bottom: 1px solid #f3f4f6;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .request-item:hover {
-            background: #f9fafb;
-        }
-
-        .request-item.active {
-            background: #eff6ff;
-            border-right: 3px solid #3b82f6;
-        }
-
-        .request-header {
-            display: flex;
-            justify-content: between;
-            align-items: center;
-            margin-bottom: 0.5rem;
-        }
-
-        .request-number {
-            font-weight: 600;
-            color: #1f2937;
-            font-size: 0.875rem;
-        }
-
-        .request-status {
-            padding: 0.25rem 0.5rem;
-            border-radius: 0.375rem;
-            font-size: 0.75rem;
-            font-weight: 500;
-        }
-
-        .status-pending {
-            background: #fef3c7;
-            color: #92400e;
-        }
-
-        .status-processing {
-            background: #dbeafe;
-            color: #1e40af;
-        }
-
-        .status-delivered {
-            background: #d1fae5;
-            color: #065f46;
-        }
-
-        .status-cancelled {
-            background: #fee2e2;
-            color: #991b1b;
-        }
-
-        .request-customer {
-            color: #6b7280;
-            font-size: 0.875rem;
-            margin-bottom: 0.25rem;
-        }
-
-        .request-amount {
-            font-weight: 600;
-            color: #059669;
-            font-size: 0.875rem;
-        }
-
-        .request-date {
-            color: #9ca3af;
-            font-size: 0.75rem;
-        }
-
-        .details-panel {
-            background: white;
-            border-radius: 0.5rem;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
-        }
-
-        .details-header {
+        .controls-section {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
             padding: 1.5rem;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-
-        .details-title {
-            font-size: 1.5rem;
-            font-weight: 600;
-            margin: 0;
-        }
-
-        .details-subtitle {
-            opacity: 0.9;
-            margin: 0.5rem 0 0 0;
-        }
-
-        .details-content {
-            padding: 1.5rem;
-        }
-
-        .info-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 1.5rem;
             margin-bottom: 2rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
 
-        .info-card {
-            background: #f9fafb;
-            padding: 1rem;
-            border-radius: 0.5rem;
-            border: 1px solid #e5e7eb;
-        }
-
-        .info-label {
-            font-size: 0.75rem;
-            font-weight: 500;
-            color: #6b7280;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            margin-bottom: 0.25rem;
-        }
-
-        .info-value {
-            font-size: 0.875rem;
-            color: #1f2937;
-            font-weight: 500;
-        }
-
-        .action-buttons {
+        .view-toggles {
             display: flex;
-            gap: 0.75rem;
-            margin-bottom: 2rem;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            justify-content: center;
             flex-wrap: wrap;
         }
 
-        .btn {
-            padding: 0.5rem 1rem;
-            border-radius: 0.375rem;
-            font-size: 0.875rem;
-            font-weight: 500;
-            border: none;
+        .view-toggle button {
+            padding: 0.75rem 1.5rem;
+            border: 2px solid #e2e8f0;
+            background: white;
+            color: #64748b;
+            border-radius: 12px;
+            font-weight: 600;
             cursor: pointer;
-            transition: all 0.2s;
-            display: inline-flex;
-            align-items: center;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .view-toggle button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .view-toggle button:hover::before {
+            left: 100%;
+        }
+
+        .view-toggle button:hover {
+            border-color: #3b82f6;
+            color: #3b82f6;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+        }
+
+        .view-toggle button.active {
+            background: linear-gradient(135deg, #3b82f6, #1e40af);
+            color: white;
+            border-color: #3b82f6;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+
+        .filters-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
             gap: 0.5rem;
         }
 
-        .btn-primary {
-            background: #3b82f6;
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: #2563eb;
-        }
-
-        .btn-success {
-            background: #10b981;
-            color: white;
-        }
-
-        .btn-success:hover {
-            background: #059669;
-        }
-
-        .btn-danger {
-            background: #ef4444;
-            color: white;
-        }
-
-        .btn-danger:hover {
-            background: #dc2626;
-        }
-
-        .btn-secondary {
-            background: #6b7280;
-            color: white;
-        }
-
-        .btn-secondary:hover {
-            background: #4b5563;
-        }
-
-        .items-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 1rem;
-        }
-
-        .items-table th,
-        .items-table td {
-            padding: 0.75rem;
-            text-align: left;
-            border-bottom: 1px solid #e5e7eb;
-        }
-
-        .items-table th {
-            background: #f9fafb;
+        .filter-group label {
             font-weight: 600;
             color: #374151;
             font-size: 0.875rem;
         }
 
-        .items-table td {
+        .filter-group select,
+        .filter-group input {
+            padding: 0.75rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        .filter-group select:focus,
+        .filter-group input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+            transform: translateY(-1px);
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-decoration: none;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .btn:hover::before {
+            left: 100%;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #3b82f6, #1e40af);
+            color: white;
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: white;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+        }
+
+        .btn-info {
+            background: linear-gradient(135deg, #06b6d4, #0891b2);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #6b7280, #4b5563);
+            color: white;
+        }
+
+        .requests-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        /* Responsive grid for mobile */
+        @@media (max-width: 768px) {
+            .requests-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 1rem;
+            }
+        }
+
+        @@media (max-width: 480px) {
+            .requests-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .request-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 1.5rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .request-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #3b82f6, #8b5cf6, #06b6d4);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .request-card:hover::before {
+            opacity: 1;
+        }
+
+        .request-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+
+        .request-number {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: #1e293b;
+        }
+
+        .status-indicator {
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .status-indicator::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            transition: left 0.8s;
+        }
+
+        .status-indicator:hover::before {
+            left: 100%;
+        }
+
+        .status-pending {
+            background: linear-gradient(135deg, #fef3c7, #fde68a);
+            color: #92400e;
+        }
+
+        .status-approved {
+            background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+            color: #065f46;
+        }
+
+        .status-shipped {
+            background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+            color: #1e40af;
+        }
+
+        .status-delivered {
+            background: linear-gradient(135deg, #dcfce7, #bbf7d0);
+            color: #166534;
+        }
+
+        .status-completed {
+            background: linear-gradient(135deg, #e0e7ff, #c7d2fe);
+            color: #3730a3;
+        }
+
+        .status-declined {
+            background: linear-gradient(135deg, #fee2e2, #fecaca);
+            color: #991b1b;
+        }
+
+        .status-cancelled {
+            background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
+            color: #374151;
+        }
+
+        .card-content {
+            margin-bottom: 1rem;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
             font-size: 0.875rem;
         }
 
-        .product-image {
-            width: 40px;
-            height: 40px;
-            object-fit: cover;
-            border-radius: 0.25rem;
+        .info-label {
+            color: #64748b;
+            font-weight: 500;
+        }
+
+        .info-value {
+            color: #1e293b;
+            font-weight: 600;
+        }
+
+        .total-amount {
+            color: #059669;
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+
+        .card-actions {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .btn-sm {
+            padding: 0.5rem 1rem;
+            font-size: 0.75rem;
+        }
+
+        .pagination-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 1rem;
+            margin: 2rem 0;
+        }
+
+        .pagination-button {
+            padding: 0.75rem 1rem;
+            background: rgba(255, 255, 255, 0.95);
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            color: #374151;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .pagination-button:hover:not(:disabled) {
+            background: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+            transform: translateY(-1px);
+        }
+
+        .pagination-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .page-number {
+            padding: 0.5rem 0.75rem;
+            background: rgba(255, 255, 255, 0.95);
+            border: 2px solid #e5e7eb;
+            border-radius: 6px;
+            color: #374151;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .page-number.active {
+            background: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+        }
+
+        .page-number:hover:not(.active) {
+            background: #f3f4f6;
+            transform: translateY(-1px);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            background: white;
+            margin: 2% auto;
+            padding: 0;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, #3b82f6, #1e40af);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 16px 16px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h2 {
+            margin: 0;
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .modal-body {
+            padding: 2rem;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @@keyframes spin {
+            to { transform: rotate(360deg); }
         }
 
         .empty-state {
             text-align: center;
-            padding: 3rem;
-            color: #6b7280;
+            padding: 4rem 2rem;
+            color: #64748b;
         }
 
-        .empty-icon {
-            font-size: 3rem;
+        .empty-state i {
+            font-size: 4rem;
             margin-bottom: 1rem;
-            opacity: 0.5;
+            opacity: 0.3;
+            color: #3b82f6;
         }
 
-        .customer-info-modal .modal-content {
-            max-width: 600px;
+        .empty-state h3 {
+            margin: 0 0 0.5rem 0;
+            color: #1e293b;
         }
 
-        .customer-stats {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 1rem;
-            margin-top: 1rem;
-        }
-
-        .stat-item {
-            background: #f8fafc;
-            padding: 1rem;
-            border-radius: 0.5rem;
-            text-align: center;
-        }
-
-        .stat-value {
-            font-size: 1.5rem;
-            font-weight: 600;
-            color: #1f2937;
-        }
-
-        .stat-label {
-            font-size: 0.875rem;
-            color: #6b7280;
-            margin-top: 0.25rem;
-        }
-
-        /* Responsive Design */
-        @media (max-width: 1024px) {
-            .purchase-requests-container {
-                flex-direction: column;
-                height: auto;
+        @@media (max-width: 768px) {
+            .content-wrapper {
+                padding: 0 0.5rem;
             }
 
-            .requests-sidebar {
-                width: 100%;
-                max-height: 300px;
+            .page-header {
+                padding: 1.5rem;
             }
 
-            .info-grid {
+            .page-title {
+                font-size: 2rem;
+            }
+
+            .filters-grid {
                 grid-template-columns: 1fr;
             }
 
@@ -324,418 +572,896 @@
                 flex-direction: column;
             }
 
-            .btn {
-                justify-content: center;
+            .view-toggles {
+                flex-direction: column;
+            }
+
+            .modal-content {
+                width: 95%;
+                margin: 5% auto;
+            }
+
+            .modal-body {
+                padding: 1rem;
+            }
+
+            .stats-overview {
+                grid-template-columns: repeat(2, 1fr);
             }
         }
 
-        @media (max-width: 768px) {
-            .requests-main {
-                padding: 1rem;
-            }
-
-            .details-header,
-            .details-content {
-                padding: 1rem;
-            }
-
-            .items-table {
-                font-size: 0.75rem;
-            }
-
-            .items-table th,
-            .items-table td {
-                padding: 0.5rem;
-            }
-
-            .customer-stats {
+        @@media (max-width: 480px) {
+            .stats-overview {
                 grid-template-columns: 1fr;
             }
         }
     </style>
 }
 
-<div class="purchase-requests-container">
-    <!-- Sidebar -->
-    <div class="requests-sidebar">
-        <div class="sidebar-header">
-            <h2 class="sidebar-title">Purchase Requests</h2>
-            <p class="sidebar-subtitle">@Model.Count total requests</p>
+<!-- Sidebar -->
+<div class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+        <div class="logo-container">
+            <div class="logo-icon">
+                <i class="fas fa-bolt"></i>
+            </div>
+            <div class="logo-text">PixelSolution</div>
         </div>
-
-        <div class="requests-list">
-            @if (Model.Any())
-            {
-                @foreach (var request in Model)
-                {
-                    <div class="request-item" data-request-id="@request.ProductRequestId">
-                        <div class="request-header">
-                            <span class="request-number">#@request.RequestNumber</span>
-                            <span class="request-status status-@request.Status.ToLower()">@request.Status</span>
-                        </div>
-                        <div class="request-customer">@request.Customer.FullName</div>
-                        <div class="request-amount">KSh @request.TotalAmount.ToString("N0")</div>
-                        <div class="request-date">@request.RequestDate.ToString("MMM dd, yyyy")</div>
-                    </div>
-                }
-            }
-            else
-            {
-                <div class="empty-state">
-                    <div class="empty-icon">
-                        <i class="fas fa-inbox"></i>
-                    </div>
-                    <p>No purchase requests found</p>
-                </div>
-            }
+        <div class="user-info">
+            <div class="user-avatar">@User.Identity.Name?.Substring(0, 2).ToUpper()</div>
+            <div class="user-details">
+                <h4>@User.Identity.Name</h4>
+                <p>System Administrator</p>
+            </div>
         </div>
     </div>
 
-    <!-- Main Content -->
-    <div class="requests-main">
-        <div id="request-details" class="details-panel" style="display: none;">
-            <div class="details-header">
-                <h1 class="details-title" id="details-title">Select a Request</h1>
-                <p class="details-subtitle" id="details-subtitle">Choose a request from the sidebar to view details</p>
+    <nav class="nav-menu">
+        <div class="nav-section">
+            <div class="nav-section-title">Main</div>
+            <div class="nav-item">
+                <a href="@Url.Action("Dashboard", "Admin")" class="nav-link">
+                    <i class="fas fa-chart-pie"></i>
+                    Dashboard
+                </a>
             </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Sales", "Admin")" class="nav-link">
+                    <i class="fas fa-shopping-cart"></i>
+                    Sales
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Inventory", "Admin")" class="nav-link">
+                    <i class="fas fa-box"></i>
+                    Inventory
+                </a>
+            </div>
+        </div>
 
-            <div class="details-content">
-                <div class="action-buttons" id="action-buttons" style="display: none;">
-                    <button class="btn btn-success" onclick="updateRequestStatus('Delivered')">
-                        <i class="fas fa-truck"></i>
-                        Mark as Delivered
-                    </button>
-                    <button class="btn btn-danger" onclick="updateRequestStatus('Cancelled')">
-                        <i class="fas fa-times"></i>
-                        Cancel Order
-                    </button>
-                    <button class="btn btn-secondary" onclick="viewCustomerInfo()">
-                        <i class="fas fa-user"></i>
-                        Customer Info
-                    </button>
+        <div class="nav-section">
+            <div class="nav-section-title">Management</div>
+            <div class="nav-item">
+                <a href="@Url.Action("Users", "Admin")" class="nav-link">
+                    <i class="fas fa-users"></i>
+                    Employees
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Departments", "Admin")" class="nav-link">
+                    <i class="fas fa-building"></i>
+                    Departments
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Suppliers", "Admin")" class="nav-link">
+                    <i class="fas fa-truck"></i>
+                    Suppliers
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Categories", "Admin")" class="nav-link">
+                    <i class="fas fa-tags"></i>
+                    Categories
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Products", "Admin")" class="nav-link">
+                    <i class="fas fa-cube"></i>
+                    Products
+                </a>
+            </div>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-section-title">Operations</div>
+            <div class="nav-item">
+                <a href="@Url.Action("PurchaseRequests", "Admin")" class="nav-link active">
+                    <i class="fas fa-file-invoice"></i>
+                    Purchase Requests
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("CartManagement", "Admin")" class="nav-link">
+                    <i class="fas fa-shopping-basket"></i>
+                    Cart Management
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("WishlistManagement", "Admin")" class="nav-link">
+                    <i class="fas fa-heart"></i>
+                    Wishlist Management
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Messages", "Admin")" class="nav-link">
+                    <i class="fas fa-envelope"></i>
+                    Messages
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Reports", "Admin")" class="nav-link">
+                    <i class="fas fa-chart-bar"></i>
+                    Reports
+                </a>
+            </div>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-section-title">System</div>
+            <div class="nav-item">
+                <a href="@Url.Action("Settings", "Admin")" class="nav-link">
+                    <i class="fas fa-cog"></i>
+                    Settings
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("LogoutGet", "Auth")" class="nav-link">
+                    <i class="fas fa-sign-out-alt"></i>
+                    Logout
+                </a>
+            </div>
+        </div>
+    </nav>
+</div>
+
+<!-- Main Content -->
+<div class="main-content" id="mainContent">
+    <!-- Header -->
+    <header class="header">
+        <div class="header-left">
+            <button class="sidebar-toggle" id="sidebarToggle">
+                <i class="fas fa-bars"></i>
+            </button>
+            <div class="page-header">
+                <h1 class="page-title">Purchase Requests Management</h1>
+                <p class="page-subtitle">Manage and track all customer purchase requests</p>
+                
+                <div class="stats-overview">
+                    <div class="stat-card">
+                        <div class="stat-number" id="totalRequests">@Model.Count</div>
+                        <div class="stat-label">Total Requests</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="pendingRequests">@Model.Count(r => r.Status == "Pending")</div>
+                        <div class="stat-label">Pending</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="approvedRequests">@Model.Count(r => r.Status == "Approved")</div>
+                        <div class="stat-label">Approved</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number" id="completedRequests">@Model.Count(r => r.Status == "Completed")</div>
+                        <div class="stat-label">Completed</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">KSh @Model.Sum(r => r.TotalAmount).ToString("N0")</div>
+                        <div class="stat-label">Total Value</div>
+                    </div>
                 </div>
+            </div>
+            <div class="search-container">
+                <input type="text" class="search-input" placeholder="Search requests..." id="searchInput">
+                <i class="fas fa-search search-icon"></i>
+            </div>
+            <div class="header-actions">
+                <button class="action-btn" title="Notifications">
+                    <i class="fas fa-bell"></i>
+                    <span class="notification-badge">3</span>
+                </button>
+                <button class="action-btn" title="Messages">
+                    <i class="fas fa-envelope"></i>
+                    <span class="notification-badge">8</span>
+                </button>
+                <button class="action-btn" title="Profile">
+                    <i class="fas fa-user-circle"></i>
+                </button>
+            </div>
+        </div>
+    </header>
 
-                <div id="request-info" style="display: none;">
-                    <div class="info-grid">
-                        <div class="info-card">
-                            <div class="info-label">Request Number</div>
-                            <div class="info-value" id="info-request-number">-</div>
-                        </div>
-                        <div class="info-card">
-                            <div class="info-label">Status</div>
-                            <div class="info-value" id="info-status">-</div>
-                        </div>
-                        <div class="info-card">
-                            <div class="info-label">Payment Status</div>
-                            <div class="info-value" id="info-payment-status">-</div>
-                        </div>
-                        <div class="info-card">
-                            <div class="info-label">Total Amount</div>
-                            <div class="info-value" id="info-total-amount">-</div>
-                        </div>
-                        <div class="info-card">
-                            <div class="info-label">Request Date</div>
-                            <div class="info-value" id="info-request-date">-</div>
-                        </div>
-                        <div class="info-card">
-                            <div class="info-label">Delivery Date</div>
-                            <div class="info-value" id="info-delivery-date">-</div>
-                        </div>
-                        <div class="info-card">
-                            <div class="info-label">Customer</div>
-                            <div class="info-value" id="info-customer">-</div>
-                        </div>
-                        <div class="info-card">
-                            <div class="info-label">Processed By</div>
-                            <div class="info-value" id="info-processed-by">-</div>
-                        </div>
+    <!-- Page Content -->
+    <div class="dashboard-content">
+        <!-- View Toggle -->
+        <div class="view-toggle">
+            <button id="processingToggle" class="active" onclick="switchView('processing')">
+                <i class="fas fa-clock"></i> Processing Orders
+            </button>
+            <button id="deliveredToggle" onclick="switchView('delivered')">
+                <i class="fas fa-check-circle"></i> Delivered Orders
+            </button>
+            <button id="completedToggle" onclick="switchView('completed')">
+                <i class="fas fa-star"></i> Completed Orders
+            </button>
+        </div>
+
+        <!-- Filters and Actions Bar -->
+        <div class="filters-bar">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+                    <div style="position: relative;">
+                        <select id="statusFilter" class="form-control" style="width: 150px;">
+                            <option value="">All Status</option>
+                            <option value="pending">Pending</option>
+                            <option value="processing">Processing</option>
+                            <option value="approved">Approved</option>
+                            <option value="shipped">Shipped</option>
+                            <option value="delivered">Delivered</option>
+                            <option value="completed">Completed</option>
+                            <option value="declined">Declined</option>
+                        </select>
                     </div>
-
-                    <div class="info-card">
-                        <div class="info-label">Delivery Address</div>
-                        <div class="info-value" id="info-delivery-address">-</div>
+                    <div style="position: relative;">
+                        <select id="paymentFilter" class="form-control" style="width: 150px;">
+                            <option value="">All Payments</option>
+                            <option value="pending">Pending</option>
+                            <option value="processing">Processing</option>
+                            <option value="paid">Paid</option>
+                        </select>
                     </div>
-
-                    <div class="info-card" style="margin-top: 1rem;">
-                        <div class="info-label">Notes</div>
-                        <div class="info-value" id="info-notes">-</div>
+                    <div style="position: relative;">
+                        <select id="sortBy" class="form-control" style="width: 150px;">
+                            <option value="date">Sort by Date</option>
+                            <option value="amount">Sort by Amount</option>
+                            <option value="customer">Sort by Customer</option>
+                            <option value="status">Sort by Status</option>
+                        </select>
                     </div>
-
-                    <h3 style="margin-top: 2rem; margin-bottom: 1rem; color: #374151;">Order Items</h3>
-                    <table class="items-table">
-                        <thead>
-                            <tr>
-                                <th>Product</th>
-                                <th>SKU</th>
-                                <th>Quantity</th>
-                                <th>Unit Price</th>
-                                <th>Total</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody id="items-tbody">
-                        </tbody>
-                    </table>
+                    <div style="position: relative;">
+                        <input type="date" id="dateFrom" class="form-control" style="width: 150px;" title="From Date">
+                    </div>
+                    <div style="position: relative;">
+                        <input type="date" id="dateTo" class="form-control" style="width: 150px;" title="To Date">
+                    </div>
+                </div>
+                <div style="display: flex; gap: 1rem;">
+                    <button class="btn btn-secondary btn-sm" onclick="exportRequests()">
+                        <i class="fas fa-download"></i>
+                        Export
+                    </button>
+                    <button class="btn btn-primary btn-sm" onclick="refreshData()">
+                        <i class="fas fa-sync-alt"></i>
+                        Refresh
+                    </button>
                 </div>
             </div>
         </div>
 
-        <div id="default-state" class="empty-state">
-            <div class="empty-icon">
-                <i class="fas fa-file-invoice"></i>
+        <!-- Purchase Requests Grid -->
+        <div id="purchaseRequestsGrid" class="purchase-requests-grid">
+            @foreach (var request in Model)
+            {
+                <div class="purchase-card @request.Status.ToLower()" data-request-id="@request.PurchaseRequestId" data-status="@request.Status.ToLower()">
+                    <div class="status-indicator status-@request.Status.ToLower()">
+                        @request.Status
+                    </div>
+
+                    <div style="margin-bottom: 1rem;">
+                        <h3 style="margin: 0 0 0.5rem 0; color: #1e293b; font-size: 1.25rem;">@request.RequestNumber</h3>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="color: #64748b; font-size: 0.875rem;">@request.RequestDate.ToString("MMM dd, yyyy HH:mm")</span>
+                            <span style="font-weight: 700; color: #059669;">KSh @request.TotalAmount.ToString("N0")</span>
+                        </div>
+                    </div>
+
+                    <div class="customer-info">
+                        <div style="display: flex; align-items: center; gap: 0.75rem;">
+                            <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #3b82f6, #1e40af); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;">
+                                @request.CustomerName.Substring(0, 2).ToUpper()
+                            </div>
+                            <div>
+                                <div style="font-weight: 600; color: #1e293b;">@request.CustomerName</div>
+                                <div style="font-size: 0.875rem; color: #64748b;">@request.CustomerEmail</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="purchase-stats">
+                        <div class="stat-item">
+                            <span class="stat-value">@request.TotalItems</span>
+                            <span class="stat-label">Items</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-value">@request.PaymentStatus</span>
+                            <span class="stat-label">Payment</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-value">@(request.DeliveryDate?.ToString("MMM dd") ?? "Pending")</span>
+                            <span class="stat-label">Delivery</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-value">@request.DaysAgo</span>
+                            <span class="stat-label">Days Ago</span>
+                        </div>
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(request.DeliveryAddress))
+                    {
+                        <div style="margin-top: 1rem; padding: 0.75rem; background: #f1f5f9; border-radius: 6px; font-size: 0.875rem;">
+                            <i class="fas fa-map-marker-alt" style="color: #64748b; margin-right: 0.5rem;"></i>
+                            @request.DeliveryAddress
+                        </div>
+                    }
+
+                    <div class="quick-actions">
+                        <button class="btn btn-secondary btn-sm" onclick="viewPurchaseRequest(@request.PurchaseRequestId)" title="View Details">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        @if (User.IsInRole("Admin"))
+                        {
+                            @if (request.Status == "Pending")
+                            {
+                                <button class="btn btn-success btn-sm" onclick="updateRequestStatus(@request.PurchaseRequestId, 'Approved')" title="Approve">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                                <button class="btn btn-danger btn-sm" onclick="updateRequestStatus(@request.PurchaseRequestId, 'Declined')" title="Decline">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            }
+                            @if (request.Status == "Approved")
+                            {
+                                <button class="btn btn-info btn-sm" onclick="updateRequestStatus(@request.PurchaseRequestId, 'Shipped')" title="Mark as Shipped">
+                                    <i class="fas fa-shipping-fast"></i>
+                                </button>
+                            }
+                            @if (request.Status == "Shipped")
+                            {
+                                <button class="btn btn-primary btn-sm" onclick="updateRequestStatus(@request.PurchaseRequestId, 'Delivered')" title="Mark as Delivered">
+                                    <i class="fas fa-truck"></i>
+                                </button>
+                            }
+                            @if (request.Status == "Delivered")
+                            {
+                                <button class="btn btn-warning btn-sm" onclick="updateRequestStatus(@request.PurchaseRequestId, 'Completed')" title="Complete">
+                                    <i class="fas fa-star"></i>
+                                </button>
+                            }
+                            <button class="btn btn-danger btn-sm" onclick="cancelRequest(@request.PurchaseRequestId)" title="Cancel Request">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- Pagination -->
+        <div class="pagination-container" id="paginationContainer">
+            <button class="pagination-button" id="prevBtn" onclick="previousPage()" disabled>
+                <i class="fas fa-chevron-left"></i> Previous
+            </button>
+            
+            <div id="pageNumbers" style="display: flex; gap: 0.5rem;">
+                <!-- Page numbers will be generated by JavaScript -->
             </div>
-            <h3>Select a Purchase Request</h3>
-            <p>Choose a request from the sidebar to view its details and manage its status.</p>
+            
+            <button class="pagination-button" id="nextBtn" onclick="nextPage()">
+                Next <i class="fas fa-chevron-right"></i>
+            </button>
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyState" style="display: none; text-align: center; padding: 4rem; color: #64748b;">
+            <i class="fas fa-file-invoice" style="font-size: 4rem; margin-bottom: 1rem; opacity: 0.3;"></i>
+            <h3>No purchase requests found</h3>
+            <p>Try adjusting your search criteria or filters.</p>
         </div>
     </div>
 </div>
 
-<!-- Customer Info Modal -->
-<div class="modal fade customer-info-modal" id="customerInfoModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Customer Information</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <h6>Personal Information</h6>
-                        <p><strong>Name:</strong> <span id="modal-customer-name">-</span></p>
-                        <p><strong>Email:</strong> <span id="modal-customer-email">-</span></p>
-                        <p><strong>Phone:</strong> <span id="modal-customer-phone">-</span></p>
-                        <p><strong>Address:</strong> <span id="modal-customer-address">-</span></p>
-                        <p><strong>City:</strong> <span id="modal-customer-city">-</span></p>
-                        <p><strong>Status:</strong> <span id="modal-customer-status">-</span></p>
-                    </div>
-                    <div class="col-md-6">
-                        <h6>Customer Statistics</h6>
-                        <div class="customer-stats">
-                            <div class="stat-item">
-                                <div class="stat-value" id="modal-total-orders">0</div>
-                                <div class="stat-label">Total Orders</div>
-                            </div>
-                            <div class="stat-item">
-                                <div class="stat-value" id="modal-completed-orders">0</div>
-                                <div class="stat-label">Completed Orders</div>
-                            </div>
-                            <div class="stat-item">
-                                <div class="stat-value" id="modal-total-spent">KSh 0</div>
-                                <div class="stat-label">Total Spent</div>
-                            </div>
-                            <div class="stat-item">
-                                <div class="stat-value" id="modal-cart-items">0</div>
-                                <div class="stat-label">Cart Items</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+<!-- Purchase Request Details Modal -->
+<div id="purchaseRequestModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 id="modalTitle">Purchase Request Details</h2>
+            <button style="background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer;" onclick="closePurchaseRequestModal()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body" id="modalContent">
+            <!-- Content will be loaded dynamically -->
         </div>
     </div>
 </div>
 
 @section Scripts {
+    <script src="~/js/dashboard.js"></script>
     <script>
-        let currentRequestId = null;
-        let currentCustomerId = null;
+        let allRequests = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model));
+        let currentView = 'processing';
+        let currentPage = 1;
+        let itemsPerPage = 12;
+        let filteredRequests = [];
 
         document.addEventListener('DOMContentLoaded', function() {
-            // Add click handlers to request items
-            document.querySelectorAll('.request-item').forEach(item => {
-                item.addEventListener('click', function() {
-                    const requestId = this.dataset.requestId;
-                    selectRequest(requestId);
-                });
-            });
+            setupFilters();
+            setupSearch();
+            initializeView();
         });
 
-        function selectRequest(requestId) {
-            // Update active state
-            document.querySelectorAll('.request-item').forEach(item => {
-                item.classList.remove('active');
+        function setupFilters() {
+            const filters = ['statusFilter', 'paymentFilter', 'sortBy', 'dateFrom', 'dateTo'];
+            filters.forEach(filterId => {
+                const element = document.getElementById(filterId);
+                if (element) {
+                    element.addEventListener('change', filterRequests);
+                }
             });
-            document.querySelector(`[data-request-id="${requestId}"]`).classList.add('active');
-
-            // Load request details
-            loadRequestDetails(requestId);
         }
 
-        async function loadRequestDetails(requestId) {
-            try {
-                const response = await fetch(`/Admin/GetPurchaseRequestDetails?id=${requestId}`);
-                const result = await response.json();
+        function setupSearch() {
+            const searchInput = document.getElementById('searchInput');
+            if (searchInput) {
+                searchInput.addEventListener('input', filterRequests);
+            }
+        }
 
-                if (result.success) {
-                    currentRequestId = requestId;
-                    currentCustomerId = result.data.Customer.CustomerId;
-                    displayRequestDetails(result.data);
-                } else {
-                    showToast('Error loading request details', 'error');
+        function initializeView() {
+            switchView('processing');
+        }
+
+        function switchView(view) {
+            currentView = view;
+            currentPage = 1;
+
+            // Update toggle buttons
+            document.querySelectorAll('.view-toggle button').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(view + 'Toggle').classList.add('active');
+
+            // Update status filter based on view
+            const statusFilter = document.getElementById('statusFilter');
+            if (view === 'processing') {
+                statusFilter.value = '';
+                statusFilter.innerHTML = `
+                    <option value="">All Processing</option>
+                    <option value="pending">Pending</option>
+                    <option value="processing">Processing</option>
+                    <option value="approved">Approved</option>
+                `;
+            } else if (view === 'delivered') {
+                statusFilter.value = 'delivered';
+                statusFilter.innerHTML = `
+                    <option value="delivered">Delivered</option>
+                `;
+            } else if (view === 'completed') {
+                statusFilter.value = 'completed';
+                statusFilter.innerHTML = `
+                    <option value="completed">Completed</option>
+                `;
+            }
+
+            filterRequests();
+        }
+
+        function filterRequests() {
+            const searchTerm = document.getElementById('searchInput')?.value.toLowerCase() || '';
+            const statusFilter = document.getElementById('statusFilter')?.value || '';
+            const paymentFilter = document.getElementById('paymentFilter')?.value || '';
+            const sortBy = document.getElementById('sortBy')?.value || 'date';
+            const dateFrom = document.getElementById('dateFrom')?.value || '';
+            const dateTo = document.getElementById('dateTo')?.value || '';
+
+            filteredRequests = allRequests.filter(request => {
+                const matchesSearch = !searchTerm ||
+                    request.RequestNumber.toLowerCase().includes(searchTerm) ||
+                    request.CustomerName.toLowerCase().includes(searchTerm) ||
+                    (request.DeliveryAddress && request.DeliveryAddress.toLowerCase().includes(searchTerm));
+
+                let matchesView = true;
+                if (currentView === 'processing') {
+                    matchesView = ['Pending', 'Processing', 'Approved'].includes(request.Status);
+                } else if (currentView === 'delivered') {
+                    matchesView = request.Status === 'Delivered';
+                } else if (currentView === 'completed') {
+                    matchesView = request.Status === 'Completed';
                 }
+
+                const matchesStatus = !statusFilter || request.Status.toLowerCase() === statusFilter;
+                const matchesPayment = !paymentFilter || request.PaymentStatus.toLowerCase() === paymentFilter;
+
+                let matchesDate = true;
+                if (dateFrom || dateTo) {
+                    const requestDate = new Date(request.RequestDate);
+                    if (dateFrom) matchesDate = matchesDate && requestDate >= new Date(dateFrom);
+                    if (dateTo) matchesDate = matchesDate && requestDate <= new Date(dateTo + 'T23:59:59');
+                }
+
+                return matchesSearch && matchesView && matchesStatus && matchesPayment && matchesDate;
+            });
+
+            // Sort requests
+            filteredRequests.sort((a, b) => {
+                switch (sortBy) {
+                    case 'date': return new Date(b.RequestDate) - new Date(a.RequestDate);
+                    case 'amount': return b.TotalAmount - a.TotalAmount;
+                    case 'customer': return a.CustomerName.localeCompare(b.CustomerName);
+                    case 'status': return a.Status.localeCompare(b.Status);
+                    default: return new Date(b.RequestDate) - new Date(a.RequestDate);
+                }
+            });
+
+            displayRequests();
+            updatePagination();
+        }
+
+        function displayRequests() {
+            const grid = document.getElementById('purchaseRequestsGrid');
+            const emptyState = document.getElementById('emptyState');
+
+            if (filteredRequests.length === 0) {
+                grid.style.display = 'none';
+                emptyState.style.display = 'block';
+                return;
+            }
+
+            grid.style.display = 'grid';
+            emptyState.style.display = 'none';
+
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const endIndex = startIndex + itemsPerPage;
+            const requestsToShow = filteredRequests.slice(startIndex, endIndex);
+
+            // Hide all cards first
+            const allCards = grid.querySelectorAll('.purchase-card');
+            allCards.forEach(card => card.style.display = 'none');
+
+            // Show only relevant cards for current page
+            requestsToShow.forEach(request => {
+                const card = grid.querySelector(`[data-request-id="${request.PurchaseRequestId}"]`);
+                if (card) {
+                    card.style.display = 'block';
+                }
+            });
+        }
+
+        function updatePagination() {
+            const totalPages = Math.ceil(filteredRequests.length / itemsPerPage);
+            const paginationContainer = document.getElementById('paginationContainer');
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            const pageNumbers = document.getElementById('pageNumbers');
+
+            if (totalPages <= 1) {
+                paginationContainer.style.display = 'none';
+                return;
+            }
+
+            paginationContainer.style.display = 'flex';
+
+            // Update prev/next buttons
+            prevBtn.disabled = currentPage === 1;
+            nextBtn.disabled = currentPage === totalPages;
+
+            // Generate page numbers
+            let pageNumbersHTML = '';
+            const maxVisiblePages = 5;
+            let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+            let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+
+            if (endPage - startPage + 1 < maxVisiblePages) {
+                startPage = Math.max(1, endPage - maxVisiblePages + 1);
+            }
+
+            for (let i = startPage; i <= endPage; i++) {
+                pageNumbersHTML += `
+                    <button class="pagination-button ${i === currentPage ? 'active' : ''}" onclick="goToPage(${i})">
+                        ${i}
+                    </button>
+                `;
+            }
+
+            pageNumbers.innerHTML = pageNumbersHTML;
+        }
+
+        function previousPage() {
+            if (currentPage > 1) {
+                currentPage--;
+                displayRequests();
+                updatePagination();
+            }
+        }
+
+        function nextPage() {
+            const totalPages = Math.ceil(filteredRequests.length / itemsPerPage);
+            if (currentPage < totalPages) {
+                currentPage++;
+                displayRequests();
+                updatePagination();
+            }
+        }
+
+        function goToPage(page) {
+            currentPage = page;
+            displayRequests();
+            updatePagination();
+        }
+
+        async function viewPurchaseRequest(requestId) {
+            try {
+                const response = await fetch(`/Admin/GetPurchaseRequestDetails/${requestId}`);
+                if (!response.ok) throw new Error('Failed to fetch request details');
+                
+                const result = await response.json();
+                if (!result.success) {
+                    showToast(result.message || 'Failed to load request details', 'error');
+                    return;
+                }
+                
+                const request = result.data;
+                
+                let itemsHTML = '';
+                if (request.items && request.items.length > 0) {
+                    itemsHTML = request.items.map(item => `
+                        <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 1rem; padding: 1rem; border-bottom: 1px solid #e2e8f0; align-items: center;">
+                            <div style="display: flex; align-items: center; gap: 1rem;">
+                                <img src="${item.productImageUrl || '/images/placeholder.jpg'}" alt="${item.productName}" 
+                                     style="width: 50px; height: 50px; object-fit: cover; border-radius: 6px;">
+                                <div>
+                                    <div style="font-weight: 600; color: #1e293b;">${item.productName}</div>
+                                    <div style="color: #64748b; font-size: 0.875rem;">${item.categoryName || 'Unknown Category'}</div>
+                                </div>
+                            </div>
+                            <div style="text-align: center; font-weight: 600;">${item.quantity}</div>
+                            <div style="text-align: center;">KSh ${item.unitPrice.toLocaleString()}</div>
+                            <div style="text-align: center; font-weight: 600; color: #059669;">KSh ${item.totalPrice.toLocaleString()}</div>
+                        </div>
+                    `).join('');
+                } else {
+                    itemsHTML = '<div style="padding: 2rem; text-align: center; color: #64748b;">No items found</div>';
+                }
+
+                const modalContent = `
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem;">
+                        <div>
+                            <h4 style="margin-bottom: 1rem; color: #1e293b;">Request Information</h4>
+                            <div style="background: #f8fafc; padding: 1rem; border-radius: 8px;">
+                                <div style="margin-bottom: 0.5rem;"><strong>Request Number:</strong> ${request.requestNumber}</div>
+                                <div style="margin-bottom: 0.5rem;"><strong>Status:</strong> 
+                                    <span class="status-indicator status-${request.status.toLowerCase()}">${request.status}</span>
+                                </div>
+                                <div style="margin-bottom: 0.5rem;"><strong>Request Date:</strong> ${new Date(request.requestDate).toLocaleDateString()}</div>
+                                ${request.processedDate ? `<div style="margin-bottom: 0.5rem;"><strong>Processed Date:</strong> ${new Date(request.processedDate).toLocaleDateString()}</div>` : ''}
+                                <div><strong>Total Amount:</strong> <span style="color: #059669; font-weight: 700;">KSh ${request.totalAmount.toLocaleString()}</span></div>
+                            </div>
+                        </div>
+                        <div>
+                            <h4 style="margin-bottom: 1rem; color: #1e293b;">Customer Information</h4>
+                            <div style="background: #f8fafc; padding: 1rem; border-radius: 8px;">
+                                <div style="margin-bottom: 0.5rem;"><strong>Name:</strong> ${request.customerName}</div>
+                                <div style="margin-bottom: 0.5rem;"><strong>Email:</strong> ${request.customerEmail}</div>
+                                ${request.customerPhone ? `<div style="margin-bottom: 0.5rem;"><strong>Phone:</strong> ${request.customerPhone}</div>` : ''}
+                                ${request.notes ? `<div><strong>Notes:</strong> ${request.notes}</div>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-bottom: 2rem;">
+                        <h4 style="margin-bottom: 1rem; color: #1e293b;">Items (${request.totalItems})</h4>
+                        <div style="background: #f8fafc; border-radius: 8px; overflow: hidden;">
+                            <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 1rem; padding: 1rem; background: #e2e8f0; font-weight: 600; color: #1e293b;">
+                                <div>Product</div>
+                                <div style="text-align: center;">Quantity</div>
+                                <div style="text-align: center;">Unit Price</div>
+                                <div style="text-align: center;">Total</div>
+                            </div>
+                            ${itemsHTML}
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 2rem;">
+                        <button class="btn btn-secondary" onclick="closePurchaseRequestModal()">Close</button>
+                        ${getStatusActionButtons(request)}
+                    </div>
+                `;
+
+                document.getElementById('modalTitle').textContent = `Purchase Request ${request.requestNumber}`;
+                document.getElementById('modalContent').innerHTML = modalContent;
+                document.getElementById('purchaseRequestModal').style.display = 'block';
             } catch (error) {
                 console.error('Error loading request details:', error);
                 showToast('Error loading request details', 'error');
             }
         }
 
-        function displayRequestDetails(data) {
-            // Show details panel
-            document.getElementById('default-state').style.display = 'none';
-            document.getElementById('request-details').style.display = 'block';
-            document.getElementById('action-buttons').style.display = 'flex';
-            document.getElementById('request-info').style.display = 'block';
-
-            // Update header
-            document.getElementById('details-title').textContent = `Request #${data.RequestNumber}`;
-            document.getElementById('details-subtitle').textContent = `${data.Customer.FullName} • ${new Date(data.RequestDate).toLocaleDateString()}`;
-
-            // Update info cards
-            document.getElementById('info-request-number').textContent = data.RequestNumber;
-            document.getElementById('info-status').textContent = data.Status;
-            document.getElementById('info-payment-status').textContent = data.PaymentStatus;
-            document.getElementById('info-total-amount').textContent = `KSh ${data.TotalAmount.toLocaleString()}`;
-            document.getElementById('info-request-date').textContent = new Date(data.RequestDate).toLocaleDateString();
-            document.getElementById('info-delivery-date').textContent = data.DeliveryDate ? new Date(data.DeliveryDate).toLocaleDateString() : 'Not delivered';
-            document.getElementById('info-customer').textContent = data.Customer.FullName;
-            document.getElementById('info-processed-by').textContent = data.ProcessedBy ? data.ProcessedBy.FullName : 'Not processed';
-            document.getElementById('info-delivery-address').textContent = data.DeliveryAddress || 'No address provided';
-            document.getElementById('info-notes').textContent = data.Notes || 'No notes';
-
-            // Update items table
-            const tbody = document.getElementById('items-tbody');
-            tbody.innerHTML = '';
-
-            data.Items.forEach(item => {
-                const row = document.createElement('tr');
-                row.innerHTML = `
-                    <td>
-                        <div style="display: flex; align-items: center; gap: 0.5rem;">
-                            ${item.Product.ImageUrl ? `<img src="${item.Product.ImageUrl}" class="product-image" alt="${item.Product.Name}">` : '<div class="product-image" style="background: #f3f4f6; display: flex; align-items: center; justify-content: center;"><i class="fas fa-image text-muted"></i></div>'}
-                            <div>
-                                <div style="font-weight: 500;">${item.Product.Name}</div>
-                                <div style="font-size: 0.75rem; color: #6b7280;">${item.Product.Category || 'No category'}</div>
-                            </div>
-                        </div>
-                    </td>
-                    <td>${item.Product.SKU}</td>
-                    <td>${item.Quantity}</td>
-                    <td>KSh ${item.UnitPrice.toLocaleString()}</td>
-                    <td>KSh ${item.TotalPrice.toLocaleString()}</td>
-                    <td><span class="request-status status-${item.Status.toLowerCase()}">${item.Status}</span></td>
-                `;
-                tbody.appendChild(row);
-            });
-
-            // Update action buttons based on status
-            updateActionButtons(data.Status);
-        }
-
-        function updateActionButtons(status) {
-            const buttons = document.getElementById('action-buttons');
-            const deliverBtn = buttons.querySelector('.btn-success');
-            const cancelBtn = buttons.querySelector('.btn-danger');
-
-            if (status === 'Delivered' || status === 'Cancelled') {
-                deliverBtn.style.display = 'none';
-                cancelBtn.style.display = 'none';
-            } else {
-                deliverBtn.style.display = 'inline-flex';
-                cancelBtn.style.display = 'inline-flex';
+        function getStatusActionButtons(request) {
+            const buttons = [];
+            
+            if (request.status === 'Pending') {
+                buttons.push(`<button class="btn btn-success" onclick="updateRequestStatusFromModal(${request.requestId}, 'Approved')">Approve</button>`);
+                buttons.push(`<button class="btn btn-danger" onclick="updateRequestStatusFromModal(${request.requestId}, 'Declined')">Decline</button>`);
+            } else if (request.status === 'Approved') {
+                buttons.push(`<button class="btn btn-info" onclick="updateRequestStatusFromModal(${request.requestId}, 'Shipped')">Mark as Shipped</button>`);
+            } else if (request.status === 'Shipped') {
+                buttons.push(`<button class="btn btn-primary" onclick="updateRequestStatusFromModal(${request.requestId}, 'Delivered')">Mark as Delivered</button>`);
+            } else if (request.status === 'Delivered') {
+                buttons.push(`<button class="btn btn-warning" onclick="updateRequestStatusFromModal(${request.requestId}, 'Completed')">Complete</button>`);
             }
+            
+            return buttons.join('');
         }
 
-        async function updateRequestStatus(newStatus) {
-            if (!currentRequestId) return;
+        function closePurchaseRequestModal() {
+            document.getElementById('purchaseRequestModal').style.display = 'none';
+        }
 
-            const confirmMessage = newStatus === 'Delivered' 
-                ? 'Are you sure you want to mark this request as delivered? This will update inventory levels.'
-                : 'Are you sure you want to cancel this request? This action cannot be undone.';
-
-            if (!confirm(confirmMessage)) return;
+        async function updateRequestStatus(requestId, newStatus) {
+            if (!confirm(`Are you sure you want to change the status to ${newStatus}?`)) {
+                return;
+            }
 
             try {
-                const response = await fetch('/Admin/UpdatePurchaseRequestStatus', {
+                const formData = new FormData();
+                formData.append('requestId', requestId);
+                formData.append('newStatus', newStatus);
+
+                const response = await fetch('/Admin/UpdateRequestStatus', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        RequestId: currentRequestId,
-                        NewStatus: newStatus
-                    })
+                    body: formData
                 });
 
                 const result = await response.json();
 
                 if (result.success) {
-                    showToast(result.message, 'success');
-                    // Reload the page to reflect changes
-                    window.location.reload();
+                    showToast(result.message || 'Status updated successfully', 'success');
+                    setTimeout(() => location.reload(), 1000);
                 } else {
-                    showToast(result.message || 'Error updating request status', 'error');
+                    showToast(result.message || 'Failed to update status', 'error');
                 }
             } catch (error) {
-                console.error('Error updating request status:', error);
-                showToast('Error updating request status', 'error');
+                console.error('Error updating status:', error);
+                showToast('Error updating status', 'error');
             }
         }
 
-        async function viewCustomerInfo() {
-            if (!currentCustomerId) return;
-
-            try {
-                const response = await fetch(`/Admin/GetCustomerInfo?customerId=${currentCustomerId}`);
-                const result = await response.json();
-
-                if (result.success) {
-                    displayCustomerInfo(result.data);
-                    const modal = new bootstrap.Modal(document.getElementById('customerInfoModal'));
-                    modal.show();
-                } else {
-                    showToast('Error loading customer information', 'error');
-                }
-            } catch (error) {
-                console.error('Error loading customer info:', error);
-                showToast('Error loading customer information', 'error');
-            }
-        }
-
-        function displayCustomerInfo(customer) {
-            document.getElementById('modal-customer-name').textContent = customer.FullName;
-            document.getElementById('modal-customer-email').textContent = customer.Email;
-            document.getElementById('modal-customer-phone').textContent = customer.Phone;
-            document.getElementById('modal-customer-address').textContent = customer.Address || 'No address';
-            document.getElementById('modal-customer-city').textContent = customer.City || 'No city';
-            document.getElementById('modal-customer-status').textContent = customer.Status;
-            document.getElementById('modal-total-orders').textContent = customer.TotalOrders;
-            document.getElementById('modal-completed-orders').textContent = customer.CompletedOrders;
-            document.getElementById('modal-total-spent').textContent = `KSh ${customer.TotalSpent.toLocaleString()}`;
-            document.getElementById('modal-cart-items').textContent = customer.CartItemsCount;
+        function updateRequestStatusFromModal(requestId, newStatus) {
+            updateRequestStatus(requestId, newStatus);
+            closePurchaseRequestModal();
         }
 
         function showToast(message, type = 'info') {
-            // Create toast element
             const toast = document.createElement('div');
-            toast.className = `toast ${type}`;
-            toast.innerHTML = `
-                <div style="display: flex; align-items: center; gap: 0.5rem;">
-                    <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
-                    <span>${message}</span>
-                </div>
+            toast.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 1rem 1.5rem;
+                border-radius: 8px;
+                color: white;
+                font-weight: 500;
+                z-index: 10000;
+                animation: slideIn 0.3s ease;
+                max-width: 300px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
             `;
-
+            
+            const colors = {
+                success: '#10b981',
+                error: '#ef4444',
+                warning: '#f59e0b',
+                info: '#3b82f6'
+            };
+            
+            toast.style.background = colors[type] || colors.info;
+            toast.textContent = message;
+            
             document.body.appendChild(toast);
-
-            // Show toast
-            setTimeout(() => toast.classList.add('show'), 100);
-
-            // Hide and remove toast
+            
             setTimeout(() => {
-                toast.classList.remove('show');
-                setTimeout(() => document.body.removeChild(toast), 300);
+                toast.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => {
+                    if (document.body.contains(toast)) {
+                        document.body.removeChild(toast);
+                    }
+                }, 300);
             }, 3000);
         }
+
+        async function cancelRequest(requestId) {
+            if (!confirm('Are you sure you want to cancel this request? This action cannot be undone.')) {
+                return;
+            }
+            updateRequestStatus(requestId, 'Cancelled');
+        }
+
+        function exportRequests() {
+            const exportData = filteredRequests.map(request => ({
+                'Request Number': request.RequestNumber,
+                'Customer': request.CustomerName,
+                'Status': request.Status,
+                'Payment Status': request.PaymentStatus,
+                'Total Amount': request.TotalAmount,
+                'Request Date': new Date(request.RequestDate).toLocaleDateString(),
+                'Delivery Address': request.DeliveryAddress || ''
+            }));
+
+            const csv = convertToCSV(exportData);
+            downloadCSV(csv, `purchase-requests-${new Date().toISOString().split('T')[0]}.csv`);
+            showToast('Purchase requests exported successfully', 'success');
+        }
+
+        function convertToCSV(data) {
+            const headers = Object.keys(data[0]);
+            const csvContent = [
+                headers.join(','),
+                ...data.map(row => headers.map(header => `"${row[header] || ''}"`).join(','))
+            ].join('\n');
+            return csvContent;
+        }
+
+        function downloadCSV(csv, filename) {
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.setAttribute('hidden', '');
+            a.setAttribute('href', url);
+            a.setAttribute('download', filename);
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        function refreshData() {
+            location.reload();
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('purchaseRequestModal');
+            if (event.target === modal) {
+                closePurchaseRequestModal();
+            }
+        }
+
+        // Add CSS animations for toast notifications
+        const style = document.createElement('style');
+        style.textContent = `
+            @@keyframes slideIn {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            @@keyframes slideOut {
+                from { transform: translateX(0); opacity: 1; }
+                to { transform: translateX(100%); opacity: 0; }
+            }
+            
+            .modal {
+                animation: fadeIn 0.3s ease;
+            }
+            
+            @@keyframes fadeIn {
+                from { opacity: 0; }
+                to { opacity: 1; }
+            }
+            
+            .modal-content {
+                animation: slideUp 0.3s ease;
+            }
+            
+            @@keyframes slideUp {
+                from { transform: translateY(50px); opacity: 0; }
+                to { transform: translateY(0); opacity: 1; }
+            }
+        `;
+        document.head.appendChild(style);
     </script>
 }

@@ -1,0 +1,1243 @@
+@model List<PixelSolution.ViewModels.CartManagementViewModel>
+@{
+    ViewData["Title"] = "Cart Management - PixelSolution";
+    Layout = "_AdminLayout";
+}
+
+@section Styles {
+    <link href="~/css/dashboard.css" rel="stylesheet">
+    <style>
+        .cart-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            border-left: 4px solid #10b981;
+            position: relative;
+            overflow: hidden;
+        }
+
+            .cart-card:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            }
+
+            .cart-card.abandoned {
+                border-left-color: #f59e0b;
+                opacity: 0.8;
+            }
+
+            .cart-card.active {
+                border-left-color: #10b981;
+            }
+
+        .customer-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #10b981, #059669);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+        }
+
+        .cart-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid #f1f5f9;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #1e293b;
+            display: block;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: #64748b;
+            font-weight: 500;
+            margin-top: 0.25rem;
+        }
+
+        .cart-indicator {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .cart-active {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .cart-abandoned {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .cart-empty {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .cart-items-preview {
+            max-height: 200px;
+            overflow-y: auto;
+            background: #f8fafc;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+
+        .cart-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+            .cart-item:last-child {
+                border-bottom: none;
+            }
+
+        .bulk-actions-bar {
+            background: linear-gradient(135deg, #3b82f6, #1e40af);
+            color: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+
+        .time-period-buttons {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .time-period-btn {
+            padding: 0.5rem 1rem;
+            border: 1px solid rgba(255,255,255,0.3);
+            background: rgba(255,255,255,0.1);
+            color: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+            .time-period-btn:hover {
+                background: rgba(255,255,255,0.2);
+                border-color: rgba(255,255,255,0.5);
+            }
+
+            .time-period-btn.selected {
+                background: rgba(255,255,255,0.3);
+                border-color: rgba(255,255,255,0.8);
+            }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 0;
+            border: none;
+            border-radius: 12px;
+            width: 95%;
+            max-width: 1000px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 12px 12px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-body {
+            padding: 2rem;
+        }
+
+        .cart-item-detailed {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            transition: all 0.2s ease;
+        }
+
+            .cart-item-detailed:hover {
+                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            }
+
+        .product-image {
+            width: 80px;
+            height: 80px;
+            border-radius: 8px;
+            object-fit: cover;
+            background: linear-gradient(135deg, #e2e8f0, #cbd5e1);
+        }
+
+        .quick-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .filters-bar {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .pagination-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 1rem;
+            margin-top: 2rem;
+            padding: 2rem;
+        }
+
+        .pagination-button {
+            padding: 0.5rem 1rem;
+            border: 1px solid #d1d5db;
+            background: white;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+
+            .pagination-button:hover:not(:disabled) {
+                background: #f3f4f6;
+                border-color: #9ca3af;
+            }
+
+            .pagination-button:disabled {
+                opacity: 0.5;
+                cursor: not-allowed;
+            }
+
+            .pagination-button.active {
+                background: #10b981;
+                border-color: #10b981;
+                color: white;
+            }
+
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .summary-card {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+
+            .summary-card h3 {
+                font-size: 2rem;
+                margin: 0;
+                font-weight: 700;
+            }
+
+            .summary-card p {
+                margin: 0.5rem 0 0 0;
+                opacity: 0.9;
+                font-size: 0.875rem;
+            }
+    </style>
+}
+
+<!-- Sidebar -->
+<div class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+        <div class="logo-container">
+            <div class="logo-icon">
+                <i class="fas fa-bolt"></i>
+            </div>
+            <div class="logo-text">PixelSolution</div>
+        </div>
+        <div class="user-info">
+            <div class="user-avatar">@User.Identity.Name?.Substring(0, 2).ToUpper()</div>
+            <div class="user-details">
+                <h4>@User.Identity.Name</h4>
+                <p>System Administrator</p>
+            </div>
+        </div>
+    </div>
+
+    <nav class="nav-menu">
+        <div class="nav-section">
+            <div class="nav-section-title">Main</div>
+            <div class="nav-item">
+                <a href="@Url.Action("Dashboard", "Admin")" class="nav-link">
+                    <i class="fas fa-chart-pie"></i>
+                    Dashboard
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Sales", "Admin")" class="nav-link">
+                    <i class="fas fa-shopping-cart"></i>
+                    Sales
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Inventory", "Admin")" class="nav-link">
+                    <i class="fas fa-box"></i>
+                    Inventory
+                </a>
+            </div>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-section-title">Management</div>
+            <div class="nav-item">
+                <a href="@Url.Action("Users", "Admin")" class="nav-link">
+                    <i class="fas fa-users"></i>
+                    Employees
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Departments", "Admin")" class="nav-link">
+                    <i class="fas fa-building"></i>
+                    Departments
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Suppliers", "Admin")" class="nav-link">
+                    <i class="fas fa-truck"></i>
+                    Suppliers
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Categories", "Admin")" class="nav-link">
+                    <i class="fas fa-tags"></i>
+                    Categories
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Products", "Admin")" class="nav-link">
+                    <i class="fas fa-cube"></i>
+                    Products
+                </a>
+            </div>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-section-title">Operations</div>
+            <div class="nav-item">
+                <a href="@Url.Action("PurchaseRequests", "Admin")" class="nav-link">
+                    <i class="fas fa-file-invoice"></i>
+                    Purchase Requests
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("CartManagement", "Admin")" class="nav-link active">
+                    <i class="fas fa-shopping-basket"></i>
+                    Cart Management
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("WishlistManagement", "Admin")" class="nav-link">
+                    <i class="fas fa-heart"></i>
+                    Wishlist Management
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Messages", "Admin")" class="nav-link">
+                    <i class="fas fa-envelope"></i>
+                    Messages
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Reports", "Admin")" class="nav-link">
+                    <i class="fas fa-chart-bar"></i>
+                    Reports
+                </a>
+            </div>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-section-title">System</div>
+            <div class="nav-item">
+                <a href="@Url.Action("Settings", "Admin")" class="nav-link">
+                    <i class="fas fa-cog"></i>
+                    Settings
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("LogoutGet", "Auth")" class="nav-link">
+                    <i class="fas fa-sign-out-alt"></i>
+                    Logout
+                </a>
+            </div>
+        </div>
+    </nav>
+</div>
+
+<!-- Main Content -->
+<div class="main-content" id="mainContent">
+    <!-- Header -->
+    <header class="header">
+        <div class="header-left">
+            <button class="sidebar-toggle" id="sidebarToggle">
+                <i class="fas fa-bars"></i>
+            </button>
+            <h1 class="page-title">Cart Management</h1>
+        </div>
+        <div class="header-right">
+            <div class="search-container">
+                <input type="text" class="search-input" placeholder="Search customers..." id="searchInput">
+                <i class="fas fa-search search-icon"></i>
+            </div>
+            <div class="header-actions">
+                <button class="action-btn" title="Notifications">
+                    <i class="fas fa-bell"></i>
+                    <span class="notification-badge">3</span>
+                </button>
+                <button class="action-btn" title="Messages">
+                    <i class="fas fa-envelope"></i>
+                    <span class="notification-badge">8</span>
+                </button>
+                <button class="action-btn" title="Profile">
+                    <i class="fas fa-user-circle"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Page Content -->
+    <div class="dashboard-content">
+        <!-- Summary Cards -->
+        <div class="summary-cards">
+            <div class="summary-card">
+                <h3 id="totalCarts">@Model.Sum(c => c.TotalItems)</h3>
+                <p>Total Cart Items</p>
+            </div>
+            <div class="summary-card">
+                <h3 id="activeCarts">@Model.Count(c => c.IsActive)</h3>
+                <p>Active Carts</p>
+            </div>
+            <div class="summary-card">
+                <h3 id="abandonedCarts">@Model.Count(c => !c.IsActive)</h3>
+                <p>Abandoned Carts</p>
+            </div>
+            <div class="summary-card">
+                <h3>KSh @Model.Sum(c => c.TotalValue).ToString("N0")</h3>
+                <p>Total Cart Value</p>
+            </div>
+        </div>
+
+        <!-- Bulk Actions Bar -->
+        <div class="bulk-actions-bar">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
+                <div>
+                    <h3 style="margin: 0 0 0.5rem 0; font-size: 1.25rem;">Bulk Cart Management</h3>
+                    <p style="margin: 0; opacity: 0.9; font-size: 0.875rem;">Clean up abandoned carts and manage user cart data efficiently</p>
+                </div>
+                <div style="display: flex; gap: 1rem; align-items: center;">
+                    <span style="font-weight: 600;">Selected Period:</span>
+                    <span id="selectedPeriodText">30 Days</span>
+                </div>
+            </div>
+
+            <div class="time-period-buttons">
+                <button class="time-period-btn selected" data-period="30" onclick="selectTimePeriod(30)">
+                    <i class="fas fa-calendar-alt"></i> Last 30 Days
+                </button>
+                <button class="time-period-btn" data-period="90" onclick="selectTimePeriod(90)">
+                    <i class="fas fa-calendar-alt"></i> Last 90 Days
+                </button>
+                <button class="time-period-btn" data-period="365" onclick="selectTimePeriod(365)">
+                    <i class="fas fa-calendar-alt"></i> Last Year
+                </button>
+                <button class="time-period-btn" data-period="all" onclick="selectTimePeriod('all')">
+                    <i class="fas fa-globe"></i> All Time
+                </button>
+            </div>
+
+            <div style="display: flex; gap: 1rem; margin-top: 1rem; flex-wrap: wrap;">
+                <button class="btn btn-warning" onclick="clearAbandonedCarts()" style="background: rgba(245, 158, 11, 0.9); border: none;">
+                    <i class="fas fa-broom"></i> Clear Abandoned Carts
+                </button>
+                <button class="btn btn-danger" onclick="clearAllCartsInPeriod()" style="background: rgba(239, 68, 68, 0.9); border: none;">
+                    <i class="fas fa-trash"></i> Clear All Carts in Period
+                </button>
+                <button class="btn btn-secondary" onclick="exportCartData()" style="background: rgba(255,255,255,0.2); border: none;">
+                    <i class="fas fa-download"></i> Export Data
+                </button>
+            </div>
+        </div>
+
+        <!-- Filters and Actions Bar -->
+        <div class="filters-bar">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+                    <div style="position: relative;">
+                        <select id="cartStatusFilter" class="form-control" style="width: 150px;">
+                            <option value="">All Carts</option>
+                            <option value="active">Active Carts</option>
+                            <option value="abandoned">Abandoned Carts</option>
+                            <option value="empty">Empty Carts</option>
+                        </select>
+                    </div>
+                    <div style="position: relative;">
+                        <select id="sortBy" class="form-control" style="width: 180px;">
+                            <option value="lastActivity">Sort by Last Activity</option>
+                            <option value="customer">Sort by Customer</option>
+                            <option value="items">Sort by Items Count</option>
+                            <option value="value">Sort by Total Value</option>
+                        </select>
+                    </div>
+                    <div style="position: relative;">
+                        <input type="number" id="minItems" class="form-control" style="width: 120px;" placeholder="Min items" min="0">
+                    </div>
+                    <div style="position: relative;">
+                        <input type="number" id="minValue" class="form-control" style="width: 120px;" placeholder="Min value" min="0">
+                    </div>
+                </div>
+                <div style="display: flex; gap: 1rem;">
+                    <button class="btn btn-secondary btn-sm" onclick="resetFilters()">
+                        <i class="fas fa-undo"></i>
+                        Reset
+                    </button>
+                    <button class="btn btn-primary btn-sm" onclick="refreshData()">
+                        <i class="fas fa-sync-alt"></i>
+                        Refresh
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cart Management Grid -->
+        <div id="cartGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 1.5rem;">
+            @foreach (var cart in Model)
+            {
+                <div class="cart-card @(cart.IsActive ? "active" : "abandoned")" data-cart-id="@cart.CustomerId" data-status="@(cart.IsActive ? "active" : "abandoned")">
+                    <div class="cart-indicator cart-@(cart.IsActive ? "active" : "abandoned")">
+                        @if (cart.TotalItems == 0)
+                        {
+                            <span>Empty</span>
+                        }
+                        else if (cart.IsActive)
+                        {
+                            <span>Active</span>
+                        }
+                        else
+                        {
+                            <span>Abandoned</span>
+                        }
+                    </div>
+
+                    <div style="display: flex; align-items: flex-start; gap: 1rem; margin-bottom: 1rem;">
+                        <div class="customer-avatar">
+                            @cart.CustomerName.Substring(0, 2).ToUpper()
+                        </div>
+
+                        <div style="flex: 1; min-width: 0;">
+                            <h3 style="margin: 0 0 0.5rem 0; color: #1e293b; font-size: 1.25rem; line-height: 1.3;">@cart.CustomerName</h3>
+                            <p style="margin: 0 0 0.25rem 0; color: #64748b; font-size: 0.875rem;">@cart.CustomerEmail</p>
+                            <p style="margin: 0; color: #9ca3af; font-size: 0.75rem;">
+                                Last activity: @cart.LastActivity.ToString("MMM dd, yyyy HH:mm")
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="cart-stats">
+                        <div class="stat-item">
+                            <span class="stat-value">@cart.TotalItems</span>
+                            <span class="stat-label">Total Items</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-value">KSh @cart.TotalValue.ToString("N0")</span>
+                            <span class="stat-label">Cart Value</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-value">@cart.DaysInactive</span>
+                            <span class="stat-label">Days Inactive</span>
+                        </div>
+                    </div>
+
+                    @if (cart.Items.Any())
+                    {
+                        <div class="cart-items-preview">
+                            @foreach (var item in cart.Items.Take(3))
+                            {
+                                <div class="cart-item">
+                                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                        <img src="@(item.ProductImage ?? "/images/placeholder.jpg")" alt="@item.ProductName"
+                                             style="width: 40px; height: 40px; object-fit: cover; border-radius: 6px;">
+                                        <div>
+                                            <div style="font-weight: 600; font-size: 0.875rem;">@item.ProductName</div>
+                                            <div style="color: #64748b; font-size: 0.75rem;">Qty: @item.Quantity</div>
+                                        </div>
+                                    </div>
+                                    <div style="text-align: right;">
+                                        <div style="font-weight: 600; font-size: 0.875rem;">KSh @item.TotalPrice.ToString("N0")</div>
+                                    </div>
+                                </div>
+                            }
+                            @if (cart.Items.Count > 3)
+                            {
+                                <div style="text-align: center; color: #64748b; font-size: 0.75rem; margin-top: 0.5rem;">
+                                    +@(cart.Items.Count - 3) more items
+                                </div>
+                            }
+                        </div>
+                    }
+
+                    <div class="quick-actions">
+                        <button class="btn btn-secondary btn-sm" onclick="viewCartDetails(@cart.CustomerId)" title="View Cart Details">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="btn btn-primary btn-sm" onclick="viewCustomerProfile(@cart.CustomerId)" title="Customer Profile">
+                            <i class="fas fa-user"></i>
+                        </button>
+                        @if (User.IsInRole("Admin"))
+                        {
+                            <button class="btn btn-warning btn-sm" onclick="clearCustomerCart(@cart.CustomerId)" title="Clear Cart">
+                                <i class="fas fa-broom"></i>
+                            </button>
+                            @if (!cart.IsActive && cart.DaysInactive > 30)
+                            {
+                                <button class="btn btn-danger btn-sm" onclick="deleteAbandonedCart(@cart.CustomerId)" title="Delete Abandoned Cart">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            }
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- Pagination -->
+        <div class="pagination-container" id="paginationContainer">
+            <button class="pagination-button" id="prevBtn" onclick="previousPage()" disabled>
+                <i class="fas fa-chevron-left"></i> Previous
+            </button>
+
+            <div id="pageNumbers" style="display: flex; gap: 0.5rem;">
+                <!-- Page numbers will be generated by JavaScript -->
+            </div>
+
+            <button class="pagination-button" id="nextBtn" onclick="nextPage()">
+                Next <i class="fas fa-chevron-right"></i>
+            </button>
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyState" style="display: none; text-align: center; padding: 4rem; color: #64748b;">
+            <i class="fas fa-shopping-basket" style="font-size: 4rem; margin-bottom: 1rem; opacity: 0.3;"></i>
+            <h3>No cart data found</h3>
+            <p>Try adjusting your search criteria or filters.</p>
+        </div>
+    </div>
+</div>
+
+<!-- Cart Details Modal -->
+<div id="cartDetailsModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 id="cartModalTitle">Cart Details</h2>
+            <button style="background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer;" onclick="closeCartDetailsModal()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body" id="cartModalContent">
+            <!-- Content will be loaded dynamically -->
+        </div>
+    </div>
+</div>
+
+<!-- Customer Profile Modal -->
+<div id="customerProfileModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 id="customerModalTitle">Customer Profile</h2>
+            <button style="background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer;" onclick="closeCustomerProfileModal()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body" id="customerModalContent">
+            <!-- Content will be loaded dynamically -->
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/dashboard.js"></script>
+    <script>
+        let allCarts = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model));
+        let currentPage = 1;
+        let itemsPerPage = 12;
+        let filteredCarts = [];
+        let selectedTimePeriod = 30;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            setupFilters();
+            setupSearch();
+            filterCarts();
+        });
+
+        function setupFilters() {
+            const filters = ['cartStatusFilter', 'sortBy', 'minItems', 'minValue'];
+            filters.forEach(filterId => {
+                const element = document.getElementById(filterId);
+                if (element) {
+                    element.addEventListener('change', filterCarts);
+                    if (filterId === 'minItems' || filterId === 'minValue') {
+                        element.addEventListener('input', debounce(filterCarts, 300));
+                    }
+                }
+            });
+        }
+
+        function setupSearch() {
+            const searchInput = document.getElementById('searchInput');
+            if (searchInput) {
+                searchInput.addEventListener('input', debounce(filterCarts, 300));
+            }
+        }
+
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        function selectTimePeriod(period) {
+            selectedTimePeriod = period;
+
+            // Update button states
+            document.querySelectorAll('.time-period-btn').forEach(btn => {
+                btn.classList.remove('selected');
+            });
+            document.querySelector(`[data-period="${period}"]`).classList.add('selected');
+
+            // Update selected period text
+            const periodText = period === 'all' ? 'All Time' :
+                              period === 365 ? 'Last Year' :
+                              period === 90 ? 'Last 90 Days' : 'Last 30 Days';
+            document.getElementById('selectedPeriodText').textContent = periodText;
+        }
+
+        function filterCarts() {
+            const searchTerm = document.getElementById('searchInput')?.value.toLowerCase() || '';
+            const statusFilter = document.getElementById('cartStatusFilter')?.value || '';
+            const sortBy = document.getElementById('sortBy')?.value || 'lastActivity';
+            const minItems = parseInt(document.getElementById('minItems')?.value) || 0;
+            const minValue = parseFloat(document.getElementById('minValue')?.value) || 0;
+
+            filteredCarts = allCarts.filter(cart => {
+                const matchesSearch = !searchTerm ||
+                    cart.CustomerName.toLowerCase().includes(searchTerm) ||
+                    cart.CustomerEmail.toLowerCase().includes(searchTerm);
+
+                let matchesStatus = true;
+                if (statusFilter === 'active') matchesStatus = cart.IsActive && cart.TotalItems > 0;
+                else if (statusFilter === 'abandoned') matchesStatus = !cart.IsActive && cart.TotalItems > 0;
+                else if (statusFilter === 'empty') matchesStatus = cart.TotalItems === 0;
+
+                const matchesMinItems = cart.TotalItems >= minItems;
+                const matchesMinValue = cart.TotalValue >= minValue;
+
+                return matchesSearch && matchesStatus && matchesMinItems && matchesMinValue;
+            });
+
+            // Sort carts
+            filteredCarts.sort((a, b) => {
+                switch (sortBy) {
+                    case 'lastActivity': return new Date(b.LastActivity) - new Date(a.LastActivity);
+                    case 'customer': return a.CustomerName.localeCompare(b.CustomerName);
+                    case 'items': return b.TotalItems - a.TotalItems;
+                    case 'value': return b.TotalValue - a.TotalValue;
+                    default: return new Date(b.LastActivity) - new Date(a.LastActivity);
+                }
+            });
+
+            displayCarts();
+            updatePagination();
+        }
+
+        function displayCarts() {
+            const grid = document.getElementById('cartGrid');
+            const emptyState = document.getElementById('emptyState');
+
+            if (filteredCarts.length === 0) {
+                grid.style.display = 'none';
+                emptyState.style.display = 'block';
+                return;
+            }
+
+            grid.style.display = 'grid';
+            emptyState.style.display = 'none';
+
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const endIndex = startIndex + itemsPerPage;
+            const cartsToShow = filteredCarts.slice(startIndex, endIndex);
+
+            // Hide all cards first
+            const allCards = grid.querySelectorAll('.cart-card');
+            allCards.forEach(card => card.style.display = 'none');
+
+            // Show only relevant cards for current page
+            cartsToShow.forEach(cart => {
+                const card = grid.querySelector(`[data-cart-id="${cart.CustomerId}"]`);
+                if (card) {
+                    card.style.display = 'block';
+                }
+            });
+        }
+
+        function updatePagination() {
+            const totalPages = Math.ceil(filteredCarts.length / itemsPerPage);
+            const paginationContainer = document.getElementById('paginationContainer');
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            const pageNumbers = document.getElementById('pageNumbers');
+
+            if (totalPages <= 1) {
+                paginationContainer.style.display = 'none';
+                return;
+            }
+
+            paginationContainer.style.display = 'flex';
+
+            // Update prev/next buttons
+            prevBtn.disabled = currentPage === 1;
+            nextBtn.disabled = currentPage === totalPages;
+
+            // Generate page numbers
+            let pageNumbersHTML = '';
+            const maxVisiblePages = 5;
+            let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+            let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+
+            if (endPage - startPage + 1 < maxVisiblePages) {
+                startPage = Math.max(1, endPage - maxVisiblePages + 1);
+            }
+
+            for (let i = startPage; i <= endPage; i++) {
+                pageNumbersHTML += `
+                    <button class="pagination-button ${i === currentPage ? 'active' : ''}" onclick="goToPage(${i})">
+                        ${i}
+                    </button>
+                `;
+            }
+
+            pageNumbers.innerHTML = pageNumbersHTML;
+        }
+
+        function previousPage() {
+            if (currentPage > 1) {
+                currentPage--;
+                displayCarts();
+                updatePagination();
+            }
+        }
+
+        function nextPage() {
+            const totalPages = Math.ceil(filteredCarts.length / itemsPerPage);
+            if (currentPage < totalPages) {
+                currentPage++;
+                displayCarts();
+                updatePagination();
+            }
+        }
+
+        function goToPage(page) {
+            currentPage = page;
+            displayCarts();
+            updatePagination();
+        }
+
+        async function viewCartDetails(customerId) {
+            try {
+                const response = await fetch(`/Admin/GetCartDetails/${customerId}`);
+                if (!response.ok) throw new Error('Failed to fetch cart details');
+
+                const cart = await response.json();
+
+                let itemsHTML = '';
+                if (cart.Items && cart.Items.length > 0) {
+                    itemsHTML = cart.Items.map(item => `
+                        <div class="cart-item-detailed">
+                            <img src="${item.ProductImage || '/images/placeholder.jpg'}" alt="${item.ProductName}" class="product-image">
+                            <div style="flex: 1;">
+                                <h4 style="margin: 0 0 0.5rem 0; color: #1e293b;">${item.ProductName}</h4>
+                                <p style="margin: 0 0 0.25rem 0; color: #64748b; font-size: 0.875rem;">${item.ProductDescription || ''}</p>
+                                <div style="display: flex; gap: 1rem; font-size: 0.875rem; color: #64748b;">
+                                    <span>Quantity: ${item.Quantity}</span>
+                                    <span>Unit Price: KSh ${item.UnitPrice.toLocaleString()}</span>
+                                    <span>Added: ${new Date(item.AddedAt).toLocaleDateString()}</span>
+                                </div>
+                            </div>
+                            <div style="text-align: right;">
+                                <div style="font-size: 1.25rem; font-weight: 700; color: #059669;">
+                                    KSh ${item.TotalPrice.toLocaleString()}
+                                </div>
+                                <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
+                                    <button class="btn btn-sm btn-warning" onclick="removeCartItem(${customerId}, ${item.CartId})" title="Remove Item">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    itemsHTML = '<div style="text-align: center; padding: 2rem; color: #64748b;">No items in cart</div>';
+                }
+
+                const modalContent = `
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem;">
+                        <div>
+                            <h4 style="margin-bottom: 1rem; color: #1e293b;">Customer Information</h4>
+                            <div style="background: #f8fafc; padding: 1rem; border-radius: 8px;">
+                                <div style="margin-bottom: 0.5rem;"><strong>Name:</strong> ${cart.CustomerName}</div>
+                                <div style="margin-bottom: 0.5rem;"><strong>Email:</strong> ${cart.CustomerEmail}</div>
+                                <div style="margin-bottom: 0.5rem;"><strong>Customer ID:</strong> ${customerId}</div>
+                                <div><strong>Last Activity:</strong> ${new Date(cart.LastActivity).toLocaleString()}</div>
+                            </div>
+                        </div>
+                        <div>
+                            <h4 style="margin-bottom: 1rem; color: #1e293b;">Cart Summary</h4>
+                            <div style="background: #f8fafc; padding: 1rem; border-radius: 8px;">
+                                <div style="margin-bottom: 0.5rem;"><strong>Total Items:</strong> ${cart.TotalItems}</div>
+                                <div style="margin-bottom: 0.5rem;"><strong>Subtotal:</strong> KSh ${cart.SubTotal.toLocaleString()}</div>
+                                <div style="margin-bottom: 0.5rem;"><strong>Tax:</strong> KSh ${cart.Tax.toLocaleString()}</div>
+                                <div><strong>Total Value:</strong> <span style="color: #059669; font-weight: 700;">KSh ${cart.Total.toLocaleString()}</span></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h4 style="margin-bottom: 1rem; color: #1e293b;">Cart Items</h4>
+                        <div>
+                            ${itemsHTML}
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 2rem;">
+                        <button class="btn btn-secondary" onclick="closeCartDetailsModal()">Close</button>
+                        <button class="btn btn-warning" onclick="clearCustomerCartFromModal(${customerId})">Clear Cart</button>
+                        <button class="btn btn-primary" onclick="viewCustomerProfile(${customerId})">View Customer</button>
+                    </div>
+                `;
+
+                document.getElementById('cartModalTitle').textContent = `Cart Details - ${cart.CustomerName}`;
+                document.getElementById('cartModalContent').innerHTML = modalContent;
+                document.getElementById('cartDetailsModal').style.display = 'block';
+            } catch (error) {
+                showToast('Error loading cart details', 'error');
+            }
+        }
+
+        async function viewCustomerProfile(customerId) {
+            try {
+                const response = await fetch(`/Admin/GetCustomerProfile/${customerId}`);
+                if (!response.ok) throw new Error('Failed to fetch customer profile');
+
+                const customer = await response.json();
+
+                const modalContent = `
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+                        <div>
+                            <h4 style="margin-bottom: 1rem; color: #1e293b;">Personal Information</h4>
+                            <div style="background: #f8fafc; padding: 1rem; border-radius: 8px;">
+                                <div style="margin-bottom: 0.5rem;"><strong>Name:</strong> ${customer.FirstName} ${customer.LastName}</div>
+                                <div style="margin-bottom: 0.5rem;"><strong>Email:</strong> ${customer.Email}</div>
+                                <div style="margin-bottom: 0.5rem;"><strong>Phone:</strong> ${customer.PhoneNumber || 'Not provided'}</div>
+                                <div style="margin-bottom: 0.5rem;"><strong>Status:</strong> ${customer.IsActive ? 'Active' : 'Inactive'}</div>
+                                <div><strong>Joined:</strong> ${new Date(customer.CreatedAt).toLocaleDateString()}</div>
+                            </div>
+                        </div>
+                        <div>
+                            <h4 style="margin-bottom: 1rem; color: #1e293b;">Activity Summary</h4>
+                            <div style="background: #f8fafc; padding: 1rem; border-radius: 8px;">
+                                <div style="margin-bottom: 0.5rem;"><strong>Total Orders:</strong> ${customer.TotalOrders}</div>
+                                <div style="margin-bottom: 0.5rem;"><strong>Total Spent:</strong> KSh ${customer.TotalSpent.toLocaleString()}</div>
+                                <div style="margin-bottom: 0.5rem;"><strong>Cart Items:</strong> ${customer.CurrentCartItems}</div>
+                                <div style="margin-bottom: 0.5rem;"><strong>Cart Value:</strong> KSh ${customer.CurrentCartValue.toLocaleString()}</div>
+                                <div><strong>Last Activity:</strong> ${new Date(customer.LastActivity).toLocaleDateString()}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 2rem;">
+                        <h4 style="margin-bottom: 1rem; color: #1e293b;">Recent Orders</h4>
+                        <div style="background: #f8fafc; padding: 1rem; border-radius: 8px; max-height: 300px; overflow-y: auto;">
+                            ${customer.RecentOrders && customer.RecentOrders.length > 0 ?
+                                customer.RecentOrders.map(order => `
+                                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">
+                                        <div>
+                                            <div style="font-weight: 600;">${order.RequestNumber}</div>
+                                            <div style="font-size: 0.875rem; color: #64748b;">${new Date(order.RequestDate).toLocaleDateString()}</div>
+                                        </div>
+                                        <div style="text-align: right;">
+                                            <div style="font-weight: 600;">KSh ${order.TotalAmount.toLocaleString()}</div>
+                                            <div style="font-size: 0.875rem; color: #64748b;">${order.Status}</div>
+                                        </div>
+                                    </div>
+                                `).join('') :
+                                '<div style="text-align: center; color: #64748b;">No recent orders</div>'
+                            }
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 2rem;">
+                        <button class="btn btn-secondary" onclick="closeCustomerProfileModal()">Close</button>
+                        <button class="btn btn-primary" onclick="viewCartDetails(${customerId})">View Cart</button>
+                    </div>
+                `;
+
+                document.getElementById('customerModalTitle').textContent = `Customer Profile - ${customer.FirstName} ${customer.LastName}`;
+                document.getElementById('customerModalContent').innerHTML = modalContent;
+                document.getElementById('customerProfileModal').style.display = 'block';
+            } catch (error) {
+                showToast('Error loading customer profile', 'error');
+            }
+        }
+
+        function closeCartDetailsModal() {
+            document.getElementById('cartDetailsModal').style.display = 'none';
+        }
+
+        function closeCustomerProfileModal() {
+            document.getElementById('customerProfileModal').style.display = 'none';
+        }
+
+        async function clearCustomerCart(customerId) {
+            if (!confirm('Are you sure you want to clear this customer\'s cart? This action cannot be undone.')) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/Admin/ClearCustomerCart', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ customerId: customerId })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast(result.message, 'success');
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showToast(result.message || 'Failed to clear cart', 'error');
+                }
+            } catch (error) {
+                showToast('Error clearing cart', 'error');
+            }
+        }
+
+        function clearCustomerCartFromModal(customerId) {
+            closeCartDetailsModal();
+            clearCustomerCart(customerId);
+        }
+
+        async function removeCartItem(customerId, cartId) {
+            if (!confirm('Are you sure you want to remove this item from the cart?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/Admin/RemoveCartItem', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ customerId: customerId, cartId: cartId })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast(result.message, 'success');
+                    // Refresh the cart details modal
+                    viewCartDetails(customerId);
+                } else {
+                    showToast(result.message || 'Failed to remove item', 'error');
+                }
+            } catch (error) {
+                showToast('Error removing item', 'error');
+            }
+        }
+
+        async function clearAbandonedCarts() {
+            if (!confirm(`Are you sure you want to clear all abandoned carts from the selected period (${selectedTimePeriod === 'all' ? 'all time' : 'last ' + selectedTimePeriod + ' days'})? This action cannot be undone.`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/Admin/ClearAbandonedCarts', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ timePeriod: selectedTimePeriod })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast(result.message, 'success');
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    showToast(result.message || 'Failed to clear abandoned carts', 'error');
+                }
+            } catch (error) {
+                showToast('Error clearing abandoned carts', 'error');
+            }
+        }
+
+        async function clearAllCartsInPeriod() {
+            if (!confirm(`⚠️ WARNING: This will clear ALL carts (active and abandoned) from the selected period (${selectedTimePeriod === 'all' ? 'all time' : 'last ' + selectedTimePeriod + ' days'}). This action cannot be undone. Are you absolutely sure?`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/Admin/ClearAllCartsInPeriod', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ timePeriod: selectedTimePeriod })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showToast(result.message, 'success');
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    showToast(result.message || 'Failed to clear carts', 'error');
+                }
+            } catch (error) {
+                showToast('Error clearing carts', 'error');
+            }
+        }
+
+        function exportCartData() {
+            const exportData = filteredCarts.map(cart => ({
+                'Customer ID': cart.CustomerId,
+                'Customer Name': cart.CustomerName,
+                'Customer Email': cart.CustomerEmail,
+                'Total Items': cart.TotalItems,
+                'Total Value': cart.TotalValue,
+                'Is Active': cart.IsActive ? 'Yes' : 'No',
+                'Days Inactive': cart.DaysInactive,
+                'Last Activity': new Date(cart.LastActivity).toLocaleDateString()
+            }));
+
+            const csv = convertToCSV(exportData);
+            downloadCSV(csv, `cart-data-${new Date().toISOString().split('T')[0]}.csv`);
+            showToast('Cart data exported successfully', 'success');
+        }
+
+        function convertToCSV(data) {
+            if (data.length === 0) return '';
+            const headers = Object.keys(data[0]);
+            const csvContent = [
+                headers.join(','),
+                ...data.map(row => headers.map(header => `"${row[header] || ''}"`).join(','))
+            ].join('\n');
+            return csvContent;
+        }
+
+        function downloadCSV(csv, filename) {
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.setAttribute('hidden', '');
+            a.setAttribute('href', url);
+            a.setAttribute('download', filename);
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+
+        function resetFilters() {
+            document.getElementById('cartStatusFilter').value = '';
+            document.getElementById('sortBy').value = 'lastActivity';
+            document.getElementById('minItems').value = '';
+            document.getElementById('minValue').value = '';
+            document.getElementById('searchInput').value = '';
+            filterCarts();
+        }
+
+        function refreshData() {
+            location.reload();
+        }
+
+        // Close modals when clicking outside
+        window.onclick = function(event) {
+            const cartModal = document.getElementById('cartDetailsModal');
+            const customerModal = document.getElementById('customerProfileModal');
+
+            if (event.target === cartModal) {
+                closeCartDetailsModal();
+            }
+            if (event.target === customerModal) {
+                closeCustomerProfileModal();
+            }
+        }
+    </script>
+}
