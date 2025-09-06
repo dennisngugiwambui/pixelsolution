@@ -6863,33 +6863,27 @@ namespace PixelSolution.Controllers
                 ";
 
                 // Send actual email using EnhancedEmailService
-                try
+                var emailService = HttpContext.RequestServices.GetService<EnhancedEmailService>();
+                if (emailService == null)
                 {
-                    var emailService = HttpContext.RequestServices.GetService<EnhancedEmailService>();
-                    if (emailService != null)
-                    {
-                        await emailService.SendEmailAsync(customer.Email, subject, emailBody);
-                        _logger.LogInformation("Email sent successfully to {Email} for purchase request {RequestNumber}", 
-                            customer.Email, request.RequestNumber);
-                    }
-                    else
-                    {
-                        _logger.LogWarning("EnhancedEmailService not available for purchase request {RequestNumber}", 
-                            request.RequestNumber);
-                    }
-                }
-                catch (Exception emailEx)
-                {
-                    _logger.LogError(emailEx, "Failed to send email to {Email} for purchase request {RequestNumber}", 
-                        customer.Email, request.RequestNumber);
+                    _logger.LogWarning("EnhancedEmailService not available for purchase request {RequestNumber}", request.RequestNumber);
+                    return;
                 }
 
-                _logger.LogInformation("DEBUG: Email sending completed successfully for purchase request {RequestId}", 
-                    request.PurchaseRequestId);
+                var emailSent = await emailService.SendEmailAsync(customer.Email, subject, emailBody);
+                
+                if (emailSent)
+                {
+                    _logger.LogInformation("✅ Email sent successfully to {Email} for purchase request {RequestNumber}", customer.Email, request.RequestNumber);
+                }
+                else
+                {
+                    _logger.LogError("❌ Email failed to send to {Email} for purchase request {RequestNumber}", customer.Email, request.RequestNumber);
+                }
             }
-            catch (Exception ex)
+            catch (Exception emailEx)
             {
-                _logger.LogError(ex, "Error sending status change notification");
+                _logger.LogError(emailEx, "Exception occurred while sending email for request {RequestNumber}", request.RequestNumber);
             }
         }
 
