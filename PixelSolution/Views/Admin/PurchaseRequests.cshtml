@@ -1,3 +1,4 @@
+
 @model List<PixelSolution.ViewModels.PurchaseRequestViewModel>
 @{
     ViewData["Title"] = "Purchase Requests Management - PixelSolution";
@@ -833,6 +834,10 @@
                 <i class="fas fa-star"></i>
                 <span>Completed</span>
             </button>
+            <button class="view-toggle-btn" id="cancelledToggle" onclick="switchView('cancelled')">
+                <i class="fas fa-times-circle"></i>
+                <span>Cancelled</span>
+            </button>
         </div>
 
         <!-- Controls Section -->
@@ -983,7 +988,14 @@
                             View
                         </button>
 
-                        @if (User.IsInRole("Admin"))
+                        @if (request.Status == "Completed" || request.Status == "Cancelled")
+                        {
+                            <button class="action-btn action-btn-success" onclick="printReceipt(@request.PurchaseRequestId)">
+                                <i class="fas fa-print"></i>
+                                Print
+                            </button>
+                        }
+                        else if (User.IsInRole("Admin"))
                         {
                             @if (request.Status == "Pending")
                             {
@@ -1009,13 +1021,35 @@
                                     <i class="fas fa-check"></i>
                                 </button>
                             }
-                            <button class="action-btn action-btn-danger" onclick="cancelRequest(@request.PurchaseRequestId)">
-                                <i class="fas fa-times"></i>
-                            </button>
+                            @if (request.Status != "Completed" && request.Status != "Cancelled")
+                            {
+                                <button class="action-btn action-btn-danger" onclick="cancelRequest(@request.PurchaseRequestId)">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            }
                         }
                     </div>
                 </div>
             }
+        </div>
+
+        <!-- Debug Information -->
+        @if (ViewBag.ErrorMessage != null)
+        {
+            <div style="background: #fee2e2; color: #991b1b; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                <strong>Error:</strong> @ViewBag.ErrorMessage
+            </div>
+        }
+        @if (ViewBag.DebugMessage != null)
+        {
+            <div style="background: #fef3c7; color: #92400e; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                <strong>Debug:</strong> @ViewBag.DebugMessage
+            </div>
+        }
+
+        <!-- Model Count Debug -->
+        <div style="background: #e0f2fe; color: #0277bd; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+            <strong>Model Count:</strong> @Model.Count() items received from controller
         </div>
 
         <!-- Empty State -->
@@ -1025,6 +1059,7 @@
                 <i class="fas fa-file-invoice"></i>
                 <h3>No Purchase Requests Found</h3>
                 <p>No purchase requests have been submitted yet.</p>
+                <p><strong>Model has @Model.Count() items</strong></p>
             </div>
         }
     </div>
@@ -1131,11 +1166,18 @@
                     case 'completed':
                         if (request.Status !== 'Completed') shouldShow = false;
                         break;
+                    case 'cancelled':
+                        if (request.Status !== 'Cancelled') shouldShow = false;
+                        break;
                 }
 
                 // Additional filters
-                if (statusFilter && request.Status !== statusFilter) shouldShow = false;
-                if (paymentFilter && request.PaymentStatus !== paymentFilter) shouldShow = false;
+                if (statusFilter && request.Status !== statusFilter) {
+                    shouldShow = false;
+                }
+                if (paymentFilter && request.PaymentStatus !== paymentFilter) {
+                    shouldShow = false;
+                }
 
                 // Date filters
                 if (dateFrom || dateTo) {
@@ -1172,28 +1214,60 @@
             if (!confirm(`Are you sure you want to change the status to ${newStatus}?`)) {
                 return;
             }
+            async function updateStatus(requestId, newStatus) {
+                console.log('DEBUG: updateStatus called with requestId:', requestId, 'newStatus:', newStatus);
+                try {
+                    const formData = new FormData();
+                    formData.append('requestId', requestId);
+                    formData.append('newStatus', newStatus);
 
-            try {
-                const formData = new FormData();
-                formData.append('requestId', requestId);
-                formData.append('newStatus', newStatus);
+                    console.log('DEBUG: Sending request to /Admin/UpdateRequestStatus');
+                    const response = await fetch('/Admin/UpdateRequestStatus', {
+                        method: 'POST',
+                        body: formData
+                    });
 
-                const response = await fetch('/Admin/UpdateRequestStatus', {
-                    method: 'POST',
-                    body: formData
-                });
+                    console.log('DEBUG: Response status:', response.status);
+                    const result = await response.json();
+                    console.log('DEBUG: Response result:', result);
 
-                const result = await response.json();
-
-                if (result.success) {
-                    showToast(result.message || 'Status updated successfully', 'success');
-                    setTimeout(() => location.reload(), 1000);
-                } else {
-                    showToast(result.message || 'Failed to update status', 'error');
+                    if (result.success) {
+                        showToast('Status updated successfully and email sent to customer', 'success');
+                        console.log('DEBUG: Status update successful');
+                        
+                        // Refresh the page to show updated data
+                        setTimeout(() => {
+                            location.reload();
+                        }, 1500);
+                    } else {
+                        console.log('DEBUG: Status update failed:', result.message);
+                        showToast(result.message || 'Error updating status', 'error');
+                    }
+                } catch (error) {
+                    console.error('DEBUG: Error in updateStatus function:', error);
+                    showToast('Error updating status', 'error');
                 }
-            } catch (error) {
-                console.error('Error updating status:', error);
-                showToast('Error updating status', 'error');
+            }
+            await updateStatus(requestId, newStatus);
+        }
+
+        function updateCardStatus(requestId, newStatus, paymentStatus) {
+            const card = document.querySelector(`[data-request-id="${requestId}"]`);
+            if (card) {
+                // Update status badge
+                const statusBadge = card.querySelector('.status-badge');
+                if (statusBadge) {
+                    statusBadge.textContent = newStatus;
+                    statusBadge.className = `status-badge status-${newStatus.toLowerCase()}`;
+                }
+                
+                // Update payment status if available
+                if (paymentStatus) {
+                    const paymentBadge = card.querySelector('.payment-status');
+                    if (paymentBadge) {
+                        paymentBadge.textContent = paymentStatus;
+                    }
+                }
             }
         }
 
@@ -1236,18 +1310,23 @@
                         <div>
                             <h4 style="margin-bottom: 1rem;">Request Information</h4>
                             <div style="background: #f8fafc; padding: 1rem; border-radius: 8px;">
-                                <div><strong>Request Number:</strong> ${request.requestNumber}</div>
-                                <div><strong>Status:</strong> ${request.status}</div>
-                                <div><strong>Request Date:</strong> ${new Date(request.requestDate).toLocaleDateString()}</div>
-                                <div><strong>Total Amount:</strong> KSh ${request.totalAmount.toLocaleString()}</div>
+                                <p><strong>Request Number:</strong> ${request.requestNumber}</p>
+                                <p><strong>Status:</strong> <span class="status-badge status-${request.status.toLowerCase()}">${request.status}</span></p>
+                                <p><strong>Request Date:</strong> ${new Date(request.requestDate).toLocaleDateString()}</p>
+                                <p><strong>Total Amount:</strong> KSh ${request.totalAmount.toLocaleString()}</p>
+                                <p><strong>Delivery Address:</strong> ${request.deliveryAddress || 'Not specified'}</p>
+                                <p><strong>Notes:</strong> ${request.notes || 'No notes'}</p>
+                                <p><strong>Payment:</strong> <span id="modalPaymentStatus">${request.paymentStatus}</span></p>
                             </div>
                         </div>
                         <div>
                             <h4 style="margin-bottom: 1rem;">Customer Information</h4>
                             <div style="background: #f8fafc; padding: 1rem; border-radius: 8px;">
-                                <div><strong>Name:</strong> ${request.customerName}</div>
-                                <div><strong>Email:</strong> ${request.customerEmail}</div>
-                                <div><strong>Payment:</strong> ${request.paymentStatus}</div>
+                                <p><strong>Name:</strong> ${request.customerName}</p>
+                                <p><strong>Email:</strong> ${request.customerEmail}</p>
+                                <p><strong>Phone:</strong> ${request.customerPhone || 'Not provided'}</p>
+                                <p><strong>Address:</strong> ${request.customerAddress || 'Not provided'}</p>
+                                <p><strong>City:</strong> ${request.customerCity || 'Not provided'}</p>
                             </div>
                         </div>
                     </div>
@@ -1257,7 +1336,33 @@
                 `;
 
                 document.getElementById('modalTitle').textContent = `Purchase Request ${request.requestNumber}`;
-                document.getElementById('modalContent').innerHTML = modalContent;
+                // Add product items section
+                const itemsHtml = request.items && request.items.length > 0 ? 
+                    request.items.map(item => `
+                        <div style="display: flex; align-items: center; padding: 1rem; border: 1px solid #e5e7eb; border-radius: 8px; margin-bottom: 0.5rem; background: white;">
+                            <img src="${item.productImageUrl || '/images/no-image.png'}" 
+                                 alt="${item.productName}" 
+                                 style="width: 80px; height: 80px; object-fit: cover; border-radius: 8px; margin-right: 1rem; border: 2px solid #f3f4f6;">
+                            <div style="flex: 1;">
+                                <div style="font-weight: bold; font-size: 1.1rem; color: #1f2937;">${item.productName}</div>
+                                <div style="color: #6b7280; font-size: 0.875rem; margin: 0.25rem 0;">Category: ${item.categoryName}</div>
+                                <div style="color: #6b7280; font-size: 0.875rem; margin: 0.25rem 0;">Quantity: ${item.quantity}</div>
+                                <div style="color: #6b7280; font-size: 0.875rem; margin: 0.25rem 0;">Unit Price: KSh ${item.unitPrice.toLocaleString()}</div>
+                                <div style="font-weight: bold; color: #059669; font-size: 1rem;">Total: KSh ${item.totalPrice.toLocaleString()}</div>
+                            </div>
+                        </div>
+                    `).join('') : '<p style="text-align: center; color: #6b7280; padding: 2rem;">No items found</p>';
+
+                const fullModalContent = modalContent + `
+                    <div style="margin-top: 2rem;">
+                        <h4 style="margin-bottom: 1rem; color: #1f2937;">Order Items (${request.totalItems} items)</h4>
+                        <div style="max-height: 400px; overflow-y: auto; padding: 0.5rem;">
+                            ${itemsHtml}
+                        </div>
+                    </div>
+                `;
+
+                document.getElementById('modalContent').innerHTML = fullModalContent;
                 document.getElementById('purchaseRequestModal').style.display = 'block';
             } catch (error) {
                 console.error('Error loading request details:', error);
@@ -1271,6 +1376,12 @@
 
         function exportRequests() {
             showToast('Export functionality coming soon!', 'info');
+        }
+
+        function printReceipt(requestId) {
+            // Open receipt generation in new window
+            const receiptUrl = `/Admin/GeneratePurchaseRequestReceipt/${requestId}`;
+            window.open(receiptUrl, '_blank', 'width=800,height=600');
         }
 
         function refreshData() {

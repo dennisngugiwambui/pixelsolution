@@ -785,6 +785,35 @@ namespace PixelSolution.ViewModels
     }
 
     // ======================================
+    // PURCHASE REQUEST RECEIPT VIEW MODELS
+    // ======================================
+    
+    public class PurchaseRequestReceiptViewModel
+    {
+        public string RequestNumber { get; set; } = string.Empty;
+        public DateTime RequestDate { get; set; }
+        public string CustomerName { get; set; } = string.Empty;
+        public string CustomerEmail { get; set; } = string.Empty;
+        public string CustomerPhone { get; set; } = string.Empty;
+        public string CustomerAddress { get; set; } = string.Empty;
+        public string Status { get; set; } = string.Empty;
+        public string PaymentStatus { get; set; } = string.Empty;
+        public decimal TotalAmount { get; set; }
+        public string DeliveryAddress { get; set; } = string.Empty;
+        public string Notes { get; set; } = string.Empty;
+        public List<PurchaseRequestReceiptItemViewModel> Items { get; set; } = new List<PurchaseRequestReceiptItemViewModel>();
+    }
+
+    public class PurchaseRequestReceiptItemViewModel
+    {
+        public string ProductName { get; set; } = string.Empty;
+        public string CategoryName { get; set; } = string.Empty;
+        public int Quantity { get; set; }
+        public decimal UnitPrice { get; set; }
+        public decimal TotalPrice { get; set; }
+    }
+
+    // ======================================
     // EMPLOYEE MANAGEMENT VIEW MODELS
     // ======================================
 

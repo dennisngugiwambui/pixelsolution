@@ -230,16 +230,11 @@ namespace PixelSolution.Models
         [Key]
         public int PurchaseRequestId { get; set; }
 
-        [Required]
         [StringLength(50)]
         public string RequestNumber { get; set; } = string.Empty;
 
-        public int UserId { get; set; } // Requesting user
-
+        public int UserId { get; set; }
         public int SupplierId { get; set; }
-
-        [Required]
-        [Column(TypeName = "decimal(18,2)")]
         public decimal TotalAmount { get; set; }
 
         [StringLength(20)]
@@ -250,6 +245,15 @@ namespace PixelSolution.Models
 
         public DateTime RequestDate { get; set; } = DateTime.UtcNow;
         public DateTime? ApprovedDate { get; set; }
+        public DateTime? DeliveryDate { get; set; }
+        public DateTime? CompletedDate { get; set; }
+        public int? ProcessedByUserId { get; set; }
+
+        [StringLength(20)]
+        public string PaymentStatus { get; set; } = "Pending"; // Pending, Processing, Paid
+
+        [StringLength(500)]
+        public string DeliveryAddress { get; set; } = string.Empty;
 
         // Navigation Properties
         [ForeignKey("UserId")]
@@ -268,16 +272,8 @@ namespace PixelSolution.Models
 
         public int PurchaseRequestId { get; set; }
         public int ProductId { get; set; }
-
-        [Required]
         public int Quantity { get; set; }
-
-        [Required]
-        [Column(TypeName = "decimal(18,2)")]
         public decimal UnitPrice { get; set; }
-
-        [Required]
-        [Column(TypeName = "decimal(18,2)")]
         public decimal TotalPrice { get; set; }
 
         // Navigation Properties
@@ -395,5 +391,29 @@ namespace PixelSolution.Models
         public string SaleNumber { get; set; } = string.Empty;
         public string ErrorMessage { get; set; } = string.Empty;
         public object? ReceiptData { get; set; }
+    }
+
+    public class Wishlist
+    {
+        [Key]
+        public int WishlistId { get; set; }
+
+        [Required]
+        public int CustomerId { get; set; }
+
+        [Required]
+        public int ProductId { get; set; }
+
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        [StringLength(500)]
+        public string Notes { get; set; } = string.Empty;
+
+        // Navigation Properties
+        [ForeignKey("CustomerId")]
+        public virtual Customer Customer { get; set; } = null!;
+
+        [ForeignKey("ProductId")]
+        public virtual Product Product { get; set; } = null!;
     }
 }

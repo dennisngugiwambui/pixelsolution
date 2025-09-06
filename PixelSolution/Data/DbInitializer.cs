@@ -27,6 +27,8 @@ namespace PixelSolution.Data
                 // Seed Departments first
                 await SeedDepartmentsAsync(context);
 
+                // Purchase requests will be auto-fixed when accessed
+
                 // Seed Categories
                 await SeedCategoriesAsync(context);
 
@@ -41,6 +43,9 @@ namespace PixelSolution.Data
 
                 // Seed Sample Messages
                 await SeedMessagesAsync(context);
+
+                // Seed Purchase Requests
+                // Purchase requests are created by users - no seeding needed
 
                 await context.SaveChangesAsync();
 

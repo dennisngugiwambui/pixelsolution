@@ -6283,49 +6283,82 @@ namespace PixelSolution.Controllers
         {
             try
             {
-                // Try the most basic query first to see if we can access the table
                 _logger.LogInformation("Starting PurchaseRequests query...");
                 
-                var purchaseRequests = await _context.PurchaseRequests.ToListAsync();
-                _logger.LogInformation("Basic query returned {Count} purchase requests", purchaseRequests.Count);
-
-                // Create simple ViewModels with basic data only
-                var purchaseRequestViewModels = purchaseRequests.Select(request => new PurchaseRequestViewModel
+                // Test basic connection first
+                var totalCount = await _context.PurchaseRequests.CountAsync();
+                _logger.LogInformation("Total PurchaseRequests count: {Count}", totalCount);
+                
+                if (totalCount == 0)
                 {
-                    RequestId = request.PurchaseRequestId,
-                    PurchaseRequestId = request.PurchaseRequestId,
-                    RequestNumber = request.RequestNumber,
-                    CustomerId = request.UserId,
-                    CustomerName = "User " + request.UserId, // Simplified for now
-                    CustomerEmail = "",
-                    CustomerPhone = "",
-                    RequestDate = request.RequestDate,
-                    Status = request.Status,
-                    TotalAmount = request.TotalAmount,
-                    TotalItems = 0, // Will be calculated later
-                    TotalQuantity = 0, // Will be calculated later
-                    ProcessedDate = request.ApprovedDate,
-                    DeliveredDate = null,
-                    DeliveryDate = null,
-                    CompletedDate = null,
-                    ProcessedByUserName = "",
-                    Notes = request.Notes,
-                    DeliveryAddress = "",
-                    PaymentStatus = "Pending",
-                    DaysAgo = (int)(DateTime.Now - request.RequestDate).TotalDays,
-                    FormattedRequestDate = request.RequestDate.ToString("MMM dd, yyyy"),
-                    FormattedProcessedDate = request.ApprovedDate?.ToString("MMM dd, yyyy") ?? "",
-                    FormattedDeliveredDate = "",
-                    FormattedCompletedDate = "",
-                    FormattedTotalAmount = request.TotalAmount.ToString("C"),
-                    StatusBadgeClass = GetStatusBadgeClass(request.Status),
-                    CanProcess = request.Status == "Pending",
-                    CanDeliver = request.Status == "Processing",
-                    CanComplete = request.Status == "Delivered",
-                    HasStockIssues = false,
-                    Priority = "Normal",
-                    PriorityBadgeClass = GetPriorityBadgeClass("Normal"),
-                    Items = new List<PurchaseRequestItemViewModel>() // Empty for now
+                    ViewBag.DebugMessage = $"PurchaseRequests table is empty. Count: {totalCount}";
+                    return View(new List<PurchaseRequestViewModel>());
+                }
+                
+                // Try simple query without includes first
+                var basicRequests = await _context.PurchaseRequests.ToListAsync();
+                _logger.LogInformation("Basic query returned {Count} purchase requests", basicRequests.Count);
+                
+                if (basicRequests.Count == 0)
+                {
+                    ViewBag.DebugMessage = $"Basic query returned 0 results despite count of {totalCount}";
+                    return View(new List<PurchaseRequestViewModel>());
+                }
+                
+                // Use basic requests and load related data manually
+                var purchaseRequests = basicRequests;
+                _logger.LogInformation("Using basic query results: {Count} purchase requests", purchaseRequests.Count);
+                
+                // Load Users separately
+                var userIds = purchaseRequests.Select(pr => pr.UserId).Distinct().ToList();
+                var users = await _context.Users.Where(u => userIds.Contains(u.UserId)).ToListAsync();
+                var userDict = users.ToDictionary(u => u.UserId);
+                
+                // Load PurchaseRequestItems separately
+                var requestIds = purchaseRequests.Select(pr => pr.PurchaseRequestId).ToList();
+                var purchaseRequestItems = await _context.PurchaseRequestItems
+                    .Where(pri => requestIds.Contains(pri.PurchaseRequestId))
+                    .ToListAsync();
+                var itemsDict = purchaseRequestItems.GroupBy(pri => pri.PurchaseRequestId)
+                    .ToDictionary(g => g.Key, g => g.ToList());
+
+                _logger.LogInformation("Creating ViewModels for {Count} requests", purchaseRequests.Count);
+
+                // Create ViewModels using manually loaded data
+                var purchaseRequestViewModels = purchaseRequests.Select(request => 
+                {
+                    var user = userDict.GetValueOrDefault(request.UserId);
+                    var items = itemsDict.GetValueOrDefault(request.PurchaseRequestId, new List<PurchaseRequestItem>());
+                    
+                    return new PurchaseRequestViewModel
+                    {
+                        RequestId = request.PurchaseRequestId,
+                        PurchaseRequestId = request.PurchaseRequestId,
+                        RequestNumber = request.RequestNumber ?? $"PR{request.PurchaseRequestId}",
+                        CustomerId = request.UserId,
+                        CustomerName = user != null ? $"{user.FirstName} {user.LastName}" : $"User {request.UserId}",
+                        CustomerEmail = user?.Email ?? "",
+                        CustomerPhone = user?.Phone ?? "",
+                        RequestDate = request.RequestDate,
+                        Status = request.Status ?? "Pending",
+                        TotalAmount = request.TotalAmount,
+                        TotalItems = items.Count,
+                        TotalQuantity = items.Sum(pri => pri.Quantity),
+                        ProcessedDate = request.ApprovedDate,
+                        Notes = request.Notes ?? "",
+                        PaymentStatus = request.PaymentStatus ?? "Pending",
+                        DaysAgo = (int)(DateTime.Now - request.RequestDate).TotalDays,
+                        FormattedRequestDate = request.RequestDate.ToString("MMM dd, yyyy"),
+                        FormattedTotalAmount = request.TotalAmount.ToString("C"),
+                        Items = items.Select(pri => new PurchaseRequestItemViewModel
+                        {
+                            ProductId = pri.ProductId,
+                            ProductName = "Product " + pri.ProductId, // Will load product names separately if needed
+                            RequestedQuantity = pri.Quantity,
+                            UnitPrice = pri.UnitPrice,
+                            TotalPrice = pri.TotalPrice
+                        }).ToList()
+                    };
                 }).ToList();
 
                 _logger.LogInformation("Mapped {Count} purchase request ViewModels", purchaseRequestViewModels.Count);
@@ -6335,6 +6368,11 @@ namespace PixelSolution.Controllers
             {
                 _logger.LogError(ex, "Error loading purchase requests: {Message}", ex.Message);
                 ViewBag.ErrorMessage = "Error loading purchase requests: " + ex.Message;
+                ViewBag.DebugMessage = $"Exception: {ex.GetType().Name}: {ex.Message}";
+                if (ex.InnerException != null)
+                {
+                    ViewBag.DebugMessage += $" Inner: {ex.InnerException.Message}";
+                }
                 return View(new List<PurchaseRequestViewModel>());
             }
         }
@@ -6344,17 +6382,37 @@ namespace PixelSolution.Controllers
         {
             try
             {
+                // Use basic query without includes to avoid foreign key issues
                 var request = await _context.PurchaseRequests
-                    .Include(pr => pr.User)
-                    .Include(pr => pr.PurchaseRequestItems)
-                        .ThenInclude(pri => pri.Product)
-                            .ThenInclude(p => p.Category)
                     .FirstOrDefaultAsync(pr => pr.PurchaseRequestId == id);
 
                 if (request == null)
                 {
                     return Json(new { success = false, message = "Purchase request not found" });
                 }
+
+                // Load Customer directly since UserId references CustomerId
+                var customer = await _context.Customers.FirstOrDefaultAsync(c => c.CustomerId == request.UserId);
+                _logger.LogInformation("Loading customer for CustomerId {CustomerId}: {CustomerFound}", 
+                    request.UserId, customer != null ? $"{customer.FirstName} {customer.LastName}" : "Not Found");
+                
+                if (customer == null)
+                {
+                    var allCustomers = await _context.Customers.Select(c => new { c.CustomerId, c.FirstName, c.LastName }).ToListAsync();
+                    _logger.LogWarning("Customer {CustomerId} not found. Available customers: {Customers}", 
+                        request.UserId, string.Join(", ", allCustomers.Select(c => $"ID:{c.CustomerId} {c.FirstName} {c.LastName}")));
+                    return Json(new { success = false, message = "Customer not found for this purchase request" });
+                }
+
+                // Load PurchaseRequestItems separately
+                var items = await _context.PurchaseRequestItems
+                    .Where(pri => pri.PurchaseRequestId == id)
+                    .ToListAsync();
+
+                // Load Products for the items
+                var productIds = items.Select(i => i.ProductId).ToList();
+                var products = await _context.Products.Where(p => productIds.Contains(p.ProductId)).ToListAsync();
+                var productDict = products.ToDictionary(p => p.ProductId);
 
                 var result = new
                 {
@@ -6365,40 +6423,48 @@ namespace PixelSolution.Controllers
                     totalAmount = request.TotalAmount,
                     notes = request.Notes,
                     processedDate = request.ApprovedDate,
-                    totalItems = request.PurchaseRequestItems?.Count ?? 0,
-                    customerName = request.User != null ? $"{request.User.FirstName} {request.User.LastName}" : "Unknown",
-                    customerEmail = request.User?.Email ?? "",
-                    customerPhone = request.User?.Phone,
-                    items = request.PurchaseRequestItems == null ? 
-                           new List<object>() : 
-                           request.PurchaseRequestItems.Select(item => new
-                           {
-                               productId = item.ProductId,
-                               productName = item.Product?.Name ?? "Unknown Product",
-                               categoryName = item.Product?.Category?.Name ?? "Unknown Category",
-                               quantity = item.Quantity,
-                               unitPrice = item.UnitPrice,
-                               totalPrice = item.TotalPrice,
-                               productImageUrl = item.Product?.ImageUrl
-                           }).Cast<object>().ToList()
+                    deliveryAddress = request.DeliveryAddress ?? "",
+                    deliveryDate = request.DeliveryDate,
+                    completedDate = request.CompletedDate,
+                    totalItems = items.Count,
+                    customerName = $"{customer.FirstName} {customer.LastName}",
+                    customerEmail = customer.Email ?? "",
+                    customerPhone = customer.Phone ?? "",
+                    customerAddress = customer.Address ?? "",
+                    customerCity = customer.City ?? "",
+                    paymentStatus = request.PaymentStatus ?? "Pending",
+                    items = items.Select(item => new
+                    {
+                        productId = item.ProductId,
+                        productName = productDict.GetValueOrDefault(item.ProductId)?.Name ?? "Unknown Product",
+                        categoryName = productDict.GetValueOrDefault(item.ProductId)?.Category?.Name ?? "Unknown Category",
+                        quantity = item.Quantity,
+                        unitPrice = item.UnitPrice,
+                        totalPrice = item.TotalPrice,
+                        productImageUrl = productDict.GetValueOrDefault(item.ProductId)?.ImageUrl ?? ""
+                    }).ToList()
                 };
 
                 return Json(new { success = true, data = result });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error getting purchase request details for ID {RequestId}", id);
-                return Json(new { success = false, message = "Error loading request details" });
+                _logger.LogError(ex, "Error getting purchase request details for ID {RequestId}. Exception: {Message}", id, ex.Message);
+                if (ex.InnerException != null)
+                {
+                    _logger.LogError("Inner exception: {InnerMessage}", ex.InnerException.Message);
+                }
+                return Json(new { success = false, message = $"Error loading request details: {ex.Message}" });
             }
         }
 
         [HttpPost]
         public async Task<IActionResult> UpdateRequestStatus(int requestId, string newStatus)
         {
+            _logger.LogInformation("DEBUG: UpdateRequestStatus called with RequestId: {RequestId}, NewStatus: {NewStatus}", requestId, newStatus);
             try
             {
                 var purchaseRequest = await _context.PurchaseRequests
-                    .Include(pr => pr.User)
                     .FirstOrDefaultAsync(pr => pr.PurchaseRequestId == requestId);
 
                 if (purchaseRequest == null)
@@ -6415,15 +6481,81 @@ namespace PixelSolution.Controllers
                     purchaseRequest.ApprovedDate = DateTime.UtcNow;
                 }
 
+                // Update payment status if delivered
+                if (newStatus == "Delivered" && oldStatus != "Delivered")
+                {
+                    try
+                    {
+                        purchaseRequest.PaymentStatus = "Paid";
+                    }
+                    catch (Exception paymentEx)
+                    {
+                        _logger.LogWarning(paymentEx, "PaymentStatus column may not exist in database");
+                        // Continue without updating payment status
+                    }
+                }
+
                 await _context.SaveChangesAsync();
 
-                // Send email notification to customer
-                await SendStatusChangeEmail(purchaseRequest, oldStatus, newStatus);
+                _logger.LogInformation("DEBUG: About to send email and create sales record for status change from {OldStatus} to {NewStatus}", oldStatus, newStatus);
+
+                // Send email notification to customer first
+                try
+                {
+                    _logger.LogInformation("DEBUG: Attempting to send status change email for request {RequestId}", requestId);
+                    await SendStatusChangeEmail(purchaseRequest, oldStatus, newStatus);
+                    _logger.LogInformation("DEBUG: Email sending completed successfully for purchase request {RequestId}", requestId);
+                }
+                catch (Exception emailEx)
+                {
+                    _logger.LogError(emailEx, "DEBUG: Email sending failed for purchase request {RequestId}. Error: {ErrorMessage}", requestId, emailEx.Message);
+                }
+
+                // Auto-create sales record when completed (after saving status change)
+                if (newStatus == "Completed" && oldStatus != "Completed")
+                {
+                    _logger.LogInformation("DEBUG: Creating sales record for purchase request {RequestId}", requestId);
+                    try
+                    {
+                        var saleId = await CreateSalesRecordFromPurchaseRequest(purchaseRequest);
+                        purchaseRequest.CompletedDate = DateTime.UtcNow;
+                        await _context.SaveChangesAsync();
+                        _logger.LogInformation("DEBUG: Sales record creation completed for purchase request {RequestId}, Sale ID: {SaleId}", requestId, saleId);
+                        
+                        // Generate and send receipt PDF via email
+                        try
+                        {
+                            _logger.LogInformation("DEBUG: Generating and sending receipt PDF for sale {SaleId}", saleId);
+                            await GenerateAndSendReceiptPdf(saleId, purchaseRequest.UserId);
+                            _logger.LogInformation("DEBUG: Receipt PDF sent successfully for sale {SaleId}", saleId);
+                        }
+                        catch (Exception receiptEx)
+                        {
+                            _logger.LogError(receiptEx, "DEBUG: Failed to generate/send receipt PDF for sale {SaleId}", saleId);
+                        }
+                    }
+                    catch (Exception salesEx)
+                    {
+                        _logger.LogError(salesEx, "DEBUG: Sales record creation failed for purchase request {RequestId}", requestId);
+                    }
+                }
+                else
+                {
+                    _logger.LogInformation("DEBUG: Skipping sales record creation. NewStatus: {NewStatus}, OldStatus: {OldStatus}", newStatus, oldStatus);
+                }
 
                 _logger.LogInformation("Purchase request {RequestId} status updated from {OldStatus} to {NewStatus}", 
                     requestId, oldStatus, newStatus);
 
-                return Json(new { success = true, message = "Status updated successfully" });
+                return Json(new { 
+                    success = true, 
+                    message = "Status updated successfully",
+                    updatedRequest = new {
+                        requestId = purchaseRequest.PurchaseRequestId,
+                        status = purchaseRequest.Status,
+                        paymentStatus = purchaseRequest.PaymentStatus ?? "Pending"
+                    }
+                });
             }
             catch (Exception ex)
             {
@@ -6432,87 +6564,328 @@ namespace PixelSolution.Controllers
             }
         }
 
-        private async Task SendStatusChangeEmail(PurchaseRequest request, string oldStatus, string newStatus)
+        private async Task<int> CreateSalesRecordFromPurchaseRequest(PurchaseRequest purchaseRequest)
         {
+            _logger.LogInformation("DEBUG: Starting CreateSalesRecordFromPurchaseRequest for request {RequestId}", purchaseRequest.PurchaseRequestId);
             try
             {
-                if (request.User?.Email == null) return;
+                // Load purchase request items
+                var items = await _context.PurchaseRequestItems
+                    .Where(pri => pri.PurchaseRequestId == purchaseRequest.PurchaseRequestId)
+                    .ToListAsync();
+
+                if (!items.Any()) 
+                {
+                    _logger.LogWarning("No items found for purchase request {RequestId}", purchaseRequest.PurchaseRequestId);
+                    return 0;
+                }
+
+                // Load customer information (UserId references CustomerId)
+                var customer = await _context.Customers.FirstOrDefaultAsync(c => c.CustomerId == purchaseRequest.UserId);
+                
+                // Get the first available user ID to satisfy foreign key constraint
+                var firstUser = await _context.Users.FirstAsync();
+                
+                // Create sales record using the same pattern as SalesController
+                var sale = new Sale
+                {
+                    UserId = firstUser.UserId,
+                    CashierName = $"{firstUser.FirstName} {firstUser.LastName}",
+                    CustomerName = customer != null ? $"{customer.FirstName} {customer.LastName}" : "Purchase Request Customer",
+                    CustomerPhone = customer?.Phone ?? "",
+                    CustomerEmail = customer?.Email ?? "",
+                    PaymentMethod = "Purchase Request",
+                    AmountPaid = purchaseRequest.TotalAmount,
+                    ChangeGiven = 0,
+                    Status = "Completed",
+                    SaleItems = new List<SaleItem>()
+                };
+
+                // Add sale items to the sale object before saving
+                foreach (var item in items)
+                {
+                    var saleItem = new SaleItem
+                    {
+                        ProductId = item.ProductId,
+                        Quantity = item.Quantity,
+                        UnitPrice = item.UnitPrice,
+                        TotalPrice = item.TotalPrice
+                    };
+                    sale.SaleItems.Add(saleItem);
+                }
+
+                // Use SaleService to create the sale (matches SalesController pattern)
+                var saleService = HttpContext.RequestServices.GetService<ISaleService>();
+                if (saleService != null)
+                {
+                    var createdSale = await saleService.CreateSaleAsync(sale);
+                    _logger.LogInformation("Created sales record {SaleNumber} (ID: {SaleId}) from purchase request {RequestId} with {ItemCount} items", 
+                        createdSale.SaleNumber, createdSale.SaleId, purchaseRequest.PurchaseRequestId, items.Count);
+                    return createdSale.SaleId;
+                }
+                else
+                {
+                    // Fallback to direct database operations
+                    _context.Sales.Add(sale);
+                    await _context.SaveChangesAsync();
+
+                    // Update product stock manually
+                    foreach (var item in items)
+                    {
+                        var product = await _context.Products.FirstOrDefaultAsync(p => p.ProductId == item.ProductId);
+                        if (product != null && product.StockQuantity >= item.Quantity)
+                        {
+                            product.StockQuantity -= item.Quantity;
+                            _context.Products.Update(product);
+                            _logger.LogInformation("Updated stock for product {ProductId}: {OldStock} -> {NewStock}", 
+                                product.ProductId, product.StockQuantity + item.Quantity, product.StockQuantity);
+                        }
+                    }
+                    await _context.SaveChangesAsync();
+                    _logger.LogInformation("Created sales record {SaleNumber} (ID: {SaleId}) from purchase request {RequestId} with {ItemCount} items", 
+                        sale.SaleNumber, sale.SaleId, purchaseRequest.PurchaseRequestId, items.Count);
+                    return sale.SaleId;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating sales record from purchase request {RequestId}", 
+                    purchaseRequest.PurchaseRequestId);
+                return 0;
+            }
+        }
+
+        private async Task GenerateAndSendReceiptPdf(int saleId, int customerId)
+        {
+            _logger.LogInformation("DEBUG: Starting GenerateAndSendReceiptPdf for sale {SaleId}, customer {CustomerId}", saleId, customerId);
+            try
+            {
+                // Get sale details with items
+                var sale = await _context.Sales
+                    .Include(s => s.SaleItems)
+                    .ThenInclude(si => si.Product)
+                    .FirstOrDefaultAsync(s => s.SaleId == saleId);
+
+                if (sale == null)
+                {
+                    _logger.LogWarning("Sale {SaleId} not found for receipt generation", saleId);
+                    return;
+                }
+
+                // Get customer details
+                var customer = await _context.Customers.FirstOrDefaultAsync(c => c.CustomerId == customerId);
+                if (customer == null)
+                {
+                    _logger.LogWarning("Customer {CustomerId} not found for receipt sending", customerId);
+                    return;
+                }
+
+                // Check if customer has email, if not, log and skip email sending
+                if (string.IsNullOrEmpty(customer.Email))
+                {
+                    _logger.LogWarning("Customer {CustomerId} ({CustomerName}) has no email address for receipt sending", 
+                        customerId, $"{customer.FirstName} {customer.LastName}");
+                    return;
+                }
+
+                // Create receipt request for the existing PDF generation service
+                var receiptSubtotal = sale.TotalAmount / 1.15m; // Remove 15% VAT to get subtotal
+                var receiptTax = sale.TotalAmount - receiptSubtotal; // 15% VAT
+
+                var receiptRequest = new PixelSolution.ViewModels.ReceiptPdfRequest
+                {
+                    SaleNumber = sale.SaleNumber,
+                    SaleDate = sale.SaleDate,
+                    CashierName = sale.CashierName,
+                    CustomerName = sale.CustomerName,
+                    CustomerPhone = customer.Phone,
+                    PaymentMethod = sale.PaymentMethod,
+                    TotalAmount = sale.TotalAmount,
+                    AmountPaid = sale.AmountPaid,
+                    ChangeGiven = sale.ChangeGiven,
+                    Subtotal = receiptSubtotal,
+                    Tax = receiptTax,
+                    Items = sale.SaleItems.Select(si => new PixelSolution.ViewModels.ReceiptItemRequest
+                    {
+                        Name = si.Product?.Name ?? "Unknown Product",
+                        Quantity = si.Quantity,
+                        UnitPrice = si.UnitPrice,
+                        Total = si.TotalPrice
+                    }).ToList()
+                };
+
+                // Generate PDF using the existing ReportService (same as sales history)
+                var pdfBytes = await _reportService.GenerateReceiptPdfAsync(receiptRequest);
+
+                if (pdfBytes != null && pdfBytes.Length > 0)
+                {
+                    // Send email with PDF attachment
+                    var subject = $"Receipt for Purchase Request - {sale.SaleNumber}";
+                    var emailBody = CreateReceiptEmailBody(receiptRequest, customer);
+
+                    var emailService = HttpContext.RequestServices.GetService<EnhancedEmailService>();
+                    if (emailService != null)
+                    {
+                        await emailService.SendEmailWithAttachmentAsync(
+                            customer.Email,
+                            subject,
+                            emailBody,
+                            pdfBytes,
+                            $"Receipt_{sale.SaleNumber}.pdf"
+                        );
+
+                        _logger.LogInformation("Receipt PDF sent successfully to {Email} for sale {SaleNumber}", customer.Email, sale.SaleNumber);
+                    }
+                    else
+                    {
+                        _logger.LogError("EmailService not available for sending receipt PDF");
+                    }
+                }
+                else
+                {
+                    _logger.LogError("Failed to generate PDF bytes for sale {SaleId}", saleId);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error generating and sending receipt PDF for sale {SaleId}", saleId);
+            }
+        }
+
+
+        private string CreateReceiptEmailBody(PixelSolution.ViewModels.ReceiptPdfRequest model, Customer customer)
+        {
+            return $@"
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
+        .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
+        .header {{ background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0; }}
+        .content {{ background: #f9f9f9; padding: 20px; border-radius: 0 0 10px 10px; }}
+        .receipt-details {{ background: white; padding: 15px; border-radius: 5px; margin: 15px 0; }}
+        .footer {{ text-align: center; margin-top: 20px; color: #666; font-size: 12px; }}
+    </style>
+</head>
+<body>
+    <div class='container'>
+        <div class='header'>
+            <h1>🧾 Purchase Receipt</h1>
+            <p>Thank you for your purchase!</p>
+        </div>
+        <div class='content'>
+            <p>Dear {customer.FirstName} {customer.LastName},</p>
+            
+            <p>Your purchase request has been completed successfully! Please find your receipt attached to this email.</p>
+            
+            <div class='receipt-details'>
+                <h3>📋 Receipt Summary</h3>
+                <p><strong>Receipt Number:</strong> {model.SaleNumber}</p>
+                <p><strong>Date:</strong> {model.SaleDate:dd/MM/yyyy HH:mm:ss}</p>
+                <p><strong>Total Amount:</strong> KSh {model.TotalAmount:N2}</p>
+                <p><strong>Payment Method:</strong> {model.PaymentMethod}</p>
+            </div>
+            
+            <p>The attached PDF contains your complete receipt with all item details, matching our standard receipt format.</p>
+            
+            <p>If you have any questions about your purchase, please don't hesitate to contact us.</p>
+            
+            <p>Thank you for choosing PixelSolution!</p>
+        </div>
+        <div class='footer'>
+            <p>PixelSolution Ltd | Chuka, Ndangani | +254758024400 | www.pixelsolution.co.ke</p>
+            <p>This is an automated message. Please do not reply to this email.</p>
+        </div>
+    </div>
+</body>
+</html>";
+        }
+
+        private async Task SendStatusChangeEmail(PurchaseRequest request, string oldStatus, string newStatus)
+        {
+            _logger.LogInformation("DEBUG: Starting SendStatusChangeEmail for request {RequestId}, status change {OldStatus} -> {NewStatus}", 
+                request.PurchaseRequestId, oldStatus, newStatus);
+            try
+            {
+                // Load customer since UserId references CustomerId
+                var customer = await _context.Customers.FirstOrDefaultAsync(c => c.CustomerId == request.UserId);
+                if (customer?.Email == null) 
+                {
+                    _logger.LogWarning("No email found for customer {CustomerId} in purchase request {RequestId}", 
+                        request.UserId, request.PurchaseRequestId);
+                    return;
+                }
+
+                _logger.LogInformation("Sending status change email to {Email} for request {RequestNumber}", 
+                    customer.Email, request.RequestNumber);
 
                 var subject = $"Purchase Request {request.RequestNumber} - Status Update";
-                var statusMessage = GetStatusMessage(newStatus);
+                var statusMessage = GetStatusMessage(newStatus, request.TotalAmount);
                 var statusColor = GetStatusColor(newStatus);
 
+                // Create proper email body with customer name
+                var customerName = $"{customer.FirstName} {customer.LastName}";
+                
                 var emailBody = $@"
-                    <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;'>
+                    <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden;'>
                         <div style='background: linear-gradient(135deg, #3b82f6, #1e40af); color: white; padding: 2rem; text-align: center;'>
-                            <h1 style='margin: 0; font-size: 1.5rem;'>PixelSolution</h1>
-                            <p style='margin: 0.5rem 0 0 0; opacity: 0.9;'>Purchase Request Update</p>
+                            <h1 style='margin: 0; font-size: 1.8rem;'>PixelSolution</h1>
+                            <p style='margin: 0.5rem 0 0 0; opacity: 0.9; font-size: 1.1rem;'>Purchase Request Update</p>
                         </div>
                         
                         <div style='padding: 2rem; background: white;'>
-                            <h2 style='color: #1e293b; margin-top: 0;'>Hello {request.User.FirstName},</h2>
+                            <h2 style='color: #1f2937; margin-bottom: 1rem;'>Hello {customerName},</h2>
                             
-                            <p style='color: #64748b; line-height: 1.6;'>
-                                Your purchase request <strong>{request.RequestNumber}</strong> has been updated.
-                            </p>
-                            
-                            <div style='background: #f8fafc; border-radius: 8px; padding: 1.5rem; margin: 1.5rem 0;'>
-                                <div style='display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;'>
-                                    <span style='color: #64748b;'>Status Changed:</span>
-                                    <div>
-                                        <span style='background: #fee2e2; color: #991b1b; padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.875rem; margin-right: 0.5rem;'>{oldStatus}</span>
-                                        <span style='color: #64748b;'>→</span>
-                                        <span style='background: {statusColor}; color: white; padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.875rem; margin-left: 0.5rem;'>{newStatus}</span>
-                                    </div>
-                                </div>
-                                
-                                <div style='display: flex; justify-content: space-between; margin-bottom: 0.5rem;'>
-                                    <span style='color: #64748b;'>Request Number:</span>
-                                    <span style='font-weight: 600; color: #1e293b;'>{request.RequestNumber}</span>
-                                </div>
-                                
-                                <div style='display: flex; justify-content: space-between; margin-bottom: 0.5rem;'>
-                                    <span style='color: #64748b;'>Total Amount:</span>
-                                    <span style='font-weight: 600; color: #059669;'>KSh {request.TotalAmount:N0}</span>
-                                </div>
-                                
-                                <div style='display: flex; justify-content: space-between;'>
-                                    <span style='color: #64748b;'>Request Date:</span>
-                                    <span style='color: #1e293b;'>{request.RequestDate:MMM dd, yyyy}</span>
-                                </div>
+                            <div style='background: #f8fafc; padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem;'>
+                                <h3 style='margin: 0 0 1rem 0; color: #374151;'>Request Details</h3>
+                                <p style='margin: 0.5rem 0;'><strong>Request Number:</strong> {request.RequestNumber}</p>
+                                <p style='margin: 0.5rem 0;'><strong>Status:</strong> <span style='color: {statusColor}; font-weight: bold;'>{newStatus}</span></p>
+                                <p style='margin: 0.5rem 0;'><strong>Total Amount:</strong> KSh {request.TotalAmount:N2}</p>
                             </div>
                             
-                            <div style='background: {statusColor}; color: white; padding: 1rem; border-radius: 8px; margin: 1.5rem 0;'>
-                                <p style='margin: 0; font-weight: 500;'>{statusMessage}</p>
+                            <div style='background: #fef3c7; border-left: 4px solid #f59e0b; padding: 1rem; margin-bottom: 1.5rem;'>
+                                <p style='margin: 0; color: #92400e;'>{statusMessage}</p>
                             </div>
                             
-                            <p style='color: #64748b; line-height: 1.6;'>
-                                If you have any questions about your purchase request, please don't hesitate to contact our support team.
-                            </p>
+                            <div style='text-align: center; margin-top: 2rem;'>
+                                <p style='color: #6b7280; font-size: 0.875rem;'>
+                                    Thank you for choosing PixelSolution!<br>
+                                    For any questions, contact us at support@pixelsolution.com
+                                </p>
+                            </div>
                         </div>
                         
-                        <div style='background: #f8fafc; padding: 1rem; text-align: center; color: #64748b; font-size: 0.875rem;'>
-                            <p style='margin: 0;'>© 2024 PixelSolution. All rights reserved.</p>
+                        <div style='background: #f3f4f6; padding: 1rem; text-align: center; color: #6b7280; font-size: 0.75rem;'>
+                            © 2025 PixelSolution. All rights reserved.
                         </div>
-                    </div>";
+                    </div>
+                ";
 
-                // Create internal message for notification
-                var message = new Message
+                // Send actual email using EnhancedEmailService
+                try
                 {
-                    FromUserId = 1, // System user
-                    ToUserId = request.UserId,
-                    Subject = subject,
-                    Content = emailBody,
-                    SentDate = DateTime.UtcNow,
-                    IsRead = false,
-                    MessageType = "System"
-                };
+                    var emailService = HttpContext.RequestServices.GetService<EnhancedEmailService>();
+                    if (emailService != null)
+                    {
+                        await emailService.SendEmailAsync(customer.Email, subject, emailBody);
+                        _logger.LogInformation("Email sent successfully to {Email} for purchase request {RequestNumber}", 
+                            customer.Email, request.RequestNumber);
+                    }
+                    else
+                    {
+                        _logger.LogWarning("EnhancedEmailService not available for purchase request {RequestNumber}", 
+                            request.RequestNumber);
+                    }
+                }
+                catch (Exception emailEx)
+                {
+                    _logger.LogError(emailEx, "Failed to send email to {Email} for purchase request {RequestNumber}", 
+                        customer.Email, request.RequestNumber);
+                }
 
-                _context.Messages.Add(message);
-                await _context.SaveChangesAsync();
-
-                _logger.LogInformation("Status change notification sent to user {UserId} for request {RequestNumber}", 
-                    request.UserId, request.RequestNumber);
+                _logger.LogInformation("DEBUG: Email sending completed successfully for purchase request {RequestId}", 
+                    request.PurchaseRequestId);
             }
             catch (Exception ex)
             {
@@ -6520,16 +6893,22 @@ namespace PixelSolution.Controllers
             }
         }
 
-        private string GetStatusMessage(string status)
+        private string GetStatusMessage(string status, decimal totalAmount)
         {
-            return status.ToLower() switch
+            var formattedAmount = totalAmount.ToString("C");
+            return status switch
             {
-                "approved" => "Great news! Your purchase request has been approved and is being processed.",
-                "shipped" => "Your order has been shipped and is on its way to you. You'll receive tracking information soon.",
-                "delivered" => "Your order has been delivered successfully. Thank you for your business!",
-                "completed" => "Your purchase request has been completed. We hope you're satisfied with your order.",
-                "declined" => "Unfortunately, your purchase request has been declined. Please contact support for more information.",
-                _ => "Your purchase request status has been updated."
+                "Approved" => "Your purchase request has been approved and is being processed.",
+                "Processing" => "Your order is currently being prepared for shipment.",
+                "Shipped" => $@" Your products have been processed and successfully shipped. 
+                            <br><br>You will receive a confirmation once the goods arrive at your location for pickup. 
+                            <br><br> Please prepare to pay {formattedAmount} upon delivery.
+                            <br><br> Ensure you have the shipping fee ready based on our shipping service rates.",
+                "Delivered" => $@" Your order has been successfully delivered. 
+                             <br><br> Please pay the total amount of {formattedAmount}.
+                             <br><br>You will receive a payment confirmation message shortly. Thank you for choosing PixelSolution!",
+                "Cancelled" => "Your purchase request has been cancelled. If you have any questions, please contact us.",
+                _ => $"Your purchase request status has been updated to {status}."
             };
         }
 
@@ -6544,6 +6923,60 @@ namespace PixelSolution.Controllers
                 "declined" => "#ef4444",
                 _ => "#64748b"
             };
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GeneratePurchaseRequestReceipt(int requestId)
+        {
+            try
+            {
+                var request = await _context.PurchaseRequests
+                    .Include(pr => pr.PurchaseRequestItems)
+                        .ThenInclude(pri => pri.Product)
+                            .ThenInclude(p => p.Category)
+                    .FirstOrDefaultAsync(pr => pr.PurchaseRequestId == requestId);
+
+                if (request == null)
+                {
+                    return NotFound("Purchase request not found");
+                }
+
+                var customer = await _context.Customers.FirstOrDefaultAsync(c => c.CustomerId == request.UserId);
+                if (customer == null)
+                {
+                    return NotFound("Customer not found");
+                }
+
+                var receiptViewModel = new PurchaseRequestReceiptViewModel
+                {
+                    RequestNumber = request.RequestNumber,
+                    RequestDate = request.RequestDate,
+                    CustomerName = $"{customer.FirstName} {customer.LastName}",
+                    CustomerEmail = customer.Email,
+                    CustomerPhone = customer.Phone,
+                    CustomerAddress = customer.Address,
+                    Status = request.Status,
+                    PaymentStatus = request.PaymentStatus,
+                    TotalAmount = request.TotalAmount,
+                    DeliveryAddress = request.DeliveryAddress,
+                    Notes = request.Notes,
+                    Items = request.PurchaseRequestItems.Select(item => new PurchaseRequestReceiptItemViewModel
+                    {
+                        ProductName = item.Product.Name,
+                        CategoryName = item.Product.Category?.Name ?? "Uncategorized",
+                        Quantity = item.Quantity,
+                        UnitPrice = item.UnitPrice,
+                        TotalPrice = item.TotalPrice
+                    }).ToList()
+                };
+
+                return View("PurchaseRequestReceipt", receiptViewModel);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error generating purchase request receipt for ID {RequestId}", requestId);
+                return BadRequest("Error generating receipt");
+            }
         }
 
         [HttpGet]
@@ -6713,119 +7146,84 @@ namespace PixelSolution.Controllers
         {
             try
             {
-                var wishlistsWithCustomers = await _context.CustomerWishlists
-                    .Include(cw => cw.Customer)
-                    .Include(cw => cw.Product)
+                // Get wishlisted products grouped by product with customer count
+                var wishlistedProducts = await _context.Wishlists
+                    .Include(w => w.Product)
                         .ThenInclude(p => p.Category)
-                    .OrderByDescending(cw => cw.AddedAt)
-                    .GroupBy(cw => cw.CustomerId)
+                    .GroupBy(w => w.ProductId)
                     .Select(g => new
                     {
-                        Customer = g.First().Customer,
-                        Items = g.ToList(),
-                        TotalItems = g.Count(),
-                        TotalValue = g.Sum(cw => cw.Product.SellingPrice),
-                        OldestItem = g.Min(cw => cw.AddedAt),
-                        NewestItem = g.Max(cw => cw.AddedAt),
-                        ItemsOlderThan30Days = g.Count(cw => cw.AddedAt < DateTime.UtcNow.AddDays(-30)),
-                        ItemsOlderThan60Days = g.Count(cw => cw.AddedAt < DateTime.UtcNow.AddDays(-60)),
-                        ItemsOlderThan1Year = g.Count(cw => cw.AddedAt < DateTime.UtcNow.AddYears(-1))
+                        ProductId = g.Key,
+                        Product = g.First().Product,
+                        WishlistCount = g.Count(),
+                        CustomerIds = g.Select(w => w.CustomerId).ToList(),
+                        LatestWishlistDate = g.Max(w => w.CreatedAt)
                     })
-                    .Take(12) // Limit to 12 customers for pagination
+                    .OrderByDescending(x => x.WishlistCount)
                     .ToListAsync();
 
-                var wishlistViewModels = wishlistsWithCustomers.Select(wishlist => new WishlistManagementViewModel
-                {
-                    WishlistId = wishlist.Items.FirstOrDefault()?.WishlistId ?? 0,
-                    CustomerId = wishlist.Customer.CustomerId,
-                    CustomerName = $"{wishlist.Customer.FirstName} {wishlist.Customer.LastName}",
-                    CustomerEmail = wishlist.Customer.Email,
-                    CustomerPhone = wishlist.Customer.Phone,
-                    ProductId = wishlist.Items.FirstOrDefault()?.ProductId ?? 0,
-                    ProductName = wishlist.Items.FirstOrDefault()?.Product?.Name ?? "",
-                    ProductSKU = wishlist.Items.FirstOrDefault()?.Product?.SKU ?? "",
-                    ProductImage = wishlist.Items.FirstOrDefault()?.Product?.ImageUrl,
-                    SellingPrice = wishlist.Items.FirstOrDefault()?.Product?.SellingPrice ?? 0,
-                    StockQuantity = wishlist.Items.FirstOrDefault()?.Product?.StockQuantity ?? 0,
-                    InStock = (wishlist.Items.FirstOrDefault()?.Product?.StockQuantity ?? 0) > 0,
-                    CreatedAt = wishlist.OldestItem,
-                    LastActivity = wishlist.NewestItem,
-                    CategoryName = wishlist.Items.FirstOrDefault()?.Product?.Category?.Name ?? "Unknown",
-                    SupplierName = wishlist.Items.FirstOrDefault()?.Product?.Supplier?.CompanyName,
-                    FormattedPrice = (wishlist.Items.FirstOrDefault()?.Product?.SellingPrice ?? 0).ToString("C"),
-                    FormattedCreatedDate = wishlist.OldestItem.ToString("MMM dd, yyyy"),
-                    StockStatus = (wishlist.Items.FirstOrDefault()?.Product?.StockQuantity ?? 0) > 0 ? "In Stock" : "Out of Stock",
-                    StockStatusClass = (wishlist.Items.FirstOrDefault()?.Product?.StockQuantity ?? 0) > 0 ? "text-success" : "text-danger",
-                    DaysInWishlist = (int)(DateTime.Now - wishlist.OldestItem).TotalDays,
-                    DaysOld = (int)(DateTime.Now - wishlist.OldestItem).TotalDays,
-                    TotalItems = wishlist.TotalItems,
-                    TotalValue = wishlist.TotalValue,
-                    IsAvailable = (wishlist.Items.FirstOrDefault()?.Product?.StockQuantity ?? 0) > 0,
-                    CanAddToCart = (wishlist.Items.FirstOrDefault()?.Product?.StockQuantity ?? 0) > 0,
-                    Items = wishlist.Items.Select(item => new WishlistItemViewModel
-                    {
-                        WishlistId = item.WishlistId,
-                        ProductId = item.ProductId,
-                        ProductName = item.Product?.Name ?? "Unknown",
-                        ProductDescription = item.Product?.Description,
-                        ProductImage = item.Product?.ImageUrl,
-                        SellingPrice = item.Product?.SellingPrice ?? 0,
-                        StockQuantity = item.Product?.StockQuantity ?? 0,
-                        InStock = (item.Product?.StockQuantity ?? 0) > 0,
-                        CreatedAt = item.AddedAt,
-                        CategoryName = item.Product?.Category?.Name ?? "Unknown",
-                        FormattedPrice = (item.Product?.SellingPrice ?? 0).ToString("C"),
-                        StockStatus = (item.Product?.StockQuantity ?? 0) > 0 ? "In Stock" : "Out of Stock",
-                        CanAddToCart = (item.Product?.StockQuantity ?? 0) > 0
-                    }).ToList()
-                }).ToList();
-
-                _logger.LogInformation("Found {Count} customers with wishlist items", wishlistViewModels.Count);
-                return View(wishlistViewModels);
+                return View(wishlistedProducts);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error loading wishlist management: {Error}", ex.Message);
-                ViewBag.ErrorMessage = "Error loading wishlist data.";
-                return View(new List<WishlistManagementViewModel>());
+                _logger.LogError(ex, "Error loading wishlist management data");
+                TempData["Error"] = "Error loading wishlist data.";
+                return View(new List<object>());
             }
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetCustomerWishlistDetails(int customerId)
+        public async Task<IActionResult> GetWishlistCustomers(int productId)
         {
             try
             {
-                var wishlistItems = await _context.CustomerWishlists
-                    .Include(cw => cw.Product)
-                        .ThenInclude(p => p.Category)
-                    .Where(cw => cw.CustomerId == customerId)
-                    .OrderByDescending(cw => cw.AddedAt)
-                    .Select(cw => new
+                var customers = await _context.Wishlists
+                    .Where(w => w.ProductId == productId)
+                    .Include(w => w.Customer)
+                    .Select(w => new
                     {
-                        cw.WishlistId,
-                        cw.AddedAt,
-                        cw.Notes,
-                        DaysOld = (int)(DateTime.UtcNow - cw.AddedAt).TotalDays,
-                        Product = new
-                        {
-                            cw.Product.ProductId,
-                            cw.Product.Name,
-                            cw.Product.SKU,
-                            cw.Product.ImageUrl,
-                            cw.Product.StockQuantity,
-                            cw.Product.SellingPrice,
-                            Category = cw.Product.Category.Name
-                        }
+                        customerId = w.CustomerId,
+                        customerName = $"{w.Customer.FirstName} {w.Customer.LastName}",
+                        customerPhone = w.Customer.Phone ?? "Not provided",
+                        customerEmail = w.Customer.Email ?? "Not provided",
+                        wishlistDate = w.CreatedAt,
+                        wishlistId = w.WishlistId
                     })
+                    .OrderByDescending(c => c.wishlistDate)
                     .ToListAsync();
 
-                return Json(new { success = true, data = wishlistItems });
+                return Json(new { success = true, customers = customers });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error getting customer wishlist details for ID {CustomerId}", customerId);
-                return StatusCode(500, new { message = "Error loading wishlist details" });
+                _logger.LogError(ex, "Error getting wishlist customers for product {ProductId}", productId);
+                return Json(new { success = false, message = "Error loading customer data" });
+            }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> RemoveFromWishlist(int wishlistId)
+        {
+            try
+            {
+                var wishlistItem = await _context.Wishlists.FindAsync(wishlistId);
+                if (wishlistItem == null)
+                {
+                    return Json(new { success = false, message = "Wishlist item not found" });
+                }
+
+                _context.Wishlists.Remove(wishlistItem);
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation("Removed wishlist item {WishlistId} for customer {CustomerId}", 
+                    wishlistId, wishlistItem.CustomerId);
+
+                return Json(new { success = true, message = "Item removed from wishlist successfully" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error removing wishlist item {WishlistId}", wishlistId);
+                return Json(new { success = false, message = "Error removing item from wishlist" });
             }
         }
 
@@ -6842,13 +7240,13 @@ namespace PixelSolution.Controllers
                     _ => throw new ArgumentException("Invalid time filter")
                 };
 
-                var itemsToRemove = await _context.CustomerWishlists
-                    .Where(cw => cw.AddedAt < cutoffDate)
+                var itemsToRemove = await _context.Wishlists
+                    .Where(cw => cw.CreatedAt < cutoffDate)
                     .ToListAsync();
 
                 if (itemsToRemove.Any())
                 {
-                    _context.CustomerWishlists.RemoveRange(itemsToRemove);
+                    _context.Wishlists.RemoveRange(itemsToRemove);
                     await _context.SaveChangesAsync();
 
                     // Log the activity
@@ -6858,7 +7256,7 @@ namespace PixelSolution.Controllers
                         "Wishlist Cleanup",
                         $"Removed {itemsToRemove.Count} wishlist items older than {request.TimeFilter}",
                         "CustomerWishlist",
-                        null
+                        0
                     );
                 }
 

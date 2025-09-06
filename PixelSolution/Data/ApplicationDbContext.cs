@@ -28,6 +28,7 @@ namespace PixelSolution.Data
         public DbSet<Customer> Customers { get; set; }
         public DbSet<CustomerCart> CustomerCarts { get; set; }
         public DbSet<CustomerWishlist> CustomerWishlists { get; set; }
+        public DbSet<Wishlist> Wishlists { get; set; }
         public DbSet<ProductRequest> ProductRequests { get; set; }
         public DbSet<ProductRequestItem> ProductRequestItems { get; set; }
         
@@ -446,6 +447,28 @@ namespace PixelSolution.Data
             // Unique constraint to prevent duplicate wishlist items
             modelBuilder.Entity<CustomerWishlist>()
                 .HasIndex(cw => new { cw.CustomerId, cw.ProductId })
+                .IsUnique();
+
+            // Configure Wishlist relationships
+            modelBuilder.Entity<Wishlist>()
+                .HasOne(w => w.Customer)
+                .WithMany()
+                .HasForeignKey(w => w.CustomerId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Wishlist>()
+                .HasOne(w => w.Product)
+                .WithMany()
+                .HasForeignKey(w => w.ProductId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Wishlist>()
+                .Property(w => w.CreatedAt)
+                .HasDefaultValueSql("GETUTCDATE()");
+
+            // Unique constraint to prevent duplicate wishlist items
+            modelBuilder.Entity<Wishlist>()
+                .HasIndex(w => new { w.CustomerId, w.ProductId })
                 .IsUnique();
         }
     }

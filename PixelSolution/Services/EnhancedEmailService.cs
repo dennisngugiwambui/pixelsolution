@@ -48,11 +48,42 @@ namespace PixelSolution.Services
             try
             {
                 _logger.LogInformation($"Attempting to send email to: {to}, Subject: {subject}");
+                _logger.LogInformation($"SMTP Config - Host: {_smtpHost}, Port: {_smtpPort}, Username: {_smtpUsername}, FromEmail: {_fromEmail}, SSL: {_enableSsl}");
                 
+                // Validate email configuration
+                if (string.IsNullOrEmpty(_smtpUsername) || string.IsNullOrEmpty(_smtpPassword))
+                {
+                    _logger.LogError("SMTP credentials are missing. Username or password is empty.");
+                    return false;
+                }
+
+                if (string.IsNullOrEmpty(_fromEmail))
+                {
+                    _logger.LogError("FromEmail is not configured.");
+                    return false;
+                }
+
                 using var client = new SmtpClient(_smtpHost, _smtpPort);
                 client.Credentials = new NetworkCredential(_smtpUsername, _smtpPassword);
                 client.EnableSsl = _enableSsl;
                 client.Timeout = 30000; // 30 seconds timeout
+                
+                // Add event handlers for better debugging
+                client.SendCompleted += (sender, e) =>
+                {
+                    if (e.Error != null)
+                    {
+                        _logger.LogError(e.Error, "SMTP SendCompleted event reported error");
+                    }
+                    else if (e.Cancelled)
+                    {
+                        _logger.LogWarning("Email sending was cancelled");
+                    }
+                    else
+                    {
+                        _logger.LogInformation("SMTP SendCompleted event: Email sent successfully");
+                    }
+                };
 
                 using var message = new MailMessage();
                 message.From = new MailAddress(_fromEmail, _fromName);
@@ -61,13 +92,19 @@ namespace PixelSolution.Services
                 message.Body = body;
                 message.IsBodyHtml = isHtml;
 
+                _logger.LogInformation($"Sending email via SMTP...");
                 await client.SendMailAsync(message);
-                _logger.LogInformation($"Email sent successfully to: {to}");
+                _logger.LogInformation($"✅ Email sent successfully to: {to}");
                 return true;
+            }
+            catch (SmtpException smtpEx)
+            {
+                _logger.LogError(smtpEx, $"SMTP Error sending email to: {to}. StatusCode: {smtpEx.StatusCode}, Message: {smtpEx.Message}");
+                return false;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Failed to send email to: {to}. Error: {ex.Message}");
+                _logger.LogError(ex, $"General error sending email to: {to}. Error: {ex.Message}");
                 return false;
             }
         }

@@ -1,1505 +1,254 @@
-@model List<PixelSolution.ViewModels.WishlistManagementViewModel>
 @{
-    ViewData["Title"] = "Wishlist Management - PixelSolution";
-    Layout = "_AdminLayout";
+    ViewData["Title"] = "Wishlist Management";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
 }
 
-@section Styles {
-    <link href="~/css/dashboard.css" rel="stylesheet">
-    <style>
-        .wishlist-card {
-            background: white;
-            border-radius: 12px;
-            padding: 1.5rem;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            transition: all 0.3s ease;
-            border-left: 4px solid #ec4899;
-            position: relative;
-            overflow: hidden;
-        }
-
-            .wishlist-card:hover {
-                transform: translateY(-2px);
-                box-shadow: 0 8px 25px rgba(0,0,0,0.15);
-            }
-
-            .wishlist-card.active {
-                border-left-color: #ec4899;
-            }
-
-            .wishlist-card.stale {
-                border-left-color: #f59e0b;
-                opacity: 0.8;
-            }
-
-            .wishlist-card.empty {
-                border-left-color: #6b7280;
-                opacity: 0.6;
-            }
-
-        .customer-avatar {
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #ec4899, #be185d);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 1.5rem;
-            font-weight: bold;
-            margin-bottom: 1rem;
-        }
-
-        .wishlist-stats {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 1rem;
-            margin-top: 1rem;
-            padding-top: 1rem;
-            border-top: 1px solid #f1f5f9;
-        }
-
-        .stat-item {
-            text-align: center;
-        }
-
-        .stat-value {
-            font-size: 1.25rem;
-            font-weight: 700;
-            color: #1e293b;
-            display: block;
-        }
-
-        .stat-label {
-            font-size: 0.75rem;
-            color: #64748b;
-            font-weight: 500;
-            margin-top: 0.25rem;
-        }
-
-        .wishlist-indicator {
-            position: absolute;
-            top: 1rem;
-            right: 1rem;
-            padding: 0.25rem 0.75rem;
-            border-radius: 20px;
-            font-size: 0.75rem;
-            font-weight: 600;
-        }
-
-        .wishlist-active {
-            background: #fce7f3;
-            color: #be185d;
-        }
-
-        .wishlist-stale {
-            background: #fef3c7;
-            color: #92400e;
-        }
-
-        .wishlist-empty {
-            background: #f3f4f6;
-            color: #6b7280;
-        }
-
-        .wishlist-items-preview {
-            max-height: 240px;
-            overflow-y: auto;
-            background: #f8fafc;
-            border-radius: 8px;
-            padding: 1rem;
-            margin-top: 1rem;
-        }
-
-        .wishlist-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0.75rem 0;
-            border-bottom: 1px solid #e2e8f0;
-        }
-
-            .wishlist-item:last-child {
-                border-bottom: none;
-            }
-
-        .product-info {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            flex: 1;
-        }
-
-        .product-thumb {
-            width: 45px;
-            height: 45px;
-            border-radius: 6px;
-            object-fit: cover;
-            background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
-        }
-
-        .bulk-actions-bar {
-            background: linear-gradient(135deg, #ec4899, #be185d);
-            color: white;
-            border-radius: 12px;
-            padding: 1.5rem;
-            margin-bottom: 2rem;
-            box-shadow: 0 4px 12px rgba(236, 72, 153, 0.3);
-        }
-
-        .insight-cards {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-            margin-top: 1rem;
-        }
-
-        .insight-card {
-            background: rgba(255,255,255,0.1);
-            border-radius: 8px;
-            padding: 1rem;
-            text-align: center;
-        }
-
-            .insight-card h4 {
-                margin: 0;
-                font-size: 1.5rem;
-                font-weight: 700;
-            }
-
-            .insight-card p {
-                margin: 0.25rem 0 0 0;
-                font-size: 0.875rem;
-                opacity: 0.9;
-            }
-
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0,0,0,0.5);
-        }
-
-        .modal-content {
-            background-color: white;
-            margin: 5% auto;
-            padding: 0;
-            border: none;
-            border-radius: 12px;
-            width: 95%;
-            max-width: 1000px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-            max-height: 90vh;
-            overflow-y: auto;
-        }
-
-        .modal-header {
-            background: linear-gradient(135deg, #ec4899, #be185d);
-            color: white;
-            padding: 1.5rem;
-            border-radius: 12px 12px 0 0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .modal-body {
-            padding: 2rem;
-        }
-
-        .wishlist-item-detailed {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            padding: 1rem;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            margin-bottom: 1rem;
-            transition: all 0.2s ease;
-        }
-
-            .wishlist-item-detailed:hover {
-                box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            }
-
-        .product-image {
-            width: 80px;
-            height: 80px;
-            border-radius: 8px;
-            object-fit: cover;
-            background: linear-gradient(135deg, #e2e8f0, #cbd5e1);
-        }
-
-        .quick-actions {
-            display: flex;
-            gap: 0.5rem;
-            margin-top: 1rem;
-            flex-wrap: wrap;
-        }
-
-        .filters-bar {
-            background: white;
-            border-radius: 12px;
-            padding: 1.5rem;
-            margin-bottom: 2rem;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-
-        .pagination-container {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 1rem;
-            margin-top: 2rem;
-            padding: 2rem;
-        }
-
-        .pagination-button {
-            padding: 0.5rem 1rem;
-            border: 1px solid #d1d5db;
-            background: white;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 500;
-            transition: all 0.2s ease;
-        }
-
-            .pagination-button:hover:not(:disabled) {
-                background: #f3f4f6;
-                border-color: #9ca3af;
-            }
-
-            .pagination-button:disabled {
-                opacity: 0.5;
-                cursor: not-allowed;
-            }
-
-            .pagination-button.active {
-                background: #ec4899;
-                border-color: #ec4899;
-                color: white;
-            }
-
-        .summary-cards {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 1rem;
-            margin-bottom: 2rem;
-        }
-
-        .summary-card {
-            background: linear-gradient(135deg, #ec4899, #be185d);
-            color: white;
-            padding: 1.5rem;
-            border-radius: 12px;
-            text-align: center;
-            box-shadow: 0 4px 12px rgba(236, 72, 153, 0.3);
-        }
-
-            .summary-card h3 {
-                font-size: 2rem;
-                margin: 0;
-                font-weight: 700;
-            }
-
-            .summary-card p {
-                margin: 0.5rem 0 0 0;
-                opacity: 0.9;
-                font-size: 0.875rem;
-            }
-
-        .trend-indicator {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.25rem;
-            font-size: 0.875rem;
-            margin-top: 0.5rem;
-        }
-
-        .trend-up {
-            color: #10b981;
-        }
-
-        .trend-down {
-            color: #ef4444;
-        }
-
-        .popular-products {
-            background: white;
-            border-radius: 12px;
-            padding: 1.5rem;
-            margin-top: 2rem;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        }
-
-        .popular-product-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 1rem 0;
-            border-bottom: 1px solid #f1f5f9;
-        }
-
-            .popular-product-item:last-child {
-                border-bottom: none;
-            }
-    </style>
-}
-
-<!-- Sidebar -->
-<div class="sidebar" id="sidebar">
-    <div class="sidebar-header">
-        <div class="logo-container">
-            <div class="logo-icon">
-                <i class="fas fa-bolt"></i>
-            </div>
-            <div class="logo-text">PixelSolution</div>
-        </div>
-        <div class="user-info">
-            <div class="user-avatar">@User.Identity.Name?.Substring(0, 2).ToUpper()</div>
-            <div class="user-details">
-                <h4>@User.Identity.Name</h4>
-                <p>System Administrator</p>
-            </div>
-        </div>
-    </div>
-
-    <nav class="nav-menu">
-        <div class="nav-section">
-            <div class="nav-section-title">Main</div>
-            <div class="nav-item">
-                <a href="@Url.Action("Dashboard", "Admin")" class="nav-link">
-                    <i class="fas fa-chart-pie"></i>
-                    Dashboard
-                </a>
-            </div>
-            <div class="nav-item">
-                <a href="@Url.Action("Sales", "Admin")" class="nav-link">
-                    <i class="fas fa-shopping-cart"></i>
-                    Sales
-                </a>
-            </div>
-            <div class="nav-item">
-                <a href="@Url.Action("Inventory", "Admin")" class="nav-link">
-                    <i class="fas fa-box"></i>
-                    Inventory
-                </a>
-            </div>
-        </div>
-
-        <div class="nav-section">
-            <div class="nav-section-title">Management</div>
-            <div class="nav-item">
-                <a href="@Url.Action("Users", "Admin")" class="nav-link">
-                    <i class="fas fa-users"></i>
-                    Employees
-                </a>
-            </div>
-            <div class="nav-item">
-                <a href="@Url.Action("Departments", "Admin")" class="nav-link">
-                    <i class="fas fa-building"></i>
-                    Departments
-                </a>
-            </div>
-            <div class="nav-item">
-                <a href="@Url.Action("Suppliers", "Admin")" class="nav-link">
-                    <i class="fas fa-truck"></i>
-                    Suppliers
-                </a>
-            </div>
-            <div class="nav-item">
-                <a href="@Url.Action("Categories", "Admin")" class="nav-link">
-                    <i class="fas fa-tags"></i>
-                    Categories
-                </a>
-            </div>
-            <div class="nav-item">
-                <a href="@Url.Action("Products", "Admin")" class="nav-link">
-                    <i class="fas fa-cube"></i>
-                    Products
-                </a>
-            </div>
-        </div>
-
-        <div class="nav-section">
-            <div class="nav-section-title">Operations</div>
-            <div class="nav-item">
-                <a href="@Url.Action("PurchaseRequests", "Admin")" class="nav-link">
-                    <i class="fas fa-file-invoice"></i>
-                    Purchase Requests
-                </a>
-            </div>
-            <div class="nav-item">
-                <a href="@Url.Action("CartManagement", "Admin")" class="nav-link">
-                    <i class="fas fa-shopping-basket"></i>
-                    Cart Management
-                </a>
-            </div>
-            <div class="nav-item">
-                <a href="@Url.Action("WishlistManagement", "Admin")" class="nav-link active">
-                    <i class="fas fa-heart"></i>
-                    Wishlist Management
-                </a>
-            </div>
-            <div class="nav-item">
-                <a href="@Url.Action("Messages", "Admin")" class="nav-link">
-                    <i class="fas fa-envelope"></i>
-                    Messages
-                </a>
-            </div>
-            <div class="nav-item">
-                <a href="@Url.Action("Reports", "Admin")" class="nav-link">
-                    <i class="fas fa-chart-bar"></i>
-                    Reports
-                </a>
-            </div>
-        </div>
-
-        <div class="nav-section">
-            <div class="nav-section-title">System</div>
-            <div class="nav-item">
-                <a href="@Url.Action("Settings", "Admin")" class="nav-link">
-                    <i class="fas fa-cog"></i>
-                    Settings
-                </a>
-            </div>
-            <div class="nav-item">
-                <a href="@Url.Action("LogoutGet", "Auth")" class="nav-link">
-                    <i class="fas fa-sign-out-alt"></i>
-                    Logout
-                </a>
-            </div>
-        </div>
-    </nav>
-</div>
-
-<!-- Main Content -->
-<div class="main-content" id="mainContent">
-    <!-- Header -->
-    <header class="header">
-        <div class="header-left">
-            <button class="sidebar-toggle" id="sidebarToggle">
-                <i class="fas fa-bars"></i>
-            </button>
-            <h1 class="page-title">Wishlist Management</h1>
-        </div>
-        <div class="header-right">
-            <div class="search-container">
-                <input type="text" class="search-input" placeholder="Search customers..." id="searchInput">
-                <i class="fas fa-search search-icon"></i>
-            </div>
-            <div class="header-actions">
-                <button class="action-btn" title="Notifications">
-                    <i class="fas fa-bell"></i>
-                    <span class="notification-badge">3</span>
-                </button>
-                <button class="action-btn" title="Messages">
-                    <i class="fas fa-envelope"></i>
-                    <span class="notification-badge">8</span>
-                </button>
-                <button class="action-btn" title="Profile">
-                    <i class="fas fa-user-circle"></i>
-                </button>
-            </div>
-        </div>
-    </header>
-
-    <!-- Page Content -->
-    <div class="dashboard-content">
-        <!-- Summary Cards -->
-        <div class="summary-cards">
-            <div class="summary-card">
-                <h3 id="totalWishlistItems">@Model.Sum(w => w.TotalItems)</h3>
-                <p>Total Wishlist Items</p>
-                <div class="trend-indicator trend-up">
-                    <i class="fas fa-arrow-up"></i> 12% this month
-                </div>
-            </div>
-            <div class="summary-card">
-                <h3 id="activeWishlists">@Model.Count(w => w.TotalItems > 0)</h3>
-                <p>Active Wishlists</p>
-                <div class="trend-indicator trend-up">
-                    <i class="fas fa-arrow-up"></i> 8% this month
-                </div>
-            </div>
-            <div class="summary-card">
-                <h3 id="totalWishlistValue">KSh @Model.Sum(w => w.TotalValue).ToString("N0")</h3>
-                <p>Total Wishlist Value</p>
-                <div class="trend-indicator trend-down">
-                    <i class="fas fa-arrow-down"></i> 3% this month
-                </div>
-            </div>
-            <div class="summary-card">
-                <h3 id="avgItemsPerWishlist">@(Model.Count > 0 ? Math.Round((double)Model.Sum(w => w.TotalItems) / Model.Count, 1) : 0)</h3>
-                <p>Avg Items per Wishlist</p>
-                <div class="trend-indicator trend-up">
-                    <i class="fas fa-arrow-up"></i> 5% this month
-                </div>
-            </div>
-        </div>
-
-        <!-- Bulk Actions and Insights Bar -->
-        <div class="bulk-actions-bar">
-            <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
-                <div>
-                    <h3 style="margin: 0 0 0.5rem 0; font-size: 1.25rem;">Wishlist Analytics & Management</h3>
-                    <p style="margin: 0; opacity: 0.9; font-size: 0.875rem;">Track customer interests and manage wishlist data effectively</p>
-                </div>
-            </div>
-
-            <div class="insight-cards">
-                <div class="insight-card">
-                    <h4>@Model.Count(w => w.DaysOld <= 7)</h4>
-                    <p>New This Week</p>
-                </div>
-                <div class="insight-card">
-                    <h4>@Model.Count(w => w.DaysOld > 90)</h4>
-                    <p>Stale (90+ days)</p>
-                </div>
-                <div class="insight-card">
-                    <h4>@Model.Count(w => w.TotalItems >= 5)</h4>
-                    <p>High Interest (5+ items)</p>
-                </div>
-                <div class="insight-card">
-                    <h4>@(Model.Any() ? Math.Round(Model.Average(w => w.TotalValue), 0) : 0)</h4>
-                    <p>Avg Wishlist Value</p>
-                </div>
-            </div>
-
-            <div style="display: flex; gap: 1rem; margin-top: 1rem; flex-wrap: wrap;">
-                <button class="btn btn-warning" onclick="clearStaleWishlists()" style="background: rgba(245, 158, 11, 0.9); border: none;">
-                    <i class="fas fa-broom"></i> Clear Stale Wishlists (90+ days)
-                </button>
-                <button class="btn btn-danger" onclick="clearEmptyWishlists()" style="background: rgba(239, 68, 68, 0.9); border: none;">
-                    <i class="fas fa-trash"></i> Clear Empty Wishlists
-                </button>
-                <button class="btn btn-secondary" onclick="exportWishlistData()" style="background: rgba(255,255,255,0.2); border: none;">
-                    <i class="fas fa-download"></i> Export Analytics
-                </button>
-                <button class="btn btn-info" onclick="generateWishlistReport()" style="background: rgba(59, 130, 246, 0.9); border: none;">
-                    <i class="fas fa-chart-line"></i> Generate Report
-                </button>
-            </div>
-        </div>
-
-        <!-- Filters and Actions Bar -->
-        <div class="filters-bar">
-            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
-                <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
-                    <div style="position: relative;">
-                        <select id="wishlistStatusFilter" class="form-control" style="width: 150px;">
-                            <option value="">All Wishlists</option>
-                            <option value="active">Active (1+ items)</option>
-                            <option value="empty">Empty</option>
-                            <option value="new">New (< 7 days)</option>
-                            <option value="stale">Stale (90+ days)</option>
-                        </select>
-                    </div>
-                    <div style="position: relative;">
-                        <select id="sortBy" class="form-control" style="width: 180px;">
-                            <option value="recent">Sort by Recent Activity</option>
-                            <option value="customer">Sort by Customer</option>
-                            <option value="items">Sort by Items Count</option>
-                            <option value="value">Sort by Total Value</option>
-                            <option value="oldest">Sort by Oldest First</option>
-                        </select>
-                    </div>
-                    <div style="position: relative;">
-                        <input type="number" id="minItems" class="form-control" style="width: 120px;" placeholder="Min items" min="0">
-                    </div>
-                    <div style="position: relative;">
-                        <input type="number" id="minValue" class="form-control" style="width: 120px;" placeholder="Min value" min="0">
-                    </div>
-                    <div style="position: relative;">
-                        <input type="number" id="maxDays" class="form-control" style="width: 120px;" placeholder="Max days old" min="0">
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4 class="card-title mb-0">
+                        <i class="fas fa-heart text-danger me-2"></i>Wishlist Management
+                    </h4>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-outline-info btn-sm" onclick="refreshData()">
+                            <i class="fas fa-refresh me-1"></i>Refresh
+                        </button>
                     </div>
                 </div>
-                <div style="display: flex; gap: 1rem;">
-                    <button class="btn btn-secondary btn-sm" onclick="resetFilters()">
-                        <i class="fas fa-undo"></i>
-                        Reset
-                    </button>
-                    <button class="btn btn-primary btn-sm" onclick="refreshData()">
-                        <i class="fas fa-sync-alt"></i>
-                        Refresh
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Wishlist Management Grid -->
-        <div id="wishlistGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 1.5rem;">
-            @foreach (var wishlist in Model)
-            {
-                <div class="wishlist-card @(wishlist.TotalItems == 0 ? "empty" : wishlist.DaysOld > 90 ? "stale" : "active")"
-                     data-wishlist-id="@wishlist.CustomerId"
-                     data-status="@(wishlist.TotalItems == 0 ? "empty" : wishlist.DaysOld > 90 ? "stale" : "active")">
-
-                    <div class="wishlist-indicator wishlist-@(wishlist.TotalItems == 0 ? "empty" : wishlist.DaysOld > 90 ? "stale" : "active")">
-                        @if (wishlist.TotalItems == 0)
-                        {
-                            <span>Empty</span>
-                        }
-                        else if (wishlist.DaysOld > 90)
-                        {
-                            <span>Stale</span>
-                        }
-                        else if (wishlist.DaysOld <= 7)
-                        {
-                            <span>New</span>
-                        }
-                        else
-                        {
-                            <span>Active</span>
-                        }
-                    </div>
-
-                    <div style="display: flex; align-items: flex-start; gap: 1rem; margin-bottom: 1rem;">
-                        <div class="customer-avatar">
-                            @wishlist.CustomerName.Substring(0, 2).ToUpper()
-                        </div>
-
-                        <div style="flex: 1; min-width: 0;">
-                            <h3 style="margin: 0 0 0.5rem 0; color: #1e293b; font-size: 1.25rem; line-height: 1.3;">@wishlist.CustomerName</h3>
-                            <p style="margin: 0 0 0.25rem 0; color: #64748b; font-size: 0.875rem;">@wishlist.CustomerEmail</p>
-                            <p style="margin: 0; color: #9ca3af; font-size: 0.75rem;">
-                                @if (wishlist.TotalItems > 0)
-                                {
-                                    <span>Last updated: @wishlist.LastActivity.ToString("MMM dd, yyyy")</span>
-                                }
-                                else
-                                {
-                                    <span>No items in wishlist</span>
-                                }
-                            </p>
-                        </div>
-                    </div>
-
-                    <div class="wishlist-stats">
-                        <div class="stat-item">
-                            <span class="stat-value">@wishlist.TotalItems</span>
-                            <span class="stat-label">Total Items</span>
-                        </div>
-                        <div class="stat-item">
-                            <span class="stat-value">KSh @wishlist.TotalValue.ToString("N0")</span>
-                            <span class="stat-label">Wishlist Value</span>
-                        </div>
-                        <div class="stat-item">
-                            <span class="stat-value">@wishlist.DaysOld</span>
-                            <span class="stat-label">Days Old</span>
-                        </div>
-                    </div>
-
-                    @if (wishlist.Items.Any())
+                <div class="card-body">
+                    @if (TempData["Error"] != null)
                     {
-                        <div class="wishlist-items-preview">
-                            @foreach (var item in wishlist.Items.Take(4))
-                            {
-                                <div class="wishlist-item">
-                                    <div class="product-info">
-                                        <img src="@(item.ProductImage ?? "/images/placeholder.jpg")" alt="@item.ProductName" class="product-thumb">
-                                        <div>
-                                            <div style="font-weight: 600; font-size: 0.875rem; line-height: 1.2;">@item.ProductName</div>
-                                            <div style="color: #64748b; font-size: 0.75rem;">
-                                                @(item.InStock ? "In Stock" : "Out of Stock") • Added @item.CreatedAt.ToString("MMM dd")
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div style="text-align: right;">
-                                        <div style="font-weight: 600; font-size: 0.875rem; color: @(item.InStock ? "#059669" : "#dc2626");">
-                                            KSh @item.SellingPrice.ToString("N0")
-                                        </div>
-                                        <div style="font-size: 0.75rem; color: #64748b;">
-                                            @(item.InStock ? $"Stock: {item.StockQuantity}" : "No Stock")
-                                        </div>
-                                    </div>
-                                </div>
-                            }
-                            @if (wishlist.Items.Count > 4)
-                            {
-                                <div style="text-align: center; color: #64748b; font-size: 0.75rem; margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid #e2e8f0;">
-                                    +@(wishlist.Items.Count - 4) more items
-                                </div>
-                            }
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-triangle me-2"></i>@TempData["Error"]
+                        </div>
+                    }
+
+                    @if (Model != null && Model.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th>Product</th>
+                                        <th>Category</th>
+                                        <th>Price</th>
+                                        <th>Stock Status</th>
+                                        <th>Wishlist Count</th>
+                                        <th>Latest Wishlist</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var item in Model)
+                                    {
+                                        <tr>
+                                            <td>
+                                                <div class="d-flex align-items-center">
+                                                    @if (!string.IsNullOrEmpty(item.Product.ImageUrl))
+                                                    {
+                                                        <img src="@item.Product.ImageUrl" alt="@item.Product.Name" class="rounded me-2" style="width: 40px; height: 40px; object-fit: cover;">
+                                                    }
+                                                    else
+                                                    {
+                                                        <div class="bg-light rounded me-2 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                                            <i class="fas fa-image text-muted"></i>
+                                                        </div>
+                                                    }
+                                                    <div>
+                                                        <div class="fw-semibold">@item.Product.Name</div>
+                                                        <small class="text-muted">SKU: @item.Product.SKU</small>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-info">@(item.Product.Category?.Name ?? "Unknown")</span>
+                                            </td>
+                                            <td>
+                                                <span class="fw-bold text-success">@item.Product.SellingPrice.ToString("C")</span>
+                                            </td>
+                                            <td>
+                                                <span class="badge @(item.Product.StockQuantity > 0 ? "bg-success" : "bg-danger")">
+                                                    @(item.Product.StockQuantity > 0 ? "In Stock" : "Out of Stock")
+                                                </span>
+                                                @if (item.Product.StockQuantity > 0)
+                                                {
+                                                    <small class="d-block text-muted">@item.Product.StockQuantity units</small>
+                                                }
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-primary fs-6">@item.WishlistCount</span>
+                                                <small class="d-block text-muted">customers</small>
+                                            </td>
+                                            <td>
+                                                <small class="text-muted">@item.LatestWishlistDate.ToString("MMM dd, yyyy")</small>
+                                            </td>
+                                            <td>
+                                                <div class="btn-group btn-group-sm">
+                                                    <button class="btn btn-outline-primary" onclick="viewCustomers(@item.ProductId)" title="View Customers">
+                                                        <i class="fas fa-users"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
                         </div>
                     }
                     else
                     {
-                        <div style="text-align: center; padding: 2rem; color: #9ca3af; font-style: italic;">
-                            <i class="fas fa-heart" style="font-size: 2rem; margin-bottom: 0.5rem; opacity: 0.3;"></i>
-                            <div>Empty wishlist</div>
+                        <div class="text-center py-5">
+                            <i class="fas fa-heart text-muted" style="font-size: 4rem;"></i>
+                            <h5 class="mt-3 text-muted">No Wishlist Items Found</h5>
+                            <p class="text-muted">There are currently no items in any customer wishlists.</p>
                         </div>
                     }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
-                    <div class="quick-actions">
-                        <button class="btn btn-secondary btn-sm" onclick="viewWishlistDetails(@wishlist.CustomerId)" title="View Wishlist Details">
-                            <i class="fas fa-eye"></i>
-                        </button>
-                        <button class="btn btn-primary btn-sm" onclick="viewCustomerProfile(@wishlist.CustomerId)" title="Customer Profile">
-                            <i class="fas fa-user"></i>
-                        </button>
-                        @if (User.IsInRole("Admin"))
-                        {
-                            @if (wishlist.TotalItems > 0)
-                            {
-                                <button class="btn btn-info btn-sm" onclick="sendWishlistReminder(@wishlist.CustomerId)" title="Send Reminder Email">
-                                    <i class="fas fa-envelope"></i>
-                                </button>
-                                <button class="btn btn-warning btn-sm" onclick="clearCustomerWishlist(@wishlist.CustomerId)" title="Clear Wishlist">
-                                    <i class="fas fa-broom"></i>
-                                </button>
-                            }
-                            @if (wishlist.DaysOld > 90 || wishlist.TotalItems == 0)
-                            {
-                                <button class="btn btn-danger btn-sm" onclick="deleteWishlist(@wishlist.CustomerId)" title="Delete Wishlist">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            }
-                        }
+<!-- Customers Modal -->
+<div class="modal fade" id="customersModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-users text-primary me-2"></i>Customers Who Wishlisted This Product
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="customersContent">
+                    <div class="text-center py-3">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
                     </div>
                 </div>
-            }
-        </div>
-
-        <!-- Pagination -->
-        <div class="pagination-container" id="paginationContainer">
-            <button class="pagination-button" id="prevBtn" onclick="previousPage()" disabled>
-                <i class="fas fa-chevron-left"></i> Previous
-            </button>
-
-            <div id="pageNumbers" style="display: flex; gap: 0.5rem;">
-                <!-- Page numbers will be generated by JavaScript -->
             </div>
-
-            <button class="pagination-button" id="nextBtn" onclick="nextPage()">
-                Next <i class="fas fa-chevron-right"></i>
-            </button>
-        </div>
-
-        <!-- Popular Products -->
-        <div class="popular-products">
-            <h3 style="margin: 0 0 1rem 0; color: #1e293b;">Most Wishlisted Products</h3>
-            <div id="popularProductsList">
-                <!-- Will be populated by JavaScript -->
-            </div>
-        </div>
-
-        <!-- Empty State -->
-        <div id="emptyState" style="display: none; text-align: center; padding: 4rem; color: #64748b;">
-            <i class="fas fa-heart" style="font-size: 4rem; margin-bottom: 1rem; opacity: 0.3;"></i>
-            <h3>No wishlist data found</h3>
-            <p>Try adjusting your search criteria or filters.</p>
-        </div>
-    </div>
-</div>
-
-<!-- Wishlist Details Modal -->
-<div id="wishlistDetailsModal" class="modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h2 id="wishlistModalTitle">Wishlist Details</h2>
-            <button style="background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer;" onclick="closeWishlistDetailsModal()">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-        <div class="modal-body" id="wishlistModalContent">
-            <!-- Content will be loaded dynamically -->
-        </div>
-    </div>
-</div>
-
-<!-- Customer Profile Modal -->
-<div id="customerProfileModal" class="modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h2 id="customerModalTitle">Customer Profile</h2>
-            <button style="background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer;" onclick="closeCustomerProfileModal()">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-        <div class="modal-body" id="customerModalContent">
-            <!-- Content will be loaded dynamically -->
         </div>
     </div>
 </div>
 
 @section Scripts {
-    <script src="~/js/dashboard.js"></script>
     <script>
-        let allWishlists = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model));
-        let currentPage = 1;
-        let itemsPerPage = 12;
-        let filteredWishlists = [];
-
-        document.addEventListener('DOMContentLoaded', function() {
-            setupFilters();
-            setupSearch();
-            loadPopularProducts();
-            filterWishlists();
-        });
-
-        function setupFilters() {
-            const filters = ['wishlistStatusFilter', 'sortBy', 'minItems', 'minValue', 'maxDays'];
-            filters.forEach(filterId => {
-                const element = document.getElementById(filterId);
-                if (element) {
-                    element.addEventListener('change', filterWishlists);
-                    if (['minItems', 'minValue', 'maxDays'].includes(filterId)) {
-                        element.addEventListener('input', debounce(filterWishlists, 300));
+        function viewCustomers(productId) {
+            $('#customersModal').modal('show');
+            
+            fetch(`/Admin/GetWishlistCustomers?productId=${productId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        displayCustomers(data.customers);
+                    } else {
+                        $('#customersContent').html('<div class="alert alert-danger">Error loading customer data.</div>');
                     }
-                }
-            });
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    $('#customersContent').html('<div class="alert alert-danger">Error loading customer data.</div>');
+                });
         }
 
-        function setupSearch() {
-            const searchInput = document.getElementById('searchInput');
-            if (searchInput) {
-                searchInput.addEventListener('input', debounce(filterWishlists, 300));
-            }
-        }
-
-        function debounce(func, wait) {
-            let timeout;
-            return function executedFunction(...args) {
-                const later = () => {
-                    clearTimeout(timeout);
-                    func(...args);
-                };
-                clearTimeout(timeout);
-                timeout = setTimeout(later, wait);
-            };
-        }
-
-        function filterWishlists() {
-            const searchTerm = document.getElementById('searchInput')?.value.toLowerCase() || '';
-            const statusFilter = document.getElementById('wishlistStatusFilter')?.value || '';
-            const sortBy = document.getElementById('sortBy')?.value || 'recent';
-            const minItems = parseInt(document.getElementById('minItems')?.value) || 0;
-            const minValue = parseFloat(document.getElementById('minValue')?.value) || 0;
-            const maxDays = parseInt(document.getElementById('maxDays')?.value) || 999999;
-
-            filteredWishlists = allWishlists.filter(wishlist => {
-                const matchesSearch = !searchTerm ||
-                    wishlist.CustomerName.toLowerCase().includes(searchTerm) ||
-                    wishlist.CustomerEmail.toLowerCase().includes(searchTerm);
-
-                let matchesStatus = true;
-                if (statusFilter === 'active') matchesStatus = wishlist.TotalItems > 0;
-                else if (statusFilter === 'empty') matchesStatus = wishlist.TotalItems === 0;
-                else if (statusFilter === 'new') matchesStatus = wishlist.DaysOld <= 7;
-                else if (statusFilter === 'stale') matchesStatus = wishlist.DaysOld > 90;
-
-                const matchesMinItems = wishlist.TotalItems >= minItems;
-                const matchesMinValue = wishlist.TotalValue >= minValue;
-                const matchesMaxDays = wishlist.DaysOld <= maxDays;
-
-                return matchesSearch && matchesStatus && matchesMinItems && matchesMinValue && matchesMaxDays;
-            });
-
-            // Sort wishlists
-            filteredWishlists.sort((a, b) => {
-                switch (sortBy) {
-                    case 'recent': return new Date(b.LastActivity) - new Date(a.LastActivity);
-                    case 'customer': return a.CustomerName.localeCompare(b.CustomerName);
-                    case 'items': return b.TotalItems - a.TotalItems;
-                    case 'value': return b.TotalValue - a.TotalValue;
-                    case 'oldest': return new Date(a.LastActivity) - new Date(b.LastActivity);
-                    default: return new Date(b.LastActivity) - new Date(a.LastActivity);
-                }
-            });
-
-            displayWishlists();
-            updatePagination();
-        }
-
-        function displayWishlists() {
-            const grid = document.getElementById('wishlistGrid');
-            const emptyState = document.getElementById('emptyState');
-
-            if (filteredWishlists.length === 0) {
-                grid.style.display = 'none';
-                emptyState.style.display = 'block';
+        function displayCustomers(customers) {
+            if (!customers || customers.length === 0) {
+                $('#customersContent').html('<div class="alert alert-info">No customers have wishlisted this product.</div>');
                 return;
             }
 
-            grid.style.display = 'grid';
-            emptyState.style.display = 'none';
-
-            const startIndex = (currentPage - 1) * itemsPerPage;
-            const endIndex = startIndex + itemsPerPage;
-            const wishlistsToShow = filteredWishlists.slice(startIndex, endIndex);
-
-            // Hide all cards first
-            const allCards = grid.querySelectorAll('.wishlist-card');
-            allCards.forEach(card => card.style.display = 'none');
-
-            // Show only relevant cards for current page
-            wishlistsToShow.forEach(wishlist => {
-                const card = grid.querySelector(`[data-wishlist-id="${wishlist.CustomerId}"]`);
-                if (card) {
-                    card.style.display = 'block';
-                }
-            });
-        }
-
-        function updatePagination() {
-            const totalPages = Math.ceil(filteredWishlists.length / itemsPerPage);
-            const paginationContainer = document.getElementById('paginationContainer');
-            const prevBtn = document.getElementById('prevBtn');
-            const nextBtn = document.getElementById('nextBtn');
-            const pageNumbers = document.getElementById('pageNumbers');
-
-            if (totalPages <= 1) {
-                paginationContainer.style.display = 'none';
-                return;
-            }
-
-            paginationContainer.style.display = 'flex';
-
-            // Update prev/next buttons
-            prevBtn.disabled = currentPage === 1;
-            nextBtn.disabled = currentPage === totalPages;
-
-            // Generate page numbers
-            let pageNumbersHTML = '';
-            const maxVisiblePages = 5;
-            let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
-            let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
-
-            if (endPage - startPage + 1 < maxVisiblePages) {
-                startPage = Math.max(1, endPage - maxVisiblePages + 1);
-            }
-
-            for (let i = startPage; i <= endPage; i++) {
-                pageNumbersHTML += `
-                    <button class="pagination-button ${i === currentPage ? 'active' : ''}" onclick="goToPage(${i})">
-                        ${i}
-                    </button>
-                `;
-            }
-
-            pageNumbers.innerHTML = pageNumbersHTML;
-        }
-
-        function previousPage() {
-            if (currentPage > 1) {
-                currentPage--;
-                displayWishlists();
-                updatePagination();
-            }
-        }
-
-        function nextPage() {
-            const totalPages = Math.ceil(filteredWishlists.length / itemsPerPage);
-            if (currentPage < totalPages) {
-                currentPage++;
-                displayWishlists();
-                updatePagination();
-            }
-        }
-
-        function goToPage(page) {
-            currentPage = page;
-            displayWishlists();
-            updatePagination();
-        }
-
-        async function loadPopularProducts() {
-            try {
-                const response = await fetch('/Admin/GetPopularWishlistProducts');
-                if (!response.ok) throw new Error('Failed to fetch popular products');
-
-                const products = await response.json();
-
-                const popularProductsList = document.getElementById('popularProductsList');
-                if (products && products.length > 0) {
-                    popularProductsList.innerHTML = products.slice(0, 10).map((product, index) => `
-                        <div class="popular-product-item">
-                            <div style="display: flex; align-items: center; gap: 1rem;">
-                                <div style="
-                                    width: 30px;
-                                    height: 30px;
-                                    border-radius: 50%;
-                                    background: linear-gradient(135deg, #ec4899, #be185d);
-                                    color: white;
-                                    display: flex;
-                                    align-items: center;
-                                    justify-content: center;
-                                    font-weight: bold;
-                                    font-size: 0.875rem;
-                                ">
-                                    ${index + 1}
+            let html = '<div class="table-responsive"><table class="table table-hover"><thead class="table-light"><tr><th>Customer</th><th>Phone</th><th>Email</th><th>Wishlist Date</th><th>Actions</th></tr></thead><tbody>';
+            
+            customers.forEach(customer => {
+                html += `
+                    <tr>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                <div class="avatar-sm bg-primary rounded-circle d-flex align-items-center justify-content-center me-2">
+                                    <span class="text-white fw-bold">${customer.customerName.substring(0, 1)}</span>
                                 </div>
-                                <img src="${product.ImageUrl || '/images/placeholder.jpg'}" alt="${product.Name}"
-                                     style="width: 50px; height: 50px; object-fit: cover; border-radius: 6px;">
                                 <div>
-                                    <div style="font-weight: 600; color: #1e293b;">${product.Name}</div>
-                                    <div style="color: #64748b; font-size: 0.875rem;">KSh ${product.SellingPrice.toLocaleString()}</div>
+                                    <div class="fw-semibold">${customer.customerName}</div>
+                                    <small class="text-muted">ID: ${customer.customerId}</small>
                                 </div>
                             </div>
-                            <div style="text-align: right;">
-                                <div style="font-weight: 700; color: #ec4899; font-size: 1.25rem;">${product.WishlistCount}</div>
-                                <div style="color: #64748b; font-size: 0.75rem;">wishlists</div>
-                            </div>
-                        </div>
-                    `).join('');
-                } else {
-                    popularProductsList.innerHTML = '<div style="text-align: center; color: #64748b; padding: 2rem;">No popular products data available</div>';
-                }
-            } catch (error) {
-                document.getElementById('popularProductsList').innerHTML = '<div style="text-align: center; color: #ef4444; padding: 2rem;">Error loading popular products</div>';
-            }
-        }
-
-        async function viewWishlistDetails(customerId) {
-            try {
-                const response = await fetch(`/Admin/GetWishlistDetails/${customerId}`);
-                if (!response.ok) throw new Error('Failed to fetch wishlist details');
-
-                const wishlist = await response.json();
-
-                let itemsHTML = '';
-                if (wishlist.Items && wishlist.Items.length > 0) {
-                    itemsHTML = wishlist.Items.map(item => `
-                        <div class="wishlist-item-detailed">
-                            <img src="${item.ProductImage || '/images/placeholder.jpg'}" alt="${item.ProductName}" class="product-image">
-                            <div style="flex: 1;">
-                                <h4 style="margin: 0 0 0.5rem 0; color: #1e293b;">${item.ProductName}</h4>
-                                <p style="margin: 0 0 0.25rem 0; color: #64748b; font-size: 0.875rem;">${item.ProductDescription || ''}</p>
-                                <div style="display: flex; gap: 1rem; font-size: 0.875rem; color: #64748b;">
-                                    <span>Stock: ${item.StockQuantity}</span>
-                                    <span>Status: ${item.InStock ? 'In Stock' : 'Out of Stock'}</span>
-                                    <span>Added: ${new Date(item.CreatedAt).toLocaleDateString()}</span>
-                                </div>
-                            </div>
-                            <div style="text-align: right;">
-                                <div style="font-size: 1.25rem; font-weight: 700; color: ${item.InStock ? '#059669' : '#dc2626'};">
-                                    KSh ${item.SellingPrice.toLocaleString()}
-                                </div>
-                                <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
-                                    <button class="btn btn-sm btn-warning" onclick="removeWishlistItem(${customerId}, ${item.WishlistId})" title="Remove Item">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                    ${item.InStock ? `<button class="btn btn-sm btn-success" onclick="moveToCart(${customerId}, ${item.ProductId})" title="Move to Cart">
-                                        <i class="fas fa-shopping-cart"></i>
-                                    </button>` : ''}
-                                </div>
-                            </div>
-                        </div>
-                    `).join('');
-                } else {
-                    itemsHTML = '<div style="text-align: center; padding: 2rem; color: #64748b;">No items in wishlist</div>';
-                }
-
-                const modalContent = `
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem;">
-                        <div>
-                            <h4 style="margin-bottom: 1rem; color: #1e293b;">Customer Information</h4>
-                            <div style="background: #f8fafc; padding: 1rem; border-radius: 8px;">
-                                <div style="margin-bottom: 0.5rem;"><strong>Name:</strong> ${wishlist.CustomerName}</div>
-                                <div style="margin-bottom: 0.5rem;"><strong>Email:</strong> ${wishlist.CustomerEmail}</div>
-                                <div style="margin-bottom: 0.5rem;"><strong>Customer ID:</strong> ${customerId}</div>
-                                <div><strong>Last Activity:</strong> ${new Date(wishlist.LastActivity).toLocaleDateString()}</div>
-                            </div>
-                        </div>
-                        <div>
-                            <h4 style="margin-bottom: 1rem; color: #1e293b;">Wishlist Summary</h4>
-                            <div style="background: #f8fafc; padding: 1rem; border-radius: 8px;">
-                                <div style="margin-bottom: 0.5rem;"><strong>Total Items:</strong> ${wishlist.TotalItems}</div>
-                                <div style="margin-bottom: 0.5rem;"><strong>In Stock Items:</strong> ${wishlist.InStockItems}</div>
-                                <div style="margin-bottom: 0.5rem;"><strong>Total Value:</strong> KSh ${wishlist.TotalValue.toLocaleString()}</div>
-                                <div><strong>Days Old:</strong> ${wishlist.DaysOld} days</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div>
-                        <h4 style="margin-bottom: 1rem; color: #1e293b;">Wishlist Items</h4>
-                        <div>
-                            ${itemsHTML}
-                        </div>
-                    </div>
-
-                    <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 2rem;">
-                        <button class="btn btn-secondary" onclick="closeWishlistDetailsModal()">Close</button>
-                        <button class="btn btn-info" onclick="sendWishlistReminderFromModal(${customerId})">Send Reminder</button>
-                        <button class="btn btn-warning" onclick="clearCustomerWishlistFromModal(${customerId})">Clear Wishlist</button>
-                        <button class="btn btn-primary" onclick="viewCustomerProfile(${customerId})">View Customer</button>
-                    </div>
+                        </td>
+                        <td>
+                            <span class="text-muted">${customer.customerPhone}</span>
+                        </td>
+                        <td>
+                            <span class="text-muted">${customer.customerEmail}</span>
+                        </td>
+                        <td>
+                            <small class="text-muted">${new Date(customer.wishlistDate).toLocaleDateString()}</small>
+                        </td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-danger" onclick="removeFromWishlist(${customer.wishlistId})" title="Remove from wishlist">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
                 `;
-
-                document.getElementById('wishlistModalTitle').textContent = `Wishlist Details - ${wishlist.CustomerName}`;
-                document.getElementById('wishlistModalContent').innerHTML = modalContent;
-                document.getElementById('wishlistDetailsModal').style.display = 'block';
-            } catch (error) {
-                showToast('Error loading wishlist details', 'error');
-            }
+            });
+            
+            html += '</tbody></table></div>';
+            $('#customersContent').html(html);
         }
 
-        async function viewCustomerProfile(customerId) {
-            try {
-                const response = await fetch(`/Admin/GetCustomerProfile/${customerId}`);
-                if (!response.ok) throw new Error('Failed to fetch customer profile');
-
-                const customer = await response.json();
-
-                const modalContent = `
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
-                        <div>
-                            <h4 style="margin-bottom: 1rem; color: #1e293b;">Personal Information</h4>
-                            <div style="background: #f8fafc; padding: 1rem; border-radius: 8px;">
-                                <div style="margin-bottom: 0.5rem;"><strong>Name:</strong> ${customer.FirstName} ${customer.LastName}</div>
-                                <div style="margin-bottom: 0.5rem;"><strong>Email:</strong> ${customer.Email}</div>
-                                <div style="margin-bottom: 0.5rem;"><strong>Phone:</strong> ${customer.PhoneNumber || 'Not provided'}</div>
-                                <div style="margin-bottom: 0.5rem;"><strong>Status:</strong> ${customer.IsActive ? 'Active' : 'Inactive'}</div>
-                                <div><strong>Joined:</strong> ${new Date(customer.CreatedAt).toLocaleDateString()}</div>
-                            </div>
-                        </div>
-                        <div>
-                            <h4 style="margin-bottom: 1rem; color: #1e293b;">Activity Summary</h4>
-                            <div style="background: #f8fafc; padding: 1rem; border-radius: 8px;">
-                                <div style="margin-bottom: 0.5rem;"><strong>Total Orders:</strong> ${customer.TotalOrders}</div>
-                                <div style="margin-bottom: 0.5rem;"><strong>Total Spent:</strong> KSh ${customer.TotalSpent.toLocaleString()}</div>
-                                <div style="margin-bottom: 0.5rem;"><strong>Wishlist Items:</strong> ${customer.WishlistItems}</div>
-                                <div style="margin-bottom: 0.5rem;"><strong>Cart Items:</strong> ${customer.CurrentCartItems}</div>
-                                <div><strong>Last Activity:</strong> ${new Date(customer.LastActivity).toLocaleDateString()}</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div style="margin-top: 2rem;">
-                        <h4 style="margin-bottom: 1rem; color: #1e293b;">Recent Orders</h4>
-                        <div style="background: #f8fafc; padding: 1rem; border-radius: 8px; max-height: 300px; overflow-y: auto;">
-                            ${customer.RecentOrders && customer.RecentOrders.length > 0 ?
-                                customer.RecentOrders.map(order => `
-                                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0;">
-                                        <div>
-                                            <div style="font-weight: 600;">${order.RequestNumber}</div>
-                                            <div style="font-size: 0.875rem; color: #64748b;">${new Date(order.RequestDate).toLocaleDateString()}</div>
-                                        </div>
-                                        <div style="text-align: right;">
-                                            <div style="font-weight: 600;">KSh ${order.TotalAmount.toLocaleString()}</div>
-                                            <div style="font-size: 0.875rem; color: #64748b;">${order.Status}</div>
-                                        </div>
-                                    </div>
-                                `).join('') :
-                                '<div style="text-align: center; color: #64748b;">No recent orders</div>'
-                            }
-                        </div>
-                    </div>
-
-                    <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 2rem;">
-                        <button class="btn btn-secondary" onclick="closeCustomerProfileModal()">Close</button>
-                        <button class="btn btn-primary" onclick="viewWishlistDetails(${customerId})">View Wishlist</button>
-                    </div>
-                `;
-
-                document.getElementById('customerModalTitle').textContent = `Customer Profile - ${customer.FirstName} ${customer.LastName}`;
-                document.getElementById('customerModalContent').innerHTML = modalContent;
-                document.getElementById('customerProfileModal').style.display = 'block';
-            } catch (error) {
-                showToast('Error loading customer profile', 'error');
-            }
-        }
-
-        function closeWishlistDetailsModal() {
-            document.getElementById('wishlistDetailsModal').style.display = 'none';
-        }
-
-        function closeCustomerProfileModal() {
-            document.getElementById('customerProfileModal').style.display = 'none';
-        }
-
-        async function removeWishlistItem(customerId, wishlistId) {
-            if (!confirm('Are you sure you want to remove this item from the wishlist?')) {
+        function removeFromWishlist(wishlistId) {
+            if (!confirm('Are you sure you want to remove this item from the customer\'s wishlist?')) {
                 return;
             }
 
-            try {
-                const response = await fetch('/Admin/RemoveWishlistItem', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ customerId: customerId, wishlistId: wishlistId })
-                });
-
-                const result = await response.json();
-
-                if (result.success) {
-                    showToast(result.message, 'success');
-                    // Refresh the wishlist details modal
-                    viewWishlistDetails(customerId);
+            fetch('/Admin/RemoveFromWishlist', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ wishlistId: wishlistId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('Item removed from wishlist successfully', 'success');
+                    $('#customersModal').modal('hide');
+                    location.reload(); // Refresh the page to update the counts
                 } else {
-                    showToast(result.message || 'Failed to remove item', 'error');
+                    showToast(data.message || 'Error removing item', 'error');
                 }
-            } catch (error) {
-                showToast('Error removing item', 'error');
-            }
-        }
-
-        async function moveToCart(customerId, productId) {
-            try {
-                const response = await fetch('/Admin/MoveWishlistToCart', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ customerId: customerId, productId: productId })
-                });
-
-                const result = await response.json();
-
-                if (result.success) {
-                    showToast(result.message, 'success');
-                    // Refresh the wishlist details modal
-                    viewWishlistDetails(customerId);
-                } else {
-                    showToast(result.message || 'Failed to move item to cart', 'error');
-                }
-            } catch (error) {
-                showToast('Error moving item to cart', 'error');
-            }
-        }
-
-        async function clearCustomerWishlist(customerId) {
-            if (!confirm('Are you sure you want to clear this customer\'s wishlist? This action cannot be undone.')) {
-                return;
-            }
-
-            try {
-                const response = await fetch('/Admin/ClearCustomerWishlist', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ customerId: customerId })
-                });
-
-                const result = await response.json();
-
-                if (result.success) {
-                    showToast(result.message, 'success');
-                    setTimeout(() => location.reload(), 1000);
-                } else {
-                    showToast(result.message || 'Failed to clear wishlist', 'error');
-                }
-            } catch (error) {
-                showToast('Error clearing wishlist', 'error');
-            }
-        }
-
-        function clearCustomerWishlistFromModal(customerId) {
-            closeWishlistDetailsModal();
-            clearCustomerWishlist(customerId);
-        }
-
-        async function sendWishlistReminder(customerId) {
-            try {
-                const response = await fetch('/Admin/SendWishlistReminder', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ customerId: customerId })
-                });
-
-                const result = await response.json();
-
-                if (result.success) {
-                    showToast(result.message, 'success');
-                } else {
-                    showToast(result.message || 'Failed to send reminder', 'error');
-                }
-            } catch (error) {
-                showToast('Error sending reminder', 'error');
-            }
-        }
-
-        function sendWishlistReminderFromModal(customerId) {
-            sendWishlistReminder(customerId);
-        }
-
-        async function clearStaleWishlists() {
-            if (!confirm('Are you sure you want to clear all stale wishlists (90+ days old)? This action cannot be undone.')) {
-                return;
-            }
-
-            try {
-                const response = await fetch('/Admin/ClearStaleWishlists', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ daysThreshold: 90 })
-                });
-
-                const result = await response.json();
-
-                if (result.success) {
-                    showToast(result.message, 'success');
-                    setTimeout(() => location.reload(), 1500);
-                } else {
-                    showToast(result.message || 'Failed to clear stale wishlists', 'error');
-                }
-            } catch (error) {
-                showToast('Error clearing stale wishlists', 'error');
-            }
-        }
-
-        async function clearEmptyWishlists() {
-            if (!confirm('Are you sure you want to clear all empty wishlists? This action cannot be undone.')) {
-                return;
-            }
-
-            try {
-                const response = await fetch('/Admin/ClearEmptyWishlists', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                });
-
-                const result = await response.json();
-
-                if (result.success) {
-                    showToast(result.message, 'success');
-                    setTimeout(() => location.reload(), 1500);
-                } else {
-                    showToast(result.message || 'Failed to clear empty wishlists', 'error');
-                }
-            } catch (error) {
-                showToast('Error clearing empty wishlists', 'error');
-            }
-        }
-
-        async function deleteWishlist(customerId) {
-            if (!confirm('Are you sure you want to delete this wishlist? This action cannot be undone.')) {
-                return;
-            }
-
-            try {
-                const response = await fetch('/Admin/DeleteWishlist', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ customerId: customerId })
-                });
-
-                const result = await response.json();
-
-                if (result.success) {
-                    showToast(result.message, 'success');
-                    setTimeout(() => location.reload(), 1000);
-                } else {
-                    showToast(result.message || 'Failed to delete wishlist', 'error');
-                }
-            } catch (error) {
-                showToast('Error deleting wishlist', 'error');
-            }
-        }
-
-        function exportWishlistData() {
-            const exportData = filteredWishlists.map(wishlist => ({
-                'Customer ID': wishlist.CustomerId,
-                'Customer Name': wishlist.CustomerName,
-                'Customer Email': wishlist.CustomerEmail,
-                'Total Items': wishlist.TotalItems,
-                'Total Value': wishlist.TotalValue,
-                'In Stock Items': wishlist.InStockItems || 0,
-                'Days Old': wishlist.DaysOld,
-                'Last Activity': new Date(wishlist.LastActivity).toLocaleDateString(),
-                'Status': wishlist.TotalItems === 0 ? 'Empty' : wishlist.DaysOld > 90 ? 'Stale' : 'Active'
-            }));
-
-            const csv = convertToCSV(exportData);
-            downloadCSV(csv, `wishlist-analytics-${new Date().toISOString().split('T')[0]}.csv`);
-            showToast('Wishlist analytics exported successfully', 'success');
-        }
-
-        async function generateWishlistReport() {
-            try {
-                showToast('Generating comprehensive wishlist report...', 'info');
-
-                const response = await fetch('/Admin/GenerateWishlistReport', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                });
-
-                if (!response.ok) throw new Error('Failed to generate report');
-
-                const blob = await response.blob();
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.style.display = 'none';
-                a.href = url;
-                a.download = `wishlist-report-${new Date().toISOString().split('T')[0]}.pdf`;
-                document.body.appendChild(a);
-                a.click();
-                window.URL.revokeObjectURL(url);
-                document.body.removeChild(a);
-
-                showToast('Wishlist report generated successfully', 'success');
-            } catch (error) {
-                showToast('Error generating report', 'error');
-            }
-        }
-
-        function convertToCSV(data) {
-            if (data.length === 0) return '';
-            const headers = Object.keys(data[0]);
-            const csvContent = [
-                headers.join(','),
-                ...data.map(row => headers.map(header => `"${row[header] || ''}"`).join(','))
-            ].join('\n');
-            return csvContent;
-        }
-
-        function downloadCSV(csv, filename) {
-            const blob = new Blob([csv], { type: 'text/csv' });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.setAttribute('hidden', '');
-            a.setAttribute('href', url);
-            a.setAttribute('download', filename);
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-        }
-
-        function resetFilters() {
-            document.getElementById('wishlistStatusFilter').value = '';
-            document.getElementById('sortBy').value = 'recent';
-            document.getElementById('minItems').value = '';
-            document.getElementById('minValue').value = '';
-            document.getElementById('maxDays').value = '';
-            document.getElementById('searchInput').value = '';
-            filterWishlists();
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('Error removing item from wishlist', 'error');
+            });
         }
 
         function refreshData() {
             location.reload();
         }
 
-        // Close modals when clicking outside
-        window.onclick = function(event) {
-            const wishlistModal = document.getElementById('wishlistDetailsModal');
-            const customerModal = document.getElementById('customerProfileModal');
-
-            if (event.target === wishlistModal) {
-                closeWishlistDetailsModal();
-            }
-            if (event.target === customerModal) {
-                closeCustomerProfileModal();
-            }
+        function showToast(message, type) {
+            // Simple toast implementation
+            const toast = document.createElement('div');
+            toast.className = `alert alert-${type === 'success' ? 'success' : type === 'error' ? 'danger' : 'info'} position-fixed`;
+            toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+            toast.innerHTML = `
+                <div class="d-flex align-items-center">
+                    <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-triangle' : 'info-circle'} me-2"></i>
+                    ${message}
+                    <button type="button" class="btn-close ms-auto" onclick="this.parentElement.parentElement.remove()"></button>
+                </div>
+            `;
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                if (toast.parentElement) {
+                    toast.remove();
+                }
+            }, 5000);
         }
     </script>
 }
