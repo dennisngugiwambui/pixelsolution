@@ -6926,6 +6926,7 @@ namespace PixelSolution.Controllers
         }
 
         [HttpGet]
+        [Route("Admin/GeneratePurchaseRequestReceipt/{requestId:int}")]
         public async Task<IActionResult> GeneratePurchaseRequestReceipt(int requestId)
         {
             try

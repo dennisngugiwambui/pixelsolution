@@ -121,6 +121,11 @@ app.MapControllerRoute(
     defaults: new { controller = "Admin", action = "UserDetails" });
 
 app.MapControllerRoute(
+    name: "purchasereceipt",
+    pattern: "Admin/GeneratePurchaseRequestReceipt/{requestId:int}",
+    defaults: new { controller = "Admin", action = "GeneratePurchaseRequestReceipt" });
+
+app.MapControllerRoute(
     name: "admin",
     pattern: "admin/{action=Index}/{id?}",
     defaults: new { controller = "Admin" });
