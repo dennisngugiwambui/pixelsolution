@@ -1379,9 +1379,14 @@
         }
 
         function printReceipt(requestId) {
-            // Open receipt generation in new window
+            // Open receipt generation in new tab
             const receiptUrl = `/Admin/GeneratePurchaseRequestReceipt/${requestId}`;
-            window.open(receiptUrl, '_blank', 'width=800,height=600');
+            const newTab = window.open(receiptUrl, '_blank');
+            
+            // Focus back to current tab after a short delay
+            setTimeout(() => {
+                window.focus();
+            }, 2000);
         }
 
         function refreshData() {

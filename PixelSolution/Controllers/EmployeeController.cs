@@ -391,7 +391,7 @@ namespace PixelSolution.Controllers
                 await _activityLogService.LogActivityAsync(
                     employeeId, 
                     "Sale Processing", 
-                    $"Employee processing sale with {request.Items.Count} items, total: {request.TotalAmount:C}",
+                    $"Employee processing sale with {request.Items.Count} items, total: KSh {request.TotalAmount:N2}",
                     "Sale",
                     null,
                     new { 
@@ -470,7 +470,7 @@ namespace PixelSolution.Controllers
                 await _activityLogService.LogActivityAsync(
                     employeeId, 
                     "Sale Completed", 
-                    $"Employee completed sale #{sale.SaleNumber} for {request.TotalAmount:C}",
+                    $"Employee completed sale #{sale.SaleNumber} for KSh {request.TotalAmount:N2}",
                     "Sale",
                     sale.SaleId,
                     new { 

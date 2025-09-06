@@ -2877,7 +2877,7 @@ namespace PixelSolution.Controllers
                     .Where(s => s.SaleDate >= today && s.SaleDate < tomorrow)
                     .ToListAsync();
 
-                _logger.LogInformation($"GetTodaysSalesStats API - TODAY'S SALES: {todaysSales.Count()} totaling {todaysSales.Sum(s => s.AmountPaid):C}");
+                _logger.LogInformation($"GetTodaysSalesStats API - TODAY'S SALES: {todaysSales.Count()} totaling KSh {todaysSales.Sum(s => s.AmountPaid):N2}");
 
                 var stats = new
                 {
@@ -3118,7 +3118,7 @@ namespace PixelSolution.Controllers
                     .Where(s => s.SaleDate >= today && s.SaleDate < tomorrow)
                     .ToListAsync();
 
-                _logger.LogInformation($"Sales page - TODAY'S SALES: {todaysSales.Count()} totaling {todaysSales.Sum(s => s.AmountPaid):C}");
+                _logger.LogInformation($"Sales page - TODAY'S SALES: {todaysSales.Count()} totaling KSh {todaysSales.Sum(s => s.AmountPaid):N2}");
 
                 // Create view model for sales page
                 var salesViewModel = new SalesPageViewModel
@@ -6349,7 +6349,7 @@ namespace PixelSolution.Controllers
                         PaymentStatus = request.PaymentStatus ?? "Pending",
                         DaysAgo = (int)(DateTime.Now - request.RequestDate).TotalDays,
                         FormattedRequestDate = request.RequestDate.ToString("MMM dd, yyyy"),
-                        FormattedTotalAmount = request.TotalAmount.ToString("C"),
+                        FormattedTotalAmount = $"KSh {request.TotalAmount:N2}",
                         Items = items.Select(pri => new PurchaseRequestItemViewModel
                         {
                             ProductId = pri.ProductId,
@@ -6461,7 +6461,7 @@ namespace PixelSolution.Controllers
         [HttpPost]
         public async Task<IActionResult> UpdateRequestStatus(int requestId, string newStatus)
         {
-            _logger.LogInformation("DEBUG: UpdateRequestStatus called with RequestId: {RequestId}, NewStatus: {NewStatus}", requestId, newStatus);
+            _logger.LogInformation("🚀 UpdateRequestStatus called with RequestId: {RequestId}, NewStatus: {NewStatus}", requestId, newStatus);
             try
             {
                 var purchaseRequest = await _context.PurchaseRequests
@@ -6469,16 +6469,20 @@ namespace PixelSolution.Controllers
 
                 if (purchaseRequest == null)
                 {
+                    _logger.LogError("❌ Purchase request not found for ID: {RequestId}", requestId);
                     return Json(new { success = false, message = "Purchase request not found" });
                 }
 
                 var oldStatus = purchaseRequest.Status;
+                _logger.LogInformation("📝 Status change: {OldStatus} → {NewStatus} for request {RequestNumber}", oldStatus, newStatus, purchaseRequest.RequestNumber);
+
                 purchaseRequest.Status = newStatus;
 
                 // Update approval date if approved
                 if (newStatus == "Approved" && oldStatus != "Approved")
                 {
                     purchaseRequest.ApprovedDate = DateTime.UtcNow;
+                    _logger.LogInformation("✅ Set approval date for request {RequestId}", requestId);
                 }
 
                 // Update payment status if delivered
@@ -6487,6 +6491,7 @@ namespace PixelSolution.Controllers
                     try
                     {
                         purchaseRequest.PaymentStatus = "Paid";
+                        _logger.LogInformation("💳 Set payment status to Paid for request {RequestId}", requestId);
                     }
                     catch (Exception paymentEx)
                     {
@@ -6496,47 +6501,47 @@ namespace PixelSolution.Controllers
                 }
 
                 await _context.SaveChangesAsync();
+                _logger.LogInformation("💾 Database updated successfully for request {RequestId}", requestId);
 
-                _logger.LogInformation("DEBUG: About to send email and create sales record for status change from {OldStatus} to {NewStatus}", oldStatus, newStatus);
-
-                // Send email notification to customer first
+                // Send email notification to customer - ALWAYS ATTEMPT
+                _logger.LogInformation("📧 Starting email notification process for request {RequestId}", requestId);
                 try
                 {
-                    _logger.LogInformation("DEBUG: Attempting to send status change email for request {RequestId}", requestId);
                     await SendStatusChangeEmail(purchaseRequest, oldStatus, newStatus);
-                    _logger.LogInformation("DEBUG: Email sending completed successfully for purchase request {RequestId}", requestId);
+                    _logger.LogInformation("✅ Email notification process completed for request {RequestId}", requestId);
                 }
                 catch (Exception emailEx)
                 {
-                    _logger.LogError(emailEx, "DEBUG: Email sending failed for purchase request {RequestId}. Error: {ErrorMessage}", requestId, emailEx.Message);
+                    _logger.LogError(emailEx, "💥 Email notification failed for request {RequestId}: {ErrorMessage}", requestId, emailEx.Message);
+                    _logger.LogError("Stack trace: {StackTrace}", emailEx.StackTrace);
                 }
 
                 // Auto-create sales record when completed (after saving status change)
                 if (newStatus == "Completed" && oldStatus != "Completed")
                 {
-                    _logger.LogInformation("DEBUG: Creating sales record for purchase request {RequestId}", requestId);
+                    _logger.LogInformation("🎯 Creating sales record for completed purchase request {RequestId}", requestId);
                     try
                     {
                         var saleId = await CreateSalesRecordFromPurchaseRequest(purchaseRequest);
                         purchaseRequest.CompletedDate = DateTime.UtcNow;
                         await _context.SaveChangesAsync();
-                        _logger.LogInformation("DEBUG: Sales record creation completed for purchase request {RequestId}, Sale ID: {SaleId}", requestId, saleId);
+                        _logger.LogInformation("✅ Sales record creation completed for purchase request {RequestId}, Sale ID: {SaleId}", requestId, saleId);
                         
-                        // Generate and send receipt PDF via email
+                        // Send completion email with PDF receipt and welcome message
                         try
                         {
-                            _logger.LogInformation("DEBUG: Generating and sending receipt PDF for sale {SaleId}", saleId);
-                            await GenerateAndSendReceiptPdf(saleId, purchaseRequest.UserId);
-                            _logger.LogInformation("DEBUG: Receipt PDF sent successfully for sale {SaleId}", saleId);
+                            _logger.LogInformation("📧 Sending completion email with PDF receipt for sale {SaleId}", saleId);
+                            await SendCompletionEmailWithReceipt(purchaseRequest, saleId);
+                            _logger.LogInformation("✅ Completion email with PDF receipt sent successfully for sale {SaleId}", saleId);
                         }
                         catch (Exception receiptEx)
                         {
-                            _logger.LogError(receiptEx, "DEBUG: Failed to generate/send receipt PDF for sale {SaleId}", saleId);
+                            _logger.LogError(receiptEx, "💥 Failed to send completion email with PDF receipt for sale {SaleId}", saleId);
                         }
                     }
                     catch (Exception salesEx)
                     {
-                        _logger.LogError(salesEx, "DEBUG: Sales record creation failed for purchase request {RequestId}", requestId);
+                        _logger.LogError(salesEx, "💥 Sales record creation failed for purchase request {RequestId}", requestId);
                     }
                 }
                 else
@@ -6723,10 +6728,9 @@ namespace PixelSolution.Controllers
                     var subject = $"Receipt for Purchase Request - {sale.SaleNumber}";
                     var emailBody = CreateReceiptEmailBody(receiptRequest, customer);
 
-                    var emailService = HttpContext.RequestServices.GetService<EnhancedEmailService>();
-                    if (emailService != null)
+                    if (_enhancedEmailService != null)
                     {
-                        await emailService.SendEmailWithAttachmentAsync(
+                        await _enhancedEmailService.SendEmailWithAttachmentAsync(
                             customer.Email,
                             subject,
                             emailBody,
@@ -6804,73 +6808,47 @@ namespace PixelSolution.Controllers
 
         private async Task SendStatusChangeEmail(PurchaseRequest request, string oldStatus, string newStatus)
         {
-            _logger.LogInformation("DEBUG: Starting SendStatusChangeEmail for request {RequestId}, status change {OldStatus} -> {NewStatus}", 
+            _logger.LogInformation("🔄 Starting SendStatusChangeEmail for request {RequestId}, status change {OldStatus} -> {NewStatus}", 
                 request.PurchaseRequestId, oldStatus, newStatus);
             try
             {
-                // Load customer since UserId references CustomerId
+                // Load customer with detailed logging
                 var customer = await _context.Customers.FirstOrDefaultAsync(c => c.CustomerId == request.UserId);
                 if (customer?.Email == null) 
                 {
-                    _logger.LogWarning("No email found for customer {CustomerId} in purchase request {RequestId}", 
+                    _logger.LogWarning("❌ No email found for customer {CustomerId} in purchase request {RequestId}", 
                         request.UserId, request.PurchaseRequestId);
                     return;
                 }
 
-                _logger.LogInformation("Sending status change email to {Email} for request {RequestNumber}", 
+                _logger.LogInformation("📧 Preparing to send email to {Email} for request {RequestNumber}", 
                     customer.Email, request.RequestNumber);
 
-                var subject = $"Purchase Request {request.RequestNumber} - Status Update";
+                // Load request items with product details for email
+                var requestWithItems = await _context.PurchaseRequests
+                    .Include(pr => pr.PurchaseRequestItems)
+                        .ThenInclude(pri => pri.Product)
+                            .ThenInclude(p => p.Category)
+                    .FirstOrDefaultAsync(pr => pr.PurchaseRequestId == request.PurchaseRequestId);
+
+                var subject = $"🛍️ Purchase Request {request.RequestNumber} - Status Update to {newStatus}";
+                var customerName = $"{customer.FirstName} {customer.LastName}";
                 var statusMessage = GetStatusMessage(newStatus, request.TotalAmount);
                 var statusColor = GetStatusColor(newStatus);
 
-                // Create proper email body with customer name
-                var customerName = $"{customer.FirstName} {customer.LastName}";
-                
-                var emailBody = $@"
-                    <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden;'>
-                        <div style='background: linear-gradient(135deg, #3b82f6, #1e40af); color: white; padding: 2rem; text-align: center;'>
-                            <h1 style='margin: 0; font-size: 1.8rem;'>PixelSolution</h1>
-                            <p style='margin: 0.5rem 0 0 0; opacity: 0.9; font-size: 1.1rem;'>Purchase Request Update</p>
-                        </div>
-                        
-                        <div style='padding: 2rem; background: white;'>
-                            <h2 style='color: #1f2937; margin-bottom: 1rem;'>Hello {customerName},</h2>
-                            
-                            <div style='background: #f8fafc; padding: 1.5rem; border-radius: 8px; margin-bottom: 1.5rem;'>
-                                <h3 style='margin: 0 0 1rem 0; color: #374151;'>Request Details</h3>
-                                <p style='margin: 0.5rem 0;'><strong>Request Number:</strong> {request.RequestNumber}</p>
-                                <p style='margin: 0.5rem 0;'><strong>Status:</strong> <span style='color: {statusColor}; font-weight: bold;'>{newStatus}</span></p>
-                                <p style='margin: 0.5rem 0;'><strong>Total Amount:</strong> KSh {request.TotalAmount:N2}</p>
-                            </div>
-                            
-                            <div style='background: #fef3c7; border-left: 4px solid #f59e0b; padding: 1rem; margin-bottom: 1.5rem;'>
-                                <p style='margin: 0; color: #92400e;'>{statusMessage}</p>
-                            </div>
-                            
-                            <div style='text-align: center; margin-top: 2rem;'>
-                                <p style='color: #6b7280; font-size: 0.875rem;'>
-                                    Thank you for choosing PixelSolution!<br>
-                                    For any questions, contact us at support@pixelsolution.com
-                                </p>
-                            </div>
-                        </div>
-                        
-                        <div style='background: #f3f4f6; padding: 1rem; text-align: center; color: #6b7280; font-size: 0.75rem;'>
-                            © 2025 PixelSolution. All rights reserved.
-                        </div>
-                    </div>
-                ";
+                // Create modern fancy email with product details
+                var emailBody = GenerateFancyStatusEmailBody(requestWithItems, customer, customerName, newStatus, oldStatus, statusMessage, statusColor);
 
-                // Send actual email using EnhancedEmailService
-                var emailService = HttpContext.RequestServices.GetService<EnhancedEmailService>();
-                if (emailService == null)
+                // Use injected email service
+                if (_enhancedEmailService == null)
                 {
-                    _logger.LogWarning("EnhancedEmailService not available for purchase request {RequestNumber}", request.RequestNumber);
+                    _logger.LogError("❌ EnhancedEmailService is NULL - service not injected properly");
                     return;
                 }
 
-                var emailSent = await emailService.SendEmailAsync(customer.Email, subject, emailBody);
+                _logger.LogInformation("✅ EnhancedEmailService found, sending email to {CustomerEmail}", customer.Email);
+
+                var emailSent = await _enhancedEmailService.SendEmailAsync(customer.Email, subject, emailBody);
                 
                 if (emailSent)
                 {
@@ -6878,18 +6856,371 @@ namespace PixelSolution.Controllers
                 }
                 else
                 {
-                    _logger.LogError("❌ Email failed to send to {Email} for purchase request {RequestNumber}", customer.Email, request.RequestNumber);
+                    _logger.LogError("❌ Email failed to send to {Email} for purchase request {RequestNumber} - Check SMTP settings", customer.Email, request.RequestNumber);
                 }
             }
             catch (Exception emailEx)
             {
-                _logger.LogError(emailEx, "Exception occurred while sending email for request {RequestNumber}", request.RequestNumber);
+                _logger.LogError(emailEx, "💥 Exception occurred while sending email for request {RequestNumber}: {ErrorMessage}", request.RequestNumber, emailEx.Message);
+                _logger.LogError("Stack trace: {StackTrace}", emailEx.StackTrace);
             }
+        }
+
+        private async Task SendCompletionEmailWithReceipt(PurchaseRequest request, int saleId)
+        {
+            try
+            {
+                var customer = await _context.Customers.FirstOrDefaultAsync(c => c.CustomerId == request.UserId);
+                if (customer?.Email == null) return;
+
+                var requestWithItems = await _context.PurchaseRequests
+                    .Include(pr => pr.PurchaseRequestItems)
+                        .ThenInclude(pri => pri.Product)
+                            .ThenInclude(p => p.Category)
+                    .FirstOrDefaultAsync(pr => pr.PurchaseRequestId == request.PurchaseRequestId);
+
+                var sale = await _context.Sales.FirstOrDefaultAsync(s => s.SaleId == saleId);
+                if (sale == null) return;
+
+                var subject = $"🎉 Order Complete! Receipt & Thank You - {request.RequestNumber}";
+                var customerName = $"{customer.FirstName} {customer.LastName}";
+
+                // Generate completion email with welcome message
+                var emailBody = GenerateCompletionEmailBody(requestWithItems, customer, customerName, sale);
+
+                // Calculate proper receipt totals with tax breakdown
+                var receiptSubtotal = sale.TotalAmount * 0.85m; // 85% of total (before tax)
+                var receiptTax = sale.TotalAmount * 0.15m; // 15% tax
+                var receiptChangeGiven = sale.AmountPaid - sale.TotalAmount;
+
+                // Generate PDF receipt
+                var receiptRequest = new PixelSolution.ViewModels.ReceiptPdfRequest
+                {
+                    SaleNumber = sale.SaleNumber,
+                    SaleDate = sale.SaleDate,
+                    CustomerName = customerName,
+                    CashierName = sale.CashierName ?? "System",
+                    TotalAmount = sale.TotalAmount,
+                    AmountPaid = sale.AmountPaid,
+                    ChangeGiven = receiptChangeGiven,
+                    Subtotal = receiptSubtotal,
+                    Tax = receiptTax,
+                    PaymentMethod = sale.PaymentMethod ?? "Cash",
+                    Items = requestWithItems.PurchaseRequestItems.Select(item => new PixelSolution.ViewModels.ReceiptItemRequest
+                    {
+                        Name = item.Product.Name,
+                        Quantity = item.Quantity,
+                        UnitPrice = item.UnitPrice,
+                        Total = item.TotalPrice
+                    }).ToList()
+                };
+
+                var pdfBytes = await _reportService.GenerateReceiptPdfAsync(receiptRequest);
+
+                if (pdfBytes != null && pdfBytes.Length > 0 && _enhancedEmailService != null)
+                {
+                    await _enhancedEmailService.SendEmailWithAttachmentAsync(
+                        customer.Email,
+                        subject,
+                        emailBody,
+                        pdfBytes,
+                        $"Receipt_{sale.SaleNumber}.pdf"
+                    );
+
+                    _logger.LogInformation("✅ Completion email with PDF receipt sent to {Email} for sale {SaleNumber}", customer.Email, sale.SaleNumber);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "💥 Error sending completion email with receipt");
+            }
+        }
+
+        private string GenerateCompletionEmailBody(PurchaseRequest request, Customer customer, string customerName, Sale sale)
+        {
+            var productItemsHtml = string.Join("", request.PurchaseRequestItems.Select(item => $@"
+                <div style='display: flex; align-items: center; padding: 15px; margin: 10px 0; background: #f8fafc; border-radius: 12px; border-left: 4px solid #10b981;'>
+                    <a href='https://pixelsolution.co.ke/Home/ProductDetails/{item.Product.ProductId}' target='_blank' style='text-decoration: none;'>
+                        <img src='{(string.IsNullOrEmpty(item.Product.ImageUrl) ? "https://pixelsolution.co.ke/images/favicon.png" : item.Product.ImageUrl)}' 
+                             alt='{item.Product.Name}' 
+                             style='width: 80px; height: 80px; object-fit: cover; border-radius: 8px; margin-right: 15px; cursor: pointer; transition: transform 0.2s;'
+                             onmouseover='this.style.transform=""scale(1.05)""'
+                             onmouseout='this.style.transform=""scale(1)""' />
+                    </a>
+                    <div style='flex: 1;'>
+                        <h4 style='margin: 0 0 5px 0; color: #1f2937; font-size: 16px;'>
+                            <a href='https://pixelsolution.co.ke/Home/ProductDetails/{item.Product.ProductId}' target='_blank' style='color: #1f2937; text-decoration: none;'>
+                                {item.Product.Name}
+                            </a>
+                        </h4>
+                        <p style='margin: 0; color: #6b7280; font-size: 14px;'>{item.Product.Category?.Name ?? "General"}</p>
+                        <div style='display: flex; justify-content: space-between; margin-top: 8px;'>
+                            <span style='color: #374151; font-weight: 500;'>Qty: {item.Quantity}</span>
+                            <span style='color: #059669; font-weight: 600;'>KSh {item.TotalPrice:N2}</span>
+                        </div>
+                    </div>
+                </div>"));
+
+            return $@"
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8'>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+    <title>Order Complete - PixelSolution</title>
+</head>
+<body style='margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, ""Segoe UI"", Roboto, ""Helvetica Neue"", Arial, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh;'>
+    <div style='max-width: 600px; margin: 0 auto; background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.1);'>
+        
+        <!-- Header with PixelSolution Branding -->
+        <div style='background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px 20px; text-align: center; position: relative;'>
+            <div style='position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: url(""data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.1'%3E%3Ccircle cx='30' cy='30' r='4'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E""); opacity: 0.3;'></div>
+            <div style='position: relative; z-index: 1;'>
+                <img src='https://pixelsolution.co.ke/images/favicon.png' alt='PixelSolution' style='width: 60px; height: 60px; border-radius: 12px; margin-bottom: 15px; box-shadow: 0 8px 16px rgba(0,0,0,0.2);' />
+                <h1 style='color: white; margin: 0; font-size: 28px; font-weight: 700; text-shadow: 0 2px 4px rgba(0,0,0,0.3);'>🎉 Order Complete!</h1>
+                <p style='color: rgba(255,255,255,0.9); margin: 8px 0 0 0; font-size: 16px;'>Thank you for choosing PixelSolution</p>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div style='padding: 30px;'>
+            <!-- Personal Greeting -->
+            <div style='text-align: center; margin-bottom: 30px;'>
+                <h2 style='color: #1f2937; margin: 0 0 10px 0; font-size: 24px;'>Hello {customerName}! 👋</h2>
+                <p style='color: #6b7280; margin: 0; font-size: 16px; line-height: 1.5;'>
+                    Your order has been successfully completed and processed! 🚀<br>
+                    We've attached your receipt and can't wait to work with you on future projects.
+                </p>
+            </div>
+
+            <!-- Order Summary Card -->
+            <div style='background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); padding: 25px; border-radius: 16px; margin: 25px 0; border: 1px solid #e0f2fe;'>
+                <div style='display: flex; align-items: center; margin-bottom: 20px;'>
+                    <div style='background: #10b981; color: white; padding: 8px 16px; border-radius: 20px; font-size: 14px; font-weight: 600;'>
+                        COMPLETED ✅
+                    </div>
+                </div>
+                
+                <h3 style='color: #1f2937; margin: 0 0 15px 0; font-size: 18px; display: flex; align-items: center;'>
+                    📋 Order Details
+                </h3>
+                
+                <div style='display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;'>
+                    <div>
+                        <p style='margin: 0; color: #6b7280; font-size: 14px;'>Order Number</p>
+                        <p style='margin: 5px 0 0 0; color: #1f2937; font-weight: 600; font-size: 16px;'>{request.RequestNumber}</p>
+                    </div>
+                    <div>
+                        <p style='margin: 0; color: #6b7280; font-size: 14px;'>Total Amount</p>
+                        <p style='margin: 5px 0 0 0; color: #059669; font-weight: 700; font-size: 20px;'>KSh {request.TotalAmount:N2}</p>
+                    </div>
+                </div>
+
+                <div style='background: #fef3c7; padding: 15px; border-radius: 8px; border-left: 4px solid #f59e0b;'>
+                    <p style='margin: 0; color: #92400e; font-size: 14px; line-height: 1.4;'>
+                        <strong>🎯 What's Next:</strong> Your receipt is attached to this email. 
+                        We're excited to partner with you on many more innovative projects in the future!
+                    </p>
+                </div>
+            </div>
+
+            <!-- Products Section -->
+            <div style='margin: 30px 0;'>
+                <h3 style='color: #1f2937; margin: 0 0 20px 0; font-size: 18px; display: flex; align-items: center;'>
+                    🛍️ Your Items <span style='background: #e5e7eb; color: #374151; padding: 4px 8px; border-radius: 12px; font-size: 12px; margin-left: 10px;'>{request.PurchaseRequestItems.Count} items</span>
+                </h3>
+                {productItemsHtml}
+            </div>
+
+            <!-- Thank You Message -->
+            <div style='background: linear-gradient(135deg, #fef7ff 0%, #faf5ff 100%); padding: 25px; border-radius: 16px; margin: 25px 0; border: 1px solid #e9d5ff; text-align: center;'>
+                <h3 style='color: #7c3aed; margin: 0 0 15px 0; font-size: 20px;'>💜 Thank You for Choosing Us!</h3>
+                <p style='color: #6b46c1; margin: 0 0 20px 0; font-size: 16px; line-height: 1.6;'>
+                    Thank you for purchasing our products with us. We will be pleased to work with you on many more sales in the future. 
+                    Make us your <strong>priority partner</strong> for all your technology needs - we're committed to delivering 
+                    excellence and innovation in every project we undertake together.
+                </p>
+                <div style='display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;'>
+                    <a href='https://pixelsolution.co.ke' target='_blank' style='background: #7c3aed; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-block;'>
+                        🌐 Visit Our Website
+                    </a>
+                    <a href='mailto:info@pixelsolution.co.ke' style='background: #059669; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-block;'>
+                        📧 Start New Project
+                    </a>
+                </div>
+            </div>
+
+            <!-- Contact Information -->
+            <div style='background: #f8fafc; padding: 20px; border-radius: 12px; margin: 25px 0;'>
+                <h3 style='color: #1f2937; margin: 0 0 15px 0; font-size: 16px; display: flex; align-items: center;'>
+                    📞 Call Us Through: +254758024400
+                </h3>
+                <div style='display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;'>
+                    <a href='tel:+254758024400' style='background: #059669; color: white; padding: 15px 25px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-block; transition: all 0.2s;'>
+                        📞 Call Us Now
+                    </a>
+                    <a href='https://pixelsolution.co.ke' target='_blank' style='background: #3b82f6; color: white; padding: 15px 25px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-block; transition: all 0.2s;'>
+                        🌐 Visit Website
+                    </a>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Footer -->
+        <div style='background: #1f2937; color: white; padding: 25px; text-align: center;'>
+            <img src='https://pixelsolution.co.ke/images/favicon.png' alt='PixelSolution' style='width: 40px; height: 40px; border-radius: 8px; margin-bottom: 15px;' />
+            <p style='margin: 0 0 10px 0; font-size: 16px; font-weight: 600;'>PixelSolution</p>
+            <p style='margin: 0 0 15px 0; color: #9ca3af; font-size: 14px;'>Innovative Technology Solutions</p>
+            <p style='margin: 0; color: #6b7280; font-size: 12px;'>
+                © {DateTime.Now.Year} PixelSolution. All rights reserved.<br>
+                Thank you for choosing us for your technology needs! 🚀
+            </p>
+        </div>
+    </div>
+</body>
+</html>";
+        }
+
+        private string GenerateFancyStatusEmailBody(PurchaseRequest request, dynamic customer, string customerName, string newStatus, string oldStatus, string statusMessage, string statusColor)
+        {
+            var itemsHtml = "";
+            if (request?.PurchaseRequestItems?.Any() == true)
+            {
+                foreach (var item in request.PurchaseRequestItems)
+                {
+                    var productImageUrl = !string.IsNullOrEmpty(item.Product?.ImageUrl) 
+                        ? item.Product.ImageUrl 
+                        : "https://pixelsolution.co.ke/images/favicon.png";
+
+                    itemsHtml += $@"
+                        <div style='display: flex; align-items: center; padding: 15px; margin: 10px 0; background: #f8fafc; border-radius: 12px; border-left: 4px solid #10b981;'>
+                            <a href='https://pixelsolution.co.ke/Home/ProductDetails/{item.Product?.ProductId}' target='_blank' style='text-decoration: none;'>
+                                <img src='{productImageUrl}' alt='{item.Product?.Name}' 
+                                     style='width: 80px; height: 80px; object-fit: cover; border-radius: 8px; margin-right: 15px; cursor: pointer; transition: transform 0.2s;'
+                                     onmouseover='this.style.transform=""scale(1.05)""'
+                                     onmouseout='this.style.transform=""scale(1)""' />
+                            </a>
+                            <div style='flex: 1;'>
+                                <h4 style='margin: 0 0 5px 0; color: #1f2937; font-size: 16px;'>
+                                    <a href='https://pixelsolution.co.ke/Home/ProductDetails/{item.Product?.ProductId}' target='_blank' style='color: #1f2937; text-decoration: none;'>
+                                        {item.Product?.Name}
+                                    </a>
+                                </h4>
+                                <p style='margin: 0; color: #6b7280; font-size: 14px;'>{item.Product?.Category?.Name ?? "General"}</p>
+                                <div style='display: flex; justify-content: space-between; margin-top: 8px;'>
+                                    <span style='color: #374151; font-weight: 500;'>Qty: {item.Quantity}</span>
+                                    <span style='color: #059669; font-weight: 600;'>{item.TotalPrice:C}</span>
+                                </div>
+                            </div>
+                        </div>";
+                }
+            }
+
+            return $@"
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8'>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+    <title>Purchase Request Update - PixelSolution</title>
+</head>
+<body style='margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, ""Segoe UI"", Roboto, ""Helvetica Neue"", Arial, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh;'>
+    <div style='max-width: 600px; margin: 0 auto; background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.1);'>
+        
+        <!-- Header with PixelSolution Branding -->
+        <div style='background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px 20px; text-align: center; position: relative;'>
+            <div style='position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: url(""data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.1'%3E%3Ccircle cx='30' cy='30' r='4'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E""); opacity: 0.3;'></div>
+            <div style='position: relative; z-index: 1;'>
+                <img src='https://pixelsolution.co.ke/images/favicon.png' alt='PixelSolution' style='width: 60px; height: 60px; border-radius: 12px; margin-bottom: 15px; box-shadow: 0 8px 16px rgba(0,0,0,0.2);' />
+                <h1 style='color: white; margin: 0; font-size: 28px; font-weight: 700; text-shadow: 0 2px 4px rgba(0,0,0,0.3);'>📦 PixelSolution</h1>
+                <p style='color: rgba(255,255,255,0.9); margin: 8px 0 0 0; font-size: 16px;'>Purchase Request Update</p>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div style='padding: 30px;'>
+            <!-- Personal Greeting -->
+            <div style='text-align: center; margin-bottom: 30px;'>
+                <h2 style='color: #1f2937; margin: 0 0 10px 0; font-size: 24px;'>Hello {customerName}! 👋</h2>
+                <p style='color: #6b7280; margin: 0; font-size: 16px; line-height: 1.5;'>
+                    We have an important update about your purchase request
+                </p>
+            </div>
+
+            <!-- Status Update Card -->
+            <div style='background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); padding: 25px; border-radius: 16px; margin: 25px 0; border: 1px solid #e0f2fe;'>
+                <div style='display: flex; align-items: center; margin-bottom: 20px;'>
+                    <div style='background: {statusColor}; color: white; padding: 8px 16px; border-radius: 20px; font-size: 14px; font-weight: 600;'>
+                        {newStatus.ToUpper()}
+                    </div>
+                </div>
+                
+                <h3 style='color: #1f2937; margin: 0 0 15px 0; font-size: 18px; display: flex; align-items: center;'>
+                    📋 Request Details
+                </h3>
+                
+                <div style='display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;'>
+                    <div>
+                        <p style='margin: 0; color: #6b7280; font-size: 14px;'>Request Number</p>
+                        <p style='margin: 5px 0 0 0; color: #1f2937; font-weight: 600; font-size: 16px;'>{request.RequestNumber}</p>
+                    </div>
+                    <div>
+                        <p style='margin: 0; color: #6b7280; font-size: 14px;'>Total Amount</p>
+                        <p style='margin: 5px 0 0 0; color: #059669; font-weight: 700; font-size: 20px;'>KSh {request.TotalAmount:N2}</p>
+                    </div>
+                </div>
+
+                <div style='background: #fef3c7; padding: 15px; border-radius: 8px; border-left: 4px solid #f59e0b;'>
+                    <p style='margin: 0; color: #92400e; font-size: 14px; line-height: 1.4;'>
+                        <strong>📢 Status Update:</strong> {statusMessage}
+                    </p>
+                </div>
+            </div>
+
+            <!-- Products Section -->
+            <div style='margin: 30px 0;'>
+                <h3 style='color: #1f2937; margin: 0 0 20px 0; font-size: 18px; display: flex; align-items: center;'>
+                    🛍️ Your Items <span style='background: #e5e7eb; color: #374151; padding: 4px 8px; border-radius: 12px; font-size: 12px; margin-left: 10px;'>{request.PurchaseRequestItems?.Count ?? 0} items</span>
+                </h3>
+                {itemsHtml}
+            </div>
+
+            <!-- Contact Information -->
+            <div style='background: #f8fafc; padding: 20px; border-radius: 12px; margin: 25px 0;'>
+                <h3 style='color: #1f2937; margin: 0 0 15px 0; font-size: 16px; display: flex; align-items: center;'>
+                    📞 Call Us Through: +254758024400
+                </h3>
+                <div style='display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;'>
+                    <a href='tel:+254758024400' style='background: #059669; color: white; padding: 15px 25px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-block; transition: all 0.2s;'>
+                        📞 Call Us Now
+                    </a>
+                    <a href='https://pixelsolution.co.ke' target='_blank' style='background: #3b82f6; color: white; padding: 15px 25px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-block; transition: all 0.2s;'>
+                        🌐 Visit Website
+                    </a>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Footer -->
+        <div style='background: #1f2937; color: white; padding: 25px; text-align: center;'>
+            <img src='https://pixelsolution.co.ke/images/favicon.png' alt='PixelSolution' style='width: 40px; height: 40px; border-radius: 8px; margin-bottom: 15px;' />
+            <p style='margin: 0 0 10px 0; font-size: 16px; font-weight: 600;'>PixelSolution</p>
+            <p style='margin: 0 0 15px 0; color: #9ca3af; font-size: 14px;'>Innovative Technology Solutions</p>
+            <p style='margin: 0; color: #6b7280; font-size: 12px;'>
+                © {DateTime.Now.Year} PixelSolution. All rights reserved.<br>
+                Thank you for choosing us for your technology needs! 🚀
+            </p>
+        </div>
+    </div>
+</body>
+</html>";
         }
 
         private string GetStatusMessage(string status, decimal totalAmount)
         {
-            var formattedAmount = totalAmount.ToString("C");
+            var formattedAmount = $"KSh {totalAmount:N2}";
             return status switch
             {
                 "Approved" => "Your purchase request has been approved and is being processed.",
@@ -6915,18 +7246,69 @@ namespace PixelSolution.Controllers
                 "delivered" => "#059669",
                 "completed" => "#8b5cf6",
                 "declined" => "#ef4444",
-                _ => "#64748b"
+                "cancelled" => "#ef4444",
+                _ => "#6b7280"
             };
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> TestEmail(string testEmail = "")
+        {
+            _logger.LogInformation("🧪 Testing email functionality with address: {TestEmail}", testEmail);
+            
+            if (string.IsNullOrEmpty(testEmail))
+            {
+                testEmail = "test@example.com"; // Default test email
+            }
+
+            try
+            {
+                if (_enhancedEmailService == null)
+                {
+                    _logger.LogError("❌ EnhancedEmailService not found in DI container");
+                    return Json(new { success = false, message = "Email service not available" });
+                }
+
+                _logger.LogInformation("✅ EnhancedEmailService found, attempting to send test email");
+
+                var subject = "Test Email from PixelSolution POS";
+                var body = @"
+                    <html>
+                    <body style='font-family: Arial, sans-serif;'>
+                        <h2 style='color: #4CAF50;'>🧪 Email Test Successful!</h2>
+                        <p>This is a test email from your PixelSolution POS system.</p>
+                        <p><strong>Timestamp:</strong> " + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss") + @"</p>
+                        <p>If you received this email, your SMTP configuration is working correctly! ✅</p>
+                    </body>
+                    </html>";
+
+                var result = await _enhancedEmailService.SendEmailAsync(testEmail, subject, body);
+                
+                if (result)
+                {
+                    _logger.LogInformation("✅ Test email sent successfully to {TestEmail}", testEmail);
+                    return Json(new { success = true, message = $"Test email sent successfully to {testEmail}" });
+                }
+                else
+                {
+                    _logger.LogError("❌ Test email failed to send to {TestEmail}", testEmail);
+                    return Json(new { success = false, message = "Test email failed to send" });
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "💥 Exception during test email: {ErrorMessage}", ex.Message);
+                return Json(new { success = false, message = $"Test email error: {ex.Message}" });
+            }
         }
 
         [HttpGet]
         [Route("Admin/GeneratePurchaseRequestReceipt/{requestId:int}")]
         public async Task<IActionResult> GeneratePurchaseRequestReceipt(int requestId)
         {
+            _logger.LogInformation("Generating purchase request receipt for ID: {RequestId}", requestId);
             try
             {
-                _logger.LogInformation("Generating receipt for purchase request ID: {RequestId}", requestId);
-
                 var request = await _context.PurchaseRequests
                     .Include(pr => pr.PurchaseRequestItems)
                         .ThenInclude(pri => pri.Product)
@@ -7072,7 +7454,7 @@ namespace PixelSolution.Controllers
                     DaysInactive = cart.LastUpdated.HasValue ? (int)(DateTime.Now - cart.LastUpdated.Value).TotalDays : (int)(DateTime.Now - cart.Items.Min(i => i.AddedAt)).TotalDays,
                     FormattedCreatedDate = cart.Items.Min(i => i.AddedAt).ToString("MMM dd, yyyy"),
                     FormattedUpdatedDate = cart.LastUpdated?.ToString("MMM dd, yyyy") ?? "Never",
-                    FormattedTotalAmount = cart.TotalValue.ToString("C"),
+                    FormattedTotalAmount = $"KSh {cart.TotalValue:N2}",
                     StatusBadgeClass = cart.Items.Any() ? "badge-success" : "badge-secondary",
                     CanConvertToRequest = cart.Items.Any(),
                     HasStockIssues = false, // Will be calculated based on product availability
@@ -7090,8 +7472,8 @@ namespace PixelSolution.Controllers
                         AvailableStock = item.Product.StockQuantity,
                         IsInStock = item.Product.StockQuantity >= item.Quantity,
                         CategoryName = item.Product.Category?.Name ?? "Unknown",
-                        FormattedUnitPrice = item.Product.SellingPrice.ToString("C"),
-                        FormattedTotalPrice = item.TotalPrice.ToString("C"),
+                        FormattedUnitPrice = $"KSh {item.Product.SellingPrice:N2}",
+                        FormattedTotalPrice = $"KSh {item.TotalPrice:N2}",
                         StockStatus = item.Product.StockQuantity >= item.Quantity ? "In Stock" : "Low Stock",
                         StockStatusClass = item.Product.StockQuantity >= item.Quantity ? "text-success" : "text-warning"
                     }).ToList()
@@ -7152,29 +7534,79 @@ namespace PixelSolution.Controllers
         {
             try
             {
-                // Get wishlisted products grouped by product with customer count
-                var wishlistedProducts = await _context.Wishlists
-                    .Include(w => w.Product)
-                        .ThenInclude(p => p.Category)
+                // Get wishlist data grouped by ProductId with counts and customer details
+                var wishlistData = await _context.Wishlists
                     .GroupBy(w => w.ProductId)
                     .Select(g => new
                     {
                         ProductId = g.Key,
-                        Product = g.First().Product,
                         WishlistCount = g.Count(),
                         CustomerIds = g.Select(w => w.CustomerId).ToList(),
-                        LatestWishlistDate = g.Max(w => w.CreatedAt)
+                        LatestWishlistDate = g.Max(w => w.CreatedAt),
+                        FirstWishlistId = g.First().WishlistId
                     })
                     .OrderByDescending(x => x.WishlistCount)
+                    .ThenByDescending(x => x.LatestWishlistDate)
                     .ToListAsync();
 
-                return View(wishlistedProducts);
+                // Get product details for each ProductId
+                var productIds = wishlistData.Select(w => w.ProductId).ToList();
+                var products = await _context.Products
+                    .Include(p => p.Category)
+                    .Where(p => productIds.Contains(p.ProductId))
+                    .ToListAsync();
+
+                // Get customer details for all CustomerIds
+                var allCustomerIds = wishlistData.SelectMany(w => w.CustomerIds).Distinct().ToList();
+                var customers = await _context.Customers
+                    .Where(c => allCustomerIds.Contains(c.CustomerId))
+                    .ToListAsync();
+
+                // Create WishlistManagementViewModel for each unique product
+                var wishlistViewModels = wishlistData.Select(w =>
+                {
+                    var product = products.FirstOrDefault(p => p.ProductId == w.ProductId);
+                    var productCustomers = customers.Where(c => w.CustomerIds.Contains(c.CustomerId)).ToList();
+                    
+                    return new WishlistManagementViewModel
+                    {
+                        WishlistId = w.FirstWishlistId,
+                        ProductId = w.ProductId,
+                        ProductName = product?.Name ?? "Unknown Product",
+                        ProductSKU = product?.SKU ?? "",
+                        ProductImage = product?.ImageUrl,
+                        SellingPrice = product?.SellingPrice ?? 0,
+                        StockQuantity = product?.StockQuantity ?? 0,
+                        InStock = (product?.StockQuantity ?? 0) > 0,
+                        CreatedAt = w.LatestWishlistDate,
+                        LastActivity = w.LatestWishlistDate,
+                        CategoryName = product?.Category?.Name ?? "General",
+                        FormattedPrice = $"KSh {product?.SellingPrice ?? 0:N2}",
+                        FormattedCreatedDate = w.LatestWishlistDate.ToString("MMM dd, yyyy"),
+                        StockStatus = (product?.StockQuantity ?? 0) > 0 ? "In Stock" : "Out of Stock",
+                        StockStatusClass = (product?.StockQuantity ?? 0) > 0 ? "success" : "danger",
+                        DaysInWishlist = (DateTime.Now - w.LatestWishlistDate).Days,
+                        DaysOld = (DateTime.Now - w.LatestWishlistDate).Days,
+                        TotalItems = w.WishlistCount,
+                        TotalValue = (product?.SellingPrice ?? 0) * w.WishlistCount,
+                        IsAvailable = (product?.StockQuantity ?? 0) > 0,
+                        CanAddToCart = (product?.StockQuantity ?? 0) > 0,
+                        // Store customer info for the first customer (for display purposes)
+                        CustomerId = productCustomers.FirstOrDefault()?.CustomerId ?? 0,
+                        CustomerName = productCustomers.FirstOrDefault() != null ? 
+                            $"{productCustomers.First().FirstName} {productCustomers.First().LastName}" : "Unknown",
+                        CustomerEmail = productCustomers.FirstOrDefault()?.Email ?? "",
+                        CustomerPhone = productCustomers.FirstOrDefault()?.Phone
+                    };
+                }).ToList();
+
+                return View(wishlistViewModels);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error loading wishlist management data");
                 TempData["Error"] = "Error loading wishlist data.";
-                return View(new List<object>());
+                return View(new List<WishlistManagementViewModel>());
             }
         }
 
@@ -7183,22 +7615,38 @@ namespace PixelSolution.Controllers
         {
             try
             {
-                var customers = await _context.Wishlists
+                // Get all wishlist entries for the specific ProductId
+                var wishlistEntries = await _context.Wishlists
                     .Where(w => w.ProductId == productId)
-                    .Include(w => w.Customer)
-                    .Select(w => new
-                    {
-                        customerId = w.CustomerId,
-                        customerName = $"{w.Customer.FirstName} {w.Customer.LastName}",
-                        customerPhone = w.Customer.Phone ?? "Not provided",
-                        customerEmail = w.Customer.Email ?? "Not provided",
-                        wishlistDate = w.CreatedAt,
-                        wishlistId = w.WishlistId
-                    })
-                    .OrderByDescending(c => c.wishlistDate)
                     .ToListAsync();
 
-                return Json(new { success = true, customers = customers });
+                // Get all unique CustomerIds for this product
+                var customerIds = wishlistEntries.Select(w => w.CustomerId).Distinct().ToList();
+
+                // Get customer details from Customers table
+                var customers = await _context.Customers
+                    .Where(c => customerIds.Contains(c.CustomerId))
+                    .ToListAsync();
+
+                // Combine wishlist and customer data
+                var customerDetails = wishlistEntries.Select(w =>
+                {
+                    var customer = customers.FirstOrDefault(c => c.CustomerId == w.CustomerId);
+                    return new
+                    {
+                        customerId = w.CustomerId,
+                        customerName = customer != null ? $"{customer.FirstName} {customer.LastName}" : "Unknown Customer",
+                        customerPhone = customer?.Phone ?? "Not provided",
+                        customerEmail = customer?.Email ?? "Not provided",
+                        addedAt = w.CreatedAt,
+                        wishlistId = w.WishlistId,
+                        formattedDate = w.CreatedAt.ToString("MMM dd, yyyy HH:mm")
+                    };
+                })
+                .OrderByDescending(c => c.addedAt)
+                .ToList();
+
+                return Json(new { success = true, customers = customerDetails });
             }
             catch (Exception ex)
             {

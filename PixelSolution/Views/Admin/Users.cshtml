@@ -977,7 +977,7 @@
                             {
                                 <div class="detail-row">
                                     <span class="detail-label">Total Sales</span>
-                                    <span class="detail-value highlight">@employee.TotalSales (@employee.TotalSalesAmount.ToString("C"))</span>
+                                    <span class="detail-value highlight">@employee.TotalSales (KSh @employee.TotalSalesAmount.ToString("N2"))</span>
                                 </div>
                             }
                             @if (!string.IsNullOrEmpty(employee.DepartmentNames))
