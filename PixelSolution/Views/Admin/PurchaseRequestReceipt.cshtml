@@ -119,10 +119,10 @@
                 const doc = new jsPDF({
                     orientation: 'portrait',
                     unit: 'mm',
-                    format: [80, 250] // 80mm width, longer height for purchase request
+                    format: [80, 200] // 80mm width, 200mm height for purchase request
                 });
 
-                let yPos = 8;
+                let yPos = 10;
                 const lineHeight = 4;
                 const pageWidth = 80;
                 const margin = 3;
@@ -167,16 +167,16 @@
                 
                 // Add company name with clean styling
                 doc.setTextColor(0, 0, 0); // Black text
-                doc.setFontSize(14);
+                doc.setFontSize(12);
                 doc.setFont('helvetica', 'bold');
-                const companyName = 'PIXEL SOLUTION';
+                const companyName = 'PIXEL SOLUTION COMPANY LTD';
                 const companyWidth = doc.getTextWidth(companyName);
                 doc.text(companyName, (pageWidth - companyWidth) / 2, 12);
                 
                 // Add location and contact in smaller dark text
-                doc.setFontSize(7);
+                doc.setFontSize(8);
                 doc.setFont('helvetica', 'normal');
-                const location = 'Chuka, Ndangani • Tel: +254758024400';
+                const location = 'Nairobi, Kenya • Tel: +254742282250';
                 const locationWidth = doc.getTextWidth(location);
                 doc.text(location, (pageWidth - locationWidth) / 2, 19);
                 
@@ -214,6 +214,7 @@
                 // Request Details
                 addText('Request #: ' + receiptData.requestNumber, 9);
                 addText('Date: ' + receiptData.requestDate, 8);
+                addText('Customer: ' + receiptData.customerName, 8);
                 addText('Status: ' + receiptData.status, 8);
                 addText('Payment: ' + receiptData.paymentStatus, 8);
                 yPos += 2;
