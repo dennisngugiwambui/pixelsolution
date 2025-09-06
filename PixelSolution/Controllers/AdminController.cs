@@ -6930,6 +6930,8 @@ namespace PixelSolution.Controllers
         {
             try
             {
+                _logger.LogInformation("Generating receipt for purchase request ID: {RequestId}", requestId);
+
                 var request = await _context.PurchaseRequests
                     .Include(pr => pr.PurchaseRequestItems)
                         .ThenInclude(pri => pri.Product)
@@ -6938,14 +6940,20 @@ namespace PixelSolution.Controllers
 
                 if (request == null)
                 {
-                    return NotFound("Purchase request not found");
+                    _logger.LogWarning("Purchase request with ID {RequestId} not found", requestId);
+                    return NotFound($"Purchase request with ID {requestId} not found");
                 }
+
+                _logger.LogInformation("Found purchase request: {RequestNumber}, Status: {Status}", request.RequestNumber, request.Status);
 
                 var customer = await _context.Customers.FirstOrDefaultAsync(c => c.CustomerId == request.UserId);
                 if (customer == null)
                 {
-                    return NotFound("Customer not found");
+                    _logger.LogWarning("Customer with ID {CustomerId} not found for purchase request {RequestId}", request.UserId, requestId);
+                    return NotFound($"Customer not found for purchase request {requestId}");
                 }
+
+                _logger.LogInformation("Found customer: {CustomerName} ({CustomerId})", $"{customer.FirstName} {customer.LastName}", customer.CustomerId);
 
                 var receiptViewModel = new PurchaseRequestReceiptViewModel
                 {
@@ -6970,12 +6978,15 @@ namespace PixelSolution.Controllers
                     }).ToList()
                 };
 
+                _logger.LogInformation("Receipt generated successfully for request {RequestNumber} with {ItemCount} items", 
+                    receiptViewModel.RequestNumber, receiptViewModel.Items.Count);
+
                 return View("PurchaseRequestReceipt", receiptViewModel);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error generating purchase request receipt for ID {RequestId}", requestId);
-                return BadRequest("Error generating receipt");
+                return BadRequest($"Error generating receipt: {ex.Message}");
             }
         }
 
