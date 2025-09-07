@@ -116,14 +116,12 @@
                 <a href="@Url.Action("Sales", "Admin")" class="nav-link">
                     <i class="fas fa-shopping-cart"></i>
                     Sales
-                    <span class="nav-badge" id="salesCount">0</span>
                 </a>
             </div>
             <div class="nav-item">
                 <a href="@Url.Action("Inventory", "Admin")" class="nav-link">
                     <i class="fas fa-box"></i>
                     Inventory
-                    <span class="nav-badge" id="lowStockCount">0</span>
                 </a>
             </div>
         </div>
@@ -165,41 +163,33 @@
         <div class="nav-section">
             <div class="nav-section-title">Operations</div>
             <div class="nav-item">
-                <a href="@Url.Action("Messages", "Admin")" class="nav-link">
-                    <i class="fas fa-envelope"></i>
-                    Messages
-                    <span class="nav-badge" id="unreadMessagesCount">0</span>
-                </a>
-            </div>
-            <div class="nav-item">
-                <a href="@Url.Action("Reports", "Admin")" class="nav-link">
-                    <i class="fas fa-chart-bar"></i>
-                    Reports
-                </a>
-            </div>
-        </div>
-
-        <div class="nav-section">
-            <div class="nav-section-title">Customer Management</div>
-            <div class="nav-item">
                 <a href="@Url.Action("PurchaseRequests", "Admin")" class="nav-link">
                     <i class="fas fa-file-invoice"></i>
                     Purchase Requests
-                    <span class="nav-badge" id="pendingRequestsCount">0</span>
                 </a>
             </div>
             <div class="nav-item">
                 <a href="@Url.Action("CartManagement", "Admin")" class="nav-link">
-                    <i class="fas fa-shopping-cart"></i>
+                    <i class="fas fa-shopping-basket"></i>
                     Cart Management
-                    <span class="nav-badge" id="activeCartsCount">0</span>
                 </a>
             </div>
             <div class="nav-item">
                 <a href="@Url.Action("WishlistManagement", "Admin")" class="nav-link">
                     <i class="fas fa-heart"></i>
                     Wishlist Management
-                    <span class="nav-badge" id="activeWishlistsCount">0</span>
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Messages", "Admin")" class="nav-link">
+                    <i class="fas fa-envelope"></i>
+                    Messages
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Reports", "Admin")" class="nav-link">
+                    <i class="fas fa-chart-bar"></i>
+                    Reports
                 </a>
             </div>
         </div>
@@ -221,6 +211,8 @@
         </div>
     </nav>
 </div>
+
+
 
 <!-- Main Content -->
 <div class="main-content" id="mainContent">

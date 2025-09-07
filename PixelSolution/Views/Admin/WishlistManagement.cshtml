@@ -1118,6 +1118,11 @@
 
         async function viewCustomerProfile(customerId) {
             try {
+                console.log('viewCustomerProfile called with customerId:', customerId);
+                if (!customerId || customerId === 0) {
+                    showToast('Invalid customer ID', 'error');
+                    return;
+                }
                 const response = await fetch(`/Admin/GetCustomerProfile?customerId=${customerId}`);
                 if (!response.ok) throw new Error('Failed to fetch customer profile');
 

@@ -542,6 +542,7 @@
     </style>
 }
 
+
 <!-- Sidebar -->
 <div class="sidebar" id="sidebar">
     <div class="sidebar-header">
@@ -626,6 +627,18 @@
                 </a>
             </div>
             <div class="nav-item">
+                <a href="@Url.Action("CartManagement", "Admin")" class="nav-link">
+                    <i class="fas fa-shopping-basket"></i>
+                    Cart Management
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("WishlistManagement", "Admin")" class="nav-link">
+                    <i class="fas fa-heart"></i>
+                    Wishlist Management
+                </a>
+            </div>
+            <div class="nav-item">
                 <a href="@Url.Action("Messages", "Admin")" class="nav-link">
                     <i class="fas fa-envelope"></i>
                     Messages
@@ -656,6 +669,7 @@
         </div>
     </nav>
 </div>
+
 
 <!-- Main Content -->
 <div class="main-content" id="mainContent">

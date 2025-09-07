@@ -424,6 +424,7 @@
     </nav>
 </div>
 
+
 <!-- Main Content -->
 <div class="main-content" id="mainContent">
     <!-- Header -->
@@ -505,16 +506,28 @@
                 </button>
             </div>
 
-            <div style="display: flex; gap: 1rem; margin-top: 1rem; flex-wrap: wrap;">
-                <button class="btn btn-warning" onclick="clearAbandonedCarts()" style="background: rgba(245, 158, 11, 0.9); border: none;">
-                    <i class="fas fa-broom"></i> Clear Abandoned Carts
-                </button>
-                <button class="btn btn-danger" onclick="clearAllCartsInPeriod()" style="background: rgba(239, 68, 68, 0.9); border: none;">
-                    <i class="fas fa-trash"></i> Clear All Carts in Period
-                </button>
-                <button class="btn btn-secondary" onclick="exportCartData()" style="background: rgba(255,255,255,0.2); border: none;">
-                    <i class="fas fa-download"></i> Export Data
-                </button>
+            <div style="display: flex; gap: 1rem; margin-top: 1rem; flex-wrap: wrap; justify-content: space-between; align-items: center;">
+                <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                    <button class="btn btn-warning" onclick="clearAbandonedCarts()" style="background: rgba(245, 158, 11, 0.9); border: none;">
+                        <i class="fas fa-broom"></i> Clear Abandoned Carts
+                    </button>
+                    <button class="btn btn-danger" onclick="clearAllCartsInPeriod()" style="background: rgba(239, 68, 68, 0.9); border: none;">
+                        <i class="fas fa-trash"></i> Clear All Carts in Period
+                    </button>
+                    <button class="btn btn-secondary" onclick="exportCartData()" style="background: rgba(255,255,255,0.2); border: none;">
+                        <i class="fas fa-download"></i> Export Data
+                    </button>
+                </div>
+                
+                <!-- View Toggle -->
+                <div class="view-toggle" style="display: flex; background: rgba(255,255,255,0.1); border-radius: 8px; padding: 4px;">
+                    <button id="userViewBtn" class="view-toggle-btn active" onclick="switchToUserView()" style="padding: 8px 16px; border: none; background: rgba(16, 185, 129, 0.9); color: white; border-radius: 6px; cursor: pointer; transition: all 0.3s;">
+                        <i class="fas fa-users"></i> By Users
+                    </button>
+                    <button id="productViewBtn" class="view-toggle-btn" onclick="switchToProductView()" style="padding: 8px 16px; border: none; background: transparent; color: rgba(255,255,255,0.7); border-radius: 6px; cursor: pointer; transition: all 0.3s;">
+                        <i class="fas fa-box"></i> By Products
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -558,10 +571,11 @@
             </div>
         </div>
 
-        <!-- Cart Management Grid -->
-        <div id="cartGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 1.5rem;">
-            @foreach (var cart in Model)
-            {
+        <!-- User-Centric View (Default) -->
+        <div id="userView" style="display: block;">
+            <div id="cartGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 1.5rem;">
+                @foreach (var cart in Model)
+                {
                 <div class="cart-card @(cart.IsActive ? "active" : "abandoned")" data-cart-id="@cart.CustomerId" data-status="@(cart.IsActive ? "active" : "abandoned")">
                     <div class="cart-indicator cart-@(cart.IsActive ? "active" : "abandoned")">
                         @if (cart.TotalItems == 0)
@@ -657,6 +671,14 @@
                     </div>
                 </div>
             }
+            </div>
+        </div>
+
+        <!-- Product-Centric View -->
+        <div id="productView" style="display: none;">
+            <div id="productGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(400px, 1fr)); gap: 1.5rem;">
+                <!-- Products will be loaded dynamically -->
+            </div>
         </div>
 
         <!-- Pagination -->
@@ -908,6 +930,11 @@
 
         async function viewCartDetails(customerId) {
             try {
+                console.log('viewCartDetails called with customerId:', customerId);
+                if (!customerId || customerId === 0) {
+                    showToast('Invalid customer ID', 'error');
+                    return;
+                }
                 const response = await fetch(`/Admin/GetCartDetails/${customerId}`);
                 if (!response.ok) throw new Error('Failed to fetch cart details');
 
@@ -998,10 +1025,22 @@
 
         async function viewCustomerProfile(customerId) {
             try {
-                const response = await fetch(`/Admin/GetCustomerProfile/${customerId}`);
+                console.log('viewCustomerProfile called with customerId:', customerId);
+                if (!customerId || customerId === 0) {
+                    showToast('Invalid customer ID', 'error');
+                    return;
+                }
+                const response = await fetch(`/Admin/GetCustomerProfile?customerId=${customerId}`);
                 if (!response.ok) throw new Error('Failed to fetch customer profile');
 
-                const customer = await response.json();
+                const result = await response.json();
+                
+                if (!result.success) {
+                    showToast(result.message || 'Failed to load customer profile', 'error');
+                    return;
+                }
+
+                const customer = result.customer;
 
                 const modalContent = `
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
@@ -1234,6 +1273,180 @@
 
         function refreshData() {
             location.reload();
+        }
+
+        // View switching functions
+        let currentView = 'user';
+        let productData = [];
+
+        function switchToUserView() {
+            currentView = 'user';
+            document.getElementById('userView').style.display = 'block';
+            document.getElementById('productView').style.display = 'none';
+            
+            // Update button styles
+            document.getElementById('userViewBtn').style.background = 'rgba(16, 185, 129, 0.9)';
+            document.getElementById('userViewBtn').style.color = 'white';
+            document.getElementById('productViewBtn').style.background = 'transparent';
+            document.getElementById('productViewBtn').style.color = 'rgba(255,255,255,0.7)';
+        }
+
+        async function switchToProductView() {
+            currentView = 'product';
+            document.getElementById('userView').style.display = 'none';
+            document.getElementById('productView').style.display = 'block';
+            
+            // Update button styles
+            document.getElementById('productViewBtn').style.background = 'rgba(16, 185, 129, 0.9)';
+            document.getElementById('productViewBtn').style.color = 'white';
+            document.getElementById('userViewBtn').style.background = 'transparent';
+            document.getElementById('userViewBtn').style.color = 'rgba(255,255,255,0.7)';
+
+            // Load product data if not already loaded
+            if (productData.length === 0) {
+                await loadProductCartData();
+            }
+            displayProductView();
+        }
+
+        async function loadProductCartData() {
+            try {
+                const response = await fetch('/Admin/GetProductCartSummary');
+                const result = await response.json();
+                
+                if (result.success) {
+                    productData = result.products;
+                } else {
+                    showToast('Error loading product cart data', 'error');
+                    productData = [];
+                }
+            } catch (error) {
+                console.error('Error loading product cart data:', error);
+                showToast('Error loading product cart data', 'error');
+                productData = [];
+            }
+        }
+
+        function displayProductView() {
+            const productGrid = document.getElementById('productGrid');
+            
+            if (productData.length === 0) {
+                productGrid.innerHTML = `
+                    <div style="grid-column: 1 / -1; text-align: center; padding: 4rem; color: #64748b;">
+                        <i class="fas fa-box-open" style="font-size: 4rem; margin-bottom: 1rem; opacity: 0.3;"></i>
+                        <h3>No products in carts</h3>
+                        <p>No products have been added to customer carts yet.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const productCards = productData.map(product => `
+                <div class="cart-card active" style="border-left-color: #3b82f6;">
+                    <div class="cart-indicator" style="background: #3b82f6;">
+                        <span>Popular</span>
+                    </div>
+
+                    <div style="display: flex; align-items: flex-start; gap: 1rem; margin-bottom: 1rem;">
+                        <div style="width: 60px; height: 60px; border-radius: 8px; background: linear-gradient(135deg, #3b82f6, #1d4ed8); display: flex; align-items: center; justify-content: center; color: white; font-size: 1.5rem;">
+                            ${product.productImage ? `<img src="${product.productImage}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px;" alt="${product.productName}">` : '<i class="fas fa-box"></i>'}
+                        </div>
+
+                        <div style="flex: 1; min-width: 0;">
+                            <h3 style="margin: 0 0 0.5rem 0; color: #1e293b; font-size: 1.25rem; line-height: 1.3;">${product.productName}</h3>
+                            <p style="margin: 0 0 0.25rem 0; color: #64748b; font-size: 0.875rem;">${product.categoryName}</p>
+                            <p style="margin: 0; color: #9ca3af; font-size: 0.75rem;">
+                                Last activity: ${product.formattedLatestActivity}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="cart-stats">
+                        <div class="stat-item">
+                            <span class="stat-value">${product.totalCustomers}</span>
+                            <span class="stat-label">Customers</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-value">${product.totalQuantity}</span>
+                            <span class="stat-label">Total Qty</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-value">${product.formattedTotalValue}</span>
+                            <span class="stat-label">Total Value</span>
+                        </div>
+                    </div>
+
+                    <div class="quick-actions">
+                        <button class="btn btn-secondary btn-sm" onclick="viewProductCustomers(${product.productId})" title="View Customers">
+                            <i class="fas fa-users"></i>
+                        </button>
+                        <button class="btn btn-primary btn-sm" onclick="viewProductDetails(${product.productId})" title="Product Details">
+                            <i class="fas fa-info-circle"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+
+            productGrid.innerHTML = productCards;
+        }
+
+        function viewProductCustomers(productId) {
+            const product = productData.find(p => p.productId === productId);
+            if (!product) return;
+
+            const modalContent = `
+                <div style="margin-bottom: 2rem;">
+                    <h4 style="color: #1e293b; margin-bottom: 1rem;">Customers who added "${product.productName}" to cart</h4>
+                    <div style="background: #f8fafc; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; text-align: center;">
+                            <div>
+                                <div style="font-size: 1.5rem; font-weight: bold; color: #3b82f6;">${product.totalCustomers}</div>
+                                <div style="color: #64748b; font-size: 0.875rem;">Total Customers</div>
+                            </div>
+                            <div>
+                                <div style="font-size: 1.5rem; font-weight: bold; color: #10b981;">${product.totalQuantity}</div>
+                                <div style="color: #64748b; font-size: 0.875rem;">Total Quantity</div>
+                            </div>
+                            <div>
+                                <div style="font-size: 1.5rem; font-weight: bold; color: #f59e0b;">${product.formattedTotalValue}</div>
+                                <div style="color: #64748b; font-size: 0.875rem;">Total Value</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="max-height: 400px; overflow-y: auto;">
+                    ${product.customers.map(customer => `
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 1rem; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 0.5rem; background: white;">
+                            <div>
+                                <div style="font-weight: 600; color: #1e293b;">${customer.customerName}</div>
+                                <div style="color: #64748b; font-size: 0.875rem;">${customer.customerEmail}</div>
+                                <div style="color: #9ca3af; font-size: 0.75rem;">Added: ${customer.formattedAddedAt}</div>
+                            </div>
+                            <div style="text-align: right;">
+                                <div style="font-weight: 600; color: #10b981;">Qty: ${customer.quantity}</div>
+                                <div style="color: #64748b; font-size: 0.875rem;">${customer.formattedTotalPrice}</div>
+                                <button class="btn btn-primary btn-sm" onclick="viewCustomerProfile(${customer.customerId})" style="margin-top: 0.5rem;">
+                                    <i class="fas fa-user"></i>
+                                </button>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+
+                <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 2rem;">
+                    <button class="btn btn-secondary" onclick="closeCartDetailsModal()">Close</button>
+                </div>
+            `;
+
+            document.getElementById('cartModalTitle').textContent = `Product Cart Analysis - ${product.productName}`;
+            document.getElementById('cartModalContent').innerHTML = modalContent;
+            document.getElementById('cartDetailsModal').style.display = 'block';
+        }
+
+        function viewProductDetails(productId) {
+            // This would typically navigate to the product details page
+            window.location.href = `/Admin/Products?highlight=${productId}`;
         }
 
         // Close modals when clicking outside

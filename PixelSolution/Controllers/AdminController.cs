@@ -7418,7 +7418,7 @@ namespace PixelSolution.Controllers
                     .Include(cc => cc.Customer)
                     .Include(cc => cc.Product)
                         .ThenInclude(p => p.Category)
-                    .OrderByDescending(cc => cc.AddedAt)
+                    .Where(cc => cc.Customer != null) // Only include carts with valid customers
                     .GroupBy(cc => cc.CustomerId)
                     .Select(g => new
                     {
@@ -7426,8 +7426,10 @@ namespace PixelSolution.Controllers
                         Items = g.ToList(),
                         TotalItems = g.Sum(cc => cc.Quantity),
                         TotalValue = g.Sum(cc => cc.TotalPrice),
-                        LastUpdated = g.Max(cc => cc.UpdatedAt) as DateTime?
+                        LastUpdated = g.Max(cc => cc.UpdatedAt) as DateTime?,
+                        LatestAddedAt = g.Max(cc => cc.AddedAt)
                     })
+                    .OrderByDescending(x => x.LatestAddedAt)
                     .Take(12) // Limit to 12 customers for pagination
                     .ToListAsync();
 
@@ -7679,10 +7681,11 @@ namespace PixelSolution.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetCustomerProfile(int customerId)
+        public async Task<IActionResult> GetCustomerProfile([FromQuery] int customerId)
         {
             try
             {
+                _logger.LogInformation("GetCustomerProfile called with customerId: {CustomerId}", customerId);
                 var customer = await _context.Customers
                     .FirstOrDefaultAsync(c => c.CustomerId == customerId);
 
@@ -8020,24 +8023,92 @@ namespace PixelSolution.Controllers
         }
 
         [HttpGet]
+        public async Task<IActionResult> GetProductCartSummary()
+        {
+            try
+            {
+                var productCartData = await _context.CustomerCarts
+                    .Include(cc => cc.Product)
+                        .ThenInclude(p => p.Category)
+                    .Include(cc => cc.Customer)
+                    .Where(cc => cc.Customer != null && cc.Product != null)
+                    .GroupBy(cc => cc.ProductId)
+                    .Select(g => new
+                    {
+                        ProductId = g.Key,
+                        Product = g.First().Product,
+                        TotalCustomers = g.Select(cc => cc.CustomerId).Distinct().Count(),
+                        TotalQuantity = g.Sum(cc => cc.Quantity),
+                        TotalValue = g.Sum(cc => cc.TotalPrice),
+                        Customers = g.Select(cc => new
+                        {
+                            CustomerId = cc.CustomerId,
+                            CustomerName = $"{cc.Customer.FirstName} {cc.Customer.LastName}",
+                            CustomerEmail = cc.Customer.Email,
+                            Quantity = cc.Quantity,
+                            TotalPrice = cc.TotalPrice,
+                            AddedAt = cc.AddedAt
+                        }).ToList(),
+                        LatestActivity = g.Max(cc => cc.AddedAt)
+                    })
+                    .OrderByDescending(x => x.TotalCustomers)
+                    .ThenByDescending(x => x.TotalQuantity)
+                    .ToListAsync();
+
+                var productSummary = productCartData.Select(p => new
+                {
+                    productId = p.ProductId,
+                    productName = p.Product?.Name ?? "Unknown Product",
+                    productImage = p.Product?.ImageUrl,
+                    categoryName = p.Product?.Category?.Name ?? "General",
+                    totalCustomers = p.TotalCustomers,
+                    totalQuantity = p.TotalQuantity,
+                    totalValue = p.TotalValue,
+                    formattedTotalValue = $"KSh {p.TotalValue:N2}",
+                    latestActivity = p.LatestActivity,
+                    formattedLatestActivity = p.LatestActivity.ToString("MMM dd, yyyy HH:mm"),
+                    customers = p.Customers.Select(c => new
+                    {
+                        customerId = c.CustomerId,
+                        customerName = c.CustomerName,
+                        customerEmail = c.CustomerEmail,
+                        quantity = c.Quantity,
+                        totalPrice = c.TotalPrice,
+                        formattedTotalPrice = $"KSh {c.TotalPrice:N2}",
+                        addedAt = c.AddedAt,
+                        formattedAddedAt = c.AddedAt.ToString("MMM dd, yyyy HH:mm")
+                    }).OrderByDescending(c => c.addedAt).ToList()
+                }).ToList();
+
+                return Json(new { success = true, products = productSummary });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting product cart summary");
+                return Json(new { success = false, message = "Error loading product cart data" });
+            }
+        }
+
+        [HttpGet]
         public async Task<IActionResult> GetCartDetails(int customerId)
         {
             try
             {
+                var customer = await _context.Customers
+                    .FirstOrDefaultAsync(c => c.CustomerId == customerId);
+
+                if (customer == null)
+                {
+                    _logger.LogWarning("Customer not found with ID: {CustomerId}", customerId);
+                    return Json(new { success = false, message = "Customer not found" });
+                }
+
                 var cartItems = await _context.CustomerCarts
                     .Include(c => c.Product)
                     .ThenInclude(p => p.Category)
                     .Where(c => c.CustomerId == customerId)
                     .OrderBy(c => c.AddedAt)
                     .ToListAsync();
-
-                var customer = await _context.Customers
-                    .FirstOrDefaultAsync(c => c.CustomerId == customerId);
-
-                if (customer == null)
-                {
-                    return Json(new { success = false, message = "Customer not found" });
-                }
 
                 var cartDetails = cartItems.Select(item => new
                 {
