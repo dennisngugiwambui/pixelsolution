@@ -1281,7 +1281,7 @@
     </style>
 }
 
-<!-- Sidebar -->
+<!-- <!-- Sidebar -->
 <div class="sidebar" id="sidebar">
     <div class="sidebar-header">
         <div class="logo-container">
@@ -1291,10 +1291,10 @@
             <div class="logo-text">PixelSolution</div>
         </div>
         <div class="user-info">
-            <div class="user-avatar">@(User.Identity.Name?.Length >= 2 ? User.Identity.Name.Substring(0, 2).ToUpper() : "U")</div>
+            <div class="user-avatar">@User.Identity.Name?.Substring(0, 2).ToUpper()</div>
             <div class="user-details">
                 <h4>@User.Identity.Name</h4>
-                <p>@(User.IsInRole("Admin") ? "System Administrator" : User.IsInRole("Manager") ? "Manager" : "Employee")</p>
+                <p>System Administrator</p>
             </div>
         </div>
     </div>
@@ -1308,95 +1308,86 @@
                     Dashboard
                 </a>
             </div>
-            @if (User.IsInRole("Admin") || User.IsInRole("Manager") || User.IsInRole("Employee"))
-            {
-                <div class="nav-item">
-                    <a href="@Url.Action("Sales", "Admin")" class="nav-link">
-                        <i class="fas fa-shopping-cart"></i>
-                        Sales
-                    </a>
-                </div>
-            }
-            @if (User.IsInRole("Admin") || User.IsInRole("Manager"))
-            {
-                <div class="nav-item">
-                    <a href="@Url.Action("Inventory", "Admin")" class="nav-link">
-                        <i class="fas fa-box"></i>
-                        Inventory
-                    </a>
-                </div>
-            }
+            <div class="nav-item">
+                <a href="@Url.Action("Sales", "Admin")" class="nav-link">
+                    <i class="fas fa-shopping-cart"></i>
+                    Sales
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Inventory", "Admin")" class="nav-link">
+                    <i class="fas fa-box"></i>
+                    Inventory
+                </a>
+            </div>
         </div>
 
         <div class="nav-section">
             <div class="nav-section-title">Management</div>
-            @if (User.IsInRole("Admin") || User.IsInRole("Manager"))
-            {
-                <div class="nav-item">
-                    <a href="@Url.Action("Users", "Admin")" class="nav-link active">
-                        <i class="fas fa-users"></i>
-                        Employees
-                    </a>
-                </div>
-            }
-            @if (User.IsInRole("Admin"))
-            {
-                <div class="nav-item">
-                    <a href="@Url.Action("Departments", "Admin")" class="nav-link">
-                        <i class="fas fa-building"></i>
-                        Departments
-                    </a>
-                </div>
-            }
-            @if (User.IsInRole("Admin") || User.IsInRole("Manager"))
-            {
-                <div class="nav-item">
-                    <a href="@Url.Action("Suppliers", "Admin")" class="nav-link">
-                        <i class="fas fa-truck"></i>
-                        Suppliers
-                    </a>
-                </div>
-                <div class="nav-item">
-                    <a href="@Url.Action("Categories", "Admin")" class="nav-link">
-                        <i class="fas fa-tags"></i>
-                        Categories
-                    </a>
-                </div>
-                <div class="nav-item">
-                    <a href="@Url.Action("Products", "Admin")" class="nav-link">
-                        <i class="fas fa-cube"></i>
-                        Products
-                    </a>
-                </div>
-            }
+            <div class="nav-item">
+                <a href="@Url.Action("Users", "Admin")" class="nav-link active">
+                    <i class="fas fa-users"></i>
+                    Employees
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Departments", "Admin")" class="nav-link">
+                    <i class="fas fa-building"></i>
+                    Departments
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Suppliers", "Admin")" class="nav-link">
+                    <i class="fas fa-truck"></i>
+                    Suppliers
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Categories", "Admin")" class="nav-link">
+                    <i class="fas fa-tags"></i>
+                    Categories
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Products", "Admin")" class="nav-link">
+                    <i class="fas fa-cube"></i>
+                    Products
+                </a>
+            </div>
         </div>
 
         <div class="nav-section">
             <div class="nav-section-title">Operations</div>
-            @if (User.IsInRole("Admin") || User.IsInRole("Manager"))
-            {
-                <div class="nav-item">
-                    <a href="@Url.Action("PurchaseRequests", "Admin")" class="nav-link">
-                        <i class="fas fa-file-invoice"></i>
-                        Purchase Requests
-                    </a>
-                </div>
-            }
+            <div class="nav-item">
+                <a href="@Url.Action("PurchaseRequests", "Admin")" class="nav-link">
+                    <i class="fas fa-file-invoice"></i>
+                    Purchase Requests
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("CartManagement", "Admin")" class="nav-link">
+                    <i class="fas fa-shopping-basket"></i>
+                    Cart Management
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("WishlistManagement", "Admin")" class="nav-link">
+                    <i class="fas fa-heart"></i>
+                    Wishlist Management
+                </a>
+            </div>
             <div class="nav-item">
                 <a href="@Url.Action("Messages", "Admin")" class="nav-link">
                     <i class="fas fa-envelope"></i>
                     Messages
                 </a>
             </div>
-            @if (User.IsInRole("Admin") || User.IsInRole("Manager"))
-            {
-                <div class="nav-item">
-                    <a href="@Url.Action("Reports", "Admin")" class="nav-link">
-                        <i class="fas fa-chart-bar"></i>
-                        Reports
-                    </a>
-                </div>
-            }
+            <div class="nav-item">
+                <a href="@Url.Action("Reports", "Admin")" class="nav-link">
+                    <i class="fas fa-chart-bar"></i>
+                    Reports
+                </a>
+            </div>
         </div>
 
         <div class="nav-section">
@@ -1416,7 +1407,6 @@
         </div>
     </nav>
 </div>
-
 <!-- Main Content -->
 <div class="main-content" id="mainContent">
     <!-- Header -->
