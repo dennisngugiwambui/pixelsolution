@@ -621,10 +621,20 @@
                         <i class="fas fa-exclamation-triangle"></i>
                         Low Stock
                     </button>
-                    <button class="btn btn-secondary btn-sm" onclick="exportProducts()">
-                        <i class="fas fa-download"></i>
-                        Export
-                    </button>
+                    <div class="dropdown" style="display: inline-block;">
+                        <button class="btn btn-secondary btn-sm dropdown-toggle" type="button" id="exportDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-download"></i>
+                            Export
+                        </button>
+                        <ul class="dropdown-menu" aria-labelledby="exportDropdown">
+                            <li><a class="dropdown-item" href="#" onclick="exportToExcel()">
+                                <i class="fas fa-file-excel text-success"></i> Export to Excel
+                            </a></li>
+                            <li><a class="dropdown-item" href="#" onclick="exportToPdf()">
+                                <i class="fas fa-file-pdf text-danger"></i> Export to PDF
+                            </a></li>
+                        </ul>
+                    </div>
                     <button class="btn btn-primary" onclick="openCreateProductModal()">
                         <i class="fas fa-plus"></i>
                         Add Product
@@ -1815,9 +1825,14 @@
             showToast('Showing low stock products only', 'info');
         }
 
-        function exportProducts() {
-            showToast('Export functionality: Would generate Excel or PDF with current products', 'info');
-            // TODO: Implement actual export functionality
+        function exportToExcel() {
+            showToast('Generating Excel export...', 'info');
+            window.location.href = '/Admin/ExportProductsToExcel';
+        }
+
+        function exportToPdf() {
+            showToast('Generating PDF export...', 'info');
+            window.location.href = '/Admin/ExportProductsToPdf';
         }
 
         // Form submission handlers

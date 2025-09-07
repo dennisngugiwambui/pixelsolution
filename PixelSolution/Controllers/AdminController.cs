@@ -10,6 +10,7 @@ using PixelSolution.Data;
 using System.Text.Json;
 using iTextSharp.text;
 using iTextSharp.text.pdf;
+using ClosedXML.Excel;
 
 namespace PixelSolution.Controllers
 {
@@ -5460,15 +5461,8 @@ namespace PixelSolution.Controllers
 
         private int GetCurrentUserId()
         {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
-            if (userIdClaim != null && int.TryParse(userIdClaim.Value, out int userId))
-            {
-                return userId;
-            }
-
-            // Try to get from email claim as fallback
-            var emailClaim = User.FindFirst(ClaimTypes.Email)?.Value;
-            if (!string.IsNullOrEmpty(emailClaim))
+            var userIdClaim = User.FindFirst("UserId")?.Value;
+            return int.TryParse(userIdClaim, out int userId) ? userId : 1;
             {
                 var user = _context.Users.FirstOrDefault(u => u.Email == emailClaim);
                 if (user != null)
@@ -6609,6 +6603,9 @@ namespace PixelSolution.Controllers
                 // Add sale items to the sale object before saving
                 foreach (var item in items)
                 {
+                    // Get product details to ensure we have the product name
+                    var product = await _context.Products.FirstOrDefaultAsync(p => p.ProductId == item.ProductId);
+                    
                     var saleItem = new SaleItem
                     {
                         ProductId = item.ProductId,
@@ -6617,6 +6614,9 @@ namespace PixelSolution.Controllers
                         TotalPrice = item.TotalPrice
                     };
                     sale.SaleItems.Add(saleItem);
+                    
+                    _logger.LogInformation("Added sale item for product {ProductId} ({ProductName}): Qty {Quantity} @ KSh {UnitPrice}", 
+                        item.ProductId, product?.Name ?? "Unknown", item.Quantity, item.UnitPrice);
                 }
 
                 // Use SaleService to create the sale (matches SalesController pattern)
@@ -6634,18 +6634,8 @@ namespace PixelSolution.Controllers
                     _context.Sales.Add(sale);
                     await _context.SaveChangesAsync();
 
-                    // Update product stock manually
-                    foreach (var item in items)
-                    {
-                        var product = await _context.Products.FirstOrDefaultAsync(p => p.ProductId == item.ProductId);
-                        if (product != null && product.StockQuantity >= item.Quantity)
-                        {
-                            product.StockQuantity -= item.Quantity;
-                            _context.Products.Update(product);
-                            _logger.LogInformation("Updated stock for product {ProductId}: {OldStock} -> {NewStock}", 
-                                product.ProductId, product.StockQuantity + item.Quantity, product.StockQuantity);
-                        }
-                    }
+                    // Don't update product stock manually - SaleService will handle it and skip for purchase requests
+                    _logger.LogInformation("Skipping manual stock update - SaleService will handle stock deduction logic");
                     await _context.SaveChangesAsync();
                     _logger.LogInformation("Created sales record {SaleNumber} (ID: {SaleId}) from purchase request {RequestId} with {ItemCount} items", 
                         sale.SaleNumber, sale.SaleId, purchaseRequest.PurchaseRequestId, items.Count);
@@ -7681,6 +7671,233 @@ namespace PixelSolution.Controllers
             }
         }
 
+        [HttpGet]
+        public async Task<IActionResult> GetCustomerProfile(int customerId)
+        {
+            try
+            {
+                var customer = await _context.Customers
+                    .FirstOrDefaultAsync(c => c.CustomerId == customerId);
+
+                if (customer == null)
+                {
+                    return Json(new { success = false, message = "Customer not found" });
+                }
+
+                var customerProfile = new
+                {
+                    customerId = customer.CustomerId,
+                    customerName = $"{customer.FirstName} {customer.LastName}",
+                    email = customer.Email,
+                    phone = customer.Phone ?? "Not provided",
+                    registrationDate = customer.CreatedAt.ToString("MMM dd, yyyy"),
+                    totalWishlistItems = await _context.Wishlists.CountAsync(w => w.CustomerId == customerId),
+                    totalOrders = await _context.Sales.CountAsync(s => s.CustomerEmail == customer.Email),
+                    totalSpent = await _context.Sales
+                        .Where(s => s.CustomerEmail == customer.Email)
+                        .SumAsync(s => s.TotalAmount)
+                };
+
+                return Json(new { success = true, customer = customerProfile });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting customer profile for ID {CustomerId}", customerId);
+                return Json(new { success = false, message = "Error loading customer profile" });
+            }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> SendWishlistReminder([FromBody] SendWishlistReminderRequest request)
+        {
+            try
+            {
+                _logger.LogInformation("SendWishlistReminder called with CustomerId: {CustomerId}, ProductId: {ProductId}", 
+                    request.CustomerId, request.ProductId);
+
+                var customer = await _context.Customers
+                    .FirstOrDefaultAsync(c => c.CustomerId == request.CustomerId);
+
+                var product = await _context.Products
+                    .FirstOrDefaultAsync(p => p.ProductId == request.ProductId);
+
+                if (customer == null)
+                {
+                    _logger.LogWarning("Customer not found with ID: {CustomerId}", request.CustomerId);
+                    return Json(new { success = false, message = "Customer not found" });
+                }
+
+                if (product == null)
+                {
+                    _logger.LogWarning("Product not found with ID: {ProductId}", request.ProductId);
+                    return Json(new { success = false, message = "Product not found" });
+                }
+
+                if (string.IsNullOrEmpty(customer.Email))
+                {
+                    return Json(new { success = false, message = "Customer has no email address" });
+                }
+
+                var subject = $"🛍️ Don't Forget Your Wishlist Item - {product.Name}";
+                var emailBody = GenerateWishlistReminderEmail(customer, product);
+
+                if (_enhancedEmailService != null)
+                {
+                    await _enhancedEmailService.SendEmailAsync(customer.Email, subject, emailBody);
+                    
+                    _logger.LogInformation("Sent wishlist reminder to customer {CustomerId} for product {ProductId}", 
+                        request.CustomerId, request.ProductId);
+
+                    return Json(new { success = true, message = "Reminder sent successfully" });
+                }
+
+                return Json(new { success = false, message = "Email service not available" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error sending wishlist reminder to customer {CustomerId} for product {ProductId}", 
+                    request.CustomerId, request.ProductId);
+                return Json(new { success = false, message = "Error sending reminder" });
+            }
+        }
+
+        public class SendWishlistReminderRequest
+        {
+            public int CustomerId { get; set; }
+            public int ProductId { get; set; }
+        }
+
+        private string GenerateWishlistReminderEmail(Customer customer, Product product)
+        {
+            return $@"
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8'>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+    <title>Wishlist Reminder - PixelSolution</title>
+</head>
+<body style='margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, ""Segoe UI"", Roboto, ""Helvetica Neue"", Arial, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh;'>
+    <div style='max-width: 600px; margin: 0 auto; background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.1);'>
+        
+        <!-- Header -->
+        <div style='background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px 20px; text-align: center;'>
+            <img src='https://pixelsolution.co.ke/images/favicon.png' alt='PixelSolution' style='width: 60px; height: 60px; border-radius: 12px; margin-bottom: 15px;' />
+            <h1 style='color: white; margin: 0; font-size: 28px; font-weight: 700;'>🛍️ Wishlist Reminder</h1>
+            <p style='color: rgba(255,255,255,0.9); margin: 8px 0 0 0; font-size: 16px;'>Don't let this slip away!</p>
+        </div>
+
+        <!-- Main Content -->
+        <div style='padding: 30px;'>
+            <h2 style='color: #1f2937; margin: 0 0 20px 0; font-size: 24px;'>Hello {customer.FirstName}! 👋</h2>
+            
+            <p style='color: #6b7280; margin: 0 0 25px 0; font-size: 16px; line-height: 1.6;'>
+                We noticed you added <strong>{product.Name}</strong> to your wishlist. This amazing product is still available and waiting for you!
+            </p>
+
+            <!-- Product Card -->
+            <div style='background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%); padding: 25px; border-radius: 16px; margin: 25px 0; border: 1px solid #e0f2fe;'>
+                <div style='display: flex; align-items: center; gap: 20px;'>
+                    <img src='{(string.IsNullOrEmpty(product.ImageUrl) ? "https://pixelsolution.co.ke/images/no-image.png" : product.ImageUrl)}' 
+                         alt='{product.Name}' 
+                         style='width: 100px; height: 100px; object-fit: cover; border-radius: 12px;' />
+                    <div style='flex: 1;'>
+                        <h3 style='color: #1f2937; margin: 0 0 10px 0; font-size: 20px;'>{product.Name}</h3>
+                        <p style='color: #059669; font-weight: 700; font-size: 24px; margin: 0;'>KSh {product.SellingPrice:N2}</p>
+                        <p style='color: #6b7280; margin: 10px 0 0 0; font-size: 14px;'>
+                            {(product.StockQuantity > 0 ? $"✅ In Stock ({product.StockQuantity} available)" : "❌ Out of Stock")}
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div style='text-align: center; margin: 30px 0;'>
+                <a href='https://pixelsolution.co.ke/Home/ProductDetails/{product.ProductId}' 
+                   style='background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 30px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-block; font-size: 16px;'>
+                    🛒 View Product Details
+                </a>
+            </div>
+
+            <!-- Contact Section -->
+            <div style='background: #f8fafc; padding: 20px; border-radius: 12px; margin: 25px 0; text-align: center;'>
+                <h3 style='color: #1f2937; margin: 0 0 15px 0; font-size: 16px;'>
+                    📞 Call Us Through: +254758024400
+                </h3>
+                <div style='display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;'>
+                    <a href='tel:+254758024400' style='background: #059669; color: white; padding: 12px 20px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-block;'>
+                        📞 Call Us Now
+                    </a>
+                    <a href='https://pixelsolution.co.ke' target='_blank' style='background: #3b82f6; color: white; padding: 12px 20px; border-radius: 8px; text-decoration: none; font-weight: 600; display: inline-block;'>
+                        🌐 Visit Website
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div style='background: #1f2937; color: white; padding: 25px; text-align: center;'>
+            <img src='https://pixelsolution.co.ke/images/favicon.png' alt='PixelSolution' style='width: 40px; height: 40px; border-radius: 8px; margin-bottom: 15px;' />
+            <p style='margin: 0 0 10px 0; font-size: 16px; font-weight: 600;'>PixelSolution</p>
+            <p style='margin: 0 0 15px 0; color: #9ca3af; font-size: 14px;'>Innovative Technology Solutions</p>
+            <p style='margin: 0; color: #6b7280; font-size: 12px;'>
+                © {DateTime.Now.Year} PixelSolution. All rights reserved.<br>
+                Thank you for choosing us for your technology needs! 🚀
+            </p>
+        </div>
+    </div>
+</body>
+</html>";
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetPopularWishlistProducts()
+        {
+            try
+            {
+                var popularProducts = await _context.Wishlists
+                    .GroupBy(w => w.ProductId)
+                    .Select(g => new
+                    {
+                        ProductId = g.Key,
+                        WishlistCount = g.Count(),
+                        LatestWishlistDate = g.Max(w => w.CreatedAt)
+                    })
+                    .OrderByDescending(x => x.WishlistCount)
+                    .Take(10)
+                    .ToListAsync();
+
+                var productIds = popularProducts.Select(p => p.ProductId).ToList();
+                var products = await _context.Products
+                    .Include(p => p.Category)
+                    .Where(p => productIds.Contains(p.ProductId))
+                    .ToListAsync();
+
+                var result = popularProducts.Select(pp =>
+                {
+                    var product = products.FirstOrDefault(p => p.ProductId == pp.ProductId);
+                    return new
+                    {
+                        productId = pp.ProductId,
+                        productName = product?.Name ?? "Unknown Product",
+                        productImage = product?.ImageUrl,
+                        categoryName = product?.Category?.Name ?? "General",
+                        sellingPrice = product?.SellingPrice ?? 0,
+                        stockQuantity = product?.StockQuantity ?? 0,
+                        wishlistCount = pp.WishlistCount,
+                        formattedPrice = $"KSh {product?.SellingPrice ?? 0:N2}",
+                        inStock = (product?.StockQuantity ?? 0) > 0
+                    };
+                }).ToList();
+
+                return Json(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting popular wishlist products");
+                return Json(new List<object>());
+            }
+        }
+
         [HttpPost]
         public async Task<IActionResult> ClearOldWishlistItems([FromBody] ClearWishlistRequest request)
         {
@@ -7795,6 +8012,301 @@ namespace PixelSolution.Controllers
             };
         }
 
+        [HttpGet]
+        public async Task<IActionResult> GetCartDetails(int customerId)
+        {
+            try
+            {
+                var cartItems = await _context.Carts
+                    .Include(c => c.Product)
+                    .ThenInclude(p => p.Category)
+                    .Where(c => c.CustomerId == customerId)
+                    .OrderBy(c => c.CreatedAt)
+                    .ToListAsync();
+
+                var customer = await _context.Customers
+                    .FirstOrDefaultAsync(c => c.CustomerId == customerId);
+
+                if (customer == null)
+                {
+                    return Json(new { success = false, message = "Customer not found" });
+                }
+
+                var cartDetails = cartItems.Select(item => new
+                {
+                    cartId = item.CartId,
+                    productId = item.ProductId,
+                    productName = item.Product?.Name ?? "Unknown Product",
+                    productImage = item.Product?.ImageUrl,
+                    categoryName = item.Product?.Category?.Name ?? "General",
+                    quantity = item.Quantity,
+                    unitPrice = item.Product?.SellingPrice ?? 0,
+                    totalPrice = (item.Product?.SellingPrice ?? 0) * item.Quantity,
+                    formattedUnitPrice = $"KSh {item.Product?.SellingPrice ?? 0:N2}",
+                    formattedTotalPrice = $"KSh {(item.Product?.SellingPrice ?? 0) * item.Quantity:N2}",
+                    addedAt = item.CreatedAt,
+                    formattedAddedAt = item.CreatedAt.ToString("MMM dd, yyyy HH:mm"),
+                    inStock = (item.Product?.StockQuantity ?? 0) >= item.Quantity,
+                    availableStock = item.Product?.StockQuantity ?? 0
+                }).ToList();
+
+                var cartSummary = new
+                {
+                    customerId = customer.CustomerId,
+                    customerName = $"{customer.FirstName} {customer.LastName}",
+                    customerEmail = customer.Email,
+                    customerPhone = customer.Phone,
+                    totalItems = cartItems.Sum(c => c.Quantity),
+                    totalValue = cartItems.Sum(c => (c.Product?.SellingPrice ?? 0) * c.Quantity),
+                    formattedTotalValue = $"KSh {cartItems.Sum(c => (c.Product?.SellingPrice ?? 0) * c.Quantity):N2}",
+                    itemCount = cartItems.Count,
+                    lastActivity = cartItems.Any() ? cartItems.Max(c => c.CreatedAt) : DateTime.MinValue,
+                    formattedLastActivity = cartItems.Any() ? cartItems.Max(c => c.CreatedAt).ToString("MMM dd, yyyy HH:mm") : "No activity"
+                };
+
+                return Json(new 
+                { 
+                    success = true, 
+                    cartItems = cartDetails, 
+                    cartSummary = cartSummary 
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting cart details for customer {CustomerId}", customerId);
+                return Json(new { success = false, message = "Error loading cart details" });
+            }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> RemoveCartItem([FromBody] RemoveCartItemRequest request)
+        {
+            try
+            {
+                var cartItem = await _context.Carts
+                    .FirstOrDefaultAsync(c => c.CartId == request.CartId && c.CustomerId == request.CustomerId);
+
+                if (cartItem == null)
+                {
+                    return Json(new { success = false, message = "Cart item not found" });
+                }
+
+                _context.Carts.Remove(cartItem);
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation("Removed cart item {CartId} for customer {CustomerId}", 
+                    request.CartId, request.CustomerId);
+
+                return Json(new { success = true, message = "Item removed from cart successfully" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error removing cart item {CartId} for customer {CustomerId}", 
+                    request.CartId, request.CustomerId);
+                return Json(new { success = false, message = "Error removing item from cart" });
+            }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> ClearCustomerCart([FromBody] ClearCartRequest request)
+        {
+            try
+            {
+                var cartItems = await _context.Carts
+                    .Where(c => c.CustomerId == request.CustomerId)
+                    .ToListAsync();
+
+                if (!cartItems.Any())
+                {
+                    return Json(new { success = false, message = "Cart is already empty" });
+                }
+
+                _context.Carts.RemoveRange(cartItems);
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation("Cleared cart for customer {CustomerId}, removed {ItemCount} items", 
+                    request.CustomerId, cartItems.Count);
+
+                return Json(new { success = true, message = $"Cart cleared successfully. Removed {cartItems.Count} items." });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error clearing cart for customer {CustomerId}", request.CustomerId);
+                return Json(new { success = false, message = "Error clearing cart" });
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> ExportProductsToExcel()
+        {
+            try
+            {
+                var products = await _context.Products
+                    .Include(p => p.Category)
+                    .OrderBy(p => p.Name)
+                    .ToListAsync();
+
+                using var workbook = new ClosedXML.Excel.XLWorkbook();
+                var worksheet = workbook.Worksheets.Add("Products");
+
+                // Headers
+                worksheet.Cell(1, 1).Value = "Product ID";
+                worksheet.Cell(1, 2).Value = "Product Name";
+                worksheet.Cell(1, 3).Value = "SKU";
+                worksheet.Cell(1, 4).Value = "Category";
+                worksheet.Cell(1, 5).Value = "Buying Price (KSh)";
+                worksheet.Cell(1, 6).Value = "Selling Price (KSh)";
+                worksheet.Cell(1, 7).Value = "Stock Quantity";
+                worksheet.Cell(1, 8).Value = "Min Stock Level";
+                worksheet.Cell(1, 9).Value = "Status";
+                worksheet.Cell(1, 10).Value = "Created Date";
+
+                // Style headers
+                var headerRange = worksheet.Range(1, 1, 1, 10);
+                headerRange.Style.Font.Bold = true;
+                headerRange.Style.Fill.BackgroundColor = XLColor.LightBlue;
+                headerRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thick;
+
+                // Data
+                int row = 2;
+                foreach (var product in products)
+                {
+                    worksheet.Cell(row, 1).Value = product.ProductId;
+                    worksheet.Cell(row, 2).Value = product.Name;
+                    worksheet.Cell(row, 3).Value = product.SKU;
+                    worksheet.Cell(row, 4).Value = product.Category?.Name ?? "Uncategorized";
+                    worksheet.Cell(row, 5).Value = product.BuyingPrice;
+                    worksheet.Cell(row, 6).Value = product.SellingPrice;
+                    worksheet.Cell(row, 7).Value = product.StockQuantity;
+                    worksheet.Cell(row, 8).Value = product.MinStockLevel;
+                    worksheet.Cell(row, 9).Value = product.StockQuantity <= product.MinStockLevel ? "Low Stock" : "In Stock";
+                    worksheet.Cell(row, 10).Value = product.CreatedAt.ToString("yyyy-MM-dd");
+                    row++;
+                }
+
+                // Auto-fit columns
+                worksheet.Columns().AdjustToContents();
+
+                // Add totals row
+                worksheet.Cell(row + 1, 5).Value = "Total Value:";
+                worksheet.Cell(row + 1, 6).FormulaA1 = $"=SUM(F2:F{row - 1})";
+                worksheet.Cell(row + 1, 7).FormulaA1 = $"=SUM(G2:G{row - 1})";
+
+                var totalRange = worksheet.Range(row + 1, 5, row + 1, 7);
+                totalRange.Style.Font.Bold = true;
+                totalRange.Style.Fill.BackgroundColor = XLColor.LightGray;
+
+                using var stream = new MemoryStream();
+                workbook.SaveAs(stream);
+                stream.Position = 0;
+
+                var fileName = $"Products_Export_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
+                return File(stream.ToArray(), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error exporting products to Excel");
+                TempData["Error"] = "Error exporting products to Excel.";
+                return RedirectToAction("Products");
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> ExportProductsToPdf()
+        {
+            try
+            {
+                var products = await _context.Products
+                    .Include(p => p.Category)
+                    .OrderBy(p => p.Name)
+                    .ToListAsync();
+
+                using var stream = new MemoryStream();
+                var document = new Document(PageSize.A4.Rotate(), 25, 25, 30, 30);
+                var writer = PdfWriter.GetInstance(document, stream);
+                
+                document.Open();
+
+                // Title
+                var titleFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 18);
+                var title = new Paragraph("PixelSolution - Products Report", titleFont)
+                {
+                    Alignment = Element.ALIGN_CENTER
+                };
+                document.Add(title);
+
+                // Generated date
+                var dateFont = FontFactory.GetFont(FontFactory.HELVETICA, 10);
+                var dateText = new Paragraph($"Generated on: {DateTime.Now:yyyy-MM-dd HH:mm}", dateFont)
+                {
+                    Alignment = Element.ALIGN_CENTER
+                };
+                document.Add(dateText);
+                document.Add(new Paragraph(" ")); // Space
+
+                // Create table
+                var table = new PdfPTable(9) { WidthPercentage = 100 };
+                table.SetWidths(new float[] { 1, 3, 2, 2, 2, 2, 1.5f, 1.5f, 1.5f });
+
+                // Headers
+                var headerFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 10);
+                string[] headers = { "ID", "Product Name", "SKU", "Category", "Buying Price", "Selling Price", "Stock", "Min Stock", "Status" };
+                
+                foreach (var header in headers)
+                {
+                    var cell = new PdfPCell(new Phrase(header, headerFont))
+                    {
+                        BackgroundColor = BaseColor.LIGHT_GRAY,
+                        HorizontalAlignment = Element.ALIGN_CENTER,
+                        Padding = 5
+                    };
+                    table.AddCell(cell);
+                }
+
+                // Data rows
+                var cellFont = FontFactory.GetFont(FontFactory.HELVETICA, 9);
+                foreach (var product in products)
+                {
+                    table.AddCell(new PdfPCell(new Phrase(product.ProductId.ToString(), cellFont)) { Padding = 3 });
+                    table.AddCell(new PdfPCell(new Phrase(product.Name, cellFont)) { Padding = 3 });
+                    table.AddCell(new PdfPCell(new Phrase(product.SKU, cellFont)) { Padding = 3 });
+                    table.AddCell(new PdfPCell(new Phrase(product.Category?.Name ?? "Uncategorized", cellFont)) { Padding = 3 });
+                    table.AddCell(new PdfPCell(new Phrase($"KSh {product.BuyingPrice:N2}", cellFont)) { Padding = 3 });
+                    table.AddCell(new PdfPCell(new Phrase($"KSh {product.SellingPrice:N2}", cellFont)) { Padding = 3 });
+                    table.AddCell(new PdfPCell(new Phrase(product.StockQuantity.ToString(), cellFont)) { Padding = 3 });
+                    table.AddCell(new PdfPCell(new Phrase(product.MinStockLevel.ToString(), cellFont)) { Padding = 3 });
+                    
+                    var status = product.StockQuantity <= product.MinStockLevel ? "Low Stock" : "In Stock";
+                    var statusCell = new PdfPCell(new Phrase(status, cellFont)) { Padding = 3 };
+                    if (product.StockQuantity <= product.MinStockLevel)
+                    {
+                        statusCell.BackgroundColor = BaseColor.YELLOW;
+                    }
+                    table.AddCell(statusCell);
+                }
+
+                document.Add(table);
+
+                // Summary
+                document.Add(new Paragraph(" ")); // Space
+                var summaryFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 12);
+                document.Add(new Paragraph($"Total Products: {products.Count}", summaryFont));
+                document.Add(new Paragraph($"Total Stock Value: KSh {products.Sum(p => p.SellingPrice * p.StockQuantity):N2}", summaryFont));
+                document.Add(new Paragraph($"Low Stock Items: {products.Count(p => p.StockQuantity <= p.MinStockLevel)}", summaryFont));
+
+                document.Close();
+
+                var fileName = $"Products_Report_{DateTime.Now:yyyyMMdd_HHmmss}.pdf";
+                return File(stream.ToArray(), "application/pdf", fileName);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error exporting products to PDF");
+                TempData["Error"] = "Error exporting products to PDF.";
+                return RedirectToAction("Products");
+            }
+        }
+
         #endregion
 
         #endregion
@@ -7844,5 +8356,16 @@ namespace PixelSolution.Controllers
     public class ClearWishlistRequest
     {
         public string TimeFilter { get; set; } = string.Empty; // "30days", "60days", "1year"
+    }
+
+    public class RemoveCartItemRequest
+    {
+        public int CustomerId { get; set; }
+        public int CartId { get; set; }
+    }
+
+    public class ClearCartRequest
+    {
+        public int CustomerId { get; set; }
     }
 }

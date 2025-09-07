@@ -91,18 +91,27 @@ namespace PixelSolution.Services
                 await _context.SaveChangesAsync();
                 Console.WriteLine($"[DEBUG] Sale saved with ID: {sale.SaleId}");
 
-                // Update product stock quantities
-                Console.WriteLine($"[DEBUG] Updating stock for {sale.SaleItems.Count} products");
+                // Update product stock quantities (only if not from purchase request)
+                bool isFromPurchaseRequest = sale.PaymentMethod == "Purchase Request";
+                Console.WriteLine($"[DEBUG] Updating stock for {sale.SaleItems.Count} products. From Purchase Request: {isFromPurchaseRequest}");
+                
                 foreach (var saleItem in sale.SaleItems)
                 {
                     Console.WriteLine($"[DEBUG] Processing product ID: {saleItem.ProductId}, Quantity: {saleItem.Quantity}");
                     var product = await _context.Products.FindAsync(saleItem.ProductId);
                     if (product != null)
                     {
-                        Console.WriteLine($"[DEBUG] Product {product.Name} - Old stock: {product.StockQuantity}, Deducting: {saleItem.Quantity}");
-                        product.StockQuantity -= saleItem.Quantity;
-                        product.UpdatedAt = DateTime.UtcNow;
-                        Console.WriteLine($"[DEBUG] Product {product.Name} - New stock: {product.StockQuantity}");
+                        if (isFromPurchaseRequest)
+                        {
+                            Console.WriteLine($"[DEBUG] Product {product.Name} - Skipping stock deduction (already deducted in purchase request)");
+                        }
+                        else
+                        {
+                            Console.WriteLine($"[DEBUG] Product {product.Name} - Old stock: {product.StockQuantity}, Deducting: {saleItem.Quantity}");
+                            product.StockQuantity -= saleItem.Quantity;
+                            product.UpdatedAt = DateTime.UtcNow;
+                            Console.WriteLine($"[DEBUG] Product {product.Name} - New stock: {product.StockQuantity}");
+                        }
                     }
                     else
                     {

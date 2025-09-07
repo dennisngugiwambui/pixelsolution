@@ -1,4 +1,4 @@
-@model List<PixelSolution.ViewModels.WishlistManagementViewModel>
+ @model List<PixelSolution.ViewModels.WishlistManagementViewModel>
 @{
     ViewData["Title"] = "Wishlist Management - PixelSolution";
     Layout = "_AdminLayout";
@@ -706,7 +706,7 @@
                                         <div>
                                             <div style="font-weight: 600; font-size: 0.875rem; line-height: 1.2;">@item.ProductName</div>
                                             <div style="color: #64748b; font-size: 0.75rem;">
-                                                @(item.InStock ? "In Stock" : "Out of Stock") • Added @item.CreatedAt.ToString("MMM dd")
+                                                @(item.InStock ? "In Stock" : "Out of Stock") ï¿½ Added @item.CreatedAt.ToString("MMM dd")
                                             </div>
                                         </div>
                                     </div>
@@ -737,7 +737,7 @@
                     }
 
                     <div class="quick-actions">
-                        <button class="btn btn-secondary btn-sm" onclick="viewWishlistDetails(@wishlist.CustomerId)" title="View Wishlist Details">
+                        <button class="btn btn-secondary btn-sm" onclick="viewWishlistDetails(@wishlist.ProductId)" title="View Customers Who Wishlisted">
                             <i class="fas fa-eye"></i>
                         </button>
                         <button class="btn btn-primary btn-sm" onclick="viewCustomerProfile(@wishlist.CustomerId)" title="Customer Profile">
@@ -747,7 +747,7 @@
                         {
                             @if (wishlist.TotalItems > 0)
                             {
-                                <button class="btn btn-info btn-sm" onclick="sendWishlistReminder(@wishlist.CustomerId)" title="Send Reminder Email">
+                                <button class="btn btn-info btn-sm" onclick="sendWishlistReminder(@wishlist.CustomerId, @wishlist.ProductId)" title="Send Reminder Email">
                                     <i class="fas fa-envelope"></i>
                                 </button>
                                 <button class="btn btn-warning btn-sm" onclick="clearCustomerWishlist(@wishlist.CustomerId)" title="Clear Wishlist">
@@ -1056,84 +1056,59 @@
             }
         }
 
-        async function viewWishlistDetails(customerId) {
+        async function viewWishlistDetails(productId) {
             try {
-                const response = await fetch(`/Admin/GetWishlistDetails/${customerId}`);
+                const response = await fetch(`/Admin/GetWishlistCustomers?productId=${productId}`);
                 if (!response.ok) throw new Error('Failed to fetch wishlist details');
 
-                const wishlist = await response.json();
+                const result = await response.json();
 
-                let itemsHTML = '';
-                if (wishlist.Items && wishlist.Items.length > 0) {
-                    itemsHTML = wishlist.Items.map(item => `
-                        <div class="wishlist-item-detailed">
-                            <img src="${item.ProductImage || '/images/placeholder.jpg'}" alt="${item.ProductName}" class="product-image">
+                let customersHTML = '';
+                if (result.success && result.customers && result.customers.length > 0) {
+                    customersHTML = result.customers.map(customer => `
+                        <div class="customer-item-detailed" style="display: flex; align-items: center; padding: 1rem; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 1rem;">
+                            <div class="customer-avatar" style="width: 50px; height: 50px; border-radius: 50%; background: linear-gradient(135deg, #ec4899, #be185d); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; margin-right: 1rem;">
+                                ${customer.customerName.charAt(0).toUpperCase()}
+                            </div>
                             <div style="flex: 1;">
-                                <h4 style="margin: 0 0 0.5rem 0; color: #1e293b;">${item.ProductName}</h4>
-                                <p style="margin: 0 0 0.25rem 0; color: #64748b; font-size: 0.875rem;">${item.ProductDescription || ''}</p>
+                                <h4 style="margin: 0 0 0.5rem 0; color: #1e293b;">${customer.customerName}</h4>
                                 <div style="display: flex; gap: 1rem; font-size: 0.875rem; color: #64748b;">
-                                    <span>Stock: ${item.StockQuantity}</span>
-                                    <span>Status: ${item.InStock ? 'In Stock' : 'Out of Stock'}</span>
-                                    <span>Added: ${new Date(item.CreatedAt).toLocaleDateString()}</span>
+                                    <span><i class="fas fa-envelope"></i> ${customer.customerEmail}</span>
+                                    <span><i class="fas fa-phone"></i> ${customer.customerPhone}</span>
+                                    <span><i class="fas fa-calendar"></i> Added: ${customer.formattedDate}</span>
                                 </div>
                             </div>
-                            <div style="text-align: right;">
-                                <div style="font-size: 1.25rem; font-weight: 700; color: ${item.InStock ? '#059669' : '#dc2626'};">
-                                    KSh ${item.SellingPrice.toLocaleString()}
-                                </div>
-                                <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
-                                    <button class="btn btn-sm btn-warning" onclick="removeWishlistItem(${customerId}, ${item.WishlistId})" title="Remove Item">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                    ${item.InStock ? `<button class="btn btn-sm btn-success" onclick="moveToCart(${customerId}, ${item.ProductId})" title="Move to Cart">
-                                        <i class="fas fa-shopping-cart"></i>
-                                    </button>` : ''}
-                                </div>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <button class="btn btn-sm btn-primary" onclick="viewCustomerProfile(${customer.customerId})" title="View Profile">
+                                    <i class="fas fa-user"></i>
+                                </button>
+                                <button class="btn btn-sm btn-info" onclick="sendWishlistReminderToCustomer(${customer.customerId}, ${productId})" title="Send Reminder">
+                                    <i class="fas fa-envelope"></i>
+                                </button>
+                                <button class="btn btn-sm btn-warning" onclick="removeWishlistItem(${customer.wishlistId})" title="Remove Item">
+                                    <i class="fas fa-trash"></i>
+                                </button>
                             </div>
                         </div>
                     `).join('');
                 } else {
-                    itemsHTML = '<div style="text-align: center; padding: 2rem; color: #64748b;">No items in wishlist</div>';
+                    customersHTML = '<div style="text-align: center; padding: 2rem; color: #64748b;">No customers found for this product</div>';
                 }
 
                 const modalContent = `
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-bottom: 2rem;">
-                        <div>
-                            <h4 style="margin-bottom: 1rem; color: #1e293b;">Customer Information</h4>
-                            <div style="background: #f8fafc; padding: 1rem; border-radius: 8px;">
-                                <div style="margin-bottom: 0.5rem;"><strong>Name:</strong> ${wishlist.CustomerName}</div>
-                                <div style="margin-bottom: 0.5rem;"><strong>Email:</strong> ${wishlist.CustomerEmail}</div>
-                                <div style="margin-bottom: 0.5rem;"><strong>Customer ID:</strong> ${customerId}</div>
-                                <div><strong>Last Activity:</strong> ${new Date(wishlist.LastActivity).toLocaleDateString()}</div>
-                            </div>
-                        </div>
-                        <div>
-                            <h4 style="margin-bottom: 1rem; color: #1e293b;">Wishlist Summary</h4>
-                            <div style="background: #f8fafc; padding: 1rem; border-radius: 8px;">
-                                <div style="margin-bottom: 0.5rem;"><strong>Total Items:</strong> ${wishlist.TotalItems}</div>
-                                <div style="margin-bottom: 0.5rem;"><strong>In Stock Items:</strong> ${wishlist.InStockItems}</div>
-                                <div style="margin-bottom: 0.5rem;"><strong>Total Value:</strong> KSh ${wishlist.TotalValue.toLocaleString()}</div>
-                                <div><strong>Days Old:</strong> ${wishlist.DaysOld} days</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div>
-                        <h4 style="margin-bottom: 1rem; color: #1e293b;">Wishlist Items</h4>
-                        <div>
-                            ${itemsHTML}
+                    <div style="margin-bottom: 2rem;">
+                        <h4 style="margin-bottom: 1rem; color: #1e293b;">Customers Who Wishlisted This Product</h4>
+                        <div style="max-height: 400px; overflow-y: auto;">
+                            ${customersHTML}
                         </div>
                     </div>
 
                     <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 2rem;">
                         <button class="btn btn-secondary" onclick="closeWishlistDetailsModal()">Close</button>
-                        <button class="btn btn-info" onclick="sendWishlistReminderFromModal(${customerId})">Send Reminder</button>
-                        <button class="btn btn-warning" onclick="clearCustomerWishlistFromModal(${customerId})">Clear Wishlist</button>
-                        <button class="btn btn-primary" onclick="viewCustomerProfile(${customerId})">View Customer</button>
                     </div>
                 `;
 
-                document.getElementById('wishlistModalTitle').textContent = `Wishlist Details - ${wishlist.CustomerName}`;
+                document.getElementById('wishlistModalTitle').textContent = `Product Wishlist Details`;
                 document.getElementById('wishlistModalContent').innerHTML = modalContent;
                 document.getElementById('wishlistDetailsModal').style.display = 'block';
             } catch (error) {
@@ -1143,31 +1118,35 @@
 
         async function viewCustomerProfile(customerId) {
             try {
-                const response = await fetch(`/Admin/GetCustomerProfile/${customerId}`);
+                const response = await fetch(`/Admin/GetCustomerProfile?customerId=${customerId}`);
                 if (!response.ok) throw new Error('Failed to fetch customer profile');
 
-                const customer = await response.json();
+                const result = await response.json();
+
+                if (!result.success) {
+                    showToast(result.message || 'Failed to load customer profile', 'error');
+                    return;
+                }
+
+                const customer = result.customer;
 
                 const modalContent = `
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
                         <div>
                             <h4 style="margin-bottom: 1rem; color: #1e293b;">Personal Information</h4>
                             <div style="background: #f8fafc; padding: 1rem; border-radius: 8px;">
-                                <div style="margin-bottom: 0.5rem;"><strong>Name:</strong> ${customer.FirstName} ${customer.LastName}</div>
-                                <div style="margin-bottom: 0.5rem;"><strong>Email:</strong> ${customer.Email}</div>
-                                <div style="margin-bottom: 0.5rem;"><strong>Phone:</strong> ${customer.PhoneNumber || 'Not provided'}</div>
-                                <div style="margin-bottom: 0.5rem;"><strong>Status:</strong> ${customer.IsActive ? 'Active' : 'Inactive'}</div>
-                                <div><strong>Joined:</strong> ${new Date(customer.CreatedAt).toLocaleDateString()}</div>
+                                <div style="margin-bottom: 0.5rem;"><strong>Name:</strong> ${customer.customerName}</div>
+                                <div style="margin-bottom: 0.5rem;"><strong>Email:</strong> ${customer.email}</div>
+                                <div style="margin-bottom: 0.5rem;"><strong>Phone:</strong> ${customer.phone}</div>
+                                <div><strong>Joined:</strong> ${customer.registrationDate}</div>
                             </div>
                         </div>
                         <div>
                             <h4 style="margin-bottom: 1rem; color: #1e293b;">Activity Summary</h4>
                             <div style="background: #f8fafc; padding: 1rem; border-radius: 8px;">
-                                <div style="margin-bottom: 0.5rem;"><strong>Total Orders:</strong> ${customer.TotalOrders}</div>
-                                <div style="margin-bottom: 0.5rem;"><strong>Total Spent:</strong> KSh ${customer.TotalSpent.toLocaleString()}</div>
-                                <div style="margin-bottom: 0.5rem;"><strong>Wishlist Items:</strong> ${customer.WishlistItems}</div>
-                                <div style="margin-bottom: 0.5rem;"><strong>Cart Items:</strong> ${customer.CurrentCartItems}</div>
-                                <div><strong>Last Activity:</strong> ${new Date(customer.LastActivity).toLocaleDateString()}</div>
+                                <div style="margin-bottom: 0.5rem;"><strong>Total Orders:</strong> ${customer.totalOrders}</div>
+                                <div style="margin-bottom: 0.5rem;"><strong>Total Spent:</strong> KSh ${customer.totalSpent.toLocaleString()}</div>
+                                <div><strong>Wishlist Items:</strong> ${customer.totalWishlistItems}</div>
                             </div>
                         </div>
                     </div>
@@ -1195,11 +1174,10 @@
 
                     <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 2rem;">
                         <button class="btn btn-secondary" onclick="closeCustomerProfileModal()">Close</button>
-                        <button class="btn btn-primary" onclick="viewWishlistDetails(${customerId})">View Wishlist</button>
                     </div>
                 `;
 
-                document.getElementById('customerModalTitle').textContent = `Customer Profile - ${customer.FirstName} ${customer.LastName}`;
+                document.getElementById('customerModalTitle').textContent = `Customer Profile - ${customer.customerName}`;
                 document.getElementById('customerModalContent').innerHTML = modalContent;
                 document.getElementById('customerProfileModal').style.display = 'block';
             } catch (error) {
@@ -1299,14 +1277,14 @@
             clearCustomerWishlist(customerId);
         }
 
-        async function sendWishlistReminder(customerId) {
+        async function sendWishlistReminder(customerId, productId) {
             try {
                 const response = await fetch('/Admin/SendWishlistReminder', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ customerId: customerId })
+                    body: JSON.stringify({ customerId: customerId, productId: productId })
                 });
 
                 const result = await response.json();
@@ -1321,8 +1299,12 @@
             }
         }
 
-        function sendWishlistReminderFromModal(customerId) {
-            sendWishlistReminder(customerId);
+        async function sendWishlistReminderToCustomer(customerId, productId) {
+            return sendWishlistReminder(customerId, productId);
+        }
+
+        function sendWishlistReminderFromModal(customerId, productId) {
+            sendWishlistReminder(customerId, productId);
         }
 
         async function clearStaleWishlists() {
