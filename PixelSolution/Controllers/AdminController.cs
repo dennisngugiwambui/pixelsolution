@@ -5462,7 +5462,14 @@ namespace PixelSolution.Controllers
         private int GetCurrentUserId()
         {
             var userIdClaim = User.FindFirst("UserId")?.Value;
-            return int.TryParse(userIdClaim, out int userId) ? userId : 1;
+            if (int.TryParse(userIdClaim, out int userId))
+            {
+                return userId;
+            }
+
+            // Try to get user by email as fallback
+            var emailClaim = User.FindFirst(ClaimTypes.Email)?.Value;
+            if (!string.IsNullOrEmpty(emailClaim))
             {
                 var user = _context.Users.FirstOrDefault(u => u.Email == emailClaim);
                 if (user != null)
@@ -8017,11 +8024,11 @@ namespace PixelSolution.Controllers
         {
             try
             {
-                var cartItems = await _context.Carts
+                var cartItems = await _context.CustomerCarts
                     .Include(c => c.Product)
                     .ThenInclude(p => p.Category)
                     .Where(c => c.CustomerId == customerId)
-                    .OrderBy(c => c.CreatedAt)
+                    .OrderBy(c => c.AddedAt)
                     .ToListAsync();
 
                 var customer = await _context.Customers
@@ -8040,12 +8047,12 @@ namespace PixelSolution.Controllers
                     productImage = item.Product?.ImageUrl,
                     categoryName = item.Product?.Category?.Name ?? "General",
                     quantity = item.Quantity,
-                    unitPrice = item.Product?.SellingPrice ?? 0,
-                    totalPrice = (item.Product?.SellingPrice ?? 0) * item.Quantity,
-                    formattedUnitPrice = $"KSh {item.Product?.SellingPrice ?? 0:N2}",
-                    formattedTotalPrice = $"KSh {(item.Product?.SellingPrice ?? 0) * item.Quantity:N2}",
-                    addedAt = item.CreatedAt,
-                    formattedAddedAt = item.CreatedAt.ToString("MMM dd, yyyy HH:mm"),
+                    unitPrice = item.UnitPrice,
+                    totalPrice = item.TotalPrice,
+                    formattedUnitPrice = $"KSh {item.UnitPrice:N2}",
+                    formattedTotalPrice = $"KSh {item.TotalPrice:N2}",
+                    addedAt = item.AddedAt,
+                    formattedAddedAt = item.AddedAt.ToString("MMM dd, yyyy HH:mm"),
                     inStock = (item.Product?.StockQuantity ?? 0) >= item.Quantity,
                     availableStock = item.Product?.StockQuantity ?? 0
                 }).ToList();
@@ -8057,11 +8064,11 @@ namespace PixelSolution.Controllers
                     customerEmail = customer.Email,
                     customerPhone = customer.Phone,
                     totalItems = cartItems.Sum(c => c.Quantity),
-                    totalValue = cartItems.Sum(c => (c.Product?.SellingPrice ?? 0) * c.Quantity),
-                    formattedTotalValue = $"KSh {cartItems.Sum(c => (c.Product?.SellingPrice ?? 0) * c.Quantity):N2}",
+                    totalValue = cartItems.Sum(c => c.TotalPrice),
+                    formattedTotalValue = $"KSh {cartItems.Sum(c => c.TotalPrice):N2}",
                     itemCount = cartItems.Count,
-                    lastActivity = cartItems.Any() ? cartItems.Max(c => c.CreatedAt) : DateTime.MinValue,
-                    formattedLastActivity = cartItems.Any() ? cartItems.Max(c => c.CreatedAt).ToString("MMM dd, yyyy HH:mm") : "No activity"
+                    lastActivity = cartItems.Any() ? cartItems.Max(c => c.AddedAt) : DateTime.MinValue,
+                    formattedLastActivity = cartItems.Any() ? cartItems.Max(c => c.AddedAt).ToString("MMM dd, yyyy HH:mm") : "No activity"
                 };
 
                 return Json(new 
@@ -8083,7 +8090,7 @@ namespace PixelSolution.Controllers
         {
             try
             {
-                var cartItem = await _context.Carts
+                var cartItem = await _context.CustomerCarts
                     .FirstOrDefaultAsync(c => c.CartId == request.CartId && c.CustomerId == request.CustomerId);
 
                 if (cartItem == null)
@@ -8091,7 +8098,7 @@ namespace PixelSolution.Controllers
                     return Json(new { success = false, message = "Cart item not found" });
                 }
 
-                _context.Carts.Remove(cartItem);
+                _context.CustomerCarts.Remove(cartItem);
                 await _context.SaveChangesAsync();
 
                 _logger.LogInformation("Removed cart item {CartId} for customer {CustomerId}", 
@@ -8112,7 +8119,7 @@ namespace PixelSolution.Controllers
         {
             try
             {
-                var cartItems = await _context.Carts
+                var cartItems = await _context.CustomerCarts
                     .Where(c => c.CustomerId == request.CustomerId)
                     .ToListAsync();
 
@@ -8121,7 +8128,7 @@ namespace PixelSolution.Controllers
                     return Json(new { success = false, message = "Cart is already empty" });
                 }
 
-                _context.Carts.RemoveRange(cartItems);
+                _context.CustomerCarts.RemoveRange(cartItems);
                 await _context.SaveChangesAsync();
 
                 _logger.LogInformation("Cleared cart for customer {CustomerId}, removed {ItemCount} items", 

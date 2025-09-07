@@ -911,28 +911,36 @@
                 const response = await fetch(`/Admin/GetCartDetails/${customerId}`);
                 if (!response.ok) throw new Error('Failed to fetch cart details');
 
-                const cart = await response.json();
+                const data = await response.json();
+                
+                if (!data.success) {
+                    showToast(data.message || 'Failed to load cart details', 'error');
+                    return;
+                }
+
+                const { cartItems, cartSummary } = data;
 
                 let itemsHTML = '';
-                if (cart.Items && cart.Items.length > 0) {
-                    itemsHTML = cart.Items.map(item => `
-                        <div class="cart-item-detailed">
-                            <img src="${item.ProductImage || '/images/placeholder.jpg'}" alt="${item.ProductName}" class="product-image">
+                if (cartItems && cartItems.length > 0) {
+                    itemsHTML = cartItems.map(item => `
+                        <div class="cart-item-detailed" style="display: flex; align-items: center; gap: 1rem; padding: 1rem; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 1rem;">
+                            <img src="${item.productImage || '/images/placeholder.jpg'}" alt="${item.productName}" style="width: 60px; height: 60px; object-fit: cover; border-radius: 8px;">
                             <div style="flex: 1;">
-                                <h4 style="margin: 0 0 0.5rem 0; color: #1e293b;">${item.ProductName}</h4>
-                                <p style="margin: 0 0 0.25rem 0; color: #64748b; font-size: 0.875rem;">${item.ProductDescription || ''}</p>
+                                <h4 style="margin: 0 0 0.5rem 0; color: #1e293b;">${item.productName}</h4>
+                                <p style="margin: 0 0 0.25rem 0; color: #64748b; font-size: 0.875rem;">Category: ${item.categoryName}</p>
                                 <div style="display: flex; gap: 1rem; font-size: 0.875rem; color: #64748b;">
-                                    <span>Quantity: ${item.Quantity}</span>
-                                    <span>Unit Price: KSh ${item.UnitPrice.toLocaleString()}</span>
-                                    <span>Added: ${new Date(item.AddedAt).toLocaleDateString()}</span>
+                                    <span>Quantity: ${item.quantity}</span>
+                                    <span>Unit Price: ${item.formattedUnitPrice}</span>
+                                    <span>Added: ${item.formattedAddedAt}</span>
+                                    <span style="color: ${item.inStock ? '#059669' : '#dc2626'};">${item.inStock ? 'In Stock' : 'Out of Stock'}</span>
                                 </div>
                             </div>
                             <div style="text-align: right;">
                                 <div style="font-size: 1.25rem; font-weight: 700; color: #059669;">
-                                    KSh ${item.TotalPrice.toLocaleString()}
+                                    ${item.formattedTotalPrice}
                                 </div>
                                 <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem;">
-                                    <button class="btn btn-sm btn-warning" onclick="removeCartItem(${customerId}, ${item.CartId})" title="Remove Item">
+                                    <button class="btn btn-sm btn-warning" onclick="removeCartItem(${customerId}, ${item.cartId})" title="Remove Item">
                                         <i class="fas fa-trash"></i>
                                     </button>
                                 </div>
@@ -948,19 +956,19 @@
                         <div>
                             <h4 style="margin-bottom: 1rem; color: #1e293b;">Customer Information</h4>
                             <div style="background: #f8fafc; padding: 1rem; border-radius: 8px;">
-                                <div style="margin-bottom: 0.5rem;"><strong>Name:</strong> ${cart.CustomerName}</div>
-                                <div style="margin-bottom: 0.5rem;"><strong>Email:</strong> ${cart.CustomerEmail}</div>
-                                <div style="margin-bottom: 0.5rem;"><strong>Customer ID:</strong> ${customerId}</div>
-                                <div><strong>Last Activity:</strong> ${new Date(cart.LastActivity).toLocaleString()}</div>
+                                <div style="margin-bottom: 0.5rem;"><strong>Name:</strong> ${cartSummary.customerName}</div>
+                                <div style="margin-bottom: 0.5rem;"><strong>Email:</strong> ${cartSummary.customerEmail}</div>
+                                <div style="margin-bottom: 0.5rem;"><strong>Phone:</strong> ${cartSummary.customerPhone || 'Not provided'}</div>
+                                <div style="margin-bottom: 0.5rem;"><strong>Customer ID:</strong> ${cartSummary.customerId}</div>
+                                <div><strong>Last Activity:</strong> ${cartSummary.formattedLastActivity}</div>
                             </div>
                         </div>
                         <div>
                             <h4 style="margin-bottom: 1rem; color: #1e293b;">Cart Summary</h4>
                             <div style="background: #f8fafc; padding: 1rem; border-radius: 8px;">
-                                <div style="margin-bottom: 0.5rem;"><strong>Total Items:</strong> ${cart.TotalItems}</div>
-                                <div style="margin-bottom: 0.5rem;"><strong>Subtotal:</strong> KSh ${cart.SubTotal.toLocaleString()}</div>
-                                <div style="margin-bottom: 0.5rem;"><strong>Tax:</strong> KSh ${cart.Tax.toLocaleString()}</div>
-                                <div><strong>Total Value:</strong> <span style="color: #059669; font-weight: 700;">KSh ${cart.Total.toLocaleString()}</span></div>
+                                <div style="margin-bottom: 0.5rem;"><strong>Total Items:</strong> ${cartSummary.totalItems}</div>
+                                <div style="margin-bottom: 0.5rem;"><strong>Item Count:</strong> ${cartSummary.itemCount}</div>
+                                <div><strong>Total Value:</strong> <span style="color: #059669; font-weight: 700;">${cartSummary.formattedTotalValue}</span></div>
                             </div>
                         </div>
                     </div>
@@ -979,10 +987,11 @@
                     </div>
                 `;
 
-                document.getElementById('cartModalTitle').textContent = `Cart Details - ${cart.CustomerName}`;
+                document.getElementById('cartModalTitle').textContent = `Cart Details - ${cartSummary.customerName}`;
                 document.getElementById('cartModalContent').innerHTML = modalContent;
                 document.getElementById('cartDetailsModal').style.display = 'block';
             } catch (error) {
+                console.error('Error loading cart details:', error);
                 showToast('Error loading cart details', 'error');
             }
         }
