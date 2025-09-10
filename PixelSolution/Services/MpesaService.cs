@@ -98,6 +98,8 @@ namespace PixelSolution.Services
                 else
                 {
                     _logger.LogError("Failed to get access token. Status: {StatusCode}, Response: {Response}", response.StatusCode, content);
+                    _logger.LogError("Request URL was: {RequestUrl}", requestUrl);
+                    _logger.LogError("Authorization header: Basic {AuthHeader}", credentials.Substring(0, Math.Min(20, credentials.Length)) + "...");
                     
                     var errorMessage = "Failed to get MPESA access token";
                     if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
@@ -109,7 +111,7 @@ namespace PixelSolution.Services
                         errorMessage = "MPESA bad request - check API configuration";
                     }
                     
-                    throw new Exception($"{errorMessage}: {response.StatusCode} | Response: {content}");
+                    throw new Exception($"{errorMessage}: {response.StatusCode} | Response: {content} | URL: {requestUrl}");
                 }
             }
             catch (Exception ex)

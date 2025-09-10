@@ -37,9 +37,12 @@ namespace PixelSolution.Controllers
                 _logger.LogInformation("📋 Callback Details - MerchantRequestID: {MerchantRequestID}, CheckoutRequestID: {CheckoutRequestID}, ResultCode: {ResultCode}, ResultDesc: {ResultDesc}",
                     merchantRequestId, checkoutRequestId, resultCode, resultDesc);
 
-                // Find the sale by checkout request ID (you'll need to add this field to your Sale model)
-                var sale = await _context.Sales
-                    .FirstOrDefaultAsync(s => s.SaleNumber.Contains(checkoutRequestId.Substring(0, 8))); // Partial match for now
+                // Find the sale by checkout request ID using MpesaTransaction table
+                var mpesaTransaction = await _context.MpesaTransactions
+                    .Include(mt => mt.Sale)
+                    .FirstOrDefaultAsync(mt => mt.CheckoutRequestId == checkoutRequestId);
+                
+                var sale = mpesaTransaction?.Sale;
 
                 if (sale != null)
                 {

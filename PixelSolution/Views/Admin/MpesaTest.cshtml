@@ -1,0 +1,114 @@
+@{
+    ViewData["Title"] = "M-Pesa Test";
+}
+
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4>🧪 M-Pesa STK Push Test</h4>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label for="testPhone" class="form-label">Phone Number (254XXXXXXXXX)</label>
+                        <input type="text" class="form-control" id="testPhone" placeholder="254712345678">
+                    </div>
+                    <div class="mb-3">
+                        <label for="testAmount" class="form-label">Amount (KSh)</label>
+                        <input type="number" class="form-control" id="testAmount" value="1" min="1">
+                    </div>
+                    <button type="button" class="btn btn-primary" onclick="testToken()">Test Token</button>
+                    <button type="button" class="btn btn-success" onclick="testStkPush()">Test STK Push</button>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5>📋 Test Results</h5>
+                </div>
+                <div class="card-body">
+                    <div id="testResults" style="font-family: monospace; font-size: 12px; max-height: 400px; overflow-y: auto;">
+                        Ready for testing...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function logResult(message, type = 'info') {
+    const results = document.getElementById('testResults');
+    const timestamp = new Date().toLocaleTimeString();
+    const color = type === 'error' ? 'red' : type === 'success' ? 'green' : 'blue';
+    results.innerHTML += `<div style="color: ${color}; margin-bottom: 5px;">[${timestamp}] ${message}</div>`;
+    results.scrollTop = results.scrollHeight;
+}
+
+async function testToken() {
+    logResult('🔑 Testing M-Pesa token generation...');
+    try {
+        const response = await fetch('/api/MpesaTest/test-token');
+        const result = await response.json();
+        
+        if (result.success) {
+            logResult(`✅ Token test successful: ${result.message}`, 'success');
+            logResult(`Token length: ${result.tokenLength}`, 'info');
+        } else {
+            logResult(`❌ Token test failed: ${result.message}`, 'error');
+        }
+    } catch (error) {
+        logResult(`💥 Token test error: ${error.message}`, 'error');
+    }
+}
+
+async function testStkPush() {
+    const phone = document.getElementById('testPhone').value;
+    const amount = document.getElementById('testAmount').value;
+    
+    if (!phone || !amount) {
+        logResult('❌ Please enter phone number and amount', 'error');
+        return;
+    }
+    
+    logResult(`📱 Testing STK Push to ${phone} for KSh ${amount}...`);
+    
+    try {
+        const response = await fetch('/api/MpesaTest/test-stk', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                phoneNumber: phone,
+                amount: parseFloat(amount)
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            logResult(`✅ STK Push initiated successfully`, 'success');
+            logResult(`Response Code: ${result.responseCode}`, 'info');
+            logResult(`Response Description: ${result.responseDescription}`, 'info');
+            logResult(`CheckoutRequestID: ${result.checkoutRequestId}`, 'info');
+            logResult(`MerchantRequestID: ${result.merchantRequestId}`, 'info');
+            
+            if (result.responseCode === '0') {
+                logResult('🎉 STK Push should appear on your phone now!', 'success');
+            } else {
+                logResult(`⚠️ STK Push may have failed. Check response code: ${result.responseCode}`, 'error');
+            }
+        } else {
+            logResult(`❌ STK Push failed: ${result.message}`, 'error');
+            if (result.stackTrace) {
+                logResult(`Stack trace: ${result.stackTrace}`, 'error');
+            }
+        }
+    } catch (error) {
+        logResult(`💥 STK Push error: ${error.message}`, 'error');
+    }
+}
+</script>

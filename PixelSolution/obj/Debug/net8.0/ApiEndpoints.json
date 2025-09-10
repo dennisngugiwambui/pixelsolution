@@ -485,6 +485,52 @@
     "ReturnTypes": []
   },
   {
+    "ContainingType": "PixelSolution.Controllers.MpesaDebugController",
+    "Method": "TestEndpoints",
+    "RelativePath": "api/MpesaDebug/test-endpoints",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "PixelSolution.Controllers.MpesaDebugController",
+    "Method": "TestRawToken",
+    "RelativePath": "api/MpesaDebug/test-raw-token",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "PixelSolution.Controllers.MpesaTestController",
+    "Method": "TestStkPush",
+    "RelativePath": "api/MpesaTest/test-stk",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "request",
+        "Type": "PixelSolution.Controllers.TestStkRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "PixelSolution.Controllers.MpesaTestController",
+    "Method": "TestToken",
+    "RelativePath": "api/MpesaTest/test-token",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
     "ContainingType": "PixelSolution.Controllers.ApiController",
     "Method": "Notifications",
     "RelativePath": "api/Notifications",

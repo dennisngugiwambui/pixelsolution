@@ -176,11 +176,21 @@ namespace PixelSolution.Controllers
                         
                         _logger.LogInformation("MPESA STK Push response: {Response}", System.Text.Json.JsonSerializer.Serialize(stkPushResponse));
                         
-                        if (stkPushResponse == null || stkPushResponse.ResponseCode != "0")
+                        if (stkPushResponse == null)
                         {
-                            var errorMsg = stkPushResponse?.ResponseDescription ?? "Unknown MPESA error";
-                            _logger.LogError("MPESA STK Push failed: {Error}", errorMsg);
-                            return Json(new { success = false, message = $"MPESA Error: {errorMsg}. Please try again." });
+                            _logger.LogError("MPESA STK Push failed: Null response");
+                            return Json(new { success = false, message = "MPESA Error: No response from service. Please try again." });
+                        }
+                        
+                        // Log detailed response for debugging
+                        _logger.LogInformation("MPESA Response Details - Code: {Code}, Description: {Description}, CheckoutRequestID: {CheckoutRequestID}", 
+                            stkPushResponse.ResponseCode, stkPushResponse.ResponseDescription, stkPushResponse.CheckoutRequestID);
+                        
+                        if (stkPushResponse.ResponseCode != "0")
+                        {
+                            var errorMsg = stkPushResponse.ResponseDescription ?? "Unknown MPESA error";
+                            _logger.LogError("MPESA STK Push failed: Code {Code}, Error: {Error}", stkPushResponse.ResponseCode, errorMsg);
+                            return Json(new { success = false, message = $"MPESA Error ({stkPushResponse.ResponseCode}): {errorMsg}. Please try again." });
                         }
                         
                         _logger.LogInformation("MPESA STK Push initiated successfully. CheckoutRequestId: {CheckoutRequestId}", stkPushResponse.CheckoutRequestID);
@@ -248,7 +258,7 @@ namespace PixelSolution.Controllers
                     PaymentMethod = model.PaymentMethod,
                     AmountPaid = model.AmountPaid,
                     ChangeGiven = model.ChangeGiven,
-                    Status = "Completed",
+                    Status = model.PaymentMethod.Equals("M-Pesa", StringComparison.OrdinalIgnoreCase) ? "Pending" : "Completed",
                     SaleItems = new List<SaleItem>()
                 };
 
@@ -414,6 +424,32 @@ namespace PixelSolution.Controllers
             {
                 _logger.LogError(ex, "Error generating receipt HTML for sale {SaleId}", saleId);
                 return BadRequest("Error generating receipt");
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> CheckPaymentStatus(int id)
+        {
+            try
+            {
+                var sale = await _saleService.GetSaleByIdAsync(id);
+                if (sale == null)
+                {
+                    return Json(new { success = false, message = "Sale not found" });
+                }
+
+                return Json(new 
+                { 
+                    success = true, 
+                    status = sale.Status,
+                    amount = sale.TotalAmount,
+                    saleId = sale.SaleId
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error checking payment status for sale {SaleId}", id);
+                return Json(new { success = false, message = "Error checking payment status" });
             }
         }
 

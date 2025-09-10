@@ -2766,6 +2766,10 @@ namespace PixelSolution.Controllers
 
 
         #region Settings
+        public IActionResult MpesaTest()
+        {
+            return View();
+        }
         public IActionResult Settings()
         {
             try

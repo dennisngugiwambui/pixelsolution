@@ -871,19 +871,32 @@ async function completePayment() {
         console.log('💳 Sale processing result:', result);
         
         if (result.success) {
-            showToast('Payment processed successfully!', 'success');
-            
-            // Generate and show receipt
-            generateReceipt(result.saleId, saleData);
-            
-            // Clear cart and close payment modal
-            cart = [];
-            updateCartDisplay();
-            closePaymentModal();
-            
-            // Update stats
-            await updateTodayStats();
-            
+            if (selectedPaymentMethod === 'mpesa') {
+                showToast('M-Pesa STK push sent! Please check your phone and enter your PIN.', 'info');
+                showToast('Waiting for payment confirmation...', 'info');
+                
+                // Clear cart and close payment modal but don't generate receipt yet
+                cart = [];
+                updateCartDisplay();
+                closePaymentModal();
+                
+                // Start polling for payment status
+                pollPaymentStatus(result.saleId);
+                
+            } else {
+                showToast('Payment processed successfully!', 'success');
+                
+                // Generate and show receipt for non-M-Pesa payments
+                generateReceipt(result.saleId, saleData);
+                
+                // Clear cart and close payment modal
+                cart = [];
+                updateCartDisplay();
+                closePaymentModal();
+                
+                // Update stats
+                await updateTodayStats();
+            }
         } else {
             throw new Error(result.message || 'Payment processing failed');
         }
@@ -897,10 +910,57 @@ async function completePayment() {
     }
 }
 
+// Poll payment status for M-Pesa payments
+async function pollPaymentStatus(saleId) {
+    let attempts = 0;
+    const maxAttempts = 30; // Poll for 5 minutes (30 attempts * 10 seconds)
+    
+    const checkStatus = async () => {
+        try {
+            const response = await fetch(`/Sales/CheckPaymentStatus/${saleId}`);
+            const result = await response.json();
+            
+            if (result.status === 'Completed') {
+                showToast('Payment confirmed! Receipt generated.', 'success');
+                // Generate receipt now that payment is confirmed
+                const saleData = { totalAmount: result.amount };
+                generateReceipt(saleId, saleData);
+                await updateTodayStats();
+                return;
+            } else if (result.status === 'Failed') {
+                showToast('Payment failed. Please try again.', 'error');
+                return;
+            }
+            
+            // Continue polling if status is still 'Pending'
+            attempts++;
+            if (attempts < maxAttempts) {
+                setTimeout(checkStatus, 10000); // Check every 10 seconds
+            } else {
+                showToast('Payment confirmation timeout. Please check manually.', 'warning');
+            }
+        } catch (error) {
+            console.error('Error checking payment status:', error);
+            attempts++;
+            if (attempts < maxAttempts) {
+                setTimeout(checkStatus, 10000);
+            }
+        }
+    };
+    
+    // Start checking after 5 seconds
+    setTimeout(checkStatus, 5000);
+}
+
 // Generate receipt
 function generateReceipt(saleId, saleData) {
 const receiptContent = document.getElementById('receiptContent');
 const now = new Date();
+
+// Calculate totals from current cart and saleData
+const subtotal = saleData.totalAmount || currentTotal || 0;
+const tax = subtotal * 0.16;
+const netAmount = subtotal - tax;
 
 const receiptHtml = `
 <div class="receipt-header" style="text-align: center; padding: 1.5rem 1rem; background: #f8fafc; border-bottom: 2px solid #e5e7eb;">
@@ -916,9 +976,9 @@ ${cart.map(item => `
 <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid #f1f5f9;">
 <div>
 <div style="font-weight: 600; color: #1f2937; font-size: 0.9rem;">${item.name}</div>
-<div style="font-size: 0.8rem; color: #6b7280;">${item.quantity} x KSh ${item.price.toFixed(2)}</div>
+<div style="font-size: 0.8rem; color: #6b7280;">${item.quantity} x KSh ${(item.price || 0).toFixed(2)}</div>
 </div>
-<div style="font-weight: 600; color: #1f2937;">KSh ${item.total.toFixed(2)}</div>
+<div style="font-weight: 600; color: #1f2937;">KSh ${(item.total || 0).toFixed(2)}</div>
 </div>
 `).join('')}
 </div>
@@ -926,15 +986,15 @@ ${cart.map(item => `
 <div style="border-top: 2px solid #e5e7eb; padding-top: 1rem; margin-bottom: 1rem;">
 <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
 <span style="color: #6b7280;">Subtotal:</span>
-<span style="color: #1f2937; font-weight: 600;">KSh ${saleData.subtotal.toFixed(2)}</span>
+<span style="color: #1f2937; font-weight: 600;">KSh ${netAmount.toFixed(2)}</span>
 </div>
 <div style="display: flex; justify-content: space-between; margin-bottom: 0.75rem;">
 <span style="color: #6b7280;">VAT (16%):</span>
-<span style="color: #1f2937; font-weight: 600;">KSh ${saleData.tax.toFixed(2)}</span>
+<span style="color: #1f2937; font-weight: 600;">KSh ${tax.toFixed(2)}</span>
 </div>
 <div style="display: flex; justify-content: space-between; padding-top: 0.75rem; border-top: 2px solid #1f2937; font-size: 1.1rem; font-weight: bold;">
 <span style="color: #1f2937;">Total:</span>
-<span style="color: #10b981;">KSh ${saleData.total.toFixed(2)}</span>
+<span style="color: #10b981;">KSh ${subtotal.toFixed(2)}</span>
 </div>
 </div>
 
@@ -950,7 +1010,7 @@ ${selectedPaymentMethod === 'cash' ? `
 </div>
 <div style="display: flex; justify-content: space-between;">
 <span style="color: #6b7280;">Change:</span>
-<span style="color: #1f2937; font-weight: 600;">KSh ${(parseFloat(document.getElementById('cashReceived').value || 0) - saleData.total).toFixed(2)}</span>
+<span style="color: #1f2937; font-weight: 600;">KSh ${(parseFloat(document.getElementById('cashReceived').value || 0) - subtotal).toFixed(2)}</span>
 </div>
 ` : ''}
 </div>
