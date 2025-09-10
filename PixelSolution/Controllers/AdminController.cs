@@ -11,6 +11,8 @@ using System.Text.Json;
 using iTextSharp.text;
 using iTextSharp.text.pdf;
 using ClosedXML.Excel;
+using System.IO;
+using System.Web;
 
 namespace PixelSolution.Controllers
 {
@@ -1794,19 +1796,8 @@ namespace PixelSolution.Controllers
                     emailSent = await _emailService.SendEmailAsync(user.Email, request.Subject, request.Body, true);
                 }
 
-                // Also save as internal message for record keeping
-                var message = new Message
-                {
-                    FromUserId = int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "0"),
-                    ToUserId = request.UserId,
-                    Subject = $"[EMAIL SENT] {request.Subject}",
-                    Content = $"Email sent to: {user.Email}\n\nContent:\n{request.Body}",
-                    SentDate = DateTime.UtcNow,
-                    IsRead = false
-                };
-
-                _context.Messages.Add(message);
-                await _context.SaveChangesAsync();
+                // Log email sending for audit purposes only
+                _logger.LogInformation($"Email sent to {user.Email} with subject: {request.Subject}");
 
                 return Json(new { success = true, message = $"Email sent successfully to {user.Email}!" });
             }
@@ -1835,14 +1826,32 @@ namespace PixelSolution.Controllers
                     return Json(new { success = false, message = $"User not found with ID: {request.UserId}" });
                 }
 
-                if (await _context.EmployeeProfiles.AnyAsync(ep => ep.UserId == request.UserId))
+                _logger.LogInformation("User found: {UserName} ({Email})", user.FullName, user.Email);
+
+                var existingProfile = await _context.EmployeeProfiles.FirstOrDefaultAsync(ep => ep.UserId == request.UserId);
+                if (existingProfile != null)
                 {
+                    _logger.LogWarning("Employee profile already exists for user {UserId}. Profile ID: {ProfileId}", request.UserId, existingProfile.EmployeeProfileId);
                     return Json(new { success = false, message = "Employee profile already exists for this user." });
+                }
+
+                _logger.LogInformation("No existing profile found. Proceeding to create new profile...");
+
+                // Generate unique employee number
+                var employeeCount = await _context.EmployeeProfiles.CountAsync();
+                var employeeNumber = $"EMP{DateTime.Now.Year}{(employeeCount + 1):D4}";
+                
+                // Ensure uniqueness
+                while (await _context.EmployeeProfiles.AnyAsync(ep => ep.EmployeeNumber == employeeNumber))
+                {
+                    employeeCount++;
+                    employeeNumber = $"EMP{DateTime.Now.Year}{(employeeCount + 1):D4}";
                 }
 
                 var employeeProfile = new EmployeeProfile
                 {
                     UserId = request.UserId,
+                    EmployeeNumber = employeeNumber,
                     HireDate = request.HireDate,
                     Position = request.Position,
                     EmploymentStatus = "Active",
@@ -1851,15 +1860,25 @@ namespace PixelSolution.Controllers
                     UpdatedAt = DateTime.UtcNow
                 };
 
-                _context.EmployeeProfiles.Add(employeeProfile);
-                await _context.SaveChangesAsync();
+                _logger.LogInformation("Employee profile object created: {@Profile}", employeeProfile);
 
+                _context.EmployeeProfiles.Add(employeeProfile);
+                _logger.LogInformation("Employee profile added to context. Saving changes...");
+                
+                var saveResult = await _context.SaveChangesAsync();
+                _logger.LogInformation("SaveChanges result: {SaveResult} records affected", saveResult);
+
+                _logger.LogInformation("Employee profile created successfully for user {UserId}", request.UserId);
                 return Json(new { success = true, message = "Employee profile created successfully!" });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error creating employee profile for user {UserId}", request.UserId);
-                return Json(new { success = false, message = "Failed to create employee profile." });
+                _logger.LogError(ex, "Error creating employee profile for user {UserId}. Exception: {ExceptionMessage}", request?.UserId, ex.Message);
+                _logger.LogError("Stack trace: {StackTrace}", ex.StackTrace);
+                
+                // Return more specific error message
+                var errorMessage = ex.InnerException?.Message ?? ex.Message;
+                return Json(new { success = false, message = $"Failed to create employee profile: {errorMessage}" });
             }
         }
 
@@ -2115,9 +2134,8 @@ namespace PixelSolution.Controllers
                     return NotFound("Employee not found");
                 }
 
-                // Generate PDF content
-                var html = GenerateEmployeeReportHtml(user);
-                var pdf = GeneratePdfFromHtml(html);
+                // Generate PDF content directly from user data
+                var pdf = GenerateEmployeePdf(user);
 
                 return File(pdf, "application/pdf", $"Employee_Report_{user.FirstName}_{user.LastName}_{DateTime.Now:yyyyMMdd}.pdf");
             }
@@ -2489,10 +2507,202 @@ namespace PixelSolution.Controllers
             return html;
         }
 
-        private byte[] GeneratePdfFromHtml(string html)
+        private byte[] GenerateEmployeePdf(User user)
         {
-            // For now, return HTML as bytes - in production, use a PDF library like iTextSharp or PuppeteerSharp
-            return System.Text.Encoding.UTF8.GetBytes(html);
+            using (var stream = new MemoryStream())
+            {
+                var document = new iTextSharp.text.Document(PageSize.A4, 25, 25, 30, 30);
+                var writer = PdfWriter.GetInstance(document, stream);
+                
+                document.Open();
+                
+                // Define fonts
+                var titleFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 18, BaseColor.DARK_GRAY);
+                var headerFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 14, BaseColor.BLACK);
+                var sectionFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 12, BaseColor.DARK_GRAY);
+                var labelFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 10, BaseColor.BLACK);
+                var valueFont = FontFactory.GetFont(FontFactory.HELVETICA, 10, BaseColor.BLACK);
+                var smallFont = FontFactory.GetFont(FontFactory.HELVETICA, 8, BaseColor.GRAY);
+                
+                // Company Header
+                var companyTitle = new Paragraph("PIXEL SOLUTION COMPANY LTD", titleFont);
+                companyTitle.Alignment = Element.ALIGN_CENTER;
+                companyTitle.SpacingAfter = 5f;
+                document.Add(companyTitle);
+                
+                var reportTitle = new Paragraph("Employee Comprehensive Report", headerFont);
+                reportTitle.Alignment = Element.ALIGN_CENTER;
+                reportTitle.SpacingAfter = 5f;
+                document.Add(reportTitle);
+                
+                var generatedDate = new Paragraph($"Generated on: {DateTime.Now:MMMM dd, yyyy 'at' HH:mm}", valueFont);
+                generatedDate.Alignment = Element.ALIGN_CENTER;
+                generatedDate.SpacingAfter = 20f;
+                document.Add(generatedDate);
+                
+                // Instead of parsing HTML, create structured content directly from the User object
+                // This requires passing the User object to this method instead of HTML
+                // For now, create a clean structured layout
+                
+                // Personal Information Section
+                var personalSection = new Paragraph("PERSONAL INFORMATION", sectionFont);
+                personalSection.SpacingBefore = 15f;
+                personalSection.SpacingAfter = 10f;
+                document.Add(personalSection);
+                
+                // Create a table for personal info
+                var personalTable = new PdfPTable(2);
+                personalTable.WidthPercentage = 100;
+                personalTable.SetWidths(new float[] { 30f, 70f });
+                personalTable.SpacingAfter = 15f;
+                
+                // Add actual user data
+                AddTableRow(personalTable, "Full Name:", $"{user.FirstName} {user.LastName}", labelFont, valueFont);
+                AddTableRow(personalTable, "Email:", user.Email, labelFont, valueFont);
+                AddTableRow(personalTable, "Phone:", user.Phone ?? "Not Provided", labelFont, valueFont);
+                AddTableRow(personalTable, "Role:", user.UserType, labelFont, valueFont);
+                AddTableRow(personalTable, "Status:", user.Status, labelFont, valueFont);
+                AddTableRow(personalTable, "Join Date:", user.CreatedAt.ToString("MMMM dd, yyyy"), labelFont, valueFont);
+                
+                document.Add(personalTable);
+                
+                // Employment Details Section
+                var employmentSection = new Paragraph("EMPLOYMENT DETAILS", sectionFont);
+                employmentSection.SpacingBefore = 15f;
+                employmentSection.SpacingAfter = 10f;
+                document.Add(employmentSection);
+                
+                var employmentTable = new PdfPTable(2);
+                employmentTable.WidthPercentage = 100;
+                employmentTable.SetWidths(new float[] { 30f, 70f });
+                employmentTable.SpacingAfter = 15f;
+                
+                if (user.EmployeeProfile != null)
+                {
+                    AddTableRow(employmentTable, "Position:", user.EmployeeProfile.Position ?? "Not Specified", labelFont, valueFont);
+                    AddTableRow(employmentTable, "Employee Number:", user.EmployeeProfile.EmployeeNumber ?? "Not Assigned", labelFont, valueFont);
+                    AddTableRow(employmentTable, "Hire Date:", user.EmployeeProfile.HireDate.ToString("MMMM dd, yyyy"), labelFont, valueFont);
+                    AddTableRow(employmentTable, "Employment Status:", user.EmployeeProfile.EmploymentStatus, labelFont, valueFont);
+                    AddTableRow(employmentTable, "Base Salary:", $"KSh {user.EmployeeProfile.BaseSalary:N2}", labelFont, valueFont);
+                    AddTableRow(employmentTable, "Emergency Contact:", user.EmployeeProfile.EmergencyContact ?? "Not Provided", labelFont, valueFont);
+                }
+                else
+                {
+                    AddTableRow(employmentTable, "Position:", "Employee Profile Not Created", labelFont, valueFont);
+                    AddTableRow(employmentTable, "Status:", "Profile Pending", labelFont, valueFont);
+                }
+                
+                // Add department information
+                var departments = user.UserDepartments?.Select(ud => ud.Department?.Name).Where(d => d != null).ToList();
+                var departmentText = departments?.Any() == true ? string.Join(", ", departments) : "Not Assigned";
+                AddTableRow(employmentTable, "Department(s):", departmentText, labelFont, valueFont);
+                
+                document.Add(employmentTable);
+                
+                // Add Sales Performance if available
+                if (user.Sales?.Any() == true)
+                {
+                    var salesSection = new Paragraph("SALES PERFORMANCE", sectionFont);
+                    salesSection.SpacingBefore = 15f;
+                    salesSection.SpacingAfter = 10f;
+                    document.Add(salesSection);
+                    
+                    var salesTable = new PdfPTable(2);
+                    salesTable.WidthPercentage = 100;
+                    salesTable.SetWidths(new float[] { 30f, 70f });
+                    salesTable.SpacingAfter = 15f;
+                    
+                    var totalSales = user.Sales.Count;
+                    var totalAmount = user.Sales.Sum(s => s.TotalAmount);
+                    var avgSale = totalSales > 0 ? totalAmount / totalSales : 0;
+                    var lastSale = user.Sales.OrderByDescending(s => s.SaleDate).FirstOrDefault();
+                    
+                    AddTableRow(salesTable, "Total Sales:", totalSales.ToString(), labelFont, valueFont);
+                    AddTableRow(salesTable, "Total Revenue:", $"KSh {totalAmount:N2}", labelFont, valueFont);
+                    AddTableRow(salesTable, "Average Sale:", $"KSh {avgSale:N2}", labelFont, valueFont);
+                    AddTableRow(salesTable, "Last Sale Date:", lastSale?.SaleDate.ToString("MMMM dd, yyyy") ?? "No Sales", labelFont, valueFont);
+                    
+                    document.Add(salesTable);
+                }
+                
+                // Add Salary History if available
+                if (user.EmployeeProfile?.EmployeeSalaries?.Any() == true)
+                {
+                    var salarySection = new Paragraph("SALARY HISTORY", sectionFont);
+                    salarySection.SpacingBefore = 15f;
+                    salarySection.SpacingAfter = 10f;
+                    document.Add(salarySection);
+                    
+                    var salaryTable = new PdfPTable(4);
+                    salaryTable.WidthPercentage = 100;
+                    salaryTable.SetWidths(new float[] { 25f, 20f, 25f, 30f });
+                    salaryTable.SpacingAfter = 15f;
+                    
+                    // Add headers
+                    AddTableHeaderRow(salaryTable, new string[] { "Effective Date", "Type", "Amount (KSh)", "Status" }, labelFont);
+                    
+                    foreach (var salary in user.EmployeeProfile.EmployeeSalaries.OrderByDescending(s => s.EffectiveDate).Take(5))
+                    {
+                        AddTableDataRow(salaryTable, new string[] {
+                            salary.EffectiveDate.ToString("MMM dd, yyyy"),
+                            salary.SalaryType,
+                            salary.Amount.ToString("N2"),
+                            salary.IsActive ? "Active" : "Inactive"
+                        }, valueFont);
+                    }
+                    
+                    document.Add(salaryTable);
+                }
+                
+                // Footer
+                var footer = new Paragraph($"Report generated on {DateTime.Now:dd/MM/yyyy} at {DateTime.Now:HH:mm:ss}", smallFont);
+                footer.Alignment = Element.ALIGN_CENTER;
+                footer.SpacingBefore = 20f;
+                document.Add(footer);
+                
+                document.Close();
+                return stream.ToArray();
+            }
+        }
+        
+        private void AddTableRow(PdfPTable table, string label, string value, iTextSharp.text.Font labelFont, iTextSharp.text.Font valueFont)
+        {
+            var labelCell = new PdfPCell(new Phrase(label, labelFont));
+            labelCell.Border = Rectangle.NO_BORDER;
+            labelCell.Padding = 8f;
+            labelCell.BackgroundColor = new BaseColor(248, 249, 250);
+            
+            var valueCell = new PdfPCell(new Phrase(value, valueFont));
+            valueCell.Border = Rectangle.NO_BORDER;
+            valueCell.Padding = 8f;
+            
+            table.AddCell(labelCell);
+            table.AddCell(valueCell);
+        }
+        
+        private void AddTableHeaderRow(PdfPTable table, string[] headers, iTextSharp.text.Font headerFont)
+        {
+            foreach (var header in headers)
+            {
+                var headerCell = new PdfPCell(new Phrase(header, headerFont));
+                headerCell.BackgroundColor = new BaseColor(102, 126, 234);
+                headerCell.HorizontalAlignment = Element.ALIGN_CENTER;
+                headerCell.Padding = 8f;
+                headerCell.Border = Rectangle.NO_BORDER;
+                table.AddCell(headerCell);
+            }
+        }
+        
+        private void AddTableDataRow(PdfPTable table, string[] data, iTextSharp.text.Font dataFont)
+        {
+            foreach (var item in data)
+            {
+                var dataCell = new PdfPCell(new Phrase(item, dataFont));
+                dataCell.Border = Rectangle.NO_BORDER;
+                dataCell.Padding = 8f;
+                dataCell.HorizontalAlignment = Element.ALIGN_LEFT;
+                table.AddCell(dataCell);
+            }
         }
 
         [HttpGet]
@@ -7686,13 +7896,51 @@ namespace PixelSolution.Controllers
             try
             {
                 _logger.LogInformation("GetCustomerProfile called with customerId: {CustomerId}", customerId);
+                
+                if (customerId <= 0)
+                {
+                    _logger.LogWarning("Invalid customerId: {CustomerId}", customerId);
+                    return Json(new { success = false, message = "Invalid customer ID" });
+                }
+
                 var customer = await _context.Customers
                     .FirstOrDefaultAsync(c => c.CustomerId == customerId);
 
+                _logger.LogInformation("Customer found: {Found}", customer != null);
+
                 if (customer == null)
                 {
+                    _logger.LogWarning("Customer not found with ID: {CustomerId}", customerId);
                     return Json(new { success = false, message = "Customer not found" });
                 }
+
+                _logger.LogInformation("Fetching recent orders for customer: {CustomerId}", customerId);
+                var recentOrders = await _context.ProductRequests
+                    .Where(pr => pr.CustomerId == customerId)
+                    .OrderByDescending(pr => pr.RequestDate)
+                    .Take(5)
+                    .Select(pr => new
+                    {
+                        RequestNumber = pr.RequestNumber,
+                        RequestDate = pr.RequestDate,
+                        TotalAmount = pr.TotalAmount,
+                        Status = pr.Status
+                    })
+                    .ToListAsync();
+
+                _logger.LogInformation("Found {Count} recent orders", recentOrders.Count);
+
+                _logger.LogInformation("Fetching wishlist count for customer: {CustomerId}", customerId);
+                var wishlistCount = await _context.CustomerWishlists.CountAsync(w => w.CustomerId == customerId);
+                _logger.LogInformation("Wishlist count: {Count}", wishlistCount);
+
+                _logger.LogInformation("Fetching sales data for customer email: {Email}", customer.Email);
+                var totalOrders = await _context.Sales.CountAsync(s => s.CustomerEmail == customer.Email);
+                var totalSpent = await _context.Sales
+                    .Where(s => s.CustomerEmail == customer.Email)
+                    .SumAsync(s => s.TotalAmount);
+                
+                _logger.LogInformation("Sales data - Orders: {Orders}, Spent: {Spent}", totalOrders, totalSpent);
 
                 var customerProfile = new
                 {
@@ -7701,12 +7949,13 @@ namespace PixelSolution.Controllers
                     email = customer.Email,
                     phone = customer.Phone ?? "Not provided",
                     registrationDate = customer.CreatedAt.ToString("MMM dd, yyyy"),
-                    totalWishlistItems = await _context.Wishlists.CountAsync(w => w.CustomerId == customerId),
-                    totalOrders = await _context.Sales.CountAsync(s => s.CustomerEmail == customer.Email),
-                    totalSpent = await _context.Sales
-                        .Where(s => s.CustomerEmail == customer.Email)
-                        .SumAsync(s => s.TotalAmount)
+                    totalWishlistItems = wishlistCount,
+                    totalOrders = totalOrders,
+                    totalSpent = totalSpent,
+                    RecentOrders = recentOrders
                 };
+
+                _logger.LogInformation("Successfully created customer profile for: {CustomerName}", customerProfile.customerName);
 
                 return Json(new { success = true, customer = customerProfile });
             }

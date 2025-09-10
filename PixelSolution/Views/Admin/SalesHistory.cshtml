@@ -556,15 +556,9 @@
                 </a>
             </div>
             <div class="nav-item">
-                <a href="@Url.Action("Sales", "Admin")" class="nav-link">
+                <a href="@Url.Action("Sales", "Admin")" class="nav-link active">
                     <i class="fas fa-shopping-cart"></i>
                     Sales
-                </a>
-            </div>
-            <div class="nav-item">
-                <a href="@Url.Action("SalesHistory", "Admin")" class="nav-link active">
-                    <i class="fas fa-history"></i>
-                    Sales History
                 </a>
             </div>
             <div class="nav-item">
@@ -618,6 +612,18 @@
                 </a>
             </div>
             <div class="nav-item">
+                <a href="@Url.Action("CartManagement", "Admin")" class="nav-link">
+                    <i class="fas fa-shopping-basket"></i>
+                    Cart Management
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("WishlistManagement", "Admin")" class="nav-link">
+                    <i class="fas fa-heart"></i>
+                    Wishlist Management
+                </a>
+            </div>
+            <div class="nav-item">
                 <a href="@Url.Action("Messages", "Admin")" class="nav-link">
                     <i class="fas fa-envelope"></i>
                     Messages
@@ -640,7 +646,7 @@
                 </a>
             </div>
             <div class="nav-item">
-                <a href="@Url.Action("Logout", "Auth")" class="nav-link">
+                <a href="@Url.Action("LogoutGet", "Auth")" class="nav-link">
                     <i class="fas fa-sign-out-alt"></i>
                     Logout
                 </a>
@@ -648,6 +654,7 @@
         </div>
     </nav>
 </div>
+
 
 <!-- Main Content -->
 <div class="main-content" id="mainContent">

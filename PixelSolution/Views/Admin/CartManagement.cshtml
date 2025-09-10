@@ -935,7 +935,7 @@
                     showToast('Invalid customer ID', 'error');
                     return;
                 }
-                const response = await fetch(`/Admin/GetCartDetails/${customerId}`);
+                const response = await fetch(`/Admin/GetCartDetails?customerId=${customerId}`);
                 if (!response.ok) throw new Error('Failed to fetch cart details');
 
                 const data = await response.json();

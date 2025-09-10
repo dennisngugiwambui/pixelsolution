@@ -729,17 +729,15 @@
         }
 
 
-        // Pagination variables
-        let currentPage = 1;
-        let itemsPerPage = 10;
+        // Recent sales display (limited to 5 latest entries)
         let allSalesData = [];
 
         function updateRecentSalesTable(recentSales) {
             allSalesData = recentSales || [];
-            displaySalesPage(currentPage);
+            displayRecentSales();
         }
 
-        function displaySalesPage(page) {
+        function displayRecentSales() {
             const tableBody = document.getElementById('recentSalesTable');
             if (!tableBody) return;
 
@@ -747,15 +745,13 @@
 
             if (!allSalesData || allSalesData.length === 0) {
                 tableBody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 2rem; color: #6b7280;">No recent sales found</td></tr>';
-                updatePaginationControls(0);
                 return;
             }
 
-            const startIndex = (page - 1) * itemsPerPage;
-            const endIndex = startIndex + itemsPerPage;
-            const pageData = allSalesData.slice(startIndex, endIndex);
+            // Show only the latest 5 entries
+            const recentSalesData = allSalesData.slice(0, 5);
 
-            pageData.forEach(sale => {
+            recentSalesData.forEach(sale => {
                 const row = document.createElement('tr');
                 
                 const statusClass = sale.status === 'Completed' ? 'status-active' : 'status-pending';
@@ -781,53 +777,18 @@
                 tableBody.appendChild(row);
             });
 
-            updatePaginationControls(allSalesData.length);
-        }
-
-        function updatePaginationControls(totalItems) {
-            const totalPages = Math.ceil(totalItems / itemsPerPage);
-            let paginationHtml = '';
-
-            if (totalPages > 1) {
-                paginationHtml = `
-                    <div class="pagination-controls" style="display: flex; justify-content: center; align-items: center; gap: 1rem; margin-top: 1rem;">
-                        <button class="btn ${currentPage === 1 ? 'btn-disabled' : 'btn-secondary'}" 
-                                onclick="changePage(${currentPage - 1})" 
-                                ${currentPage === 1 ? 'disabled' : ''}>
-                            <i class="fas fa-chevron-left"></i> Previous
-                        </button>
-                        <span style="color: #6b7280; font-size: 0.875rem;">
-                            Page ${currentPage} of ${totalPages} (${totalItems} items)
-                        </span>
-                        <button class="btn ${currentPage === totalPages ? 'btn-disabled' : 'btn-secondary'}" 
-                                onclick="changePage(${currentPage + 1})" 
-                                ${currentPage === totalPages ? 'disabled' : ''}>
-                            Next <i class="fas fa-chevron-right"></i>
-                        </button>
-                    </div>
+            // Add a note if there are more sales available
+            if (allSalesData.length > 5) {
+                const noteRow = document.createElement('tr');
+                noteRow.innerHTML = `
+                    <td colspan="7" style="text-align: center; padding: 1rem; color: #6b7280; font-style: italic; background-color: #f9fafb;">
+                        Showing latest 5 sales. <a href="javascript:viewSalesHistory()" style="color: #3b82f6; text-decoration: none;">View all ${allSalesData.length} sales in Sales History</a>
+                    </td>
                 `;
-            }
-
-            // Add pagination controls after the table
-            let paginationContainer = document.getElementById('paginationContainer');
-            if (!paginationContainer) {
-                paginationContainer = document.createElement('div');
-                paginationContainer.id = 'paginationContainer';
-                const tableCard = document.querySelector('.table-card');
-                if (tableCard) {
-                    tableCard.appendChild(paginationContainer);
-                }
-            }
-            paginationContainer.innerHTML = paginationHtml;
-        }
-
-        function changePage(newPage) {
-            const totalPages = Math.ceil(allSalesData.length / itemsPerPage);
-            if (newPage >= 1 && newPage <= totalPages) {
-                currentPage = newPage;
-                displaySalesPage(currentPage);
+                tableBody.appendChild(noteRow);
             }
         }
+
 
         function debugCharts() {
             console.log('=== CHART DEBUG INFO ===');

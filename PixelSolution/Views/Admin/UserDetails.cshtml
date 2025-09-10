@@ -3031,14 +3031,32 @@
                 }
 
                 function submitCreateProfile() {
+                    console.log('🚀 Starting employee profile creation...');
+                    
                     const hireDate = document.getElementById('profileHireDate').value;
                     const position = document.getElementById('profilePosition').value;
                     const manager = document.getElementById('profileManager').value;
                     const emergencyName = document.getElementById('profileEmergencyName').value;
                     const emergencyPhone = document.getElementById('profileEmergencyPhone').value;
 
+                    console.log('📋 Form data collected:', {
+                        hireDate,
+                        position,
+                        manager,
+                        emergencyName,
+                        emergencyPhone,
+                        currentUserId,
+                        currentUserName
+                    });
+
                     if (!hireDate || !position) {
-                        showToast('Please fill in all required fields', 'error');
+                        showToast('Please fill in all required fields (Hire Date and Position)', 'error');
+                        return;
+                    }
+
+                    if (!currentUserId || currentUserId <= 0) {
+                        showToast('Invalid user ID. Please refresh the page and try again.', 'error');
+                        console.error('❌ Invalid currentUserId:', currentUserId);
                         return;
                     }
 
@@ -3046,10 +3064,19 @@
                         UserId: parseInt(currentUserId),
                         HireDate: hireDate,
                         Position: position,
-                        ManagerName: manager,
-                        EmergencyContactName: emergencyName,
-                        EmergencyContactPhone: emergencyPhone
+                        ManagerName: manager || '',
+                        EmergencyContactName: emergencyName || '',
+                        EmergencyContactPhone: emergencyPhone || ''
                     };
+
+                    console.log('📤 Request data being sent:', requestData);
+                    console.log('🔑 CSRF Token:', getAntiForgeryToken());
+
+                    // Add loading state
+                    const submitBtn = document.querySelector('#createProfileModal .modern-btn-primary');
+                    const originalText = submitBtn.innerHTML;
+                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating Profile...';
+                    submitBtn.disabled = true;
 
                     fetch('/Admin/CreateEmployeeProfile', {
                         method: 'POST',
@@ -3059,19 +3086,36 @@
                         },
                         body: JSON.stringify(requestData)
                     })
-                    .then(response => response.json())
+                    .then(response => {
+                        console.log('📡 Response status:', response.status);
+                        console.log('📡 Response headers:', response.headers);
+                        
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                        
+                        return response.json();
+                    })
                     .then(data => {
+                        console.log('✅ Response data:', data);
+                        
                         if (data.success) {
                             showToast(data.message || 'Employee profile created successfully!', 'success');
                             closeCreateProfileModal();
                             setTimeout(() => location.reload(), 1500);
                         } else {
                             showToast(data.message || 'Failed to create employee profile', 'error');
+                            console.error('❌ Server returned error:', data);
                         }
                     })
                     .catch(error => {
-                        console.error('Error:', error);
-                        showToast('An error occurred while creating employee profile', 'error');
+                        console.error('❌ Network/Parse error:', error);
+                        showToast(`Error: ${error.message}. Please check console for details.`, 'error');
+                    })
+                    .finally(() => {
+                        // Reset button state
+                        submitBtn.innerHTML = originalText;
+                        submitBtn.disabled = false;
                     });
                 }
 

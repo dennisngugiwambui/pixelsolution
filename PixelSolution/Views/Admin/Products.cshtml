@@ -421,6 +421,138 @@
             .alert-item:last-child {
                 margin-bottom: 0;
             }
+
+        /* Enhanced Export Dropdown Styles */
+        .btn-gradient {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            position: relative;
+            overflow: hidden;
+        }
+
+            .btn-gradient:hover {
+                background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+                transform: translateY(-1px);
+                box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+            }
+
+        .export-btn {
+            padding: 0.75rem 1.25rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .dropdown-arrow {
+            font-size: 0.75rem;
+            transition: transform 0.3s ease;
+        }
+
+        .export-dropdown.active .dropdown-arrow {
+            transform: rotate(180deg);
+        }
+
+        .export-dropdown-menu {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: all 0.3s ease;
+            z-index: 1000;
+            min-width: 280px;
+            border: 1px solid #e5e7eb;
+            overflow: hidden;
+        }
+
+        .export-dropdown.active .export-dropdown-menu {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(5px);
+        }
+
+        .export-option {
+            display: flex;
+            align-items: center;
+            padding: 1rem 1.25rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border-bottom: 1px solid #f3f4f6;
+        }
+
+            .export-option:last-child {
+                border-bottom: none;
+            }
+
+            .export-option:hover {
+                background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+                transform: translateX(5px);
+            }
+
+        .export-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 1rem;
+            font-size: 1.25rem;
+        }
+
+        .excel-icon {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+        }
+
+        .pdf-icon {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+        }
+
+        .export-details {
+            flex: 1;
+        }
+
+        .export-title {
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 0.25rem;
+            font-size: 0.95rem;
+        }
+
+        .export-description {
+            font-size: 0.8rem;
+            color: #6b7280;
+            font-weight: 500;
+        }
+
+        /* Mobile responsiveness for export dropdown */
+        @@media (max-width: 768px) {
+            .export-dropdown-menu {
+                min-width: 250px;
+                left: auto;
+                right: 0;
+            }
+
+            .export-option {
+                padding: 0.875rem 1rem;
+            }
+
+            .export-icon {
+                width: 35px;
+                height: 35px;
+                font-size: 1.1rem;
+            }
+        }
     </style>
 }
 
@@ -634,19 +766,32 @@
                         <i class="fas fa-exclamation-triangle"></i>
                         Low Stock
                     </button>
-                    <div class="dropdown" style="display: inline-block;">
-                        <button class="btn btn-secondary btn-sm dropdown-toggle" type="button" id="exportDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="fas fa-download"></i>
-                            Export
+                    <div class="export-dropdown" style="display: inline-block; position: relative;">
+                        <button class="btn btn-gradient btn-sm export-btn" type="button" id="exportDropdown" onclick="toggleExportDropdown()">
+                            <i class="fas fa-file-download"></i>
+                            Generate Report
+                            <i class="fas fa-chevron-down dropdown-arrow"></i>
                         </button>
-                        <ul class="dropdown-menu" aria-labelledby="exportDropdown">
-                            <li><a class="dropdown-item" href="#" onclick="exportToExcel()">
-                                <i class="fas fa-file-excel text-success"></i> Export to Excel
-                            </a></li>
-                            <li><a class="dropdown-item" href="#" onclick="exportToPdf()">
-                                <i class="fas fa-file-pdf text-danger"></i> Export to PDF
-                            </a></li>
-                        </ul>
+                        <div class="export-dropdown-menu" id="exportDropdownMenu">
+                            <div class="export-option" onclick="exportToExcel()">
+                                <div class="export-icon excel-icon">
+                                    <i class="fas fa-file-excel"></i>
+                                </div>
+                                <div class="export-details">
+                                    <div class="export-title">Excel Report</div>
+                                    <div class="export-description">Download as .xlsx file</div>
+                                </div>
+                            </div>
+                            <div class="export-option" onclick="exportToPdf()">
+                                <div class="export-icon pdf-icon">
+                                    <i class="fas fa-file-pdf"></i>
+                                </div>
+                                <div class="export-details">
+                                    <div class="export-title">PDF Report</div>
+                                    <div class="export-description">Download as .pdf file</div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     <button class="btn btn-primary" onclick="openCreateProductModal()">
                         <i class="fas fa-plus"></i>
@@ -1838,13 +1983,70 @@
             showToast('Showing low stock products only', 'info');
         }
 
+        // Enhanced Export Functions with Dropdown Toggle
+        function toggleExportDropdown() {
+            const dropdown = document.querySelector('.export-dropdown');
+            const menu = document.getElementById('exportDropdownMenu');
+            
+            dropdown.classList.toggle('active');
+            
+            // Close dropdown when clicking outside
+            if (dropdown.classList.contains('active')) {
+                document.addEventListener('click', closeExportDropdownOnOutsideClick);
+            } else {
+                document.removeEventListener('click', closeExportDropdownOnOutsideClick);
+            }
+        }
+
+        function closeExportDropdownOnOutsideClick(event) {
+            const dropdown = document.querySelector('.export-dropdown');
+            if (!dropdown.contains(event.target)) {
+                dropdown.classList.remove('active');
+                document.removeEventListener('click', closeExportDropdownOnOutsideClick);
+            }
+        }
+
         function exportToExcel() {
-            showToast('Generating Excel export...', 'info');
+            // Close dropdown
+            document.querySelector('.export-dropdown').classList.remove('active');
+            document.removeEventListener('click', closeExportDropdownOnOutsideClick);
+            
+            showToast('📊 Generating Excel report...', 'info');
+            
+            // Add loading animation to button temporarily
+            const btn = document.getElementById('exportDropdown');
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+            btn.disabled = true;
+            
+            // Reset button after a delay
+            setTimeout(() => {
+                btn.innerHTML = originalHTML;
+                btn.disabled = false;
+            }, 2000);
+            
             window.location.href = '/Admin/ExportProductsToExcel';
         }
 
         function exportToPdf() {
-            showToast('Generating PDF export...', 'info');
+            // Close dropdown
+            document.querySelector('.export-dropdown').classList.remove('active');
+            document.removeEventListener('click', closeExportDropdownOnOutsideClick);
+            
+            showToast('📄 Generating PDF report...', 'info');
+            
+            // Add loading animation to button temporarily
+            const btn = document.getElementById('exportDropdown');
+            const originalHTML = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+            btn.disabled = true;
+            
+            // Reset button after a delay
+            setTimeout(() => {
+                btn.innerHTML = originalHTML;
+                btn.disabled = false;
+            }, 2000);
+            
             window.location.href = '/Admin/ExportProductsToPdf';
         }
 
