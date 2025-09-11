@@ -888,6 +888,7 @@
     </style>
 }
 
+
 <!-- Employee Sidebar -->
 <div class="sidebar" id="sidebar">
     <div class="sidebar-header">
@@ -919,6 +920,7 @@
                 <a href="@Url.Action("Sales", "Employee")" class="nav-link active">
                     <i class="fas fa-shopping-cart"></i>
                     Sales
+                    <span class="nav-badge" id="salesCount">0</span>
                 </a>
             </div>
         </div>
@@ -929,12 +931,19 @@
                 <a href="@Url.Action("Messages", "Employee")" class="nav-link">
                     <i class="fas fa-envelope"></i>
                     Messages
+                    <span class="nav-badge" id="unreadMessagesCount">0</span>
                 </a>
             </div>
         </div>
 
         <div class="nav-section">
             <div class="nav-section-title">Account</div>
+            <div class="nav-item">
+                <a href="@Url.Action("Settings", "Employee")" class="nav-link">
+                    <i class="fas fa-cog"></i>
+                    Settings
+                </a>
+            </div>
             <div class="nav-item">
                 <a href="@Url.Action("LogoutGet", "Auth")" class="nav-link">
                     <i class="fas fa-sign-out-alt"></i>

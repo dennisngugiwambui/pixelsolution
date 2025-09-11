@@ -4733,6 +4733,44 @@ namespace PixelSolution.Controllers
         }
 
         [HttpGet]
+        public async Task<IActionResult> ExportEmployees()
+        {
+            try
+            {
+                _logger.LogInformation("📤 Exporting employees report");
+
+                // Log the export activity
+                var userId = GetCurrentUserId();
+                var ipAddress = GetClientIpAddress();
+                var userAgent = HttpContext.Request.Headers["User-Agent"].ToString();
+                
+                await _activityLogService.LogActivityAsync(
+                    userId, 
+                    ActivityTypes.ReportExport, 
+                    "Exported employees report in PDF format",
+                    "Report",
+                    null,
+                    new { ReportType = "Employees", Format = "PDF" },
+                    ipAddress,
+                    userAgent
+                );
+
+                // Generate employees report using the existing user report service
+                var reportData = await _reportService.GenerateUserReportAsync();
+                var fileName = $"Employees_Report_{DateTime.Now:yyyyMMdd}.pdf";
+                var contentType = "application/pdf";
+
+                _logger.LogInformation("✅ Employees report generated: {FileName}", fileName);
+                return File(reportData, contentType, fileName);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Error exporting employees report");
+                return Json(new { success = false, message = "Error exporting employees report: " + ex.Message });
+            }
+        }
+
+        [HttpGet]
         public async Task<IActionResult> GetSalesForReceipt(string search = "")
         {
             try
@@ -6443,6 +6481,26 @@ namespace PixelSolution.Controllers
             }
         }
 
+
+        [HttpGet]
+        public async Task<IActionResult> GetUnreadCount()
+        {
+            try
+            {
+                var currentUserId = GetCurrentUserId();
+                
+                var unreadCount = await _context.Messages
+                    .Where(m => m.ToUserId == currentUserId && !m.IsRead)
+                    .CountAsync();
+                    
+                return Json(new { success = true, unreadCount = unreadCount });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting unread count for admin");
+                return Json(new { success = false, message = "Error getting unread count" });
+            }
+        }
 
         [HttpGet]
         public async Task<IActionResult> CheckNewMessages(int lastMessageId = 0)
