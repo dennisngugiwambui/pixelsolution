@@ -103,6 +103,7 @@
 }
 
 <!-- Employee Sidebar -->
+<!-- Employee Sidebar -->
 <div class="sidebar" id="sidebar">
     <div class="sidebar-header">
         <div class="logo-container">
@@ -133,6 +134,7 @@
                 <a href="@Url.Action("Sales", "Employee")" class="nav-link">
                     <i class="fas fa-shopping-cart"></i>
                     Sales
+                    <span class="nav-badge" id="salesCount">0</span>
                 </a>
             </div>
         </div>
@@ -143,6 +145,7 @@
                 <a href="@Url.Action("Messages", "Employee")" class="nav-link">
                     <i class="fas fa-envelope"></i>
                     Messages
+                    <span class="nav-badge" id="unreadMessagesCount">0</span>
                 </a>
             </div>
         </div>
