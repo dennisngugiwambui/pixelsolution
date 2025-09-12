@@ -18,8 +18,20 @@
                         <label for="testAmount" class="form-label">Amount (KSh)</label>
                         <input type="number" class="form-control" id="testAmount" value="1" min="1">
                     </div>
-                    <button type="button" class="btn btn-primary" onclick="testToken()">Test Token</button>
-                    <button type="button" class="btn btn-success" onclick="testStkPush()">Test STK Push</button>
+                    <div class="mb-3">
+                        <label for="checkoutRequestId" class="form-label">Checkout Request ID (for status query)</label>
+                        <input type="text" class="form-control" id="checkoutRequestId" placeholder="ws_CO_12345678901234567890">
+                    </div>
+                    <div class="d-grid gap-2">
+                        <button type="button" class="btn btn-primary" onclick="testToken()">🔑 Test Token</button>
+                        <button type="button" class="btn btn-info" onclick="testTokenCaching()">🔄 Test Token Caching</button>
+                        <button type="button" class="btn btn-success" onclick="testStkPush()">📱 Test STK Push (Original)</button>
+                        <button type="button" class="btn btn-warning" onclick="testLaravelStkPush()">🚀 Test Laravel-Style STK Push</button>
+                        <button type="button" class="btn btn-info" onclick="testMpesaMiddleware()">🔧 Test M-Pesa Middleware</button>
+                        <button type="button" class="btn btn-secondary" onclick="queryStkStatus()">🔍 Query STK Status</button>
+                        <button type="button" class="btn btn-light" onclick="testB2C()">💸 Test B2C (Future)</button>
+                        <button type="button" class="btn btn-danger btn-sm" onclick="clearResults()">🗑️ Clear Results</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -64,6 +76,26 @@ async function testToken() {
     }
 }
 
+async function testTokenCaching() {
+    logResult('🔄 Testing token caching mechanism (3 consecutive requests)...');
+    try {
+        const response = await fetch('/api/MpesaTest/test-token-caching');
+        const result = await response.json();
+        
+        if (result.success) {
+            logResult(`✅ Token caching test completed`, 'success');
+            result.results.forEach((test, index) => {
+                logResult(`Request ${test.requestNumber}: ${test.durationMs}ms - Token: ${test.tokenPreview}`, 'info');
+            });
+            logResult(result.note, 'info');
+        } else {
+            logResult(`❌ Token caching test failed: ${result.message}`, 'error');
+        }
+    } catch (error) {
+        logResult(`💥 Token caching test error: ${error.message}`, 'error');
+    }
+}
+
 async function testStkPush() {
     const phone = document.getElementById('testPhone').value;
     const amount = document.getElementById('testAmount').value;
@@ -96,8 +128,12 @@ async function testStkPush() {
             logResult(`CheckoutRequestID: ${result.checkoutRequestId}`, 'info');
             logResult(`MerchantRequestID: ${result.merchantRequestId}`, 'info');
             
+            // Auto-populate checkout request ID for status query
+            document.getElementById('checkoutRequestId').value = result.checkoutRequestId;
+            
             if (result.responseCode === '0') {
                 logResult('🎉 STK Push should appear on your phone now!', 'success');
+                logResult('💡 CheckoutRequestID has been auto-filled for status query', 'info');
             } else {
                 logResult(`⚠️ STK Push may have failed. Check response code: ${result.responseCode}`, 'error');
             }
@@ -110,5 +146,128 @@ async function testStkPush() {
     } catch (error) {
         logResult(`💥 STK Push error: ${error.message}`, 'error');
     }
+}
+
+async function queryStkStatus() {
+    const checkoutRequestId = document.getElementById('checkoutRequestId').value;
+    
+    if (!checkoutRequestId) {
+        logResult('❌ Please enter CheckoutRequestID', 'error');
+        return;
+    }
+    
+    logResult(`🔍 Querying STK Push status for: ${checkoutRequestId}...`);
+    
+    try {
+        const response = await fetch('/api/MpesaTest/query-stk', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                checkoutRequestId: checkoutRequestId
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            logResult(`✅ STK Push status retrieved successfully`, 'success');
+            logResult(`Status Data: ${JSON.stringify(result.data, null, 2)}`, 'info');
+        } else {
+            logResult(`❌ STK Push query failed: ${result.message}`, 'error');
+        }
+    } catch (error) {
+        logResult(`💥 STK Push query error: ${error.message}`, 'error');
+    }
+}
+
+async function testB2C() {
+    const phone = document.getElementById('testPhone').value;
+    const amount = document.getElementById('testAmount').value;
+    
+    logResult(`💸 Testing B2C functionality (future feature)...`);
+    
+    try {
+        const response = await fetch('/api/MpesaTest/test-b2c', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                phoneNumber: phone || '254712345678',
+                amount: parseFloat(amount) || 10,
+                remarks: 'Test B2C Payment',
+                occasion: 'Testing'
+            })
+        });
+        
+        const result = await response.json();
+        logResult(`ℹ️ ${result.message}`, 'info');
+        logResult(`Note: ${result.note}`, 'info');
+    } catch (error) {
+        logResult(`💥 B2C test error: ${error.message}`, 'error');
+    }
+}
+
+async function testLaravelStkPush() {
+    const phone = document.getElementById('testPhone').value;
+    const amount = document.getElementById('testAmount').value;
+    
+    if (!phone || !amount) {
+        logResult('❌ Please enter phone number and amount', 'error');
+        return;
+    }
+    
+    logResult(`🚀 Testing Laravel-style STK Push to ${phone} for KSh ${amount}...`);
+    
+    try {
+        const response = await fetch('/api/MpesaTest/test-laravel-stk', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                phoneNumber: phone,
+                amount: parseFloat(amount)
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            logResult(`✅ Laravel-style STK Push completed successfully`, 'success');
+            logResult(`Response: ${JSON.stringify(result.data, null, 2)}`, 'info');
+        } else {
+            logResult(`❌ Laravel-style STK Push failed: ${result.message}`, 'error');
+            if (result.error) {
+                logResult(`Error details: ${result.error}`, 'error');
+            }
+        }
+    } catch (error) {
+        logResult(`💥 Laravel-style STK Push error: ${error.message}`, 'error');
+    }
+}
+
+async function testMpesaMiddleware() {
+    logResult('🔧 Testing M-Pesa middleware token injection...');
+    
+    try {
+        const response = await fetch('/api/MpesaPayment/test-token');
+        const result = await response.json();
+        
+        if (result.success) {
+            logResult(`✅ Middleware test successful: ${result.message}`, 'success');
+            logResult(`Token preview: ${result.tokenPreview}`, 'info');
+        } else {
+            logResult(`❌ Middleware test failed: ${result.message}`, 'error');
+        }
+    } catch (error) {
+        logResult(`💥 Middleware test error: ${error.message}`, 'error');
+    }
+}
+
+function clearResults() {
+    document.getElementById('testResults').innerHTML = 'Ready for testing...';
 }
 </script>

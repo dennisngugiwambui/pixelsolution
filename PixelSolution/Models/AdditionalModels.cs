@@ -416,4 +416,29 @@ namespace PixelSolution.Models
         [ForeignKey("ProductId")]
         public virtual Product Product { get; set; } = null!;
     }
+
+    public class MpesaToken
+    {
+        [Key]
+        public int MpesaTokenId { get; set; }
+
+        [Required]
+        [StringLength(500)]
+        public string AccessToken { get; set; } = string.Empty;
+
+        [Required]
+        public DateTime ExpiresAt { get; set; }
+
+        [Required]
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        [StringLength(100)]
+        public string TokenType { get; set; } = "Bearer";
+
+        public bool IsActive { get; set; } = true;
+
+        // Helper method to check if token is still valid
+        [NotMapped]
+        public bool IsValid => IsActive && DateTime.UtcNow < ExpiresAt.AddMinutes(-5); // 5 minute buffer
+    }
 }

@@ -6,6 +6,7 @@ using PixelSolution.Services.Interfaces;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using PixelSolution.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -69,6 +70,9 @@ builder.Services.Configure<MpesaSettings>(builder.Configuration.GetSection("Mpes
 builder.Services.AddHttpClient<IMpesaService, MpesaService>();
 builder.Services.AddScoped<IMpesaService, MpesaService>();
 
+// Add HttpClient for M-Pesa middleware
+builder.Services.AddHttpClient();
+
 // Additional Services
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddMemoryCache();
@@ -113,6 +117,10 @@ app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseSession();
+
+// Configure M-Pesa middleware for specific routes (Laravel-style)
+app.UseWhen(context => context.Request.Path.StartsWithSegments("/api/MpesaPayment"), 
+    appBuilder => appBuilder.UseMiddleware<MpesaTokenMiddleware>());
 
 // Configure routing
 app.MapControllerRoute(

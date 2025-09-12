@@ -964,7 +964,73 @@
         }
 
         function exportSuppliers() {
-            showToast('Export functionality coming soon!', 'info');
+            // Show export options modal
+            const modal = document.createElement('div');
+            modal.className = 'modal fade';
+            modal.innerHTML = `
+                <div class="modal-dialog modal-sm">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Export Suppliers</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p>Choose export format:</p>
+                            <div class="d-grid gap-2">
+                                <button type="button" class="btn btn-primary" onclick="downloadSuppliers('pdf')">
+                                    <i class="fas fa-file-pdf me-2"></i>Export as PDF
+                                </button>
+                                <button type="button" class="btn btn-success" onclick="downloadSuppliers('excel')">
+                                    <i class="fas fa-file-excel me-2"></i>Export as Excel
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            const bootstrapModal = new bootstrap.Modal(modal);
+            bootstrapModal.show();
+            
+            // Clean up modal after it's hidden
+            modal.addEventListener('hidden.bs.modal', () => {
+                document.body.removeChild(modal);
+            });
+        }
+
+        function downloadSuppliers(format) {
+            try {
+                showToast(`Generating ${format.toUpperCase()} report...`, 'info');
+                
+                // Create a temporary link to trigger download
+                const link = document.createElement('a');
+                link.href = `/Admin/ExportSuppliers?format=${format}`;
+                link.download = `Suppliers_Report_${new Date().toISOString().split('T')[0]}.${format === 'excel' ? 'xlsx' : 'pdf'}`;
+                
+                // Append to body, click, and remove
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                // Close any open modals
+                const modals = document.querySelectorAll('.modal.show');
+                modals.forEach(modal => {
+                    const bootstrapModal = bootstrap.Modal.getInstance(modal);
+                    if (bootstrapModal) {
+                        bootstrapModal.hide();
+                    }
+                });
+                
+                // Show success message after a short delay
+                setTimeout(() => {
+                    showToast(`${format.toUpperCase()} report downloaded successfully!`, 'success');
+                }, 1000);
+                
+            } catch (error) {
+                console.error('Export error:', error);
+                showToast('Error exporting suppliers report', 'error');
+            }
         }
 
         // Form submission handler

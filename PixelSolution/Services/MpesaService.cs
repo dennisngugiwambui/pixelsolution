@@ -1,6 +1,9 @@
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Options;
+using Microsoft.EntityFrameworkCore;
+using PixelSolution.Data;
+using PixelSolution.Models;
 
 namespace PixelSolution.Services
 {
@@ -57,23 +60,40 @@ namespace PixelSolution.Services
         private readonly HttpClient _httpClient;
         private readonly MpesaSettings _settings;
         private readonly ILogger<MpesaService> _logger;
+        private readonly ApplicationDbContext _context;
 
-        public MpesaService(HttpClient httpClient, IOptions<MpesaSettings> settings, ILogger<MpesaService> logger)
+        public MpesaService(HttpClient httpClient, IOptions<MpesaSettings> settings, ILogger<MpesaService> logger, ApplicationDbContext context)
         {
             _httpClient = httpClient;
             _settings = settings.Value;
             _logger = logger;
+            _context = context;
         }
 
         public async Task<string> GetAccessTokenAsync()
         {
             try
             {
-                _logger.LogInformation("Getting MPESA access token...");
+                _logger.LogInformation("🔍 Checking for valid MPESA access token in database...");
+
+                // Check if we have a valid token in the database
+                var existingToken = await _context.MpesaTokens
+                    .Where(t => t.IsActive && t.ExpiresAt > DateTime.UtcNow.AddMinutes(5)) // 5 minute buffer
+                    .OrderByDescending(t => t.CreatedAt)
+                    .FirstOrDefaultAsync();
+
+                if (existingToken != null)
+                {
+                    _logger.LogInformation("✅ Valid token found in database, expires at: {ExpiresAt}", existingToken.ExpiresAt);
+                    return existingToken.AccessToken;
+                }
+
+                _logger.LogInformation("⚠️ No valid token found, generating new MPESA access token...");
                 _logger.LogInformation("MPESA Config - BaseUrl: {BaseUrl}, ConsumerKey: {ConsumerKey}, ConsumerSecret: {ConsumerSecret}", 
                     _settings.BaseUrl, _settings.ConsumerKey?.Substring(0, Math.Min(8, _settings.ConsumerKey.Length)) + "...", 
                     _settings.ConsumerSecret?.Substring(0, Math.Min(4, _settings.ConsumerSecret.Length)) + "...");
 
+                // Generate Base64 encoded credentials (consumer_key:consumer_secret)
                 var credentials = Convert.ToBase64String(Encoding.UTF8.GetBytes($"{_settings.ConsumerKey}:{_settings.ConsumerSecret}"));
                 var requestUrl = $"{_settings.BaseUrl}/oauth/v1/generate?grant_type=client_credentials";
                 
@@ -91,13 +111,48 @@ namespace PixelSolution.Services
 
                 if (response.IsSuccessStatusCode)
                 {
-                    _logger.LogInformation("Access token obtained successfully");
+                    _logger.LogInformation("✅ Access token obtained successfully from API");
                     var tokenResponse = JsonSerializer.Deserialize<MpesaTokenResponse>(content);
-                    return tokenResponse?.access_token ?? string.Empty;
+                    var accessToken = tokenResponse?.access_token ?? string.Empty;
+                    
+                    if (!string.IsNullOrEmpty(accessToken))
+                    {
+                        // Parse expires_in (usually in seconds) and calculate expiration time
+                        var expiresInSeconds = int.TryParse(tokenResponse.expires_in, out var seconds) ? seconds : 3600; // Default 1 hour
+                        var expiresAt = DateTime.UtcNow.AddSeconds(expiresInSeconds);
+
+                        // Deactivate old tokens
+                        var oldTokens = await _context.MpesaTokens
+                            .Where(t => t.IsActive)
+                            .ToListAsync();
+                        
+                        foreach (var oldToken in oldTokens)
+                        {
+                            oldToken.IsActive = false;
+                        }
+
+                        // Save new token to database
+                        var newToken = new MpesaToken
+                        {
+                            AccessToken = accessToken,
+                            ExpiresAt = expiresAt,
+                            TokenType = "Bearer",
+                            IsActive = true,
+                            CreatedAt = DateTime.UtcNow
+                        };
+
+                        _context.MpesaTokens.Add(newToken);
+                        await _context.SaveChangesAsync();
+
+                        _logger.LogInformation("💾 Token saved to database, expires at: {ExpiresAt}", expiresAt);
+                        return accessToken;
+                    }
+                    
+                    throw new Exception("Empty access token received from MPESA API");
                 }
                 else
                 {
-                    _logger.LogError("Failed to get access token. Status: {StatusCode}, Response: {Response}", response.StatusCode, content);
+                    _logger.LogError("❌ Failed to get access token. Status: {StatusCode}, Response: {Response}", response.StatusCode, content);
                     _logger.LogError("Request URL was: {RequestUrl}", requestUrl);
                     _logger.LogError("Authorization header: Basic {AuthHeader}", credentials.Substring(0, Math.Min(20, credentials.Length)) + "...");
                     

@@ -5030,11 +5030,27 @@ namespace PixelSolution.Controllers
                 var currentUserId = GetCurrentUserId();
 
                 _logger.LogInformation("⚡ Sending quick message from {FromUserId} to {ToUserId}", currentUserId, model.ToUserId);
+                _logger.LogInformation("📝 Message details: Subject='{Subject}', Content='{Content}', Type='{MessageType}'", 
+                    model.Subject, model.Content?.Substring(0, Math.Min(50, model.Content?.Length ?? 0)), model.MessageType);
 
                 if (!ModelState.IsValid)
                 {
                     var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage);
+                    _logger.LogWarning("❌ Model validation failed: {Errors}", string.Join("; ", errors));
                     return Json(new { success = false, message = string.Join("; ", errors) });
+                }
+
+                // Additional validation
+                if (model.ToUserId <= 0)
+                {
+                    _logger.LogWarning("❌ Invalid ToUserId: {ToUserId}", model.ToUserId);
+                    return Json(new { success = false, message = "Invalid recipient user ID" });
+                }
+
+                if (string.IsNullOrWhiteSpace(model.Content))
+                {
+                    _logger.LogWarning("❌ Empty message content");
+                    return Json(new { success = false, message = "Message content cannot be empty" });
                 }
 
                 var message = new Message
@@ -5048,6 +5064,7 @@ namespace PixelSolution.Controllers
                     IsRead = false
                 };
 
+                _logger.LogInformation("📤 Attempting to send message via MessageService");
                 var sentMessage = await _messageService.SendMessageAsync(message);
 
                 if (sentMessage != null)
@@ -5067,13 +5084,15 @@ namespace PixelSolution.Controllers
                 }
                 else
                 {
-                    return Json(new { success = false, message = "Failed to send message." });
+                    _logger.LogError("❌ MessageService returned null - message not sent");
+                    return Json(new { success = false, message = "Failed to send message - service returned null." });
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "❌ Error sending quick message");
-                return Json(new { success = false, message = "Error sending message." });
+                _logger.LogError(ex, "❌ Error sending quick message - Exception details: {Message}", ex.Message);
+                _logger.LogError("❌ Stack trace: {StackTrace}", ex.StackTrace);
+                return Json(new { success = false, message = $"Error sending message: {ex.Message}" });
             }
         }
 
@@ -8694,6 +8713,293 @@ namespace PixelSolution.Controllers
                 TempData["Error"] = "Error exporting products to PDF.";
                 return RedirectToAction("Products");
             }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> ExportSuppliers(string format = "pdf")
+        {
+            try
+            {
+                _logger.LogInformation("📤 Exporting suppliers report in {Format} format", format);
+
+                // Log the export activity
+                var userId = GetCurrentUserId();
+                var ipAddress = GetClientIpAddress();
+                var userAgent = HttpContext.Request.Headers["User-Agent"].ToString();
+                
+                await _activityLogService.LogActivityAsync(
+                    userId, 
+                    ActivityTypes.ReportExport, 
+                    $"Exported suppliers report in {format.ToUpper()} format",
+                    "Report",
+                    null,
+                    new { ReportType = "Suppliers", Format = format.ToUpper() },
+                    ipAddress,
+                    userAgent
+                );
+
+                var suppliers = await _supplierService.GetAllSuppliersAsync();
+                
+                if (format.ToLower() == "excel")
+                {
+                    var excelData = await GenerateSuppliersExcelReport(suppliers);
+                    var fileName = $"Suppliers_Report_{DateTime.Now:yyyyMMdd}.xlsx";
+                    var contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+
+                    _logger.LogInformation("✅ Suppliers Excel report generated: {FileName}", fileName);
+                    return File(excelData, contentType, fileName);
+                }
+                else
+                {
+                    var pdfData = await GenerateSuppliersPdfReport(suppliers);
+                    var fileName = $"Suppliers_Report_{DateTime.Now:yyyyMMdd}.pdf";
+                    var contentType = "application/pdf";
+
+                    _logger.LogInformation("✅ Suppliers PDF report generated: {FileName}", fileName);
+                    return File(pdfData, contentType, fileName);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Error exporting suppliers report");
+                return Json(new { success = false, message = "Error exporting suppliers report: " + ex.Message });
+            }
+        }
+
+        private async Task<byte[]> GenerateSuppliersPdfReport(IEnumerable<Supplier> suppliers)
+        {
+            using var stream = new MemoryStream();
+            var document = new Document(PageSize.A4, 25, 25, 30, 30);
+            var writer = PdfWriter.GetInstance(document, stream);
+            
+            document.Open();
+
+            // Company Header
+            var headerFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 20, BaseColor.DARK_GRAY);
+            var header = new Paragraph("PIXEL SOLUTION COMPANY LTD", headerFont)
+            {
+                Alignment = Element.ALIGN_CENTER,
+                SpacingAfter = 10
+            };
+            document.Add(header);
+
+            // Report Title
+            var titleFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 16, BaseColor.BLACK);
+            var title = new Paragraph("SUPPLIERS REPORT", titleFont)
+            {
+                Alignment = Element.ALIGN_CENTER,
+                SpacingAfter = 20
+            };
+            document.Add(title);
+
+            // Generation Info
+            var infoFont = FontFactory.GetFont(FontFactory.HELVETICA, 10, BaseColor.GRAY);
+            var info = new Paragraph($"Generated on: {DateTime.Now:yyyy-MM-dd HH:mm:ss}", infoFont)
+            {
+                Alignment = Element.ALIGN_RIGHT,
+                SpacingAfter = 20
+            };
+            document.Add(info);
+
+            // Summary Statistics
+            var summaryFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 12);
+            var summaryTable = new PdfPTable(4) { WidthPercentage = 100, SpacingAfter = 20 };
+            summaryTable.SetWidths(new float[] { 1f, 1f, 1f, 1f });
+
+            // Summary headers
+            var headerCellFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 10, BaseColor.WHITE);
+            var headerCell = new PdfPCell(new Phrase("Total Suppliers", headerCellFont))
+            {
+                BackgroundColor = new BaseColor(139, 92, 246),
+                HorizontalAlignment = Element.ALIGN_CENTER,
+                Padding = 8
+            };
+            summaryTable.AddCell(headerCell);
+
+            headerCell = new PdfPCell(new Phrase("Active Suppliers", headerCellFont))
+            {
+                BackgroundColor = new BaseColor(139, 92, 246),
+                HorizontalAlignment = Element.ALIGN_CENTER,
+                Padding = 8
+            };
+            summaryTable.AddCell(headerCell);
+
+            headerCell = new PdfPCell(new Phrase("Inactive Suppliers", headerCellFont))
+            {
+                BackgroundColor = new BaseColor(139, 92, 246),
+                HorizontalAlignment = Element.ALIGN_CENTER,
+                Padding = 8
+            };
+            summaryTable.AddCell(headerCell);
+
+            headerCell = new PdfPCell(new Phrase("This Month", headerCellFont))
+            {
+                BackgroundColor = new BaseColor(139, 92, 246),
+                HorizontalAlignment = Element.ALIGN_CENTER,
+                Padding = 8
+            };
+            summaryTable.AddCell(headerCell);
+
+            // Summary data
+            var dataFont = FontFactory.GetFont(FontFactory.HELVETICA, 10);
+            var totalSuppliers = suppliers.Count();
+            var activeSuppliers = suppliers.Count(s => s.Status.Equals("Active", StringComparison.OrdinalIgnoreCase));
+            var inactiveSuppliers = totalSuppliers - activeSuppliers;
+            var thisMonthSuppliers = suppliers.Count(s => s.CreatedAt.Month == DateTime.Now.Month && s.CreatedAt.Year == DateTime.Now.Year);
+
+            summaryTable.AddCell(new PdfPCell(new Phrase(totalSuppliers.ToString(), dataFont)) { HorizontalAlignment = Element.ALIGN_CENTER, Padding = 8 });
+            summaryTable.AddCell(new PdfPCell(new Phrase(activeSuppliers.ToString(), dataFont)) { HorizontalAlignment = Element.ALIGN_CENTER, Padding = 8 });
+            summaryTable.AddCell(new PdfPCell(new Phrase(inactiveSuppliers.ToString(), dataFont)) { HorizontalAlignment = Element.ALIGN_CENTER, Padding = 8 });
+            summaryTable.AddCell(new PdfPCell(new Phrase(thisMonthSuppliers.ToString(), dataFont)) { HorizontalAlignment = Element.ALIGN_CENTER, Padding = 8 });
+
+            document.Add(summaryTable);
+
+            // Suppliers Table
+            var table = new PdfPTable(6) { WidthPercentage = 100 };
+            table.SetWidths(new float[] { 2f, 1.5f, 2f, 1.5f, 2f, 1f });
+
+            // Table headers
+            var tableHeaders = new[] { "Company Name", "Contact Person", "Email", "Phone", "Address", "Status" };
+            foreach (var headerText in tableHeaders)
+            {
+                var cell = new PdfPCell(new Phrase(headerText, headerCellFont))
+                {
+                    BackgroundColor = new BaseColor(139, 92, 246),
+                    HorizontalAlignment = Element.ALIGN_CENTER,
+                    Padding = 8
+                };
+                table.AddCell(cell);
+            }
+
+            // Table data
+            var cellFont = FontFactory.GetFont(FontFactory.HELVETICA, 9);
+            foreach (var supplier in suppliers.OrderBy(s => s.CompanyName))
+            {
+                table.AddCell(new PdfPCell(new Phrase(supplier.CompanyName ?? "", cellFont)) { Padding = 6 });
+                table.AddCell(new PdfPCell(new Phrase(supplier.ContactPerson ?? "", cellFont)) { Padding = 6 });
+                table.AddCell(new PdfPCell(new Phrase(supplier.Email ?? "", cellFont)) { Padding = 6 });
+                table.AddCell(new PdfPCell(new Phrase(supplier.Phone ?? "", cellFont)) { Padding = 6 });
+                table.AddCell(new PdfPCell(new Phrase(supplier.Address ?? "N/A", cellFont)) { Padding = 6 });
+                
+                var statusColor = supplier.Status.Equals("Active", StringComparison.OrdinalIgnoreCase) 
+                    ? BaseColor.GREEN : BaseColor.RED;
+                var statusCell = new PdfPCell(new Phrase(supplier.Status ?? "Unknown", cellFont))
+                {
+                    Padding = 6,
+                    HorizontalAlignment = Element.ALIGN_CENTER
+                };
+                statusCell.Phrase.Font.Color = statusColor;
+                table.AddCell(statusCell);
+            }
+
+            document.Add(table);
+
+            // Footer
+            var footerFont = FontFactory.GetFont(FontFactory.HELVETICA, 8, BaseColor.GRAY);
+            var footer = new Paragraph($"Report generated by PixelSolution POS System on {DateTime.Now:yyyy-MM-dd HH:mm:ss}", footerFont)
+            {
+                Alignment = Element.ALIGN_CENTER,
+                SpacingBefore = 20
+            };
+            document.Add(footer);
+
+            document.Close();
+            return stream.ToArray();
+        }
+
+        private async Task<byte[]> GenerateSuppliersExcelReport(IEnumerable<Supplier> suppliers)
+        {
+            using var workbook = new ClosedXML.Excel.XLWorkbook();
+            var worksheet = workbook.Worksheets.Add("Suppliers");
+
+            // Company Header
+            worksheet.Range("A1:G1").Merge().Value = "PIXEL SOLUTION COMPANY LTD";
+            worksheet.Range("A1:G1").Style.Font.Bold = true;
+            worksheet.Range("A1:G1").Style.Font.FontSize = 16;
+            worksheet.Range("A1:G1").Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+            worksheet.Range("A1:G1").Style.Fill.BackgroundColor = XLColor.LightBlue;
+
+            // Report Title
+            worksheet.Range("A2:G2").Merge().Value = "SUPPLIERS REPORT";
+            worksheet.Range("A2:G2").Style.Font.Bold = true;
+            worksheet.Range("A2:G2").Style.Font.FontSize = 14;
+            worksheet.Range("A2:G2").Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+
+            // Generation Info
+            worksheet.Range("A3:G3").Merge().Value = $"Generated on: {DateTime.Now:yyyy-MM-dd HH:mm:ss}";
+            worksheet.Range("A3:G3").Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Right;
+
+            // Summary Statistics
+            var totalSuppliers = suppliers.Count();
+            var activeSuppliers = suppliers.Count(s => s.Status.Equals("Active", StringComparison.OrdinalIgnoreCase));
+            var inactiveSuppliers = totalSuppliers - activeSuppliers;
+            var thisMonthSuppliers = suppliers.Count(s => s.CreatedAt.Month == DateTime.Now.Month && s.CreatedAt.Year == DateTime.Now.Year);
+
+            worksheet.Cell("A5").Value = "Summary Statistics";
+            worksheet.Range("A5:G5").Style.Font.Bold = true;
+            worksheet.Range("A5:G5").Style.Fill.BackgroundColor = XLColor.LightGray;
+
+            worksheet.Cell("A6").Value = "Total Suppliers:";
+            worksheet.Cell("B6").Value = totalSuppliers;
+            worksheet.Cell("C6").Value = "Active Suppliers:";
+            worksheet.Cell("D6").Value = activeSuppliers;
+            worksheet.Cell("E6").Value = "Inactive Suppliers:";
+            worksheet.Cell("F6").Value = inactiveSuppliers;
+
+            // Headers
+            var headerRow = 8;
+            worksheet.Cell(headerRow, 1).Value = "Company Name";
+            worksheet.Cell(headerRow, 2).Value = "Contact Person";
+            worksheet.Cell(headerRow, 3).Value = "Email";
+            worksheet.Cell(headerRow, 4).Value = "Phone";
+            worksheet.Cell(headerRow, 5).Value = "Address";
+            worksheet.Cell(headerRow, 6).Value = "Status";
+            worksheet.Cell(headerRow, 7).Value = "Created Date";
+
+            // Style headers
+            var headerRange = worksheet.Range($"A{headerRow}:G{headerRow}");
+            headerRange.Style.Font.Bold = true;
+            headerRange.Style.Fill.BackgroundColor = XLColor.DarkBlue;
+            headerRange.Style.Font.FontColor = XLColor.White;
+            headerRange.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+
+            // Data
+            var currentRow = headerRow + 1;
+            foreach (var supplier in suppliers.OrderBy(s => s.CompanyName))
+            {
+                worksheet.Cell(currentRow, 1).Value = supplier.CompanyName ?? "";
+                worksheet.Cell(currentRow, 2).Value = supplier.ContactPerson ?? "";
+                worksheet.Cell(currentRow, 3).Value = supplier.Email ?? "";
+                worksheet.Cell(currentRow, 4).Value = supplier.Phone ?? "";
+                worksheet.Cell(currentRow, 5).Value = supplier.Address ?? "N/A";
+                worksheet.Cell(currentRow, 6).Value = supplier.Status ?? "Unknown";
+                worksheet.Cell(currentRow, 7).Value = supplier.CreatedAt.ToString("yyyy-MM-dd");
+
+                // Color code status
+                var statusCell = worksheet.Cell(currentRow, 6);
+                if (supplier.Status?.Equals("Active", StringComparison.OrdinalIgnoreCase) == true)
+                {
+                    statusCell.Style.Font.FontColor = XLColor.Green;
+                }
+                else
+                {
+                    statusCell.Style.Font.FontColor = XLColor.Red;
+                }
+
+                currentRow++;
+            }
+
+            // Auto-fit columns
+            worksheet.Columns().AdjustToContents();
+
+            // Add borders to data
+            var dataRange = worksheet.Range($"A{headerRow}:G{currentRow - 1}");
+            dataRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+            dataRange.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+
+            using var stream = new MemoryStream();
+            workbook.SaveAs(stream);
+            return stream.ToArray();
         }
 
         #endregion

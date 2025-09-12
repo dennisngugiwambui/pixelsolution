@@ -1289,6 +1289,8 @@
         let messagePollingInterval;
         let lastMessageId = 0;
         let isLoadingConversation = false;
+        
+        console.log('Current User ID initialized:', currentUserId);
 
         // Initialize page
         document.addEventListener('DOMContentLoaded', function() {
@@ -1612,6 +1614,11 @@
             const sendBtn = document.getElementById('sendBtn');
 
             if (!messageInput || !currentSelectedUserId || messageInput.value.trim() === '') {
+                console.warn('Send message validation failed:', {
+                    messageInput: !!messageInput,
+                    currentSelectedUserId: currentSelectedUserId,
+                    messageValue: messageInput?.value?.trim()
+                });
                 return;
             }
 
@@ -1620,6 +1627,12 @@
             try {
                 sendBtn.disabled = true;
                 sendBtn.innerHTML = '<div class="loading-spinner"></div>';
+
+                console.log('=== SENDING MESSAGE DEBUG ===');
+                console.log('Current User ID:', currentUserId);
+                console.log('Selected User ID:', currentSelectedUserId);
+                console.log('Message content:', messageContent);
+                console.log('Anti-forgery token length:', getAntiForgeryToken().length);
 
                 const response = await fetch('/Admin/SendQuickMessage', {
                     method: 'POST',
@@ -1635,20 +1648,38 @@
                     })
                 });
 
+                console.log('Response status:', response.status);
+                console.log('Response headers:', response.headers);
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('HTTP Error:', response.status, errorText);
+                    throw new Error(`HTTP ${response.status}: ${errorText}`);
+                }
+
                 const result = await response.json();
+                console.log('Response result:', result);
 
                 if (result.success) {
                     messageInput.value = '';
                     autoResizeTextarea(messageInput);
 
-                    // Add message to UI immediately with proper ID
+                    // Add message to UI immediately with proper ID and explicit flags
                     const newMessage = {
-                        messageId: result.messageId,
+                        messageId: result.messageId || Date.now(),
                         content: messageContent,
                         sentDate: new Date().toISOString(),
-                        isFromCurrentUser: true,
-                        isRead: false
+                        isFromCurrentUser: true, // Explicitly set to true for sent messages
+                        isRead: false,
+                        fromUserId: currentUserId,
+                        toUserId: currentSelectedUserId
                     };
+                    
+                    console.log('=== SENDING MESSAGE - ADDING TO UI ===');
+                    console.log('Message object:', newMessage);
+                    console.log('isFromCurrentUser:', newMessage.isFromCurrentUser);
+                    console.log('fromUserId:', newMessage.fromUserId);
+                    console.log('currentUserId:', currentUserId);
                     
                     addMessageToUI(newMessage);
                     scrollToLatestMessage();
@@ -1657,13 +1688,23 @@
                     if (!window.sentMessages) window.sentMessages = new Map();
                     window.sentMessages.set(result.messageId, newMessage);
                     
+                    // Refresh conversations list to update last message
+                    setTimeout(() => {
+                        refreshConversationsList();
+                    }, 500);
+                    
                     showToast('Message sent!', 'success');
                 } else {
                     showToast(result.message || 'Error sending message', 'error');
                 }
             } catch (error) {
                 console.error('Error sending message:', error);
-                showToast('Error sending message', 'error');
+                console.error('Full error details:', {
+                    message: error.message,
+                    stack: error.stack,
+                    response: error.response
+                });
+                showToast(`Error sending message: ${error.message}`, 'error');
             } finally {
                 sendBtn.disabled = false;
                 sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i>';
@@ -1680,34 +1721,58 @@
                 return;
             }
 
+            // Determine if message is from current user - FORCE check the explicit flag first
+            let isFromCurrentUser;
+            if (message.isFromCurrentUser === true) {
+                isFromCurrentUser = true;
+            } else if (message.isFromCurrentUser === false) {
+                isFromCurrentUser = false;
+            } else {
+                isFromCurrentUser = (message.fromUserId === currentUserId);
+            }
+
+            console.log('=== ADD MESSAGE TO UI DEBUG ===');
+            console.log('Message ID:', message.messageId);
+            console.log('message.isFromCurrentUser:', message.isFromCurrentUser);
+            console.log('message.fromUserId:', message.fromUserId);
+            console.log('currentUserId:', currentUserId);
+            console.log('FINAL isFromCurrentUser:', isFromCurrentUser);
+            console.log('Will add CSS class:', isFromCurrentUser ? 'sent' : 'received');
+
             const messageElement = document.createElement('div');
-            messageElement.className = `message ${message.isFromCurrentUser ? 'sent' : 'received'}`;
+            messageElement.className = `message-bubble ${isFromCurrentUser ? 'sent' : 'received'} new-message`;
             messageElement.setAttribute('data-message-id', message.messageId);
             messageElement.setAttribute('data-from-user-id', message.fromUserId || '');
 
             const subjectHtml = message.subject ? 
-                `<div class="message-subject">${escapeHtml(message.subject)}</div>` : '';
+                `<div style="font-weight: 600; margin-bottom: 0.5rem; font-size: 0.9rem; opacity: 0.8;">${escapeHtml(message.subject)}</div>` : '';
+
+            const statusHtml = isFromCurrentUser ?
+                `<span class="message-status" data-message-id="${message.messageId}">
+                    ${message.isRead ?
+                        '<i class="fas fa-check-double" title="Read"></i>' :
+                        '<i class="fas fa-check" title="Delivered"></i>'}
+                </span>` : '';
 
             const messageContent = `
-                <div class="message-content">
-                    ${subjectHtml}
-                    <div class="message-text">${escapeHtml(message.content)}</div>
-                    <div class="message-meta">
-                        <span class="message-time">${formatMessageTime(message.sentDate)}</span>
-                        ${message.isFromCurrentUser ? 
-                            `<span class="message-status">
-                                <i class="fas ${message.isRead ? 'fa-check-double text-primary' : 'fa-check'} text-muted"></i>
-                            </span>` : ''
-                        }
-                    </div>
+                ${subjectHtml}
+                <div class="message-content">${escapeHtml(message.content)}</div>
+                <div class="message-meta">
+                    <span class="message-time">${formatTime(message.sentDate)}</span>
+                    ${statusHtml}
                 </div>
             `;
 
             messageElement.innerHTML = messageContent;
             messagesContainer.appendChild(messageElement);
             
+            // Remove new-message class after animation
+            setTimeout(() => {
+                messageElement.classList.remove('new-message');
+            }, 400);
+            
             // Auto-mark as read if it's a received message in the current conversation
-            if (!message.isFromCurrentUser && !message.isRead) {
+            if (!isFromCurrentUser && !message.isRead) {
                 setTimeout(() => {
                     markMessagesAsRead(message.fromUserId || currentSelectedUserId);
                 }, 1000);
@@ -1893,20 +1958,25 @@
                             showToast('Message sent successfully!', 'success');
                             closeNewMessageModal();
 
-                            // If sent to current conversation, add to UI
+                            // If sent to current conversation, add to UI with explicit flags
                             if (messageData.ToUserId === currentSelectedUserId) {
                                 addMessageToUI({
                                     messageId: result.messageId || Date.now(),
                                     content: messageData.Content,
                                     subject: messageData.Subject,
                                     sentDate: new Date().toISOString(),
-                                    isFromCurrentUser: true,
-                                    isRead: false
+                                    isFromCurrentUser: true, // Explicitly set to true for sent messages
+                                    isRead: false,
+                                    fromUserId: currentUserId,
+                                    toUserId: messageData.ToUserId
                                 });
                                 scrollToLatestMessage();
                             }
 
-                            refreshConversationsList();
+                            // Always refresh conversations list
+                            setTimeout(() => {
+                                refreshConversationsList();
+                            }, 500);
                         } else {
                             showToast(result.message || 'Error sending message', 'error');
                         }
@@ -1956,24 +2026,21 @@
             }
         }
 
-        // Global Message Polling for Real-time Updates
+        // Enhanced Global Message Polling for Real-time Updates
         function startGlobalMessagePolling() {
             if (messagePollingInterval) {
                 clearInterval(messagePollingInterval);
             }
 
-            console.log('Starting global message polling...');
+            console.log('Starting enhanced global message polling...');
             
             messagePollingInterval = setInterval(async () => {
                 try {
-                    console.log('Polling for new messages...');
-                    
                     // Use Admin endpoint with correct parameter name
                     const response = await fetch(`/Admin/CheckNewMessages?lastMessageId=${lastMessageId}`);
                     
                     if (response.ok) {
                         const data = await response.json();
-                        console.log('Polling response:', data);
                         
                         if (data.success) {
                             // Update unread count badge immediately
@@ -1984,13 +2051,12 @@
                                 console.log('Found new messages:', data.newMessages.length);
                                 
                                 data.newMessages.forEach(message => {
-                                    console.log('Processing message:', message);
-                                    
-                                    // Show in current conversation if it matches, or update conversations list
-                                    if (currentSelectedUserId > 0 && 
+                                    // Check if message is for current conversation
+                                    const isCurrentConversation = currentSelectedUserId > 0 && 
                                         ((message.fromUserId === currentSelectedUserId && message.toUserId === currentUserId) ||
-                                         (message.fromUserId === currentUserId && message.toUserId === currentSelectedUserId))) {
-                                        
+                                         (message.fromUserId === currentUserId && message.toUserId === currentSelectedUserId));
+                                    
+                                    if (isCurrentConversation) {
                                         console.log('Adding message to current conversation');
                                         addMessageToUI({
                                             messageId: message.messageId,
@@ -1998,25 +2064,22 @@
                                             subject: message.subject,
                                             sentDate: message.sentDate,
                                             isFromCurrentUser: message.fromUserId === currentUserId,
+                                            fromUserId: message.fromUserId,
+                                            toUserId: message.toUserId,
                                             isRead: message.isRead
                                         });
                                         scrollToLatestMessage();
-
-                                        // Only show notification for received messages if conversation is not currently open
-                                        if (message.fromUserId !== currentUserId && message.fromUserId !== currentSelectedUserId) {
-                                            showToast(`New message from ${message.fromUserName}`, 'info');
-                                        }
                                         
-                                        // Auto-mark as read if conversation is currently open
-                                        if (message.fromUserId === currentSelectedUserId && message.toUserId === currentUserId) {
+                                        // Auto-mark received messages as read
+                                        if (message.fromUserId !== currentUserId && !message.isRead) {
                                             setTimeout(() => {
-                                                markMessagesAsRead(currentSelectedUserId);
-                                            }, 500);
+                                                markMessagesAsRead(message.fromUserId);
+                                            }, 1000);
                                         }
                                     } else {
                                         // Show notification for messages from other conversations
                                         if (message.fromUserId !== currentUserId) {
-                                            showToast(`New message from ${message.fromUserName}`, 'info');
+                                            showToast(`New message from ${message.fromUserName || 'User'}`, 'info');
                                         }
                                     }
                                 });
@@ -2045,7 +2108,7 @@
                 } catch (error) {
                     console.error('Error polling for updates:', error);
                 }
-            }, 3000); // Poll every 3 seconds
+            }, 2000); // Poll every 2 seconds for faster real-time updates
         }
 
         // Start conversation-specific polling when a conversation is selected
@@ -2271,9 +2334,39 @@
             return div.innerHTML;
         }
 
+        function formatMessageTime(dateString) {
+            if (!dateString) return '';
+            
+            try {
+                const date = new Date(dateString);
+                const now = new Date();
+                const diffMs = now - date;
+                const diffMins = Math.floor(diffMs / 60000);
+                const diffHours = Math.floor(diffMs / 3600000);
+                const diffDays = Math.floor(diffMs / 86400000);
+
+                if (diffMins < 1) return 'Just now';
+                if (diffMins < 60) return `${diffMins}m ago`;
+                if (diffHours < 24) return `${diffHours}h ago`;
+                if (diffDays < 7) return `${diffDays}d ago`;
+                
+                return date.toLocaleDateString();
+            } catch (error) {
+                console.error('Error formatting message time:', error);
+                return '';
+            }
+        }
+
         function getAntiForgeryToken() {
             const token = document.querySelector('input[name="__RequestVerificationToken"]');
-            return token ? token.value : '';
+            console.log('Anti-forgery token element found:', !!token);
+            if (token) {
+                console.log('Token value length:', token.value.length);
+                return token.value;
+            } else {
+                console.error('Anti-forgery token not found in DOM');
+                return '';
+            }
         }
 
         function showToast(message, type = 'info') {

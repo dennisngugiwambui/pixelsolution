@@ -21,6 +21,7 @@ namespace PixelSolution.Data
         public DbSet<PurchaseRequestItem> PurchaseRequestItems { get; set; }
         public DbSet<Message> Messages { get; set; }
         public DbSet<MpesaTransaction> MpesaTransactions { get; set; }
+        public DbSet<MpesaToken> MpesaTokens { get; set; }
         public DbSet<UserDepartment> UserDepartments { get; set; }
         public DbSet<UserActivityLog> UserActivityLogs { get; set; }
         
@@ -470,6 +471,20 @@ namespace PixelSolution.Data
             modelBuilder.Entity<Wishlist>()
                 .HasIndex(w => new { w.CustomerId, w.ProductId })
                 .IsUnique();
+
+            // Configure MpesaToken
+            modelBuilder.Entity<MpesaToken>()
+                .Property(mt => mt.CreatedAt)
+                .HasDefaultValueSql("GETUTCDATE()");
+
+            modelBuilder.Entity<MpesaToken>()
+                .HasIndex(mt => mt.CreatedAt);
+
+            modelBuilder.Entity<MpesaToken>()
+                .HasIndex(mt => mt.ExpiresAt);
+
+            modelBuilder.Entity<MpesaToken>()
+                .HasIndex(mt => mt.IsActive);
         }
     }
 }
