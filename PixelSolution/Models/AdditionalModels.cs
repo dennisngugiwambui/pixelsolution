@@ -432,13 +432,46 @@ namespace PixelSolution.Models
         [Required]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
-        [StringLength(100)]
+        [StringLength(50)]
         public string TokenType { get; set; } = "Bearer";
 
         public bool IsActive { get; set; } = true;
 
         // Helper method to check if token is still valid
         [NotMapped]
-        public bool IsValid => IsActive && DateTime.UtcNow < ExpiresAt.AddMinutes(-5); // 5 minute buffer
+        public bool IsValid => IsActive && ExpiresAt > DateTime.UtcNow;
+    }
+
+    public class PaymentRequest
+    {
+        [Required]
+        [StringLength(15)]
+        public string PhoneNumber { get; set; } = string.Empty;
+
+        [Required]
+        [Range(1, 70000)]
+        public decimal Amount { get; set; }
+
+        [StringLength(100)]
+        public string? AccountReference { get; set; }
+
+        [StringLength(200)]
+        public string? TransactionDesc { get; set; }
+
+        [StringLength(100)]
+        public string? CustomerName { get; set; }
+
+        [StringLength(100)]
+        public string? CustomerEmail { get; set; }
+
+        public List<PaymentSaleItem>? SaleItems { get; set; }
+    }
+
+    public class PaymentSaleItem
+    {
+        public int ProductId { get; set; }
+        public int Quantity { get; set; }
+        public decimal UnitPrice { get; set; }
+        public decimal TotalPrice { get; set; }
     }
 }

@@ -72,58 +72,91 @@ namespace PixelSolution.Controllers
                 _logger.LogInformation("🧪 Testing Laravel-style STK Push for {PhoneNumber}, Amount: {Amount}", 
                     request.PhoneNumber, request.Amount);
 
-                // Validate phone number format
-                if (!request.PhoneNumber.StartsWith("254") || request.PhoneNumber.Length != 12)
-                {
-                    return BadRequest(new
-                    {
-                        success = false,
-                        message = "Phone number must be in format 254XXXXXXXXX (12 digits)"
-                    });
-                }
-
-                // Validate amount
-                if (request.Amount < 1 || request.Amount > 70000)
-                {
-                    return BadRequest(new
-                    {
-                        success = false,
-                        message = "Amount must be between KSh 1 and KSh 70,000"
-                    });
-                }
-
-                // Call the Laravel-style payment endpoint
+                // Call the Laravel-style MpesaPaymentController endpoint
                 using var httpClient = new HttpClient();
+                
+                // Get the base URL from the current request
+                var baseUrl = $"{Request.Scheme}://{Request.Host}";
+                var paymentUrl = $"{baseUrl}/api/MpesaPayment/payments";
+
+                // Create a comprehensive payment request with sample products
                 var paymentRequest = new
                 {
-                    phoneNumber = request.PhoneNumber,
-                    amount = request.Amount,
-                    accountReference = "TEST001",
-                    transactionDesc = "Test Payment"
+                    PhoneNumber = request.PhoneNumber,
+                    Amount = request.Amount,
+                    AccountReference = "TEST-LARAVEL-DB",
+                    TransactionDesc = "Laravel-style STK Push Test with Database",
+                    CustomerName = "Test Customer",
+                    CustomerEmail = "test@example.com",
+                    SaleItems = new[]
+                    {
+                        new
+                        {
+                            ProductId = 1, // Assuming product ID 1 exists
+                            Quantity = 1,
+                            UnitPrice = request.Amount,
+                            TotalPrice = request.Amount
+                        }
+                    }
                 };
 
-                var json = System.Text.Json.JsonSerializer.Serialize(paymentRequest);
-                var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
+                var json = JsonSerializer.Serialize(paymentRequest);
+                var content = new StringContent(json, Encoding.UTF8, "application/json");
 
                 // Add authorization header if needed
-                var authHeader = HttpContext.Request.Headers["Authorization"].FirstOrDefault();
-                if (!string.IsNullOrEmpty(authHeader))
+                if (Request.Headers.ContainsKey("Authorization"))
                 {
-                    httpClient.DefaultRequestHeaders.Add("Authorization", authHeader);
+                    httpClient.DefaultRequestHeaders.Add("Authorization", Request.Headers["Authorization"].ToString());
                 }
 
-                var baseUrl = $"{HttpContext.Request.Scheme}://{HttpContext.Request.Host}";
-                var response = await httpClient.PostAsync($"{baseUrl}/api/MpesaPayment/payments", content);
+                var response = await httpClient.SendAsync(new HttpRequestMessage(HttpMethod.Post, paymentUrl)
+                {
+                    Content = content
+                });
+
                 var responseContent = await response.Content.ReadAsStringAsync();
 
                 if (response.IsSuccessStatusCode)
                 {
-                    var result = System.Text.Json.JsonSerializer.Deserialize<object>(responseContent);
+                    var responseData = JsonSerializer.Deserialize<JsonElement>(responseContent);
+                    
+                    // Extract key information for validation
+                    var checkoutRequestId = "";
+                    var saleId = 0;
+                    var saleNumber = "";
+                    
+                    if (responseData.TryGetProperty("data", out var data))
+                    {
+                        if (data.TryGetProperty("checkoutRequestId", out var checkoutId))
+                        {
+                            checkoutRequestId = checkoutId.GetString() ?? "";
+                        }
+                        if (data.TryGetProperty("saleId", out var sId))
+                        {
+                            saleId = sId.GetInt32();
+                        }
+                        if (data.TryGetProperty("saleNumber", out var sNum))
+                        {
+                            saleNumber = sNum.GetString() ?? "";
+                        }
+                    }
+
+                    // Verify database records were created
+                    var dbValidation = await ValidateDatabaseRecords(checkoutRequestId, saleId);
+
                     return Ok(new
                     {
                         success = true,
-                        message = "Laravel-style STK Push completed successfully",
-                        data = result,
+                        message = "Laravel-style STK Push with database validation completed successfully",
+                        response = JsonSerializer.Deserialize<object>(responseContent),
+                        databaseValidation = dbValidation,
+                        instructions = new
+                        {
+                            nextStep = "Complete payment on your phone to test callback handling",
+                            checkoutRequestId = checkoutRequestId,
+                            saleNumber = saleNumber,
+                            note = "Database records have been created and validated"
+                        },
                         timestamp = DateTime.UtcNow
                     });
                 }
@@ -132,21 +165,64 @@ namespace PixelSolution.Controllers
                     return BadRequest(new
                     {
                         success = false,
-                        message = "Laravel-style STK Push failed",
+                        message = "Laravel-style STK Push test failed",
                         error = responseContent,
-                        statusCode = response.StatusCode
+                        statusCode = response.StatusCode,
+                        note = "No database records should be created due to STK Push failure"
                     });
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "❌ Laravel-style STK Push test failed");
-                return BadRequest(new
+                _logger.LogError(ex, "💥 Laravel-style STK Push test error");
+                return StatusCode(500, new
                 {
                     success = false,
-                    message = ex.Message,
-                    stackTrace = ex.StackTrace
+                    message = "Laravel-style STK Push test failed",
+                    error = ex.Message
                 });
+            }
+        }
+
+        private async Task<object> ValidateDatabaseRecords(string checkoutRequestId, int saleId)
+        {
+            try
+            {
+                // Check if M-Pesa transaction record exists
+                var mpesaTransaction = await _context.MpesaTransactions
+                    .FirstOrDefaultAsync(mt => mt.CheckoutRequestId == checkoutRequestId);
+
+                // Check if Sale record exists
+                var sale = await _context.Sales
+                    .Include(s => s.SaleItems)
+                    .FirstOrDefaultAsync(s => s.SaleId == saleId);
+
+                return new
+                {
+                    mpesaTransactionExists = mpesaTransaction != null,
+                    mpesaTransactionStatus = mpesaTransaction?.Status ?? "Not Found",
+                    saleExists = sale != null,
+                    saleStatus = sale?.Status ?? "Not Found",
+                    saleItemsCount = sale?.SaleItems?.Count ?? 0,
+                    validation = new
+                    {
+                        transactionRecordSaved = mpesaTransaction != null,
+                        saleRecordSaved = sale != null,
+                        readyForCallback = mpesaTransaction != null && sale != null,
+                        message = mpesaTransaction != null && sale != null 
+                            ? "✅ All database records created successfully - ready for callback"
+                            : "❌ Database validation failed - records missing"
+                    }
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error validating database records");
+                return new
+                {
+                    error = "Database validation failed",
+                    message = ex.Message
+                };
             }
         }
 

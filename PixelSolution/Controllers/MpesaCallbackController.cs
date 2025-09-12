@@ -21,6 +21,7 @@ namespace PixelSolution.Controllers
         [HttpPost("callback")]
         public async Task<IActionResult> MpesaCallback([FromBody] JsonElement callbackData)
         {
+            using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
                 _logger.LogInformation("🔔 MPESA Callback received: {CallbackData}", callbackData.ToString());
@@ -37,56 +38,130 @@ namespace PixelSolution.Controllers
                 _logger.LogInformation("📋 Callback Details - MerchantRequestID: {MerchantRequestID}, CheckoutRequestID: {CheckoutRequestID}, ResultCode: {ResultCode}, ResultDesc: {ResultDesc}",
                     merchantRequestId, checkoutRequestId, resultCode, resultDesc);
 
-                // Find the sale by checkout request ID using MpesaTransaction table
+                // CRITICAL: Find the M-Pesa transaction record first
                 var mpesaTransaction = await _context.MpesaTransactions
                     .Include(mt => mt.Sale)
                     .FirstOrDefaultAsync(mt => mt.CheckoutRequestId == checkoutRequestId);
-                
-                var sale = mpesaTransaction?.Sale;
 
-                if (sale != null)
+                if (mpesaTransaction == null)
                 {
-                    if (resultCode == 0) // Success
+                    await transaction.RollbackAsync();
+                    _logger.LogError("❌ M-Pesa transaction not found for CheckoutRequestID: {CheckoutRequestID}", checkoutRequestId);
+                    return Ok(new { ResultCode = 1, ResultDesc = "Transaction record not found" });
+                }
+
+                var sale = mpesaTransaction.Sale;
+                if (sale == null)
+                {
+                    await transaction.RollbackAsync();
+                    _logger.LogError("❌ Sale record not found for M-Pesa transaction: {CheckoutRequestID}", checkoutRequestId);
+                    return Ok(new { ResultCode = 1, ResultDesc = "Sale record not found" });
+                }
+
+                if (resultCode == 0) // Success
+                {
+                    string? mpesaReceiptNumber = null;
+                    decimal? amountReceived = null;
+                    string? transactionDate = null;
+                    string? phoneNumber = null;
+
+                    // Extract payment details if available
+                    if (stkCallback.TryGetProperty("CallbackMetadata", out var metadata))
                     {
-                        // Payment successful
-                        sale.Status = "Completed";
-                        
-                        // Extract payment details if available
-                        if (stkCallback.TryGetProperty("CallbackMetadata", out var metadata))
+                        var items = metadata.GetProperty("Item");
+                        foreach (var item in items.EnumerateArray())
                         {
-                            var items = metadata.GetProperty("Item");
-                            foreach (var item in items.EnumerateArray())
+                            var name = item.GetProperty("Name").GetString();
+                            var value = item.GetProperty("Value");
+
+                            switch (name)
                             {
-                                var name = item.GetProperty("Name").GetString();
-                                if (name == "MpesaReceiptNumber")
-                                {
-                                    // You can store the MPESA receipt number if needed
-                                    _logger.LogInformation("💳 MPESA Receipt: {Receipt}", item.GetProperty("Value").GetString());
-                                }
+                                case "MpesaReceiptNumber":
+                                    mpesaReceiptNumber = value.GetString();
+                                    _logger.LogInformation("💳 MPESA Receipt: {Receipt}", mpesaReceiptNumber);
+                                    break;
+                                case "Amount":
+                                    if (decimal.TryParse(value.GetString(), out var amount))
+                                    {
+                                        amountReceived = amount;
+                                    }
+                                    break;
+                                case "TransactionDate":
+                                    transactionDate = value.GetString();
+                                    break;
+                                case "PhoneNumber":
+                                    phoneNumber = value.GetString();
+                                    break;
                             }
                         }
-
-                        _logger.LogInformation("✅ Payment successful for sale: {SaleNumber}", sale.SaleNumber);
                     }
-                    else
+
+                    // Update M-Pesa transaction record
+                    mpesaTransaction.Status = "Completed";
+                    mpesaTransaction.MpesaReceiptNumber = mpesaReceiptNumber;
+                    if (amountReceived.HasValue)
                     {
-                        // Payment failed
-                        sale.Status = "Failed";
-                        _logger.LogWarning("❌ Payment failed for sale: {SaleNumber}, Reason: {Reason}", sale.SaleNumber, resultDesc);
+                        mpesaTransaction.Amount = amountReceived.Value;
+                    }
+
+                    // Update Sale record - CRITICAL: Mark as completed and set amount paid
+                    sale.Status = "Completed";
+                    sale.AmountPaid = amountReceived ?? sale.TotalAmount;
+                    sale.ChangeGiven = Math.Max(0, sale.AmountPaid - sale.TotalAmount);
+
+                    // Update product inventory - CRITICAL: Reduce stock for purchased items
+                    var saleItems = await _context.SaleItems
+                        .Include(si => si.Product)
+                        .Where(si => si.SaleId == sale.SaleId)
+                        .ToListAsync();
+
+                    foreach (var saleItem in saleItems)
+                    {
+                        if (saleItem.Product != null)
+                        {
+                            // Reduce product stock
+                            saleItem.Product.StockQuantity -= saleItem.Quantity;
+                            
+                            _logger.LogInformation("📦 Updated stock for Product {ProductId}: {ProductName} - Reduced by {Quantity}, New Stock: {NewStock}",
+                                saleItem.ProductId, saleItem.Product.ProductName, saleItem.Quantity, saleItem.Product.StockQuantity);
+
+                            // Prevent negative stock
+                            if (saleItem.Product.StockQuantity < 0)
+                            {
+                                _logger.LogWarning("⚠️ Negative stock detected for Product {ProductId}: {ProductName} - Stock: {Stock}",
+                                    saleItem.ProductId, saleItem.Product.ProductName, saleItem.Product.StockQuantity);
+                            }
+                        }
                     }
 
                     await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+
+                    _logger.LogInformation("✅ Payment successful for sale: {SaleNumber} - Receipt: {Receipt} - Amount: KSh {Amount}",
+                        sale.SaleNumber, mpesaReceiptNumber, amountReceived);
                 }
                 else
                 {
-                    _logger.LogWarning("⚠️ Sale not found for CheckoutRequestID: {CheckoutRequestID}", checkoutRequestId);
+                    // Payment failed - Update records but don't mark products as bought
+                    mpesaTransaction.Status = "Failed";
+                    mpesaTransaction.ErrorMessage = resultDesc;
+                    
+                    sale.Status = "Failed";
+                    sale.AmountPaid = 0;
+
+                    await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+
+                    _logger.LogWarning("❌ Payment failed for sale: {SaleNumber}, Reason: {Reason} - Products NOT marked as bought",
+                        sale.SaleNumber, resultDesc);
                 }
 
                 return Ok(new { ResultCode = 0, ResultDesc = "Success" });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "💥 Error processing MPESA callback");
+                await transaction.RollbackAsync();
+                _logger.LogError(ex, "💥 Error processing MPESA callback - transaction rolled back");
                 return Ok(new { ResultCode = 1, ResultDesc = "Error processing callback" });
             }
         }
