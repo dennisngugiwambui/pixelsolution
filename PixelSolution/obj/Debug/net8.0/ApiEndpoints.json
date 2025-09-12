@@ -485,9 +485,25 @@
     "ReturnTypes": []
   },
   {
-    "ContainingType": "PixelSolution.Controllers.MpesaDebugController",
-    "Method": "TestEndpoints",
-    "RelativePath": "api/MpesaDebug/test-endpoints",
+    "ContainingType": "PixelSolution.Controllers.MpesaPaymentController",
+    "Method": "ProcessPayment",
+    "RelativePath": "api/MpesaPayment/payments",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "request",
+        "Type": "PixelSolution.Models.PaymentRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "PixelSolution.Controllers.MpesaPaymentController",
+    "Method": "TestToken",
+    "RelativePath": "api/MpesaPayment/test-token",
     "HttpMethod": "GET",
     "IsController": true,
     "Order": 0,
@@ -495,13 +511,51 @@
     "ReturnTypes": []
   },
   {
-    "ContainingType": "PixelSolution.Controllers.MpesaDebugController",
-    "Method": "TestRawToken",
-    "RelativePath": "api/MpesaDebug/test-raw-token",
+    "ContainingType": "PixelSolution.Controllers.MpesaTestController",
+    "Method": "QueryStkStatus",
+    "RelativePath": "api/MpesaTest/query-stk",
     "HttpMethod": "POST",
     "IsController": true,
     "Order": 0,
-    "Parameters": [],
+    "Parameters": [
+      {
+        "Name": "request",
+        "Type": "PixelSolution.Controllers.StkQueryRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "PixelSolution.Controllers.MpesaTestController",
+    "Method": "TestB2C",
+    "RelativePath": "api/MpesaTest/test-b2c",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "request",
+        "Type": "PixelSolution.Controllers.B2CTestRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "PixelSolution.Controllers.MpesaTestController",
+    "Method": "TestLaravelStkPush",
+    "RelativePath": "api/MpesaTest/test-laravel-stk",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "request",
+        "Type": "PixelSolution.Controllers.StkTestRequest",
+        "IsRequired": true
+      }
+    ],
     "ReturnTypes": []
   },
   {
@@ -514,7 +568,7 @@
     "Parameters": [
       {
         "Name": "request",
-        "Type": "PixelSolution.Controllers.TestStkRequest",
+        "Type": "PixelSolution.Controllers.StkTestRequest",
         "IsRequired": true
       }
     ],
@@ -524,6 +578,16 @@
     "ContainingType": "PixelSolution.Controllers.MpesaTestController",
     "Method": "TestToken",
     "RelativePath": "api/MpesaTest/test-token",
+    "HttpMethod": "GET",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "PixelSolution.Controllers.MpesaTestController",
+    "Method": "TestTokenCaching",
+    "RelativePath": "api/MpesaTest/test-token-caching",
     "HttpMethod": "GET",
     "IsController": true,
     "Order": 0,

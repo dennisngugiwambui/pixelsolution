@@ -547,8 +547,8 @@ namespace PixelSolution.Migrations
 
                     b.Property<string>("TokenType")
                         .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.HasKey("MpesaTokenId");
 

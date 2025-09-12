@@ -268,12 +268,4 @@ namespace PixelSolution.Controllers
         }
     }
 
-    // Request models
-    public class PaymentRequest
-    {
-        public string PhoneNumber { get; set; } = string.Empty;
-        public decimal Amount { get; set; }
-        public string? AccountReference { get; set; }
-        public string? TransactionDesc { get; set; }
-    }
 }

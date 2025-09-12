@@ -1,6 +1,9 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PixelSolution.Services;
+using PixelSolution.Data;
+using Microsoft.EntityFrameworkCore;
+using System.Text;
 using System.Text.Json;
 
 namespace PixelSolution.Controllers
@@ -12,11 +15,13 @@ namespace PixelSolution.Controllers
     {
         private readonly IMpesaService _mpesaService;
         private readonly ILogger<MpesaTestController> _logger;
+        private readonly ApplicationDbContext _context;
 
-        public MpesaTestController(IMpesaService mpesaService, ILogger<MpesaTestController> logger)
+        public MpesaTestController(IMpesaService mpesaService, ILogger<MpesaTestController> logger, ApplicationDbContext context)
         {
             _mpesaService = mpesaService;
             _logger = logger;
+            _context = context;
         }
 
         /// <summary>
@@ -118,7 +123,22 @@ namespace PixelSolution.Controllers
 
                 if (response.IsSuccessStatusCode)
                 {
-                    var responseData = JsonSerializer.Deserialize<JsonElement>(responseContent);
+                    JsonElement responseData;
+                    try
+                    {
+                        responseData = JsonSerializer.Deserialize<JsonElement>(responseContent);
+                    }
+                    catch (JsonException ex)
+                    {
+                        _logger.LogError(ex, "Failed to parse JSON response: {ResponseContent}", responseContent);
+                        return BadRequest(new
+                        {
+                            success = false,
+                            message = "Invalid JSON response from payment API",
+                            rawResponse = responseContent,
+                            error = ex.Message
+                        });
+                    }
                     
                     // Extract key information for validation
                     var checkoutRequestId = "";

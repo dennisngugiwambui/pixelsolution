@@ -123,13 +123,13 @@ namespace PixelSolution.Controllers
                             saleItem.Product.StockQuantity -= saleItem.Quantity;
                             
                             _logger.LogInformation("📦 Updated stock for Product {ProductId}: {ProductName} - Reduced by {Quantity}, New Stock: {NewStock}",
-                                saleItem.ProductId, saleItem.Product.ProductName, saleItem.Quantity, saleItem.Product.StockQuantity);
+                                saleItem.ProductId, saleItem.Product.Name, saleItem.Quantity, saleItem.Product.StockQuantity);
 
                             // Prevent negative stock
                             if (saleItem.Product.StockQuantity < 0)
                             {
                                 _logger.LogWarning("⚠️ Negative stock detected for Product {ProductId}: {ProductName} - Stock: {Stock}",
-                                    saleItem.ProductId, saleItem.Product.ProductName, saleItem.Product.StockQuantity);
+                                    saleItem.ProductId, saleItem.Product.Name, saleItem.Product.StockQuantity);
                             }
                         }
                     }
