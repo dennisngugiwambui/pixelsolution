@@ -844,7 +844,7 @@ async function completePayment() {
             })),
             paymentMethod: selectedPaymentMethod,
             totalAmount: currentTotal,
-            customerPhone: selectedPaymentMethod === 'mpesa' ? `254${document.getElementById('customerPhone').value}` : null,
+            customerPhone: selectedPaymentMethod === 'mpesa' ? formatPhoneNumberForAPI(document.getElementById('customerPhone').value) : null,
             cashReceived: selectedPaymentMethod === 'cash' ? parseFloat(document.getElementById('cashReceived').value) : null
         };
         
@@ -1181,4 +1181,67 @@ function forceAddEditButtons() {
             console.log('✅ Edit button added for item', index);
         }
     });
+}
+
+// Phone number formatting functions
+function formatPhoneNumber(input) {
+    // Remove all non-digit characters
+    let value = input.value.replace(/\D/g, '');
+    
+    // Handle different input formats
+    if (value.startsWith('254')) {
+        // If starts with 254, remove it and keep the rest
+        value = value.substring(3);
+    } else if (value.startsWith('0')) {
+        // If starts with 0, remove it
+        value = value.substring(1);
+    }
+    
+    // Limit to 9 digits maximum
+    if (value.length > 9) {
+        value = value.substring(0, 9);
+    }
+    
+    // Update the input value
+    input.value = value;
+    
+    // Validate and update payment button
+    updateCompletePaymentButton();
+}
+
+function formatPhoneNumberForAPI(phoneNumber) {
+    if (!phoneNumber) return null;
+    
+    // Remove all non-digit characters
+    let cleanNumber = phoneNumber.replace(/\D/g, '');
+    
+    // Handle different formats
+    if (cleanNumber.startsWith('254')) {
+        // Already has country code
+        return cleanNumber;
+    } else if (cleanNumber.startsWith('0')) {
+        // Remove leading 0 and add 254
+        return '254' + cleanNumber.substring(1);
+    } else if (cleanNumber.length === 9 && cleanNumber.startsWith('7')) {
+        // 9 digits starting with 7
+        return '254' + cleanNumber;
+    } else if (cleanNumber.length === 8 && !cleanNumber.startsWith('7')) {
+        // 8 digits, add 7 and 254
+        return '2547' + cleanNumber;
+    } else if (cleanNumber.length === 7) {
+        // 7 digits, add 7 and 254
+        return '2547' + cleanNumber;
+    }
+    
+    // Default: add 254 prefix
+    return '254' + cleanNumber;
+}
+
+function validatePhoneNumber(phoneNumber) {
+    if (!phoneNumber) return false;
+    
+    const formatted = formatPhoneNumberForAPI(phoneNumber);
+    
+    // Valid Kenyan mobile numbers should be 12 digits starting with 254
+    return formatted && formatted.length === 12 && formatted.startsWith('254');
 }
