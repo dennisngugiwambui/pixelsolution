@@ -183,3 +183,4 @@ C:\Users\Denno\source\repos\PixelSolution\PixelSolution\obj\Debug\net8.0\refint\
 C:\Users\Denno\source\repos\PixelSolution\PixelSolution\obj\Debug\net8.0\PixelSolution.pdb
 C:\Users\Denno\source\repos\PixelSolution\PixelSolution\obj\Debug\net8.0\PixelSolution.genruntimeconfig.cache
 C:\Users\Denno\source\repos\PixelSolution\PixelSolution\obj\Debug\net8.0\ref\PixelSolution.dll
+C:\Users\Denno\source\repos\PixelSolution\PixelSolution\obj\Debug\net8.0\staticwebassets.upToDateCheck.txt

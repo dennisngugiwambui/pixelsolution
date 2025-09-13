@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
-using System.Text.Json;
-using PixelSolution.Data;
 using Microsoft.EntityFrameworkCore;
+using PixelSolution.Data;
+using PixelSolution.Models;
+using PixelSolution.Services.Interfaces;
+using System.Text.Json;
 
 namespace PixelSolution.Controllers
 {
@@ -11,11 +13,13 @@ namespace PixelSolution.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly ILogger<MpesaCallbackController> _logger;
+        private readonly IReceiptPrintingService _receiptPrintingService;
 
-        public MpesaCallbackController(ApplicationDbContext context, ILogger<MpesaCallbackController> logger)
+        public MpesaCallbackController(ApplicationDbContext context, ILogger<MpesaCallbackController> logger, IReceiptPrintingService receiptPrintingService)
         {
             _context = context;
             _logger = logger;
+            _receiptPrintingService = receiptPrintingService;
         }
 
         [HttpPost("callback")]
@@ -132,9 +136,10 @@ namespace PixelSolution.Controllers
                         }
                     }
 
-                    // Update M-Pesa transaction record
+                    // Update M-Pesa transaction record with completion details
                     mpesaTransaction.Status = "Completed";
                     mpesaTransaction.MpesaReceiptNumber = mpesaReceiptNumber;
+                    mpesaTransaction.CompletedAt = DateTime.UtcNow;
                     if (amountReceived.HasValue)
                     {
                         mpesaTransaction.Amount = amountReceived.Value;
@@ -175,6 +180,18 @@ namespace PixelSolution.Controllers
 
                     _logger.LogInformation("✅ Payment successful for sale: {SaleNumber} - Receipt: {Receipt} - Amount: KSh {Amount}",
                         sale.SaleNumber, mpesaReceiptNumber, amountReceived);
+
+                    // Generate and print receipt for successful payment
+                    try
+                    {
+                        var receiptPrinted = await _receiptPrintingService.PrintSalesReceiptAsync(sale.SaleId);
+                        _logger.LogInformation("📄 Receipt generation result for M-Pesa payment: {ReceiptPrinted}", receiptPrinted);
+                    }
+                    catch (Exception receiptEx)
+                    {
+                        _logger.LogWarning(receiptEx, "⚠️ Receipt printing failed for M-Pesa payment but sale was successful: {ErrorMessage}", receiptEx.Message);
+                        // Don't fail the callback if receipt printing fails
+                    }
                 }
                 else
                 {

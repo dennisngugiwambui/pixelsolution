@@ -811,7 +811,7 @@ function updateCompletePaymentButton() {
         isValid = cashReceived >= currentTotal;
     } else if (selectedPaymentMethod === 'mpesa') {
         const phoneNumber = document.getElementById('customerPhone').value;
-        isValid = phoneNumber.length === 9 && /^[0-9]+$/.test(phoneNumber);
+        isValid = validatePhoneNumber(phoneNumber);
     }
     
     completeBtn.disabled = !isValid;
@@ -871,17 +871,24 @@ async function completePayment() {
         console.log('💳 Sale processing result:', result);
         
         if (result.success) {
-            if (selectedPaymentMethod === 'mpesa') {
-                showToast('M-Pesa STK push sent! Please check your phone and enter your PIN.', 'info');
-                showToast('Waiting for payment confirmation...', 'info');
+            if (selectedPaymentMethod === 'mpesa' && result.waitingForCallback) {
+                // Show status messages for M-Pesa flow
+                showToast(result.message || 'STK Push sent successfully!', 'success');
+                
+                if (result.statusMessages) {
+                    showToast(result.statusMessages.current, 'info');
+                    setTimeout(() => {
+                        showToast(result.statusMessages.next, 'info');
+                    }, 2000);
+                }
                 
                 // Clear cart and close payment modal but don't generate receipt yet
                 cart = [];
                 updateCartDisplay();
                 closePaymentModal();
                 
-                // Start polling for payment status
-                pollPaymentStatus(result.saleId);
+                // Start polling for payment status with enhanced feedback
+                pollPaymentStatusWithFeedback(result.saleId, result.totalAmount, result.checkoutRequestId);
                 
             } else {
                 showToast('Payment processed successfully!', 'success');
@@ -910,46 +917,103 @@ async function completePayment() {
     }
 }
 
-// Poll payment status for M-Pesa payments
-async function pollPaymentStatus(saleId) {
+// Enhanced poll payment status for M-Pesa payments with real-time feedback
+async function pollPaymentStatusWithFeedback(saleId, totalAmount, checkoutRequestId) {
     let attempts = 0;
     const maxAttempts = 30; // Poll for 5 minutes (30 attempts * 10 seconds)
     
+    // Status messages for different stages
+    const statusMessages = {
+        'STK_SENT': 'STK Push sent to your phone',
+        'WAITING_PIN': 'Waiting for you to enter your M-Pesa PIN...',
+        'PROCESSING': 'Processing your payment...',
+        'Pending': 'Payment in progress...',
+        'Completed': 'Payment successful!',
+        'Failed': 'Payment failed'
+    };
+    
+    let lastStatus = 'STK_SENT';
+    let pinReminderShown = false;
+    
     const checkStatus = async () => {
         try {
-            const response = await fetch(`/Sales/CheckPaymentStatus/${saleId}`);
+            const response = await fetch(`/Sales/CheckPaymentStatus?saleId=${saleId}`);
             const result = await response.json();
             
-            if (result.status === 'Completed') {
-                showToast('Payment confirmed! Receipt generated.', 'success');
-                // Generate receipt now that payment is confirmed
-                const saleData = { totalAmount: result.amount };
-                generateReceipt(saleId, saleData);
-                await updateTodayStats();
-                return;
-            } else if (result.status === 'Failed') {
-                showToast('Payment failed. Please try again.', 'error');
+            console.log('💳 Payment status check:', result);
+            
+            if (result.success) {
+                // Handle status transitions with appropriate messages
+                if (result.status !== lastStatus) {
+                    lastStatus = result.status;
+                    
+                    switch (result.status) {
+                        case 'Completed':
+                            showToast('🎉 Payment confirmed! Generating receipt...', 'success');
+                            
+                            // Generate receipt now that payment is confirmed
+                            const saleData = { 
+                                totalAmount: totalAmount,
+                                paymentMethod: 'M-Pesa',
+                                mpesaReceiptNumber: result.mpesaReceiptNumber
+                            };
+                            generateReceipt(saleId, saleData);
+                            await updateTodayStats();
+                            return;
+                            
+                        case 'Failed':
+                            showToast(`❌ Payment failed: ${result.message}`, 'error');
+                            showToast('Please try again or use a different payment method.', 'info');
+                            return;
+                            
+                        case 'Pending':
+                            if (!pinReminderShown) {
+                                showToast('📱 Please check your phone and enter your M-Pesa PIN', 'info');
+                                pinReminderShown = true;
+                            }
+                            break;
+                    }
+                }
+            } else {
+                showToast(`Error checking payment: ${result.message}`, 'error');
                 return;
             }
             
-            // Continue polling if status is still 'Pending'
+            // Continue polling if status is still pending
             attempts++;
             if (attempts < maxAttempts) {
+                // Show progress updates
+                if (attempts === 5) {
+                    showToast('⏳ Still waiting for payment confirmation...', 'info');
+                } else if (attempts === 15) {
+                    showToast('⏳ Please complete the payment on your phone (2 min elapsed)', 'warning');
+                } else if (attempts === 25) {
+                    showToast('⏳ Payment taking longer than expected (4 min elapsed)', 'warning');
+                }
+                
                 setTimeout(checkStatus, 10000); // Check every 10 seconds
             } else {
-                showToast('Payment confirmation timeout. Please check manually.', 'warning');
+                showToast('⏰ Payment confirmation timeout. Please check your M-Pesa messages or try again.', 'error');
+                showToast('If payment was successful, the receipt will be available in transaction history.', 'info');
             }
         } catch (error) {
             console.error('Error checking payment status:', error);
             attempts++;
             if (attempts < maxAttempts) {
                 setTimeout(checkStatus, 10000);
+            } else {
+                showToast('❌ Unable to check payment status. Please verify transaction manually.', 'error');
             }
         }
     };
     
-    // Start checking after 5 seconds
-    setTimeout(checkStatus, 5000);
+    // Start checking after 3 seconds (give time for STK to reach phone)
+    setTimeout(checkStatus, 3000);
+}
+
+// Keep the original function for backward compatibility
+async function pollPaymentStatus(saleId, totalAmount) {
+    return pollPaymentStatusWithFeedback(saleId, totalAmount, null);
 }
 
 // Generate receipt

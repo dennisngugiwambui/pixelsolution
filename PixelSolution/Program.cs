@@ -119,7 +119,9 @@ app.UseAuthorization();
 app.UseSession();
 
 // Configure M-Pesa middleware for specific routes (Laravel-style)
-app.UseWhen(context => context.Request.Path.StartsWithSegments("/api/MpesaPayment"), 
+app.UseWhen(context => 
+    context.Request.Path.StartsWithSegments("/Sales/ProcessSale") && 
+    context.Request.Method == "POST", 
     appBuilder => appBuilder.UseMiddleware<MpesaTokenMiddleware>());
 
 // Configure routing

@@ -165,7 +165,22 @@ namespace PixelSolution.Controllers
 
                     try
                     {
-                        _logger.LogInformation("Initiating MPESA STK Push for phone: {Phone}, amount: {Amount}", formattedPhone, model.TotalAmount);
+                        // Step 1: Check if M-Pesa token is available from middleware
+                        var mpesaToken = HttpContext.Items["mpesa_token"]?.ToString();
+                        if (string.IsNullOrEmpty(mpesaToken))
+                        {
+                            _logger.LogError("M-Pesa token not found in request context. Middleware may not be configured.");
+                            return Json(new { 
+                                success = false, 
+                                message = "M-Pesa authentication failed. Please try again.",
+                                status = "token_error"
+                            });
+                        }
+
+                        _logger.LogInformation("✅ M-Pesa token retrieved from middleware");
+                        
+                        // Step 2: Initiate STK Push with status feedback
+                        _logger.LogInformation("📱 Initiating MPESA STK Push for phone: {Phone}, amount: {Amount}", formattedPhone, model.TotalAmount);
                         
                         var stkPushResponse = await _mpesaService.InitiateStkPushAsync(
                             formattedPhone,
@@ -174,34 +189,43 @@ namespace PixelSolution.Controllers
                             "PAY001"
                         );
                         
-                        _logger.LogInformation("MPESA STK Push response: {Response}", System.Text.Json.JsonSerializer.Serialize(stkPushResponse));
+                        _logger.LogInformation("📋 MPESA STK Push response: {Response}", System.Text.Json.JsonSerializer.Serialize(stkPushResponse));
                         
                         if (stkPushResponse == null)
                         {
-                            _logger.LogError("MPESA STK Push failed: Null response");
-                            return Json(new { success = false, message = "MPESA Error: No response from service. Please try again." });
+                            _logger.LogError("❌ MPESA STK Push failed: Null response");
+                            return Json(new { 
+                                success = false, 
+                                message = "MPESA Error: No response from service. Please try again.",
+                                status = "stk_failed"
+                            });
                         }
                         
-                        // Log detailed response for debugging
-                        _logger.LogInformation("MPESA Response Details - Code: {Code}, Description: {Description}, CheckoutRequestID: {CheckoutRequestID}", 
+                        // Step 3: Validate STK Push response
+                        _logger.LogInformation("🔍 MPESA Response Details - Code: {Code}, Description: {Description}, CheckoutRequestID: {CheckoutRequestID}", 
                             stkPushResponse.ResponseCode, stkPushResponse.ResponseDescription, stkPushResponse.CheckoutRequestID);
                         
                         if (stkPushResponse.ResponseCode != "0")
                         {
                             var errorMsg = stkPushResponse.ResponseDescription ?? "Unknown MPESA error";
-                            _logger.LogError("MPESA STK Push failed: Code {Code}, Error: {Error}", stkPushResponse.ResponseCode, errorMsg);
-                            return Json(new { success = false, message = $"MPESA Error ({stkPushResponse.ResponseCode}): {errorMsg}. Please try again." });
+                            _logger.LogError("❌ MPESA STK Push failed: Code {Code}, Error: {Error}", stkPushResponse.ResponseCode, errorMsg);
+                            return Json(new { 
+                                success = false, 
+                                message = $"MPESA Error ({stkPushResponse.ResponseCode}): {errorMsg}. Please try again.",
+                                status = "stk_rejected"
+                            });
                         }
                         
-                        _logger.LogInformation("MPESA STK Push initiated successfully. CheckoutRequestId: {CheckoutRequestId}", stkPushResponse.CheckoutRequestID);
+                        _logger.LogInformation("✅ MPESA STK Push initiated successfully. CheckoutRequestId: {CheckoutRequestId}", stkPushResponse.CheckoutRequestID);
                         
-                        // Store MPESA transaction for callback tracking - will be updated after sale creation
+                        // Step 4: Store MPESA transaction for callback tracking
                         mpesaTransactionData = new
                         {
                             CheckoutRequestId = stkPushResponse.CheckoutRequestID,
                             MerchantRequestId = stkPushResponse.MerchantRequestID,
                             PhoneNumber = formattedPhone,
-                            Amount = model.TotalAmount
+                            Amount = model.TotalAmount,
+                            Status = "STK_SENT" // Initial status
                         };
                     }
                     catch (Exception mpesaEx)
@@ -256,8 +280,8 @@ namespace PixelSolution.Controllers
                     CustomerPhone = model.CustomerPhone ?? string.Empty,
                     CustomerEmail = model.CustomerEmail ?? string.Empty,
                     PaymentMethod = model.PaymentMethod,
-                    AmountPaid = model.AmountPaid,
-                    ChangeGiven = model.ChangeGiven,
+                    AmountPaid = model.PaymentMethod.Equals("M-Pesa", StringComparison.OrdinalIgnoreCase) ? 0 : model.AmountPaid, // M-Pesa amount set to 0 until callback confirms
+                    ChangeGiven = model.PaymentMethod.Equals("M-Pesa", StringComparison.OrdinalIgnoreCase) ? 0 : model.ChangeGiven,
                     Status = model.PaymentMethod.Equals("M-Pesa", StringComparison.OrdinalIgnoreCase) ? "Pending" : "Completed",
                     SaleItems = new List<SaleItem>()
                 };
@@ -298,7 +322,7 @@ namespace PixelSolution.Controllers
                     return Json(new { success = false, message = $"Database error: {detailedError}" });
                 }
 
-                // Store MPESA transaction information if this was an MPESA payment
+                // Step 5: Store MPESA transaction information if this was an MPESA payment
                 if (mpesaTransactionData != null && model.PaymentMethod.Equals("M-Pesa", StringComparison.OrdinalIgnoreCase))
                 {
                     try
@@ -311,23 +335,50 @@ namespace PixelSolution.Controllers
                             MerchantRequestId = mpesaData.MerchantRequestId,
                             PhoneNumber = mpesaData.PhoneNumber,
                             Amount = mpesaData.Amount,
-                            Status = "Pending", // Will be updated by callback
+                            Status = "STK_SENT", // Initial status after STK push sent
                             CreatedAt = DateTime.UtcNow
                         };
 
                         _context.MpesaTransactions.Add(mpesaTransaction);
                         await _context.SaveChangesAsync();
-                        _logger.LogInformation("MPESA transaction stored with ID: {TransactionId} for Sale: {SaleId}", 
+                        
+                        _logger.LogInformation("💾 MPESA transaction stored with ID: {TransactionId} for Sale: {SaleId} - Status: STK_SENT", 
                             mpesaTransaction.MpesaTransactionId, createdSale.SaleId);
+                        
+                        // Step 6: Return success with detailed status for frontend
+                        return Json(new
+                        {
+                            success = true,
+                            message = "STK Push sent successfully! Check your phone.",
+                            saleId = createdSale.SaleId,
+                            saleNumber = createdSale.SaleNumber,
+                            totalAmount = model.TotalAmount,
+                            paymentMethod = "M-Pesa",
+                            status = "STK_SENT",
+                            waitingForCallback = true,
+                            checkoutRequestId = mpesaData.CheckoutRequestId,
+                            statusMessages = new
+                            {
+                                current = "STK Push sent to your phone",
+                                next = "Please enter your M-Pesa PIN to complete payment"
+                            }
+                        });
                     }
                     catch (Exception mpesaDbEx)
                     {
-                        _logger.LogWarning(mpesaDbEx, "Failed to store MPESA transaction data, but sale was successful: {ErrorMessage}", mpesaDbEx.Message);
-                        // Don't fail the entire sale if MPESA transaction storage fails
+                        _logger.LogError(mpesaDbEx, "❌ Failed to store MPESA transaction data: {ErrorMessage}", mpesaDbEx.Message);
+                        return Json(new { 
+                            success = false, 
+                            message = "Failed to save M-Pesa transaction. Please try again.",
+                            status = "db_error"
+                        });
                     }
                 }
 
-                // Generate and print receipt
+                // This code should not be reached for M-Pesa payments as they return earlier
+                // Only non-M-Pesa payments reach this point
+                
+                // For non-M-Pesa payments, generate and print receipt immediately
                 bool receiptPrinted = false;
                 try
                 {
@@ -352,7 +403,8 @@ namespace PixelSolution.Controllers
                     receiptPrinted = receiptPrinted,
                     totalAmount = createdSale.TotalAmount,
                     changeGiven = createdSale.ChangeGiven,
-                    cashierName = createdSale.CashierName // Add cashier name to response
+                    cashierName = createdSale.CashierName,
+                    status = "Completed"
                 });
             }
             catch (Exception ex)
@@ -372,6 +424,70 @@ namespace PixelSolution.Controllers
                     message = $"Sale processing failed: {errorDetails}",
                     errorType = ex.GetType().Name,
                     debugInfo = ex.StackTrace?.Split('\n').FirstOrDefault()?.Trim()
+                });
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> CheckPaymentStatus(int saleId)
+        {
+            try
+            {
+                var sale = await _context.Sales.FirstOrDefaultAsync(s => s.SaleId == saleId);
+                if (sale == null)
+                {
+                    return Json(new { success = false, message = "Sale not found" });
+                }
+
+                // Check if this is an M-Pesa payment
+                if (sale.PaymentMethod.Equals("M-Pesa", StringComparison.OrdinalIgnoreCase))
+                {
+                    var mpesaTransaction = await _context.MpesaTransactions
+                        .FirstOrDefaultAsync(mt => mt.SaleId == saleId);
+
+                    if (mpesaTransaction == null)
+                    {
+                        return Json(new { 
+                            success = false, 
+                            status = "Error", 
+                            message = "M-Pesa transaction record not found" 
+                        });
+                    }
+
+                    // Return current status
+                    return Json(new
+                    {
+                        success = true,
+                        status = mpesaTransaction.Status,
+                        saleStatus = sale.Status,
+                        message = mpesaTransaction.Status switch
+                        {
+                            "Completed" => "Payment completed successfully!",
+                            "Failed" => $"Payment failed: {mpesaTransaction.ErrorMessage ?? "Unknown error"}",
+                            "Pending" => "Waiting for payment confirmation...",
+                            _ => "Payment status unknown"
+                        },
+                        mpesaReceiptNumber = mpesaTransaction.MpesaReceiptNumber,
+                        completedAt = mpesaTransaction.CompletedAt
+                    });
+                }
+
+                // For non-M-Pesa payments, return completed status
+                return Json(new
+                {
+                    success = true,
+                    status = "Completed",
+                    saleStatus = sale.Status,
+                    message = "Payment completed"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error checking payment status for sale {SaleId}: {ErrorMessage}", saleId, ex.Message);
+                return Json(new { 
+                    success = false, 
+                    status = "Error", 
+                    message = "Error checking payment status" 
                 });
             }
         }
