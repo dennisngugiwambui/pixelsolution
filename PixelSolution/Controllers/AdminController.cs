@@ -9004,6 +9004,48 @@ namespace PixelSolution.Controllers
 
         #endregion
 
+        #region M-Pesa Management
+
+        [HttpGet]
+        public IActionResult MpesaCallbackTest()
+        {
+            return View();
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetMpesaTransactions()
+        {
+            try
+            {
+                var transactions = await _context.MpesaTransactions
+                    .OrderByDescending(mt => mt.CreatedAt)
+                    .Take(20)
+                    .Select(mt => new
+                    {
+                        mt.TransactionId,
+                        mt.CheckoutRequestId,
+                        mt.MerchantRequestId,
+                        mt.Status,
+                        mt.Amount,
+                        mt.PhoneNumber,
+                        mt.MpesaReceiptNumber,
+                        mt.CreatedAt,
+                        UpdatedAt = mt.CompletedAt,
+                        mt.ErrorMessage
+                    })
+                    .ToListAsync();
+
+                return Json(transactions);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching M-Pesa transactions");
+                return Json(new List<object>());
+            }
+        }
+
+        #endregion
+
         #endregion
     }
 

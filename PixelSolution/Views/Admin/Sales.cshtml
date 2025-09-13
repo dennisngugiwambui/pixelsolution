@@ -1169,8 +1169,11 @@
                 <label class="form-label">Customer Phone Number:</label>
                 <div style="display: flex; align-items: center;">
                     <span style="padding: 0.75rem; background: #f3f4f6; border: 2px solid #e5e7eb; border-right: none; border-radius: 8px 0 0 8px; font-weight: 600;">+254</span>
-                    <input type="text" id="customerPhone" class="form-input" style="border-radius: 0 8px 8px 0;" placeholder="7XXXXXXXX" maxlength="9">
+                    <input type="text" id="customerPhone" class="form-input" style="border-radius: 0 8px 8px 0;" placeholder="Enter 7 or 9 digits (e.g., 758024400)" maxlength="12" oninput="formatPhoneNumber(this)">
                 </div>
+                <small style="color: #6b7280; font-size: 0.8rem; margin-top: 0.5rem; display: block;">
+                    Enter 7 digits (7XXXXXXXX) or 9 digits (7XXXXXXXXX). 254 prefix will be added automatically.
+                </small>
             </div>
             <div style="padding: 1rem; background: #f0f9ff; border-radius: 8px; border: 2px solid #0ea5e9; margin-top: 1rem;">
                 <p style="margin: 0; font-size: 0.875rem; color: #0369a1;">

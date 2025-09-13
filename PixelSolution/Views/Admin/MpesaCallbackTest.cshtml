@@ -1,0 +1,287 @@
+@{
+    ViewData["Title"] = "M-Pesa Callback Testing";
+    Layout = "~/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">🔔 M-Pesa Callback Testing System</h3>
+                </div>
+                <div class="card-body">
+                    <!-- Ngrok Status -->
+                    <div class="alert alert-info">
+                        <h5><i class="fas fa-globe"></i> Ngrok Tunnel Status</h5>
+                        <p><strong>Callback URL:</strong> <code>https://11e72209cc97.ngrok-free.app/api/mpesa/callback</code></p>
+                        <p><strong>Test Endpoint:</strong> <code>https://11e72209cc97.ngrok-free.app/api/mpesa/test</code></p>
+                        <button class="btn btn-sm btn-primary" onclick="testNgrokConnection()">Test Ngrok Connection</button>
+                    </div>
+
+                    <!-- Test Callback Form -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5>🧪 Simulate M-Pesa Callback</h5>
+                                </div>
+                                <div class="card-body">
+                                    <form id="callbackTestForm">
+                                        <div class="form-group">
+                                            <label>CheckoutRequestID</label>
+                                            <input type="text" class="form-control" id="checkoutRequestId" 
+                                                   placeholder="ws_CO_120920251606164758024400" required>
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Result Code</label>
+                                            <select class="form-control" id="resultCode">
+                                                <option value="0">0 - Success</option>
+                                                <option value="1032">1032 - Request cancelled by user</option>
+                                                <option value="1037">1037 - Timeout</option>
+                                                <option value="2001">2001 - Wrong PIN</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Amount</label>
+                                            <input type="number" class="form-control" id="amount" value="100" step="0.01">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>Phone Number</label>
+                                            <input type="text" class="form-control" id="phoneNumber" value="254758024400">
+                                        </div>
+                                        <div class="form-group">
+                                            <label>M-Pesa Receipt Number</label>
+                                            <input type="text" class="form-control" id="mpesaReceiptNumber" value="TEST123456789">
+                                        </div>
+                                        <button type="submit" class="btn btn-success">
+                                            <i class="fas fa-play"></i> Simulate Callback
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5>📊 Test Results</h5>
+                                    <button class="btn btn-sm btn-secondary float-right" onclick="clearResults()">Clear</button>
+                                </div>
+                                <div class="card-body">
+                                    <div id="testResults" style="max-height: 400px; overflow-y: auto;">
+                                        <p class="text-muted">No tests run yet...</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Real STK Push Test -->
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5>📱 Real STK Push Test</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <div class="form-group">
+                                                <label>Phone Number</label>
+                                                <input type="text" class="form-control" id="stkPhoneNumber" value="254758024400">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="form-group">
+                                                <label>Amount</label>
+                                                <input type="number" class="form-control" id="stkAmount" value="1" step="0.01">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="form-group">
+                                                <label>&nbsp;</label>
+                                                <button class="btn btn-primary form-control" onclick="sendRealSTKPush()">
+                                                    <i class="fas fa-mobile-alt"></i> Send Real STK Push
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div id="stkResults" class="mt-3"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Transactions -->
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5>📋 Recent M-Pesa Transactions</h5>
+                                    <button class="btn btn-sm btn-info float-right" onclick="loadRecentTransactions()">Refresh</button>
+                                </div>
+                                <div class="card-body">
+                                    <div id="recentTransactions">
+                                        <p class="text-muted">Loading...</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+$(document).ready(function() {
+    loadRecentTransactions();
+});
+
+function testNgrokConnection() {
+    addResult('🔍 Testing ngrok connection...', 'info');
+    
+    fetch('https://11e72209cc97.ngrok-free.app/api/mpesa/test')
+        .then(response => response.json())
+        .then(data => {
+            addResult('✅ Ngrok connection successful: ' + JSON.stringify(data), 'success');
+        })
+        .catch(error => {
+            addResult('❌ Ngrok connection failed: ' + error.message, 'danger');
+        });
+}
+
+$('#callbackTestForm').on('submit', function(e) {
+    e.preventDefault();
+    
+    const testData = {
+        checkoutRequestId: $('#checkoutRequestId').val(),
+        resultCode: parseInt($('#resultCode').val()),
+        amount: parseFloat($('#amount').val()),
+        phoneNumber: $('#phoneNumber').val(),
+        mpesaReceiptNumber: $('#mpesaReceiptNumber').val()
+    };
+    
+    addResult('🧪 Simulating callback for CheckoutRequestID: ' + testData.checkoutRequestId, 'info');
+    
+    fetch('/api/mpesa/test-callback', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+        },
+        body: JSON.stringify(testData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            addResult('❌ Test failed: ' + data.error, 'danger');
+        } else {
+            addResult('✅ Test successful: ' + JSON.stringify(data.message), 'success');
+            addResult('📄 Test data: ' + JSON.stringify(data.testData, null, 2), 'info');
+        }
+        loadRecentTransactions();
+    })
+    .catch(error => {
+        addResult('❌ Test error: ' + error.message, 'danger');
+    });
+});
+
+function sendRealSTKPush() {
+    const phoneNumber = $('#stkPhoneNumber').val();
+    const amount = $('#stkAmount').val();
+    
+    if (!phoneNumber || !amount) {
+        addResult('❌ Please enter phone number and amount', 'danger');
+        return;
+    }
+    
+    addResult('📱 Sending real STK push to ' + phoneNumber + ' for KSh ' + amount, 'info');
+    
+    fetch('/MpesaTest/test-stk', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+        },
+        body: JSON.stringify({
+            phoneNumber: phoneNumber,
+            amount: parseFloat(amount)
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        $('#stkResults').html('<div class="alert alert-info"><pre>' + JSON.stringify(data, null, 2) + '</pre></div>');
+        
+        if (data.success && data.checkoutRequestId) {
+            $('#checkoutRequestId').val(data.checkoutRequestId);
+            addResult('✅ STK push sent successfully. CheckoutRequestID: ' + data.checkoutRequestId, 'success');
+            addResult('⏳ Waiting for callback... Check your phone for the M-Pesa prompt', 'warning');
+        } else {
+            addResult('❌ STK push failed: ' + (data.message || 'Unknown error'), 'danger');
+        }
+        
+        setTimeout(loadRecentTransactions, 2000);
+    })
+    .catch(error => {
+        addResult('❌ STK push error: ' + error.message, 'danger');
+        $('#stkResults').html('<div class="alert alert-danger">Error: ' + error.message + '</div>');
+    });
+}
+
+function loadRecentTransactions() {
+    fetch('/Admin/GetMpesaTransactions')
+        .then(response => response.json())
+        .then(data => {
+            let html = '<div class="table-responsive"><table class="table table-sm table-striped">';
+            html += '<thead><tr><th>CheckoutRequestID</th><th>Status</th><th>Amount</th><th>Receipt</th><th>Created</th><th>Updated</th></tr></thead><tbody>';
+            
+            if (data && data.length > 0) {
+                data.forEach(transaction => {
+                    const statusClass = transaction.status === 'Completed' ? 'success' : 
+                                      transaction.status === 'Failed' ? 'danger' : 'warning';
+                    html += `<tr>
+                        <td><small>${transaction.checkoutRequestId || 'N/A'}</small></td>
+                        <td><span class="badge badge-${statusClass}">${transaction.status || 'Pending'}</span></td>
+                        <td>KSh ${transaction.amount || '0'}</td>
+                        <td><small>${transaction.mpesaReceiptNumber || 'N/A'}</small></td>
+                        <td><small>${new Date(transaction.createdAt).toLocaleString()}</small></td>
+                        <td><small>${transaction.updatedAt ? new Date(transaction.updatedAt).toLocaleString() : 'N/A'}</small></td>
+                    </tr>`;
+                });
+            } else {
+                html += '<tr><td colspan="6" class="text-center text-muted">No transactions found</td></tr>';
+            }
+            
+            html += '</tbody></table></div>';
+            $('#recentTransactions').html(html);
+        })
+        .catch(error => {
+            $('#recentTransactions').html('<div class="alert alert-danger">Error loading transactions: ' + error.message + '</div>');
+        });
+}
+
+function addResult(message, type) {
+    const timestamp = new Date().toLocaleTimeString();
+    const alertClass = 'alert-' + type;
+    const html = `<div class="alert ${alertClass} alert-dismissible fade show" role="alert">
+        <small class="text-muted">[${timestamp}]</small> ${message}
+        <button type="button" class="close" data-dismiss="alert">
+            <span>&times;</span>
+        </button>
+    </div>`;
+    
+    $('#testResults').prepend(html);
+}
+
+function clearResults() {
+    $('#testResults').html('<p class="text-muted">No tests run yet...</p>');
+}
+
+// Auto-refresh transactions every 10 seconds
+setInterval(loadRecentTransactions, 10000);
+</script>
+
+@Html.AntiForgeryToken()

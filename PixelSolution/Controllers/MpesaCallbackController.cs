@@ -19,21 +19,57 @@ namespace PixelSolution.Controllers
         }
 
         [HttpPost("callback")]
-        public async Task<IActionResult> MpesaCallback([FromBody] JsonElement callbackData)
+        public async Task<IActionResult> MpesaCallback()
         {
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                _logger.LogInformation("🔔 MPESA Callback received: {CallbackData}", callbackData.ToString());
-
-                // Parse the callback data
-                var body = callbackData.GetProperty("Body");
-                var stkCallback = body.GetProperty("stkCallback");
+                // Read raw request body to handle potential JSON issues
+                using var reader = new StreamReader(Request.Body);
+                var rawBody = await reader.ReadToEndAsync();
                 
-                var merchantRequestId = stkCallback.GetProperty("MerchantRequestID").GetString();
-                var checkoutRequestId = stkCallback.GetProperty("CheckoutRequestID").GetString();
-                var resultCode = stkCallback.GetProperty("ResultCode").GetInt32();
-                var resultDesc = stkCallback.GetProperty("ResultDesc").GetString();
+                _logger.LogInformation("🔔 MPESA Callback received - Raw Body: {RawBody}", rawBody);
+
+                if (string.IsNullOrEmpty(rawBody))
+                {
+                    _logger.LogWarning("⚠️ Empty callback body received");
+                    return Ok(new { ResultCode = 1, ResultDesc = "Empty callback body" });
+                }
+
+                JsonElement callbackData;
+                try
+                {
+                    callbackData = JsonSerializer.Deserialize<JsonElement>(rawBody);
+                }
+                catch (JsonException jsonEx)
+                {
+                    _logger.LogError(jsonEx, "❌ JSON parsing error in callback: {RawBody}", rawBody);
+                    return Ok(new { ResultCode = 1, ResultDesc = "Invalid JSON format" });
+                }
+
+                // Parse the callback data with error handling
+                if (!callbackData.TryGetProperty("Body", out var body))
+                {
+                    _logger.LogError("❌ Missing 'Body' property in callback");
+                    return Ok(new { ResultCode = 1, ResultDesc = "Invalid callback structure - missing Body" });
+                }
+
+                if (!body.TryGetProperty("stkCallback", out var stkCallback))
+                {
+                    _logger.LogError("❌ Missing 'stkCallback' property in Body");
+                    return Ok(new { ResultCode = 1, ResultDesc = "Invalid callback structure - missing stkCallback" });
+                }
+                
+                var merchantRequestId = stkCallback.TryGetProperty("MerchantRequestID", out var merchantProp) ? merchantProp.GetString() : null;
+                var checkoutRequestId = stkCallback.TryGetProperty("CheckoutRequestID", out var checkoutProp) ? checkoutProp.GetString() : null;
+                var resultCode = stkCallback.TryGetProperty("ResultCode", out var resultProp) ? resultProp.GetInt32() : -1;
+                var resultDesc = stkCallback.TryGetProperty("ResultDesc", out var descProp) ? descProp.GetString() : "Unknown error";
+
+                if (string.IsNullOrEmpty(checkoutRequestId))
+                {
+                    _logger.LogError("❌ Missing CheckoutRequestID in callback");
+                    return Ok(new { ResultCode = 1, ResultDesc = "Missing CheckoutRequestID" });
+                }
 
                 _logger.LogInformation("📋 Callback Details - MerchantRequestID: {MerchantRequestID}, CheckoutRequestID: {CheckoutRequestID}, ResultCode: {ResultCode}, ResultDesc: {ResultDesc}",
                     merchantRequestId, checkoutRequestId, resultCode, resultDesc);
@@ -171,6 +207,93 @@ namespace PixelSolution.Controllers
         {
             _logger.LogInformation("🧪 MPESA Callback endpoint test successful");
             return Ok(new { message = "MPESA Callback endpoint is working", timestamp = DateTime.UtcNow });
+        }
+
+        [HttpPost("test-callback")]
+        public async Task<IActionResult> TestMpesaCallback([FromBody] TestCallbackRequest request)
+        {
+            try
+            {
+                var testCallback = new
+                {
+                    Body = new
+                    {
+                        stkCallback = new
+                        {
+                            MerchantRequestID = request.MerchantRequestId ?? "test-merchant-123",
+                            CheckoutRequestID = request.CheckoutRequestId ?? "ws_CO_test123456789",
+                            ResultCode = request.ResultCode,
+                            ResultDesc = request.ResultCode == 0 ? "The service request is processed successfully." : "Request cancelled by user",
+                            CallbackMetadata = request.ResultCode == 0 ? new
+                            {
+                                Item = new[]
+                                {
+                                    new { Name = "Amount", Value = request.Amount?.ToString() ?? "100" },
+                                    new { Name = "MpesaReceiptNumber", Value = request.MpesaReceiptNumber ?? "TEST123456789" },
+                                    new { Name = "TransactionDate", Value = DateTime.Now.ToString("yyyyMMddHHmmss") },
+                                    new { Name = "PhoneNumber", Value = request.PhoneNumber ?? "254758024400" }
+                                }
+                            } : null
+                        }
+                    }
+                };
+
+                var json = JsonSerializer.Serialize(testCallback);
+                _logger.LogInformation("🧪 Simulating M-Pesa callback: {Json}", json);
+
+                // Create a new request with the test data
+                var testRequest = new DefaultHttpContext().Request;
+                testRequest.Body = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(json));
+                testRequest.ContentType = "application/json";
+
+                // Call the actual callback method
+                var originalRequest = Request;
+                try
+                {
+                    // Temporarily replace the request
+                    var context = HttpContext;
+                    var newContext = new DefaultHttpContext();
+                    newContext.Request.Body = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(json));
+                    newContext.Request.ContentType = "application/json";
+                    
+                    // Reset the body position
+                    newContext.Request.Body.Position = 0;
+                    
+                    // Update the controller context
+                    ControllerContext.HttpContext = newContext;
+                    
+                    var result = await MpesaCallback();
+                    
+                    // Restore original context
+                    ControllerContext.HttpContext = context;
+                    
+                    return Ok(new { 
+                        message = "Test callback processed", 
+                        result = result,
+                        testData = testCallback 
+                    });
+                }
+                finally
+                {
+                    // Ensure we restore the original request
+                    ControllerContext.HttpContext.Request.Body = originalRequest.Body;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Error in test callback");
+                return BadRequest(new { error = ex.Message });
+            }
+        }
+
+        public class TestCallbackRequest
+        {
+            public string? MerchantRequestId { get; set; }
+            public string? CheckoutRequestId { get; set; }
+            public int ResultCode { get; set; } = 0;
+            public decimal? Amount { get; set; }
+            public string? MpesaReceiptNumber { get; set; }
+            public string? PhoneNumber { get; set; }
         }
     }
 }

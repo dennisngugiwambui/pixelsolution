@@ -465,13 +465,7 @@
     "HttpMethod": "POST",
     "IsController": true,
     "Order": 0,
-    "Parameters": [
-      {
-        "Name": "callbackData",
-        "Type": "System.Text.Json.JsonElement",
-        "IsRequired": true
-      }
-    ],
+    "Parameters": [],
     "ReturnTypes": []
   },
   {
@@ -482,6 +476,22 @@
     "IsController": true,
     "Order": 0,
     "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "PixelSolution.Controllers.MpesaCallbackController",
+    "Method": "TestMpesaCallback",
+    "RelativePath": "api/mpesa/test-callback",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "request",
+        "Type": "PixelSolution.Controllers.MpesaCallbackController\u002BTestCallbackRequest",
+        "IsRequired": true
+      }
+    ],
     "ReturnTypes": []
   },
   {
