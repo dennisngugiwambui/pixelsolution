@@ -147,20 +147,14 @@ namespace PixelSolution.Controllers
                         return Json(new { success = false, message = "Phone number is required for MPESA payments." });
                     }
 
-                    // Clean phone number - remove +254 if present and ensure proper format
-                    var cleanPhone = model.CustomerPhone.Replace("+254", "").Replace(" ", "").Replace("-", "");
-                    if (cleanPhone.StartsWith("0"))
-                    {
-                        cleanPhone = cleanPhone.Substring(1); // Remove leading 0
-                    }
+                    // Format phone number exactly like MpesaTestController
+                    var formattedPhone = FormatPhoneNumberForMpesa(model.CustomerPhone);
                     
-                    // Validate phone number format (should be 9 digits after cleaning)
-                    if (cleanPhone.Length != 9 || !cleanPhone.All(char.IsDigit))
+                    // Validate phone number format (should be 12 digits starting with 254)
+                    if (string.IsNullOrEmpty(formattedPhone) || formattedPhone.Length != 12 || !formattedPhone.StartsWith("254"))
                     {
-                        return Json(new { success = false, message = "Invalid phone number format. Please enter a valid Kenyan mobile number." });
+                        return Json(new { success = false, message = "Phone number must be in format 254XXXXXXXXX (12 digits)" });
                     }
-                    
-                    var formattedPhone = "254" + cleanPhone; // MPESA expects 254XXXXXXXXX format
                     _logger.LogInformation("Formatted phone number: {FormattedPhone}", formattedPhone);
 
                     try
@@ -179,14 +173,20 @@ namespace PixelSolution.Controllers
 
                         _logger.LogInformation("✅ M-Pesa token retrieved from middleware");
                         
-                        // Step 2: Initiate STK Push with status feedback
+                        // Step 2: Validate amount (same as MpesaTestController)
+                        if (model.TotalAmount < 1 || model.TotalAmount > 70000)
+                        {
+                            return Json(new { success = false, message = "Amount must be between KSh 1 and KSh 70,000" });
+                        }
+
+                        // Step 3: Initiate STK Push with status feedback
                         _logger.LogInformation("📱 Initiating MPESA STK Push for phone: {Phone}, amount: {Amount}", formattedPhone, model.TotalAmount);
                         
                         var stkPushResponse = await _mpesaService.InitiateStkPushAsync(
                             formattedPhone,
                             model.TotalAmount,
-                            "Payment for purchase",
-                            "PAY001"
+                            "SALE" + DateTime.Now.ToString("yyyyMMddHHmmss").Substring(0, 8), // Account reference like test
+                            "Payment for purchase"
                         );
                         
                         _logger.LogInformation("📋 MPESA STK Push response: {Response}", System.Text.Json.JsonSerializer.Serialize(stkPushResponse));
@@ -543,31 +543,6 @@ namespace PixelSolution.Controllers
             }
         }
 
-        [HttpGet]
-        public async Task<IActionResult> CheckPaymentStatus(int id)
-        {
-            try
-            {
-                var sale = await _saleService.GetSaleByIdAsync(id);
-                if (sale == null)
-                {
-                    return Json(new { success = false, message = "Sale not found" });
-                }
-
-                return Json(new 
-                { 
-                    success = true, 
-                    status = sale.Status,
-                    amount = sale.TotalAmount,
-                    saleId = sale.SaleId
-                });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error checking payment status for sale {SaleId}", id);
-                return Json(new { success = false, message = "Error checking payment status" });
-            }
-        }
 
         [HttpGet]
         public async Task<IActionResult> ValidateStock([FromQuery] int productId, [FromQuery] int quantity)
@@ -719,6 +694,37 @@ namespace PixelSolution.Controllers
                 _logger.LogError(ex, "Error getting product details for ID {ProductId}", productId);
                 return Json(new { success = false, message = "Error loading product details" });
             }
+        }
+
+        /// <summary>
+        /// Format phone number for M-Pesa (matches MpesaTestController validation)
+        /// </summary>
+        private string FormatPhoneNumberForMpesa(string phoneNumber)
+        {
+            if (string.IsNullOrEmpty(phoneNumber)) return string.Empty;
+            
+            // Remove all non-digit characters
+            var cleanNumber = new string(phoneNumber.Where(char.IsDigit).ToArray());
+            
+            // Handle different formats
+            if (cleanNumber.StartsWith("254"))
+            {
+                // Already has country code
+                return cleanNumber.Length == 12 ? cleanNumber : string.Empty;
+            }
+            else if (cleanNumber.StartsWith("0"))
+            {
+                // Remove leading 0 and add 254
+                var withoutZero = cleanNumber.Substring(1);
+                return withoutZero.Length == 9 ? "254" + withoutZero : string.Empty;
+            }
+            else if (cleanNumber.Length == 9 && cleanNumber.StartsWith("7"))
+            {
+                // 9 digits starting with 7
+                return "254" + cleanNumber;
+            }
+            
+            return string.Empty;
         }
 
         [HttpGet]

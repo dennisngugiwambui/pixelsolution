@@ -1,6 +1,6 @@
 {
   "Version": 1,
-  "Hash": "k27kX4QySoW0hpJhV6QWdP53ktJeCKJTYQgqW3Yx58I=",
+  "Hash": "WdDhHI8cvHixHxlhAEG/6xJJ3V5c9YMdw3Jk+TuFytM=",
   "Source": "PixelSolution",
   "BasePath": "_content/PixelSolution",
   "Mode": "Default",
@@ -283,8 +283,8 @@
       "RelatedAsset": "",
       "AssetTraitName": "",
       "AssetTraitValue": "",
-      "Fingerprint": "74g6w96qty",
-      "Integrity": "6aTFvmcgHsurmPoKs/gqNXyQJ30OTGNyS+YqxBw8Kns=",
+      "Fingerprint": "tdbpsfiqzc",
+      "Integrity": "HyIMnpItQGjFTb9dGiJPdyU4C4ZuMXoq+YtQgde2Y9s=",
       "CopyToOutputDirectory": "Never",
       "CopyToPublishDirectory": "PreserveNewest",
       "OriginalItemSpec": "wwwroot\\js\\sales.js"
@@ -2414,51 +2414,6 @@
       ]
     },
     {
-      "Route": "js/sales.74g6w96qty.js",
-      "AssetFile": "C:\\Users\\Denno\\source\\repos\\PixelSolution\\PixelSolution\\wwwroot\\js\\sales.js",
-      "Selectors": [],
-      "ResponseHeaders": [
-        {
-          "Name": "Accept-Ranges",
-          "Value": "bytes"
-        },
-        {
-          "Name": "Content-Length",
-          "Value": "47279"
-        },
-        {
-          "Name": "Content-Type",
-          "Value": "text/javascript"
-        },
-        {
-          "Name": "ETag",
-          "Value": "\"6aTFvmcgHsurmPoKs/gqNXyQJ30OTGNyS+YqxBw8Kns=\""
-        },
-        {
-          "Name": "Last-Modified",
-          "Value": "Sat, 13 Sep 2025 06:59:06 GMT"
-        },
-        {
-          "Name": "Cache-Control",
-          "Value": "max-age=31536000, immutable"
-        }
-      ],
-      "EndpointProperties": [
-        {
-          "Name": "fingerprint",
-          "Value": "74g6w96qty"
-        },
-        {
-          "Name": "label",
-          "Value": "js/sales.js"
-        },
-        {
-          "Name": "integrity",
-          "Value": "sha256-6aTFvmcgHsurmPoKs/gqNXyQJ30OTGNyS+YqxBw8Kns="
-        }
-      ]
-    },
-    {
       "Route": "js/sales.js",
       "AssetFile": "C:\\Users\\Denno\\source\\repos\\PixelSolution\\PixelSolution\\wwwroot\\js\\sales.js",
       "Selectors": [],
@@ -2469,7 +2424,7 @@
         },
         {
           "Name": "Content-Length",
-          "Value": "47279"
+          "Value": "50488"
         },
         {
           "Name": "Content-Type",
@@ -2477,11 +2432,11 @@
         },
         {
           "Name": "ETag",
-          "Value": "\"6aTFvmcgHsurmPoKs/gqNXyQJ30OTGNyS+YqxBw8Kns=\""
+          "Value": "\"HyIMnpItQGjFTb9dGiJPdyU4C4ZuMXoq+YtQgde2Y9s=\""
         },
         {
           "Name": "Last-Modified",
-          "Value": "Sat, 13 Sep 2025 06:59:06 GMT"
+          "Value": "Sat, 13 Sep 2025 07:17:23 GMT"
         },
         {
           "Name": "Cache-Control",
@@ -2491,7 +2446,7 @@
       "EndpointProperties": [
         {
           "Name": "integrity",
-          "Value": "sha256-6aTFvmcgHsurmPoKs/gqNXyQJ30OTGNyS+YqxBw8Kns="
+          "Value": "sha256-HyIMnpItQGjFTb9dGiJPdyU4C4ZuMXoq+YtQgde2Y9s="
         }
       ]
     },
@@ -2574,6 +2529,51 @@
         {
           "Name": "integrity",
           "Value": "sha256-XQuqYuqqZlhv+EsKOktHqhEqzKT3FxIqNExnw7HATwk="
+        }
+      ]
+    },
+    {
+      "Route": "js/sales.tdbpsfiqzc.js",
+      "AssetFile": "C:\\Users\\Denno\\source\\repos\\PixelSolution\\PixelSolution\\wwwroot\\js\\sales.js",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "50488"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "text/javascript"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"HyIMnpItQGjFTb9dGiJPdyU4C4ZuMXoq+YtQgde2Y9s=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Sat, 13 Sep 2025 07:17:23 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=31536000, immutable"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "fingerprint",
+          "Value": "tdbpsfiqzc"
+        },
+        {
+          "Name": "label",
+          "Value": "js/sales.js"
+        },
+        {
+          "Name": "integrity",
+          "Value": "sha256-HyIMnpItQGjFTb9dGiJPdyU4C4ZuMXoq+YtQgde2Y9s="
         }
       ]
     },
