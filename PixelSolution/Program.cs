@@ -22,7 +22,7 @@ builder.Services.AddControllersWithViews()
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Authentication and Authorization
+// Authentication and Authorization - Support both Cookie and JWT
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
 .AddCookie(options =>
 {
@@ -31,6 +31,19 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
     options.AccessDeniedPath = "/Auth/AccessDenied";
     options.ExpireTimeSpan = TimeSpan.FromDays(30);
     options.SlidingExpiration = true;
+})
+.AddJwtBearer("JwtBearer", options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = builder.Configuration["Jwt:Issuer"],
+        ValidAudience = builder.Configuration["Jwt:Audience"],
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:SecretKey"]))
+    };
 });
 
 builder.Services.AddAuthorization(options =>
@@ -73,6 +86,18 @@ builder.Services.AddScoped<IMpesaService, MpesaService>();
 // Add HttpClient for M-Pesa middleware
 builder.Services.AddHttpClient();
 
+// CORS Configuration for Mobile App
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("MobileAppPolicy", policy =>
+    {
+        policy.WithOrigins("http://localhost", "https://localhost", "http://10.0.2.2", "https://10.0.2.2")
+              .AllowAnyMethod()
+              .AllowAnyHeader()
+              .AllowCredentials();
+    });
+});
+
 // Additional Services
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddMemoryCache();
@@ -113,6 +138,9 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseRouting();
+
+// Enable CORS for mobile app
+app.UseCors("MobileAppPolicy");
 
 app.UseAuthentication();
 app.UseAuthorization();
