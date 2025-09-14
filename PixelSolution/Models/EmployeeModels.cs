@@ -82,6 +82,8 @@ namespace PixelSolution.Models
         public virtual EmployeeProfile EmployeeProfile { get; set; } = null!;
     }
 
+
+    //this model
     public class EmployeeFine
     {
         [Key]
