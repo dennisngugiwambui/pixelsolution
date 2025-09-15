@@ -574,9 +574,9 @@ namespace PixelSolution.Data
                 .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<SupplierInvoiceItem>()
-                .HasOne(sii => sii.SupplierItem)
-                .WithMany(si => si.SupplierInvoiceItems)
-                .HasForeignKey(sii => sii.SupplierItemId)
+                .HasOne(sii => sii.SupplierProductSupply)
+                .WithMany(sps => sps.SupplierInvoiceItems)
+                .HasForeignKey(sii => sii.SupplierProductSupplyId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             modelBuilder.Entity<SupplierInvoiceItem>()

@@ -224,7 +224,7 @@
                 <button class="tab-btn" onclick="showTab('payments')">Payments</button>
             </div>
 
-            <!-- Items Tab -->
+            <!-- Products & Supplies Tab -->
             <div id="itemsTab" class="tab-content active">
                 <div class="filters-bar">
                     <div class="date-filter">
@@ -237,12 +237,12 @@
                     </div>
                     <select id="statusFilter" class="form-control">
                         <option value="">All Status</option>
-                        <option value="Received">Received</option>
+                        <option value="Pending">Pending</option>
                         <option value="Invoiced">Invoiced</option>
                         <option value="Paid">Paid</option>
                         <option value="Settled">Settled</option>
                     </select>
-                    <button class="btn btn-secondary" onclick="filterItems()">
+                    <button class="btn btn-secondary" onclick="filterSupplies()">
                         <i class="fas fa-filter"></i> Filter
                     </button>
                     <button class="btn btn-primary" onclick="generateInvoice()">
@@ -250,24 +250,37 @@
                     </button>
                 </div>
 
-                <table class="items-table" id="itemsTable">
-                    <thead>
-                        <tr>
-                            <th><input type="checkbox" id="selectAll" onchange="toggleSelectAll()"></th>
-                            <th>Product</th>
-                            <th>Batch</th>
-                            <th>Quantity</th>
-                            <th>Unit Cost</th>
-                            <th>Total Cost</th>
-                            <th>Supply Date</th>
-                            <th>Status</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="itemsTableBody">
-                        <!-- Items will be loaded here -->
-                    </tbody>
-                </table>
+                <!-- Products assigned to this supplier -->
+                <div style="margin-bottom: 2rem;">
+                    <h4>Products Assigned to Supplier</h4>
+                    <div id="productsGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem;">
+                        <!-- Products will be loaded here -->
+                    </div>
+                </div>
+
+                <!-- Supply batches for all products -->
+                <div>
+                    <h4>Supply History & Batches</h4>
+                    <table class="items-table" id="suppliesTable">
+                        <thead>
+                            <tr>
+                                <th><input type="checkbox" id="selectAll" onchange="toggleSelectAll()"></th>
+                                <th>Product</th>
+                                <th>SKU</th>
+                                <th>Batch</th>
+                                <th>Quantity</th>
+                                <th>Unit Cost</th>
+                                <th>Total Cost</th>
+                                <th>Supply Date</th>
+                                <th>Payment Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="suppliesTableBody">
+                            <!-- Supply batches will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
             <!-- Invoices Tab -->

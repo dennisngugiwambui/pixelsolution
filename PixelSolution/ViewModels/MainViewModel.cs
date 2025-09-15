@@ -21,19 +21,34 @@ namespace PixelSolution.ViewModels
         public DateTime CreatedAt { get; set; }
     }
 
-    public class SupplierItemViewModel
+    public class SupplierProductViewModel
     {
-        public int SupplierItemId { get; set; }
+        public int ProductId { get; set; }
+        public string ProductName { get; set; } = string.Empty;
+        public string SKU { get; set; } = string.Empty;
+        public decimal BuyingPrice { get; set; }
+        public decimal SellingPrice { get; set; }
+        public int StockQuantity { get; set; }
+        public string CategoryName { get; set; } = string.Empty;
+        public DateTime CreatedAt { get; set; }
+        public List<SupplierProductSupplyViewModel> Supplies { get; set; } = new List<SupplierProductSupplyViewModel>();
+        public decimal TotalSuppliedValue { get; set; }
+        public decimal OutstandingAmount { get; set; }
+    }
+
+    public class SupplierProductSupplyViewModel
+    {
+        public int SupplierProductSupplyId { get; set; }
         public int SupplierId { get; set; }
         public int ProductId { get; set; }
         public string ProductName { get; set; } = string.Empty;
-        public int Quantity { get; set; }
+        public int QuantitySupplied { get; set; }
         public decimal UnitCost { get; set; }
         public decimal TotalCost { get; set; }
         public string BatchNumber { get; set; } = string.Empty;
         public DateTime SupplyDate { get; set; }
         public DateTime? ExpiryDate { get; set; }
-        public string Status { get; set; } = string.Empty;
+        public string PaymentStatus { get; set; } = string.Empty;
         public string Notes { get; set; } = string.Empty;
     }
 
@@ -59,12 +74,14 @@ namespace PixelSolution.ViewModels
     public class SupplierInvoiceItemViewModel
     {
         public int SupplierInvoiceItemId { get; set; }
-        public int SupplierItemId { get; set; }
+        public int SupplierProductSupplyId { get; set; }
         public string ProductName { get; set; } = string.Empty;
         public int Quantity { get; set; }
         public decimal UnitCost { get; set; }
         public decimal TotalCost { get; set; }
         public string Description { get; set; } = string.Empty;
+        public string BatchNumber { get; set; } = string.Empty;
+        public DateTime SupplyDate { get; set; }
     }
 
     public class SupplierPaymentViewModel
@@ -81,11 +98,11 @@ namespace PixelSolution.ViewModels
         public string ProcessedByUser { get; set; } = string.Empty;
     }
 
-    public class AddSupplierItemRequest
+    public class AddSupplierProductSupplyRequest
     {
         public int SupplierId { get; set; }
         public int ProductId { get; set; }
-        public int Quantity { get; set; }
+        public int QuantitySupplied { get; set; }
         public decimal UnitCost { get; set; }
         public string BatchNumber { get; set; } = string.Empty;
         public DateTime SupplyDate { get; set; }
@@ -96,7 +113,7 @@ namespace PixelSolution.ViewModels
     public class GenerateInvoiceRequest
     {
         public int SupplierId { get; set; }
-        public List<int> ItemIds { get; set; } = new List<int>();
+        public List<int> SupplyIds { get; set; } = new List<int>();
     }
 
     public class RecordPaymentRequest
