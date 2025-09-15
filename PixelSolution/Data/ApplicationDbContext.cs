@@ -40,7 +40,7 @@ namespace PixelSolution.Data
         public DbSet<EmployeePayment> EmployeePayments { get; set; }
         
         // Supplier Management
-        public DbSet<SupplierItem> SupplierItems { get; set; }
+        public DbSet<SupplierProductSupply> SupplierProductSupplies { get; set; }
         public DbSet<SupplierInvoice> SupplierInvoices { get; set; }
         public DbSet<SupplierInvoiceItem> SupplierInvoiceItems { get; set; }
         public DbSet<SupplierPayment> SupplierPayments { get; set; }
@@ -492,33 +492,33 @@ namespace PixelSolution.Data
             modelBuilder.Entity<MpesaToken>()
                 .HasIndex(mt => mt.IsActive);
 
-            // Configure SupplierItem relationships
-            modelBuilder.Entity<SupplierItem>()
-                .HasOne(si => si.Supplier)
+            // Configure SupplierProductSupply relationships
+            modelBuilder.Entity<SupplierProductSupply>()
+                .HasOne(sps => sps.Supplier)
                 .WithMany()
-                .HasForeignKey(si => si.SupplierId)
+                .HasForeignKey(sps => sps.SupplierId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            modelBuilder.Entity<SupplierItem>()
-                .HasOne(si => si.Product)
+            modelBuilder.Entity<SupplierProductSupply>()
+                .HasOne(sps => sps.Product)
                 .WithMany()
-                .HasForeignKey(si => si.ProductId)
+                .HasForeignKey(sps => sps.ProductId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            modelBuilder.Entity<SupplierItem>()
-                .Property(si => si.UnitCost)
+            modelBuilder.Entity<SupplierProductSupply>()
+                .Property(sps => sps.UnitCost)
                 .HasColumnType("decimal(18,2)");
 
-            modelBuilder.Entity<SupplierItem>()
-                .Property(si => si.TotalCost)
+            modelBuilder.Entity<SupplierProductSupply>()
+                .Property(sps => sps.TotalCost)
                 .HasColumnType("decimal(18,2)");
 
-            modelBuilder.Entity<SupplierItem>()
-                .Property(si => si.CreatedAt)
+            modelBuilder.Entity<SupplierProductSupply>()
+                .Property(sps => sps.CreatedAt)
                 .HasDefaultValueSql("GETUTCDATE()");
 
-            modelBuilder.Entity<SupplierItem>()
-                .Property(si => si.UpdatedAt)
+            modelBuilder.Entity<SupplierProductSupply>()
+                .Property(sps => sps.UpdatedAt)
                 .HasDefaultValueSql("GETUTCDATE()");
 
             // Configure SupplierInvoice relationships

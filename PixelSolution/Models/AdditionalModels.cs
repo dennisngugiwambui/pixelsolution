@@ -475,11 +475,11 @@ namespace PixelSolution.Models
         public decimal TotalPrice { get; set; }
     }
 
-    // Supplier Item Management Models
-    public class SupplierItem
+    // Supplier Product Supply Tracking - tracks supply batches for existing products
+    public class SupplierProductSupply
     {
         [Key]
-        public int SupplierItemId { get; set; }
+        public int SupplierProductSupplyId { get; set; }
 
         [Required]
         public int SupplierId { get; set; }
@@ -488,7 +488,7 @@ namespace PixelSolution.Models
         public int ProductId { get; set; }
 
         [Required]
-        public int Quantity { get; set; }
+        public int QuantitySupplied { get; set; }
 
         [Required]
         [Column(TypeName = "decimal(18,2)")]
@@ -506,7 +506,7 @@ namespace PixelSolution.Models
         public DateTime? ExpiryDate { get; set; }
 
         [StringLength(20)]
-        public string Status { get; set; } = "Received"; // Received, Invoiced, Paid, Settled
+        public string PaymentStatus { get; set; } = "Pending"; // Pending, Invoiced, Paid, Settled
 
         [StringLength(500)]
         public string Notes { get; set; } = string.Empty;
@@ -598,7 +598,7 @@ namespace PixelSolution.Models
         public int SupplierInvoiceId { get; set; }
 
         [Required]
-        public int SupplierItemId { get; set; }
+        public int SupplierProductSupplyId { get; set; }
 
         [Required]
         public int Quantity { get; set; }
@@ -618,8 +618,8 @@ namespace PixelSolution.Models
         [ForeignKey("SupplierInvoiceId")]
         public virtual SupplierInvoice SupplierInvoice { get; set; } = null!;
 
-        [ForeignKey("SupplierItemId")]
-        public virtual SupplierItem SupplierItem { get; set; } = null!;
+        [ForeignKey("SupplierProductSupplyId")]
+        public virtual SupplierProductSupply SupplierProductSupply { get; set; } = null!;
     }
 
     public class SupplierPayment
