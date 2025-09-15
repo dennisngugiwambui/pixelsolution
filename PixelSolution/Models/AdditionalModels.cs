@@ -474,4 +474,195 @@ namespace PixelSolution.Models
         public decimal UnitPrice { get; set; }
         public decimal TotalPrice { get; set; }
     }
+
+    // Supplier Item Management Models
+    public class SupplierItem
+    {
+        [Key]
+        public int SupplierItemId { get; set; }
+
+        [Required]
+        public int SupplierId { get; set; }
+
+        [Required]
+        public int ProductId { get; set; }
+
+        [Required]
+        public int Quantity { get; set; }
+
+        [Required]
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal UnitCost { get; set; }
+
+        [Required]
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal TotalCost { get; set; }
+
+        [StringLength(50)]
+        public string BatchNumber { get; set; } = string.Empty;
+
+        public DateTime SupplyDate { get; set; } = DateTime.UtcNow;
+
+        public DateTime? ExpiryDate { get; set; }
+
+        [StringLength(20)]
+        public string Status { get; set; } = "Received"; // Received, Invoiced, Paid, Settled
+
+        [StringLength(500)]
+        public string Notes { get; set; } = string.Empty;
+
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
+        // Navigation Properties
+        [ForeignKey("SupplierId")]
+        public virtual Supplier Supplier { get; set; } = null!;
+
+        [ForeignKey("ProductId")]
+        public virtual Product Product { get; set; } = null!;
+
+        public virtual ICollection<SupplierInvoiceItem> SupplierInvoiceItems { get; set; } = new List<SupplierInvoiceItem>();
+    }
+
+    public class SupplierInvoice
+    {
+        [Key]
+        public int SupplierInvoiceId { get; set; }
+
+        [Required]
+        [StringLength(50)]
+        public string InvoiceNumber { get; set; } = string.Empty;
+
+        [Required]
+        public int SupplierId { get; set; }
+
+        [Required]
+        public int CreatedByUserId { get; set; }
+
+        [Required]
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal SubTotal { get; set; }
+
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal TaxAmount { get; set; } = 0;
+
+        [Required]
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal TotalAmount { get; set; }
+
+        [StringLength(20)]
+        public string Status { get; set; } = "Pending"; // Pending, Sent, Paid, Overdue, Cancelled
+
+        [StringLength(20)]
+        public string PaymentStatus { get; set; } = "Unpaid"; // Unpaid, Partially_Paid, Paid
+
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal AmountPaid { get; set; } = 0;
+
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal AmountDue { get; set; }
+
+        public DateTime InvoiceDate { get; set; } = DateTime.UtcNow;
+        public DateTime DueDate { get; set; }
+
+        [StringLength(1000)]
+        public string Notes { get; set; } = string.Empty;
+
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
+        // Navigation Properties
+        [ForeignKey("SupplierId")]
+        public virtual Supplier Supplier { get; set; } = null!;
+
+        [ForeignKey("CreatedByUserId")]
+        public virtual User CreatedByUser { get; set; } = null!;
+
+        public virtual ICollection<SupplierInvoiceItem> SupplierInvoiceItems { get; set; } = new List<SupplierInvoiceItem>();
+        public virtual ICollection<SupplierPayment> SupplierPayments { get; set; } = new List<SupplierPayment>();
+
+        // Computed Properties
+        [NotMapped]
+        public bool IsOverdue => DueDate < DateTime.UtcNow && PaymentStatus != "Paid";
+
+        [NotMapped]
+        public decimal BalanceAmount => TotalAmount - AmountPaid;
+    }
+
+    public class SupplierInvoiceItem
+    {
+        [Key]
+        public int SupplierInvoiceItemId { get; set; }
+
+        [Required]
+        public int SupplierInvoiceId { get; set; }
+
+        [Required]
+        public int SupplierItemId { get; set; }
+
+        [Required]
+        public int Quantity { get; set; }
+
+        [Required]
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal UnitCost { get; set; }
+
+        [Required]
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal TotalCost { get; set; }
+
+        [StringLength(500)]
+        public string Description { get; set; } = string.Empty;
+
+        // Navigation Properties
+        [ForeignKey("SupplierInvoiceId")]
+        public virtual SupplierInvoice SupplierInvoice { get; set; } = null!;
+
+        [ForeignKey("SupplierItemId")]
+        public virtual SupplierItem SupplierItem { get; set; } = null!;
+    }
+
+    public class SupplierPayment
+    {
+        [Key]
+        public int SupplierPaymentId { get; set; }
+
+        [Required]
+        public int SupplierInvoiceId { get; set; }
+
+        [Required]
+        public int ProcessedByUserId { get; set; }
+
+        [Required]
+        [StringLength(50)]
+        public string PaymentReference { get; set; } = string.Empty;
+
+        [Required]
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal Amount { get; set; }
+
+        [Required]
+        [StringLength(20)]
+        public string PaymentMethod { get; set; } = string.Empty; // Cash, Bank_Transfer, Cheque, M-Pesa
+
+        [StringLength(20)]
+        public string Status { get; set; } = "Completed"; // Pending, Completed, Failed, Cancelled
+
+        public DateTime PaymentDate { get; set; } = DateTime.UtcNow;
+
+        [StringLength(1000)]
+        public string Notes { get; set; } = string.Empty;
+
+        [StringLength(100)]
+        public string TransactionId { get; set; } = string.Empty;
+
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        // Navigation Properties
+        [ForeignKey("SupplierInvoiceId")]
+        public virtual SupplierInvoice SupplierInvoice { get; set; } = null!;
+
+        [ForeignKey("ProcessedByUserId")]
+        public virtual User ProcessedByUser { get; set; } = null!;
+    }
 }

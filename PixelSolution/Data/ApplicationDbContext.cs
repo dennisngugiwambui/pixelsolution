@@ -38,6 +38,12 @@ namespace PixelSolution.Data
         public DbSet<EmployeeSalary> EmployeeSalaries { get; set; }
         public DbSet<EmployeeFine> EmployeeFines { get; set; }
         public DbSet<EmployeePayment> EmployeePayments { get; set; }
+        
+        // Supplier Management
+        public DbSet<SupplierItem> SupplierItems { get; set; }
+        public DbSet<SupplierInvoice> SupplierInvoices { get; set; }
+        public DbSet<SupplierInvoiceItem> SupplierInvoiceItems { get; set; }
+        public DbSet<SupplierPayment> SupplierPayments { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
