@@ -3050,6 +3050,346 @@ namespace PixelSolution.Controllers
 
         #endregion
 
+        #region Supplier Product Supply Management
+
+        [HttpGet]
+        [Authorize(Roles = "Admin,Manager")]
+        public async Task<IActionResult> GetSupplierProducts(int supplierId)
+        {
+            try
+            {
+                // Get products assigned to this supplier
+                var products = await _context.Products
+                    .AsNoTracking()
+                    .Include(p => p.Category)
+                    .Where(p => p.SupplierId == supplierId && p.IsActive)
+                    .ToListAsync();
+
+                // Get supply batches for these products
+                var productIds = products.Select(p => p.ProductId).ToList();
+                var supplies = await _context.SupplierProductSupplies
+                    .AsNoTracking()
+                    .Include(s => s.Product)
+                    .Where(s => s.SupplierId == supplierId && productIds.Contains(s.ProductId))
+                    .OrderByDescending(s => s.SupplyDate)
+                    .ToListAsync();
+
+                var supplierProducts = products.Select(p => new SupplierProductViewModel
+                {
+                    ProductId = p.ProductId,
+                    ProductName = p.Name,
+                    SKU = p.SKU,
+                    BuyingPrice = p.BuyingPrice,
+                    SellingPrice = p.SellingPrice,
+                    StockQuantity = p.StockQuantity,
+                    CategoryName = p.Category?.Name ?? "No Category",
+                    CreatedAt = p.CreatedAt,
+                    Supplies = supplies.Where(s => s.ProductId == p.ProductId)
+                        .Select(s => new SupplierProductSupplyViewModel
+                        {
+                            SupplierProductSupplyId = s.SupplierProductSupplyId,
+                            ProductId = s.ProductId,
+                            ProductName = s.Product.Name,
+                            QuantitySupplied = s.QuantitySupplied,
+                            UnitCost = s.UnitCost,
+                            TotalCost = s.TotalCost,
+                            BatchNumber = s.BatchNumber,
+                            SupplyDate = s.SupplyDate,
+                            ExpiryDate = s.ExpiryDate,
+                            PaymentStatus = s.PaymentStatus,
+                            Notes = s.Notes
+                        }).ToList(),
+                    TotalSuppliedValue = supplies.Where(s => s.ProductId == p.ProductId).Sum(s => s.TotalCost),
+                    OutstandingAmount = supplies.Where(s => s.ProductId == p.ProductId && s.PaymentStatus != "Paid" && s.PaymentStatus != "Settled").Sum(s => s.TotalCost)
+                }).ToList();
+
+                return Json(new { success = true, products = supplierProducts });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting supplier products for supplier ID: {SupplierId}", supplierId);
+                return Json(new { success = false, message = "Error loading supplier products. Please try again." });
+            }
+        }
+
+        [HttpGet]
+        [Authorize(Roles = "Admin,Manager")]
+        public async Task<IActionResult> GetSupplierProductSupplies(int supplierId, DateTime? fromDate = null, DateTime? toDate = null, string status = null)
+        {
+            try
+            {
+                var query = _context.SupplierProductSupplies
+                    .AsNoTracking()
+                    .Include(s => s.Product)
+                    .Where(s => s.SupplierId == supplierId);
+
+                if (fromDate.HasValue)
+                    query = query.Where(s => s.SupplyDate >= fromDate.Value);
+
+                if (toDate.HasValue)
+                    query = query.Where(s => s.SupplyDate <= toDate.Value);
+
+                if (!string.IsNullOrEmpty(status))
+                    query = query.Where(s => s.PaymentStatus == status);
+
+                var supplies = await query
+                    .OrderByDescending(s => s.SupplyDate)
+                    .ToListAsync();
+
+                var suppliesViewModel = supplies.Select(s => new SupplierProductSupplyViewModel
+                {
+                    SupplierProductSupplyId = s.SupplierProductSupplyId,
+                    ProductId = s.ProductId,
+                    ProductName = s.Product.Name,
+                    QuantitySupplied = s.QuantitySupplied,
+                    UnitCost = s.UnitCost,
+                    TotalCost = s.TotalCost,
+                    BatchNumber = s.BatchNumber,
+                    SupplyDate = s.SupplyDate,
+                    ExpiryDate = s.ExpiryDate,
+                    PaymentStatus = s.PaymentStatus,
+                    Notes = s.Notes
+                }).ToList();
+
+                return Json(new { success = true, supplies = suppliesViewModel });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting supplier product supplies for supplier ID: {SupplierId}", supplierId);
+                return Json(new { success = false, message = "Error loading supplier supplies. Please try again." });
+            }
+        }
+
+        [HttpPost]
+        [Authorize(Roles = "Admin,Manager")]
+        public async Task<IActionResult> AddSupplierProductSupply([FromBody] AddSupplierProductSupplyRequest request)
+        {
+            try
+            {
+                // Validate the product belongs to the supplier
+                var product = await _context.Products
+                    .FirstOrDefaultAsync(p => p.ProductId == request.ProductId && p.SupplierId == request.SupplierId);
+
+                if (product == null)
+                {
+                    return Json(new { success = false, message = "Product not found or not assigned to this supplier." });
+                }
+
+                var supply = new SupplierProductSupply
+                {
+                    SupplierId = request.SupplierId,
+                    ProductId = request.ProductId,
+                    QuantitySupplied = request.QuantitySupplied,
+                    UnitCost = request.UnitCost,
+                    TotalCost = request.QuantitySupplied * request.UnitCost,
+                    BatchNumber = request.BatchNumber,
+                    SupplyDate = request.SupplyDate,
+                    ExpiryDate = request.ExpiryDate,
+                    PaymentStatus = "Pending",
+                    Notes = request.Notes,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+
+                _context.SupplierProductSupplies.Add(supply);
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation("Supply batch added for Product ID: {ProductId}, Supplier ID: {SupplierId}, Quantity: {Quantity}", 
+                    request.ProductId, request.SupplierId, request.QuantitySupplied);
+
+                return Json(new { success = true, message = "Supply batch added successfully.", supplyId = supply.SupplierProductSupplyId });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error adding supplier product supply");
+                return Json(new { success = false, message = "Error adding supply batch. Please try again." });
+            }
+        }
+
+        [HttpPost]
+        [Authorize(Roles = "Admin,Manager")]
+        public async Task<IActionResult> GenerateSupplierInvoice([FromBody] GenerateInvoiceRequest request)
+        {
+            try
+            {
+                // Get the selected supply batches
+                var supplies = await _context.SupplierProductSupplies
+                    .Include(s => s.Product)
+                    .Where(s => request.SupplyIds.Contains(s.SupplierProductSupplyId) && s.SupplierId == request.SupplierId)
+                    .ToListAsync();
+
+                if (!supplies.Any())
+                {
+                    return Json(new { success = false, message = "No valid supply batches found." });
+                }
+
+                // Check if any supplies are already invoiced
+                var alreadyInvoiced = supplies.Where(s => s.PaymentStatus == "Invoiced" || s.PaymentStatus == "Paid" || s.PaymentStatus == "Settled").ToList();
+                if (alreadyInvoiced.Any())
+                {
+                    return Json(new { success = false, message = $"Some items are already invoiced or paid. Please select only pending items." });
+                }
+
+                // Generate invoice number
+                var invoiceCount = await _context.SupplierInvoices.CountAsync() + 1;
+                var invoiceNumber = $"INV-SUP-{DateTime.Now:yyyyMM}-{invoiceCount:D4}";
+
+                // Calculate totals
+                var subtotal = supplies.Sum(s => s.TotalCost);
+                var taxRate = 0.16m; // 16% VAT
+                var taxAmount = subtotal * taxRate;
+                var totalAmount = subtotal + taxAmount;
+
+                // Create invoice
+                var invoice = new SupplierInvoice
+                {
+                    SupplierId = request.SupplierId,
+                    InvoiceNumber = invoiceNumber,
+                    InvoiceDate = DateTime.UtcNow,
+                    DueDate = DateTime.UtcNow.AddDays(30), // 30 days payment terms
+                    Subtotal = subtotal,
+                    TaxAmount = taxAmount,
+                    TotalAmount = totalAmount,
+                    AmountPaid = 0,
+                    AmountDue = totalAmount,
+                    Status = "Pending",
+                    Notes = $"Invoice for {supplies.Count} supply batches",
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+
+                _context.SupplierInvoices.Add(invoice);
+                await _context.SaveChangesAsync();
+
+                // Create invoice items
+                var invoiceItems = supplies.Select(s => new SupplierInvoiceItem
+                {
+                    SupplierInvoiceId = invoice.SupplierInvoiceId,
+                    SupplierProductSupplyId = s.SupplierProductSupplyId,
+                    Quantity = s.QuantitySupplied,
+                    UnitCost = s.UnitCost,
+                    TotalCost = s.TotalCost,
+                    Description = $"{s.Product.Name} - Batch: {s.BatchNumber}"
+                }).ToList();
+
+                _context.SupplierInvoiceItems.AddRange(invoiceItems);
+
+                // Update supply payment status
+                foreach (var supply in supplies)
+                {
+                    supply.PaymentStatus = "Invoiced";
+                    supply.UpdatedAt = DateTime.UtcNow;
+                }
+
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation("Invoice generated: {InvoiceNumber} for Supplier ID: {SupplierId}, Amount: {Amount}", 
+                    invoiceNumber, request.SupplierId, totalAmount);
+
+                return Json(new { 
+                    success = true, 
+                    message = "Invoice generated successfully.", 
+                    invoiceId = invoice.SupplierInvoiceId,
+                    invoiceNumber = invoiceNumber,
+                    totalAmount = totalAmount
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error generating supplier invoice");
+                return Json(new { success = false, message = "Error generating invoice. Please try again." });
+            }
+        }
+
+        [HttpPost]
+        [Authorize(Roles = "Admin,Manager")]
+        public async Task<IActionResult> RecordSupplierPayment([FromBody] RecordPaymentRequest request)
+        {
+            try
+            {
+                var invoice = await _context.SupplierInvoices
+                    .Include(i => i.SupplierInvoiceItems)
+                    .ThenInclude(ii => ii.SupplierProductSupply)
+                    .FirstOrDefaultAsync(i => i.SupplierInvoiceId == request.SupplierInvoiceId);
+
+                if (invoice == null)
+                {
+                    return Json(new { success = false, message = "Invoice not found." });
+                }
+
+                if (request.Amount <= 0 || request.Amount > invoice.AmountDue)
+                {
+                    return Json(new { success = false, message = "Invalid payment amount." });
+                }
+
+                // Generate payment reference if not provided
+                var paymentReference = string.IsNullOrEmpty(request.PaymentReference) 
+                    ? $"PAY-{DateTime.Now:yyyyMMddHHmmss}" 
+                    : request.PaymentReference;
+
+                // Create payment record
+                var payment = new SupplierPayment
+                {
+                    SupplierInvoiceId = request.SupplierInvoiceId,
+                    Amount = request.Amount,
+                    PaymentMethod = request.PaymentMethod,
+                    PaymentReference = paymentReference,
+                    PaymentDate = request.PaymentDate,
+                    Notes = request.Notes,
+                    Status = "Completed",
+                    ProcessedBy = User.Identity?.Name ?? "System",
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                _context.SupplierPayments.Add(payment);
+
+                // Update invoice amounts
+                invoice.AmountPaid += request.Amount;
+                invoice.AmountDue -= request.Amount;
+                invoice.UpdatedAt = DateTime.UtcNow;
+
+                // Update invoice status
+                if (invoice.AmountDue <= 0)
+                {
+                    invoice.Status = "Paid";
+                    
+                    // Update all related supply batches to "Paid"
+                    foreach (var item in invoice.SupplierInvoiceItems)
+                    {
+                        if (item.SupplierProductSupply != null)
+                        {
+                            item.SupplierProductSupply.PaymentStatus = "Paid";
+                            item.SupplierProductSupply.UpdatedAt = DateTime.UtcNow;
+                        }
+                    }
+                }
+                else if (invoice.AmountPaid > 0)
+                {
+                    invoice.Status = "Partially Paid";
+                }
+
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation("Payment recorded for Invoice: {InvoiceNumber}, Amount: {Amount}", 
+                    invoice.InvoiceNumber, request.Amount);
+
+                return Json(new { 
+                    success = true, 
+                    message = "Payment recorded successfully.",
+                    paymentId = payment.SupplierPaymentId,
+                    invoiceStatus = invoice.Status,
+                    remainingAmount = invoice.AmountDue
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error recording supplier payment");
+                return Json(new { success = false, message = "Error recording payment. Please try again." });
+            }
+        }
+
+        #endregion
+
         #region Products Management - COMPLETE IMPLEMENTATION
 
         [HttpGet]
