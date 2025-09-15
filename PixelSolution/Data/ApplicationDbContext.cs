@@ -491,6 +491,126 @@ namespace PixelSolution.Data
 
             modelBuilder.Entity<MpesaToken>()
                 .HasIndex(mt => mt.IsActive);
+
+            // Configure SupplierItem relationships
+            modelBuilder.Entity<SupplierItem>()
+                .HasOne(si => si.Supplier)
+                .WithMany()
+                .HasForeignKey(si => si.SupplierId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<SupplierItem>()
+                .HasOne(si => si.Product)
+                .WithMany()
+                .HasForeignKey(si => si.ProductId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<SupplierItem>()
+                .Property(si => si.UnitCost)
+                .HasColumnType("decimal(18,2)");
+
+            modelBuilder.Entity<SupplierItem>()
+                .Property(si => si.TotalCost)
+                .HasColumnType("decimal(18,2)");
+
+            modelBuilder.Entity<SupplierItem>()
+                .Property(si => si.CreatedAt)
+                .HasDefaultValueSql("GETUTCDATE()");
+
+            modelBuilder.Entity<SupplierItem>()
+                .Property(si => si.UpdatedAt)
+                .HasDefaultValueSql("GETUTCDATE()");
+
+            // Configure SupplierInvoice relationships
+            modelBuilder.Entity<SupplierInvoice>()
+                .HasOne(si => si.Supplier)
+                .WithMany()
+                .HasForeignKey(si => si.SupplierId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<SupplierInvoice>()
+                .HasOne(si => si.CreatedByUser)
+                .WithMany()
+                .HasForeignKey(si => si.CreatedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<SupplierInvoice>()
+                .HasIndex(si => si.InvoiceNumber)
+                .IsUnique();
+
+            modelBuilder.Entity<SupplierInvoice>()
+                .Property(si => si.SubTotal)
+                .HasColumnType("decimal(18,2)");
+
+            modelBuilder.Entity<SupplierInvoice>()
+                .Property(si => si.TaxAmount)
+                .HasColumnType("decimal(18,2)");
+
+            modelBuilder.Entity<SupplierInvoice>()
+                .Property(si => si.TotalAmount)
+                .HasColumnType("decimal(18,2)");
+
+            modelBuilder.Entity<SupplierInvoice>()
+                .Property(si => si.AmountPaid)
+                .HasColumnType("decimal(18,2)");
+
+            modelBuilder.Entity<SupplierInvoice>()
+                .Property(si => si.AmountDue)
+                .HasColumnType("decimal(18,2)");
+
+            modelBuilder.Entity<SupplierInvoice>()
+                .Property(si => si.CreatedAt)
+                .HasDefaultValueSql("GETUTCDATE()");
+
+            modelBuilder.Entity<SupplierInvoice>()
+                .Property(si => si.UpdatedAt)
+                .HasDefaultValueSql("GETUTCDATE()");
+
+            // Configure SupplierInvoiceItem relationships
+            modelBuilder.Entity<SupplierInvoiceItem>()
+                .HasOne(sii => sii.SupplierInvoice)
+                .WithMany(si => si.SupplierInvoiceItems)
+                .HasForeignKey(sii => sii.SupplierInvoiceId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<SupplierInvoiceItem>()
+                .HasOne(sii => sii.SupplierItem)
+                .WithMany(si => si.SupplierInvoiceItems)
+                .HasForeignKey(sii => sii.SupplierItemId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<SupplierInvoiceItem>()
+                .Property(sii => sii.UnitCost)
+                .HasColumnType("decimal(18,2)");
+
+            modelBuilder.Entity<SupplierInvoiceItem>()
+                .Property(sii => sii.TotalCost)
+                .HasColumnType("decimal(18,2)");
+
+            // Configure SupplierPayment relationships
+            modelBuilder.Entity<SupplierPayment>()
+                .HasOne(sp => sp.SupplierInvoice)
+                .WithMany(si => si.SupplierPayments)
+                .HasForeignKey(sp => sp.SupplierInvoiceId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<SupplierPayment>()
+                .HasOne(sp => sp.ProcessedByUser)
+                .WithMany()
+                .HasForeignKey(sp => sp.ProcessedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<SupplierPayment>()
+                .HasIndex(sp => sp.PaymentReference)
+                .IsUnique();
+
+            modelBuilder.Entity<SupplierPayment>()
+                .Property(sp => sp.Amount)
+                .HasColumnType("decimal(18,2)");
+
+            modelBuilder.Entity<SupplierPayment>()
+                .Property(sp => sp.CreatedAt)
+                .HasDefaultValueSql("GETUTCDATE()");
         }
     }
 }

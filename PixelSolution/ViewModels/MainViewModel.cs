@@ -4,6 +4,112 @@ using PixelSolution.Models;
 namespace PixelSolution.ViewModels
 {
     // ======================================
+    // SUPPLIER MANAGEMENT VIEW MODELS
+    // ======================================
+    public class SupplierDetailsViewModel
+    {
+        public int SupplierId { get; set; }
+        public string CompanyName { get; set; } = string.Empty;
+        public string ContactPerson { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string Phone { get; set; } = string.Empty;
+        public string Address { get; set; } = string.Empty;
+        public string Status { get; set; } = string.Empty;
+        public int TotalItems { get; set; }
+        public decimal TotalValue { get; set; }
+        public decimal OutstandingAmount { get; set; }
+        public DateTime CreatedAt { get; set; }
+    }
+
+    public class SupplierItemViewModel
+    {
+        public int SupplierItemId { get; set; }
+        public int SupplierId { get; set; }
+        public int ProductId { get; set; }
+        public string ProductName { get; set; } = string.Empty;
+        public int Quantity { get; set; }
+        public decimal UnitCost { get; set; }
+        public decimal TotalCost { get; set; }
+        public string BatchNumber { get; set; } = string.Empty;
+        public DateTime SupplyDate { get; set; }
+        public DateTime? ExpiryDate { get; set; }
+        public string Status { get; set; } = string.Empty;
+        public string Notes { get; set; } = string.Empty;
+    }
+
+    public class SupplierInvoiceViewModel
+    {
+        public int SupplierInvoiceId { get; set; }
+        public string InvoiceNumber { get; set; } = string.Empty;
+        public int SupplierId { get; set; }
+        public string SupplierName { get; set; } = string.Empty;
+        public decimal SubTotal { get; set; }
+        public decimal TaxAmount { get; set; }
+        public decimal TotalAmount { get; set; }
+        public string Status { get; set; } = string.Empty;
+        public string PaymentStatus { get; set; } = string.Empty;
+        public decimal AmountPaid { get; set; }
+        public decimal AmountDue { get; set; }
+        public DateTime InvoiceDate { get; set; }
+        public DateTime DueDate { get; set; }
+        public int ItemCount { get; set; }
+        public List<SupplierInvoiceItemViewModel> Items { get; set; } = new List<SupplierInvoiceItemViewModel>();
+    }
+
+    public class SupplierInvoiceItemViewModel
+    {
+        public int SupplierInvoiceItemId { get; set; }
+        public int SupplierItemId { get; set; }
+        public string ProductName { get; set; } = string.Empty;
+        public int Quantity { get; set; }
+        public decimal UnitCost { get; set; }
+        public decimal TotalCost { get; set; }
+        public string Description { get; set; } = string.Empty;
+    }
+
+    public class SupplierPaymentViewModel
+    {
+        public int SupplierPaymentId { get; set; }
+        public int SupplierInvoiceId { get; set; }
+        public string InvoiceNumber { get; set; } = string.Empty;
+        public string PaymentReference { get; set; } = string.Empty;
+        public decimal Amount { get; set; }
+        public string PaymentMethod { get; set; } = string.Empty;
+        public string Status { get; set; } = string.Empty;
+        public DateTime PaymentDate { get; set; }
+        public string Notes { get; set; } = string.Empty;
+        public string ProcessedByUser { get; set; } = string.Empty;
+    }
+
+    public class AddSupplierItemRequest
+    {
+        public int SupplierId { get; set; }
+        public int ProductId { get; set; }
+        public int Quantity { get; set; }
+        public decimal UnitCost { get; set; }
+        public string BatchNumber { get; set; } = string.Empty;
+        public DateTime SupplyDate { get; set; }
+        public DateTime? ExpiryDate { get; set; }
+        public string Notes { get; set; } = string.Empty;
+    }
+
+    public class GenerateInvoiceRequest
+    {
+        public int SupplierId { get; set; }
+        public List<int> ItemIds { get; set; } = new List<int>();
+    }
+
+    public class RecordPaymentRequest
+    {
+        public int SupplierInvoiceId { get; set; }
+        public decimal Amount { get; set; }
+        public string PaymentMethod { get; set; } = string.Empty;
+        public string PaymentReference { get; set; } = string.Empty;
+        public DateTime PaymentDate { get; set; }
+        public string Notes { get; set; } = string.Empty;
+    }
+
+    // ======================================
     // ENHANCED USER VIEW MODELS (Non-Auth)
     // ======================================
     public class UserListViewModel

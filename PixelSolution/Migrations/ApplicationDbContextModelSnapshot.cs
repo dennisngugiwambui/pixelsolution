@@ -1059,6 +1059,245 @@ namespace PixelSolution.Migrations
                     b.ToTable("Suppliers");
                 });
 
+            modelBuilder.Entity("PixelSolution.Models.SupplierInvoice", b =>
+                {
+                    b.Property<int>("SupplierInvoiceId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("SupplierInvoiceId"));
+
+                    b.Property<decimal>("AmountDue")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("AmountPaid")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<int>("CreatedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("DueDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("InvoiceDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("InvoiceNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Notes")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("PaymentStatus")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<decimal>("SubTotal")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("SupplierId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("TaxAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("TotalAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.HasKey("SupplierInvoiceId");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("InvoiceNumber")
+                        .IsUnique();
+
+                    b.HasIndex("SupplierId");
+
+                    b.ToTable("SupplierInvoices");
+                });
+
+            modelBuilder.Entity("PixelSolution.Models.SupplierInvoiceItem", b =>
+                {
+                    b.Property<int>("SupplierInvoiceItemId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("SupplierInvoiceItemId"));
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SupplierInvoiceId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SupplierItemId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("TotalCost")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("UnitCost")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("SupplierInvoiceItemId");
+
+                    b.HasIndex("SupplierInvoiceId");
+
+                    b.HasIndex("SupplierItemId");
+
+                    b.ToTable("SupplierInvoiceItems");
+                });
+
+            modelBuilder.Entity("PixelSolution.Models.SupplierItem", b =>
+                {
+                    b.Property<int>("SupplierItemId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("SupplierItemId"));
+
+                    b.Property<string>("BatchNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<DateTime?>("ExpiryDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Notes")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("ProductId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<int>("SupplierId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("SupplyDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal>("TotalCost")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("UnitCost")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.HasKey("SupplierItemId");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("SupplierId");
+
+                    b.ToTable("SupplierItems");
+                });
+
+            modelBuilder.Entity("PixelSolution.Models.SupplierPayment", b =>
+                {
+                    b.Property<int>("SupplierPaymentId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("SupplierPaymentId"));
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<string>("Notes")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime>("PaymentDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("PaymentMethod")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("PaymentReference")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int>("ProcessedByUserId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<int>("SupplierInvoiceId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("TransactionId")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("SupplierPaymentId");
+
+                    b.HasIndex("PaymentReference")
+                        .IsUnique();
+
+                    b.HasIndex("ProcessedByUserId");
+
+                    b.HasIndex("SupplierInvoiceId");
+
+                    b.ToTable("SupplierPayments");
+                });
+
             modelBuilder.Entity("PixelSolution.Models.User", b =>
                 {
                     b.Property<int>("UserId")
@@ -1493,6 +1732,82 @@ namespace PixelSolution.Migrations
                     b.Navigation("Sale");
                 });
 
+            modelBuilder.Entity("PixelSolution.Models.SupplierInvoice", b =>
+                {
+                    b.HasOne("PixelSolution.Models.User", "CreatedByUser")
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("PixelSolution.Models.Supplier", "Supplier")
+                        .WithMany()
+                        .HasForeignKey("SupplierId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("CreatedByUser");
+
+                    b.Navigation("Supplier");
+                });
+
+            modelBuilder.Entity("PixelSolution.Models.SupplierInvoiceItem", b =>
+                {
+                    b.HasOne("PixelSolution.Models.SupplierInvoice", "SupplierInvoice")
+                        .WithMany("SupplierInvoiceItems")
+                        .HasForeignKey("SupplierInvoiceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("PixelSolution.Models.SupplierItem", "SupplierItem")
+                        .WithMany("SupplierInvoiceItems")
+                        .HasForeignKey("SupplierItemId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("SupplierInvoice");
+
+                    b.Navigation("SupplierItem");
+                });
+
+            modelBuilder.Entity("PixelSolution.Models.SupplierItem", b =>
+                {
+                    b.HasOne("PixelSolution.Models.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("PixelSolution.Models.Supplier", "Supplier")
+                        .WithMany()
+                        .HasForeignKey("SupplierId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+
+                    b.Navigation("Supplier");
+                });
+
+            modelBuilder.Entity("PixelSolution.Models.SupplierPayment", b =>
+                {
+                    b.HasOne("PixelSolution.Models.User", "ProcessedByUser")
+                        .WithMany()
+                        .HasForeignKey("ProcessedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("PixelSolution.Models.SupplierInvoice", "SupplierInvoice")
+                        .WithMany("SupplierPayments")
+                        .HasForeignKey("SupplierInvoiceId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ProcessedByUser");
+
+                    b.Navigation("SupplierInvoice");
+                });
+
             modelBuilder.Entity("PixelSolution.Models.UserActivityLog", b =>
                 {
                     b.HasOne("PixelSolution.Models.User", "User")
@@ -1597,6 +1912,18 @@ namespace PixelSolution.Migrations
                     b.Navigation("Products");
 
                     b.Navigation("PurchaseRequests");
+                });
+
+            modelBuilder.Entity("PixelSolution.Models.SupplierInvoice", b =>
+                {
+                    b.Navigation("SupplierInvoiceItems");
+
+                    b.Navigation("SupplierPayments");
+                });
+
+            modelBuilder.Entity("PixelSolution.Models.SupplierItem", b =>
+                {
+                    b.Navigation("SupplierInvoiceItems");
                 });
 
             modelBuilder.Entity("PixelSolution.Models.User", b =>
