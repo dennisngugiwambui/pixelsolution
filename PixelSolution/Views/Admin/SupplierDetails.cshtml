@@ -411,7 +411,7 @@
             // Load data for the selected tab
             switch(tabName) {
                 case 'items':
-                    loadSupplierItems();
+                    loadSupplierProducts();
                     break;
                 case 'invoices':
                     loadSupplierInvoices();
@@ -422,34 +422,50 @@
             }
         }
 
-        async function loadSupplierItems() {
-            try {
-                const response = await fetch(`/Admin/GetSupplierItems?supplierId=${supplierId}`);
-                const items = await response.json();
-                displayItems(items);
-            } catch (error) {
-                console.error('Error loading supplier items:', error);
-            }
+        // Updated to use new API endpoints
+        function filterSupplies() {
+            loadSupplierSupplies();
         }
 
-        function displayItems(items) {
-            const tbody = document.getElementById('itemsTableBody');
+        function displayProducts(products) {
+            const grid = document.getElementById('productsGrid');
+            grid.innerHTML = '';
+            
+            products.forEach(product => {
+                const card = document.createElement('div');
+                card.style.cssText = 'border: 1px solid #ddd; border-radius: 8px; padding: 1rem; background: white;';
+                card.innerHTML = `
+                    <h5>${product.productName}</h5>
+                    <p><strong>SKU:</strong> ${product.sku}</p>
+                    <p><strong>Category:</strong> ${product.categoryName}</p>
+                    <p><strong>Stock:</strong> ${product.stockQuantity}</p>
+                    <p><strong>Total Supplied Value:</strong> KSh ${product.totalSuppliedValue.toFixed(2)}</p>
+                    <p><strong>Outstanding Amount:</strong> KSh ${product.outstandingAmount.toFixed(2)}</p>
+                    <p><strong>Supply Batches:</strong> ${product.supplies.length}</p>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function displaySupplies(supplies) {
+            const tbody = document.getElementById('suppliesTableBody');
             tbody.innerHTML = '';
             
-            items.forEach(item => {
+            supplies.forEach(supply => {
                 const row = document.createElement('tr');
                 row.innerHTML = `
-                    <td><input type="checkbox" class="item-checkbox" value="${item.supplierItemId}"></td>
-                    <td>${item.productName}</td>
-                    <td>${item.batchNumber || '-'}</td>
-                    <td>${item.quantity}</td>
-                    <td>KSh ${item.unitCost.toFixed(2)}</td>
-                    <td>KSh ${item.totalCost.toFixed(2)}</td>
-                    <td>${new Date(item.supplyDate).toLocaleDateString()}</td>
-                    <td><span class="status-badge status-${item.status.toLowerCase()}">${item.status}</span></td>
+                    <td><input type="checkbox" class="supply-checkbox" value="${supply.supplierProductSupplyId}"></td>
+                    <td>${supply.productName}</td>
+                    <td>${supply.productId}</td>
+                    <td>${supply.batchNumber || '-'}</td>
+                    <td>${supply.quantitySupplied}</td>
+                    <td>KSh ${supply.unitCost.toFixed(2)}</td>
+                    <td>KSh ${supply.totalCost.toFixed(2)}</td>
+                    <td>${new Date(supply.supplyDate).toLocaleDateString()}</td>
+                    <td><span class="status-badge status-${supply.paymentStatus.toLowerCase()}">${supply.paymentStatus}</span></td>
                     <td>
-                        <button class="btn btn-sm btn-warning" onclick="settleItem(${item.supplierItemId})">
-                            <i class="fas fa-check"></i>
+                        <button class="btn btn-sm btn-info" onclick="viewSupplyDetails(${supply.supplierProductSupplyId})" title="View Details">
+                            <i class="fas fa-eye"></i>
                         </button>
                     </td>
                 `;
@@ -457,19 +473,22 @@
             });
         }
 
-        async function loadProducts() {
+        async function loadProductsForSupplier() {
             try {
-                const response = await fetch('/Admin/GetProducts');
-                const products = await response.json();
-                const select = document.getElementById('productId');
-                select.innerHTML = '<option value="">Select Product</option>';
+                const response = await fetch(`/Admin/GetSupplierProducts?supplierId=${supplierId}`);
+                const data = await response.json();
                 
-                products.forEach(product => {
-                    const option = document.createElement('option');
-                    option.value = product.productId;
-                    option.textContent = product.name;
-                    select.appendChild(option);
-                });
+                if (data.success) {
+                    const select = document.getElementById('productId');
+                    select.innerHTML = '<option value="">Select Product</option>';
+                    
+                    data.products.forEach(product => {
+                        const option = document.createElement('option');
+                        option.value = product.productId;
+                        option.textContent = `${product.productName} (${product.sku})`;
+                        select.appendChild(option);
+                    });
+                }
             } catch (error) {
                 console.error('Error loading products:', error);
             }
@@ -485,12 +504,15 @@
 
         function toggleSelectAll() {
             const selectAll = document.getElementById('selectAll');
-            const checkboxes = document.querySelectorAll('.item-checkbox');
+            const checkboxes = document.querySelectorAll('.supply-checkbox');
             checkboxes.forEach(cb => cb.checked = selectAll.checked);
         }
 
         function openAddItemModal() {
             document.getElementById('addItemModal').style.display = 'block';
+            loadProductsForSupplier();
+            // Set default supply date to today
+            document.getElementById('supplyDate').value = new Date().toISOString().split('T')[0];
         }
 
         function closeAddItemModal() {
@@ -499,10 +521,10 @@
         }
 
         async function generateInvoice() {
-            const selectedItems = Array.from(document.querySelectorAll('.item-checkbox:checked')).map(cb => cb.value);
+            const selectedSupplies = Array.from(document.querySelectorAll('.supply-checkbox:checked')).map(cb => parseInt(cb.value));
             
-            if (selectedItems.length === 0) {
-                alert('Please select items to invoice');
+            if (selectedSupplies.length === 0) {
+                alert('Please select supply batches to invoice');
                 return;
             }
 
@@ -510,13 +532,13 @@
                 const response = await fetch('/Admin/GenerateSupplierInvoice', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ supplierId: supplierId, itemIds: selectedItems })
+                    body: JSON.stringify({ supplierId: supplierId, supplyIds: selectedSupplies })
                 });
 
                 const result = await response.json();
                 if (result.success) {
-                    alert('Invoice generated successfully');
-                    loadSupplierItems();
+                    alert(`Invoice ${result.invoiceNumber} generated successfully for KSh ${result.totalAmount.toFixed(2)}`);
+                    loadSupplierSupplies();
                     showTab('invoices');
                 } else {
                     alert('Error: ' + result.message);
@@ -532,8 +554,8 @@
             
             const formData = {
                 supplierId: supplierId,
-                productId: document.getElementById('productId').value,
-                quantity: parseInt(document.getElementById('quantity').value),
+                productId: parseInt(document.getElementById('productId').value),
+                quantitySupplied: parseInt(document.getElementById('quantitySupplied').value),
                 unitCost: parseFloat(document.getElementById('unitCost').value),
                 batchNumber: document.getElementById('batchNumber').value,
                 supplyDate: document.getElementById('supplyDate').value,
@@ -542,7 +564,7 @@
             };
 
             try {
-                const response = await fetch('/Admin/AddSupplierItem', {
+                const response = await fetch('/Admin/AddSupplierProductSupply', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(formData)
@@ -551,15 +573,193 @@
                 const result = await response.json();
                 if (result.success) {
                     closeAddItemModal();
-                    loadSupplierItems();
-                    alert('Item added successfully');
+                    loadSupplierProducts();
+                    alert('Supply batch added successfully');
                 } else {
                     alert('Error: ' + result.message);
                 }
             } catch (error) {
-                console.error('Error adding item:', error);
-                alert('Error adding item');
+                console.error('Error adding supply batch:', error);
+                alert('Error adding supply batch');
             }
+        });
+
+        function loadSupplierProducts() {
+            fetch(`/Admin/GetSupplierProducts?supplierId=${supplierId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        displayProducts(data.products);
+                        loadSupplierSupplies(); // Load supplies separately
+                    } else {
+                        showAlert('Error loading products: ' + data.message, 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showAlert('Error loading products', 'error');
+                });
+        }
+
+        function loadSupplierSupplies() {
+            const fromDate = document.getElementById('fromDate').value;
+            const toDate = document.getElementById('toDate').value;
+            const status = document.getElementById('statusFilter').value;
+
+            let url = `/Admin/GetSupplierProductSupplies?supplierId=${supplierId}`;
+            const params = new URLSearchParams();
+            
+            if (fromDate) params.append('fromDate', fromDate);
+            if (toDate) params.append('toDate', toDate);
+            if (status) params.append('status', status);
+            
+            if (params.toString()) {
+                url += '&' + params.toString();
+            }
+
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        displaySupplies(data.supplies);
+                    } else {
+                        showAlert('Error loading supplies: ' + data.message, 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showAlert('Error loading supplies', 'error');
+                });
+        }
+
+        // Additional functions for invoice and payment management
+        async function loadSupplierInvoices() {
+            try {
+                const response = await fetch(`/Admin/GetSupplierInvoices?supplierId=${supplierId}`);
+                const data = await response.json();
+                if (data.success) {
+                    displayInvoices(data.invoices);
+                }
+            } catch (error) {
+                console.error('Error loading invoices:', error);
+            }
+        }
+
+        function displayInvoices(invoices) {
+            const tbody = document.getElementById('invoicesTableBody');
+            tbody.innerHTML = '';
+            
+            invoices.forEach(invoice => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${invoice.invoiceNumber}</td>
+                    <td>${new Date(invoice.invoiceDate).toLocaleDateString()}</td>
+                    <td>${new Date(invoice.dueDate).toLocaleDateString()}</td>
+                    <td>KSh ${invoice.totalAmount.toFixed(2)}</td>
+                    <td>KSh ${invoice.amountPaid.toFixed(2)}</td>
+                    <td>KSh ${invoice.amountDue.toFixed(2)}</td>
+                    <td><span class="status-badge status-${invoice.status.toLowerCase()}">${invoice.status}</span></td>
+                    <td>
+                        <button class="btn btn-sm btn-success" onclick="recordPayment(${invoice.supplierInvoiceId})" ${invoice.amountDue <= 0 ? 'disabled' : ''}>
+                            <i class="fas fa-money-bill"></i> Pay
+                        </button>
+                        <button class="btn btn-sm btn-info" onclick="viewInvoice(${invoice.supplierInvoiceId})">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        async function loadSupplierPayments() {
+            try {
+                const response = await fetch(`/Admin/GetSupplierPayments?supplierId=${supplierId}`);
+                const data = await response.json();
+                if (data.success) {
+                    displayPayments(data.payments);
+                }
+            } catch (error) {
+                console.error('Error loading payments:', error);
+            }
+        }
+
+        function displayPayments(payments) {
+            const tbody = document.getElementById('paymentsTableBody');
+            tbody.innerHTML = '';
+            
+            payments.forEach(payment => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${payment.invoiceNumber}</td>
+                    <td>${payment.paymentReference}</td>
+                    <td>KSh ${payment.amount.toFixed(2)}</td>
+                    <td>${payment.paymentMethod}</td>
+                    <td>${new Date(payment.paymentDate).toLocaleDateString()}</td>
+                    <td><span class="status-badge status-${payment.status.toLowerCase()}">${payment.status}</span></td>
+                    <td>${payment.processedByUser}</td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function recordPayment(invoiceId) {
+            // This would open a payment modal - simplified for now
+            const amount = prompt('Enter payment amount:');
+            const paymentMethod = prompt('Enter payment method (Cash/Bank/Cheque):') || 'Cash';
+            
+            if (amount && !isNaN(amount) && parseFloat(amount) > 0) {
+                submitPayment(invoiceId, parseFloat(amount), paymentMethod);
+            }
+        }
+
+        async function submitPayment(invoiceId, amount, paymentMethod) {
+            try {
+                const response = await fetch('/Admin/RecordSupplierPayment', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        supplierInvoiceId: invoiceId,
+                        amount: amount,
+                        paymentMethod: paymentMethod,
+                        paymentDate: new Date().toISOString(),
+                        notes: 'Payment recorded via supplier details'
+                    })
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    alert(`Payment recorded successfully. Remaining amount: KSh ${result.remainingAmount.toFixed(2)}`);
+                    loadSupplierInvoices();
+                    loadSupplierPayments();
+                    loadSupplierSupplies(); // Refresh supplies to show updated payment status
+                } else {
+                    alert('Error: ' + result.message);
+                }
+            } catch (error) {
+                console.error('Error recording payment:', error);
+                alert('Error recording payment');
+            }
+        }
+
+        function viewSupplyDetails(supplyId) {
+            // Placeholder for supply details modal
+            alert('Supply details view - to be implemented');
+        }
+
+        function viewInvoice(invoiceId) {
+            // Placeholder for invoice details modal
+            alert('Invoice details view - to be implemented');
+        }
+
+        function showAlert(message, type) {
+            alert(message); // Simple alert for now, can be enhanced with better UI
+        }
+
+        // Initialize the page
+        document.addEventListener('DOMContentLoaded', function() {
+            setupDateFilters();
+            loadSupplierProducts(); // Load initial data
         });
     </script>
 }
