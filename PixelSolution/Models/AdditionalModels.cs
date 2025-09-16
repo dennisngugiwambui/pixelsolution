@@ -541,7 +541,7 @@ namespace PixelSolution.Models
 
         [Required]
         [Column(TypeName = "decimal(18,2)")]
-        public decimal SubTotal { get; set; }
+        public decimal Subtotal { get; set; }
 
         [Column(TypeName = "decimal(18,2)")]
         public decimal TaxAmount { get; set; } = 0;
@@ -632,6 +632,10 @@ namespace PixelSolution.Models
 
         [Required]
         public int ProcessedByUserId { get; set; }
+
+        [Required]
+        [StringLength(256)]
+        public string ProcessedBy { get; set; } = string.Empty;
 
         [Required]
         [StringLength(50)]

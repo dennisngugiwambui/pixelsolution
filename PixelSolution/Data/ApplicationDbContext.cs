@@ -539,7 +539,7 @@ namespace PixelSolution.Data
                 .IsUnique();
 
             modelBuilder.Entity<SupplierInvoice>()
-                .Property(si => si.SubTotal)
+                .Property(si => si.Subtotal)
                 .HasColumnType("decimal(18,2)");
 
             modelBuilder.Entity<SupplierInvoice>()
