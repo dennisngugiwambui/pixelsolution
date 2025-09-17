@@ -3018,6 +3018,41 @@ namespace PixelSolution.Controllers
         }
 
         [HttpGet]
+        [Authorize(Roles = "Admin,Manager")]
+        public async Task<IActionResult> SupplierDetails(int id)
+        {
+            try
+            {
+                var supplier = await _supplierService.GetSupplierByIdAsync(id);
+                if (supplier == null)
+                {
+                    TempData["ErrorMessage"] = "Supplier not found.";
+                    return RedirectToAction("Suppliers");
+                }
+
+                var supplierViewModel = new SupplierDetailsViewModel
+                {
+                    SupplierId = supplier.SupplierId,
+                    CompanyName = supplier.CompanyName,
+                    ContactPerson = supplier.ContactPerson,
+                    Email = supplier.Email,
+                    Phone = supplier.Phone,
+                    Address = supplier.Address,
+                    Status = supplier.Status,
+                    CreatedAt = supplier.CreatedAt
+                };
+
+                return View(supplierViewModel);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading supplier details for ID: {SupplierId}", id);
+                TempData["ErrorMessage"] = "Error loading supplier details. Please try again.";
+                return RedirectToAction("Suppliers");
+            }
+        }
+
+        [HttpGet]
         public async Task<IActionResult> GetCategory(int id)
         {
             try
@@ -3212,15 +3247,17 @@ namespace PixelSolution.Controllers
         {
             try
             {
-                // Get the selected supply batches
+                // Get the selected supply batches with proper validation
                 var supplies = await _context.SupplierProductSupplies
                     .Include(s => s.Product)
-                    .Where(s => request.SupplyIds.Contains(s.SupplierProductSupplyId) && s.SupplierId == request.SupplierId)
+                    .Where(s => request.SupplyIds.Contains(s.SupplierProductSupplyId) && 
+                               s.SupplierId == request.SupplierId &&
+                               s.Product.SupplierId == request.SupplierId) // Ensure product belongs to supplier
                     .ToListAsync();
 
                 if (!supplies.Any())
                 {
-                    return Json(new { success = false, message = "No valid supply batches found." });
+                    return Json(new { success = false, message = "No valid supply batches found for this supplier." });
                 }
 
                 // Check if any supplies are already invoiced
@@ -3229,6 +3266,12 @@ namespace PixelSolution.Controllers
                 {
                     return Json(new { success = false, message = $"Some items are already invoiced or paid. Please select only pending items." });
                 }
+
+                // Get current user ID for CreatedByUserId
+                var currentUserId = await _context.Users
+                    .Where(u => u.Email == User.Identity.Name)
+                    .Select(u => u.UserId)
+                    .FirstOrDefaultAsync();
 
                 // Generate invoice number
                 var invoiceCount = await _context.SupplierInvoices.CountAsync() + 1;
@@ -3244,6 +3287,7 @@ namespace PixelSolution.Controllers
                 var invoice = new SupplierInvoice
                 {
                     SupplierId = request.SupplierId,
+                    CreatedByUserId = currentUserId > 0 ? currentUserId : 1, // Fallback to admin user
                     InvoiceNumber = invoiceNumber,
                     InvoiceDate = DateTime.UtcNow,
                     DueDate = DateTime.UtcNow.AddDays(30), // 30 days payment terms
@@ -3253,7 +3297,8 @@ namespace PixelSolution.Controllers
                     AmountPaid = 0,
                     AmountDue = totalAmount,
                     Status = "Pending",
-                    Notes = $"Invoice for {supplies.Count} supply batches",
+                    PaymentStatus = "Unpaid",
+                    Notes = $"Invoice for {supplies.Count} supply batches from {supplies.Select(s => s.Product.Name).Distinct().Count()} products",
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow
                 };
@@ -3269,7 +3314,7 @@ namespace PixelSolution.Controllers
                     Quantity = s.QuantitySupplied,
                     UnitCost = s.UnitCost,
                     TotalCost = s.TotalCost,
-                    Description = $"{s.Product.Name} - Batch: {s.BatchNumber}"
+                    Description = $"{s.Product.Name} - Batch: {s.BatchNumber ?? "N/A"} - Supply Date: {s.SupplyDate:yyyy-MM-dd}"
                 }).ToList();
 
                 _context.SupplierInvoiceItems.AddRange(invoiceItems);
@@ -3283,20 +3328,21 @@ namespace PixelSolution.Controllers
 
                 await _context.SaveChangesAsync();
 
-                _logger.LogInformation("Invoice generated: {InvoiceNumber} for Supplier ID: {SupplierId}, Amount: {Amount}", 
-                    invoiceNumber, request.SupplierId, totalAmount);
+                _logger.LogInformation("Invoice generated: {InvoiceNumber} for Supplier ID: {SupplierId}, Amount: {Amount}, Items: {ItemCount}", 
+                    invoiceNumber, request.SupplierId, totalAmount, supplies.Count);
 
                 return Json(new { 
                     success = true, 
-                    message = "Invoice generated successfully.", 
+                    message = $"Invoice {invoiceNumber} generated successfully for {supplies.Count} items.", 
                     invoiceId = invoice.SupplierInvoiceId,
                     invoiceNumber = invoiceNumber,
-                    totalAmount = totalAmount
+                    totalAmount = totalAmount,
+                    itemCount = supplies.Count
                 });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error generating supplier invoice");
+                _logger.LogError(ex, "Error generating supplier invoice for Supplier ID: {SupplierId}", request.SupplierId);
                 return Json(new { success = false, message = "Error generating invoice. Please try again." });
             }
         }
@@ -3308,8 +3354,10 @@ namespace PixelSolution.Controllers
             try
             {
                 var invoice = await _context.SupplierInvoices
+                    .Include(i => i.Supplier)
                     .Include(i => i.SupplierInvoiceItems)
                     .ThenInclude(ii => ii.SupplierProductSupply)
+                    .ThenInclude(sps => sps.Product)
                     .FirstOrDefaultAsync(i => i.SupplierInvoiceId == request.SupplierInvoiceId);
 
                 if (invoice == null)
@@ -3319,12 +3367,16 @@ namespace PixelSolution.Controllers
 
                 if (request.Amount <= 0 || request.Amount > invoice.AmountDue)
                 {
-                    return Json(new { success = false, message = "Invalid payment amount." });
+                    return Json(new { success = false, message = $"Invalid payment amount. Amount due: {invoice.AmountDue:C}" });
                 }
+
+                // Get current user for payment processing
+                var currentUser = await _context.Users
+                    .FirstOrDefaultAsync(u => u.Email == User.Identity.Name);
 
                 // Generate payment reference if not provided
                 var paymentReference = string.IsNullOrEmpty(request.PaymentReference) 
-                    ? $"PAY-{DateTime.Now:yyyyMMddHHmmss}" 
+                    ? $"PAY-SUP-{DateTime.Now:yyyyMMddHHmmss}" 
                     : request.PaymentReference;
 
                 // Create payment record
@@ -3337,13 +3389,13 @@ namespace PixelSolution.Controllers
                     PaymentDate = request.PaymentDate,
                     Notes = request.Notes,
                     Status = "Completed",
-                    ProcessedBy = User.Identity?.Name ?? "System",
+                    ProcessedBy = currentUser?.FullName ?? User.Identity?.Name ?? "System",
                     CreatedAt = DateTime.UtcNow
                 };
 
                 _context.SupplierPayments.Add(payment);
 
-                // Update invoice amounts
+                // Update invoice amounts and payment status
                 invoice.AmountPaid += request.Amount;
                 invoice.AmountDue -= request.Amount;
                 invoice.UpdatedAt = DateTime.UtcNow;
@@ -3352,6 +3404,7 @@ namespace PixelSolution.Controllers
                 if (invoice.AmountDue <= 0)
                 {
                     invoice.Status = "Paid";
+                    invoice.PaymentStatus = "Paid";
                     
                     // Update all related supply batches to "Paid"
                     foreach (var item in invoice.SupplierInvoiceItems)
@@ -3366,25 +3419,139 @@ namespace PixelSolution.Controllers
                 else if (invoice.AmountPaid > 0)
                 {
                     invoice.Status = "Partially Paid";
+                    invoice.PaymentStatus = "Partially Paid";
                 }
 
                 await _context.SaveChangesAsync();
 
-                _logger.LogInformation("Payment recorded for Invoice: {InvoiceNumber}, Amount: {Amount}", 
-                    invoice.InvoiceNumber, request.Amount);
+                // Generate payment receipt data
+                var receiptData = new
+                {
+                    PaymentId = payment.SupplierPaymentId,
+                    PaymentReference = paymentReference,
+                    InvoiceNumber = invoice.InvoiceNumber,
+                    SupplierName = invoice.Supplier?.CompanyName ?? "Unknown Supplier",
+                    PaymentDate = payment.PaymentDate.ToString("yyyy-MM-dd HH:mm"),
+                    PaymentMethod = payment.PaymentMethod,
+                    AmountPaid = payment.Amount,
+                    ProcessedBy = payment.ProcessedBy,
+                    InvoiceTotal = invoice.TotalAmount,
+                    TotalPaid = invoice.AmountPaid,
+                    AmountDue = invoice.AmountDue,
+                    PaymentStatus = invoice.PaymentStatus,
+                    Items = invoice.SupplierInvoiceItems.Select(item => new
+                    {
+                        ProductName = item.SupplierProductSupply?.Product?.Name ?? "Unknown Product",
+                        Quantity = item.Quantity,
+                        UnitCost = item.UnitCost,
+                        TotalCost = item.TotalCost,
+                        BatchNumber = item.SupplierProductSupply?.BatchNumber ?? "N/A",
+                        SupplyDate = item.SupplierProductSupply?.SupplyDate.ToString("yyyy-MM-dd") ?? "N/A"
+                    }).ToList()
+                };
+
+                _logger.LogInformation("Payment recorded for Invoice: {InvoiceNumber}, Amount: {Amount}, Reference: {Reference}", 
+                    invoice.InvoiceNumber, request.Amount, paymentReference);
 
                 return Json(new { 
                     success = true, 
-                    message = "Payment recorded successfully.",
+                    message = $"Payment of {request.Amount:C} recorded successfully. Receipt generated.",
                     paymentId = payment.SupplierPaymentId,
+                    paymentReference = paymentReference,
                     invoiceStatus = invoice.Status,
-                    remainingAmount = invoice.AmountDue
+                    paymentStatus = invoice.PaymentStatus,
+                    remainingAmount = invoice.AmountDue,
+                    receipt = receiptData
                 });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error recording supplier payment");
                 return Json(new { success = false, message = "Error recording payment. Please try again." });
+            }
+        }
+
+        [HttpGet]
+        [Authorize(Roles = "Admin,Manager")]
+        public async Task<IActionResult> GetSupplierInvoices(int supplierId)
+        {
+            try
+            {
+                var invoices = await _context.SupplierInvoices
+                    .AsNoTracking()
+                    .Where(i => i.SupplierId == supplierId)
+                    .OrderByDescending(i => i.InvoiceDate)
+                    .Select(i => new SupplierInvoiceViewModel
+                    {
+                        SupplierInvoiceId = i.SupplierInvoiceId,
+                        InvoiceNumber = i.InvoiceNumber,
+                        SupplierId = i.SupplierId,
+                        SupplierName = i.Supplier.CompanyName,
+                        Subtotal = i.Subtotal,
+                        TaxAmount = i.TaxAmount,
+                        TotalAmount = i.TotalAmount,
+                        AmountPaid = i.AmountPaid,
+                        AmountDue = i.AmountDue,
+                        Status = i.Status,
+                        InvoiceDate = i.InvoiceDate,
+                        DueDate = i.DueDate,
+                        ItemCount = i.SupplierInvoiceItems.Count,
+                        Items = i.SupplierInvoiceItems.Select(ii => new SupplierInvoiceItemViewModel
+                        {
+                            SupplierInvoiceItemId = ii.SupplierInvoiceItemId,
+                            SupplierProductSupplyId = ii.SupplierProductSupplyId,
+                            ProductName = ii.SupplierProductSupply.Product.Name,
+                            Quantity = ii.Quantity,
+                            UnitCost = ii.UnitCost,
+                            TotalCost = ii.TotalCost,
+                            Description = ii.Description,
+                            BatchNumber = ii.SupplierProductSupply.BatchNumber,
+                            SupplyDate = ii.SupplierProductSupply.SupplyDate
+                        }).ToList()
+                    })
+                    .ToListAsync();
+
+                return Json(new { success = true, invoices });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting supplier invoices for supplier ID: {SupplierId}", supplierId);
+                return Json(new { success = false, message = "Error loading invoices. Please try again." });
+            }
+        }
+
+        [HttpGet]
+        [Authorize(Roles = "Admin,Manager")]
+        public async Task<IActionResult> GetSupplierPayments(int supplierId)
+        {
+            try
+            {
+                var payments = await _context.SupplierPayments
+                    .AsNoTracking()
+                    .Include(p => p.SupplierInvoice)
+                    .Where(p => p.SupplierInvoice.SupplierId == supplierId)
+                    .OrderByDescending(p => p.PaymentDate)
+                    .Select(p => new SupplierPaymentViewModel
+                    {
+                        SupplierPaymentId = p.SupplierPaymentId,
+                        SupplierInvoiceId = p.SupplierInvoiceId,
+                        InvoiceNumber = p.SupplierInvoice.InvoiceNumber,
+                        PaymentReference = p.PaymentReference,
+                        Amount = p.Amount,
+                        PaymentMethod = p.PaymentMethod,
+                        Status = p.Status,
+                        PaymentDate = p.PaymentDate,
+                        Notes = p.Notes,
+                        ProcessedByUser = p.ProcessedBy
+                    })
+                    .ToListAsync();
+
+                return Json(new { success = true, payments });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting supplier payments for supplier ID: {SupplierId}", supplierId);
+                return Json(new { success = false, message = "Error loading payments. Please try again." });
             }
         }
 

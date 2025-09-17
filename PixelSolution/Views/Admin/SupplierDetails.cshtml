@@ -22,6 +22,69 @@
             margin-top: 1rem;
         }
 
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .supplier-header {
+                padding: 1rem;
+            }
+            
+            .supplier-info {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+            
+            .filters-bar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .date-filter {
+                flex-direction: column;
+                gap: 0.25rem;
+            }
+            
+            .tabs-nav {
+                flex-direction: column;
+            }
+            
+            .tab-btn {
+                text-align: center;
+            }
+            
+            .modal-content {
+                width: 95%;
+                margin: 2% auto;
+            }
+            
+            .items-table {
+                font-size: 0.875rem;
+            }
+            
+            .items-table th,
+            .items-table td {
+                padding: 0.5rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .supplier-header h1 {
+                font-size: 1.5rem !important;
+            }
+            
+            .info-card {
+                padding: 1rem;
+            }
+            
+            .tab-content {
+                padding: 1rem;
+            }
+            
+            .btn {
+                padding: 0.375rem 0.75rem;
+                font-size: 0.875rem;
+            }
+        }
+
         .info-card {
             background: rgba(255,255,255,0.1);
             padding: 1.5rem;
@@ -187,12 +250,12 @@
                     <h1 style="margin: 0 0 0.5rem 0; font-size: 2rem;">@Model.CompanyName</h1>
                     <p style="margin: 0; opacity: 0.9;">Contact: @Model.ContactPerson</p>
                 </div>
-                <div style="display: flex; gap: 1rem;">
+                <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
                     <button class="btn btn-secondary" onclick="window.history.back()">
                         <i class="fas fa-arrow-left"></i> Back
                     </button>
-                    <button class="btn btn-primary" onclick="openAddItemModal()">
-                        <i class="fas fa-plus"></i> Add Item
+                    <button class="btn btn-primary" onclick="acceptDelivery()">
+                        <i class="fas fa-check"></i> Accept Delivery
                     </button>
                 </div>
             </div>
@@ -244,9 +307,6 @@
                     </select>
                     <button class="btn btn-secondary" onclick="filterSupplies()">
                         <i class="fas fa-filter"></i> Filter
-                    </button>
-                    <button class="btn btn-primary" onclick="generateInvoice()">
-                        <i class="fas fa-file-invoice"></i> Generate Invoice
                     </button>
                 </div>
 
@@ -518,6 +578,190 @@
         function closeAddItemModal() {
             document.getElementById('addItemModal').style.display = 'none';
             document.getElementById('addItemForm').reset();
+        }
+
+        // New simplified Accept Delivery function
+        async function acceptDelivery() {
+            if (!confirm('Accept delivery for all products assigned to this supplier?')) {
+                return;
+            }
+
+            try {
+                // Get all products for this supplier
+                const response = await fetch(`/Admin/GetSupplierProducts?supplierId=${supplierId}`);
+                const data = await response.json();
+                
+                if (!data.success || !data.products.length) {
+                    alert('No products found for this supplier.');
+                    return;
+                }
+
+                // Show simple delivery acceptance modal
+                showDeliveryAcceptanceModal(data.products);
+                
+            } catch (error) {
+                console.error('Error loading products for delivery:', error);
+                alert('Error loading products for delivery.');
+            }
+        }
+
+        function showDeliveryAcceptanceModal(products) {
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.style.display = 'block';
+            
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2>Accept Delivery - ${products.length} Products</h2>
+                        <button onclick="this.closest('.modal').remove()" style="background: none; border: none; color: white; font-size: 1.5rem;">×</button>
+                    </div>
+                    <div class="modal-body">
+                        <div style="margin-bottom: 1rem;">
+                            <label>Delivery Date:</label>
+                            <input type="date" id="deliveryDate" class="form-control" value="${new Date().toISOString().split('T')[0]}" required>
+                        </div>
+                        <div style="margin-bottom: 1rem;">
+                            <label>Notes:</label>
+                            <textarea id="deliveryNotes" class="form-control" rows="2" placeholder="Optional delivery notes"></textarea>
+                        </div>
+                        <div style="max-height: 400px; overflow-y: auto;">
+                            <table class="items-table">
+                                <thead>
+                                    <tr>
+                                        <th>Product</th>
+                                        <th>Current Stock</th>
+                                        <th>Quantity Delivered</th>
+                                        <th>Unit Cost (KSh)</th>
+                                        <th>Batch #</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    ${products.map(product => `
+                                        <tr>
+                                            <td>
+                                                <strong>${product.name}</strong><br>
+                                                <small>${product.description || ''}</small>
+                                            </td>
+                                            <td>${product.stockQuantity}</td>
+                                            <td>
+                                                <input type="number" 
+                                                       class="form-control delivery-quantity" 
+                                                       data-product-id="${product.productId}"
+                                                       min="0" 
+                                                       placeholder="0"
+                                                       style="width: 100px;">
+                                            </td>
+                                            <td>
+                                                <input type="number" 
+                                                       class="form-control delivery-cost" 
+                                                       data-product-id="${product.productId}"
+                                                       min="0" 
+                                                       step="0.01"
+                                                       placeholder="0.00"
+                                                       style="width: 100px;">
+                                            </td>
+                                            <td>
+                                                <input type="text" 
+                                                       class="form-control delivery-batch" 
+                                                       data-product-id="${product.productId}"
+                                                       placeholder="Optional"
+                                                       style="width: 100px;">
+                                            </td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                        <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 2rem;">
+                            <button type="button" class="btn btn-secondary" onclick="this.closest('.modal').remove()">Cancel</button>
+                            <button type="button" class="btn btn-primary" onclick="processDeliveryAcceptance()">Accept & Create Invoice</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+        }
+
+        async function processDeliveryAcceptance() {
+            const deliveryDate = document.getElementById('deliveryDate').value;
+            const deliveryNotes = document.getElementById('deliveryNotes').value;
+            
+            if (!deliveryDate) {
+                alert('Please select a delivery date.');
+                return;
+            }
+
+            // Collect delivery data
+            const productDeliveries = [];
+            const quantityInputs = document.querySelectorAll('.delivery-quantity');
+            
+            quantityInputs.forEach(input => {
+                const productId = parseInt(input.dataset.productId);
+                const quantity = parseInt(input.value) || 0;
+                const costInput = document.querySelector(`.delivery-cost[data-product-id="${productId}"]`);
+                const batchInput = document.querySelector(`.delivery-batch[data-product-id="${productId}"]`);
+                
+                if (quantity > 0) {
+                    const unitCost = parseFloat(costInput.value) || 0;
+                    productDeliveries.push({
+                        productId: productId,
+                        quantity: quantity,
+                        unitCost: unitCost,
+                        batchNumber: batchInput.value || '',
+                        expiryDate: null
+                    });
+                }
+            });
+
+            if (productDeliveries.length === 0) {
+                alert('Please enter quantities for at least one product.');
+                return;
+            }
+
+            try {
+                // Accept delivery and automatically create invoice
+                const deliveryResponse = await fetch('/Admin/AcceptSupplierDelivery', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        supplierId: supplierId,
+                        deliveryDate: deliveryDate,
+                        notes: deliveryNotes,
+                        productDeliveries: productDeliveries
+                    })
+                });
+
+                const deliveryResult = await deliveryResponse.json();
+                
+                if (deliveryResult.success) {
+                    // Automatically generate invoice for the accepted delivery
+                    const invoiceResponse = await fetch('/Admin/GenerateSupplierInvoiceForPending', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ supplierId: supplierId })
+                    });
+
+                    const invoiceResult = await invoiceResponse.json();
+                    
+                    if (invoiceResult.success) {
+                        alert(`Delivery accepted successfully!\\n\\nDelivery: ${productDeliveries.length} products (KSh ${deliveryResult.totalValue.toFixed(2)})\\nInvoice: ${invoiceResult.invoiceNumber} generated (KSh ${invoiceResult.totalAmount.toFixed(2)})`);
+                    } else {
+                        alert(`Delivery accepted successfully!\\n\\n${productDeliveries.length} products recorded (KSh ${deliveryResult.totalValue.toFixed(2)})\\n\\nNote: Invoice generation failed - you can generate it manually from the Payments tab.`);
+                    }
+                    
+                    // Close modal and refresh data
+                    document.querySelector('.modal').remove();
+                    loadSupplierProducts();
+                    showTab('invoices'); // Switch to invoices tab to show the new invoice
+                } else {
+                    alert('Error accepting delivery: ' + deliveryResult.message);
+                }
+            } catch (error) {
+                console.error('Error processing delivery:', error);
+                alert('Error processing delivery. Please try again.');
+            }
         }
 
         async function generateInvoice() {

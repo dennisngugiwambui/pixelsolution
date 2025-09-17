@@ -58,7 +58,7 @@ namespace PixelSolution.ViewModels
         public string InvoiceNumber { get; set; } = string.Empty;
         public int SupplierId { get; set; }
         public string SupplierName { get; set; } = string.Empty;
-        public decimal SubTotal { get; set; }
+        public decimal Subtotal { get; set; }
         public decimal TaxAmount { get; set; }
         public decimal TotalAmount { get; set; }
         public string Status { get; set; } = string.Empty;
@@ -124,6 +124,28 @@ namespace PixelSolution.ViewModels
         public string PaymentReference { get; set; } = string.Empty;
         public DateTime PaymentDate { get; set; }
         public string Notes { get; set; } = string.Empty;
+    }
+
+    public class AcceptDeliveryRequest
+    {
+        public int SupplierId { get; set; }
+        public DateTime DeliveryDate { get; set; }
+        public string Notes { get; set; } = string.Empty;
+        public List<ProductDeliveryItem> ProductDeliveries { get; set; } = new List<ProductDeliveryItem>();
+    }
+
+    public class ProductDeliveryItem
+    {
+        public int ProductId { get; set; }
+        public int Quantity { get; set; }
+        public decimal UnitCost { get; set; }
+        public string BatchNumber { get; set; } = string.Empty;
+        public DateTime? ExpiryDate { get; set; }
+    }
+
+    public class GenerateInvoiceForSupplierRequest
+    {
+        public int SupplierId { get; set; }
     }
 
     // ======================================
