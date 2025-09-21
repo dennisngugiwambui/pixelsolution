@@ -60,7 +60,7 @@ namespace PixelSolution.Migrations
 
                     b.HasKey("CategoryId");
 
-                    b.ToTable("Categories");
+                    b.ToTable("Categories", (string)null);
                 });
 
             modelBuilder.Entity("PixelSolution.Models.Customer", b =>
@@ -121,7 +121,7 @@ namespace PixelSolution.Migrations
                     b.HasIndex("Email")
                         .IsUnique();
 
-                    b.ToTable("Customers");
+                    b.ToTable("Customers", (string)null);
                 });
 
             modelBuilder.Entity("PixelSolution.Models.CustomerCart", b =>
@@ -163,7 +163,7 @@ namespace PixelSolution.Migrations
 
                     b.HasIndex("ProductId");
 
-                    b.ToTable("CustomerCarts");
+                    b.ToTable("CustomerCarts", (string)null);
                 });
 
             modelBuilder.Entity("PixelSolution.Models.CustomerWishlist", b =>
@@ -197,7 +197,7 @@ namespace PixelSolution.Migrations
                     b.HasIndex("CustomerId", "ProductId")
                         .IsUnique();
 
-                    b.ToTable("CustomerWishlists");
+                    b.ToTable("CustomerWishlists", (string)null);
                 });
 
             modelBuilder.Entity("PixelSolution.Models.Department", b =>
@@ -225,7 +225,7 @@ namespace PixelSolution.Migrations
 
                     b.HasKey("DepartmentId");
 
-                    b.ToTable("Departments");
+                    b.ToTable("Departments", (string)null);
                 });
 
             modelBuilder.Entity("PixelSolution.Models.EmployeeFine", b =>
@@ -280,7 +280,7 @@ namespace PixelSolution.Migrations
 
                     b.HasIndex("IssuedByUserId");
 
-                    b.ToTable("EmployeeFines");
+                    b.ToTable("EmployeeFines", (string)null);
                 });
 
             modelBuilder.Entity("PixelSolution.Models.EmployeePayment", b =>
@@ -343,7 +343,7 @@ namespace PixelSolution.Migrations
 
                     b.HasIndex("ProcessedByUserId");
 
-                    b.ToTable("EmployeePayments");
+                    b.ToTable("EmployeePayments", (string)null);
                 });
 
             modelBuilder.Entity("PixelSolution.Models.EmployeeProfile", b =>
@@ -416,7 +416,7 @@ namespace PixelSolution.Migrations
                     b.HasIndex("UserId")
                         .IsUnique();
 
-                    b.ToTable("EmployeeProfiles");
+                    b.ToTable("EmployeeProfiles", (string)null);
                 });
 
             modelBuilder.Entity("PixelSolution.Models.EmployeeSalary", b =>
@@ -469,7 +469,7 @@ namespace PixelSolution.Migrations
 
                     b.HasIndex("EmployeeProfileId");
 
-                    b.ToTable("EmployeeSalaries");
+                    b.ToTable("EmployeeSalaries", (string)null);
                 });
 
             modelBuilder.Entity("PixelSolution.Models.Message", b =>
@@ -518,7 +518,7 @@ namespace PixelSolution.Migrations
 
                     b.HasIndex("ToUserId");
 
-                    b.ToTable("Messages");
+                    b.ToTable("Messages", (string)null);
                 });
 
             modelBuilder.Entity("PixelSolution.Models.MpesaToken", b =>
@@ -558,7 +558,7 @@ namespace PixelSolution.Migrations
 
                     b.HasIndex("IsActive");
 
-                    b.ToTable("MpesaTokens");
+                    b.ToTable("MpesaTokens", (string)null);
                 });
 
             modelBuilder.Entity("PixelSolution.Models.MpesaTransaction", b =>
@@ -625,7 +625,7 @@ namespace PixelSolution.Migrations
 
                     b.HasIndex("SaleId");
 
-                    b.ToTable("MpesaTransactions");
+                    b.ToTable("MpesaTransactions", (string)null);
                 });
 
             modelBuilder.Entity("PixelSolution.Models.Product", b =>
@@ -701,7 +701,7 @@ namespace PixelSolution.Migrations
 
                     b.HasIndex("SupplierId");
 
-                    b.ToTable("Products");
+                    b.ToTable("Products", (string)null);
                 });
 
             modelBuilder.Entity("PixelSolution.Models.ProductRequest", b =>
@@ -766,7 +766,7 @@ namespace PixelSolution.Migrations
                     b.HasIndex("RequestNumber")
                         .IsUnique();
 
-                    b.ToTable("ProductRequests");
+                    b.ToTable("ProductRequests", (string)null);
                 });
 
             modelBuilder.Entity("PixelSolution.Models.ProductRequestItem", b =>
@@ -803,7 +803,7 @@ namespace PixelSolution.Migrations
 
                     b.HasIndex("ProductRequestId");
 
-                    b.ToTable("ProductRequestItems");
+                    b.ToTable("ProductRequestItems", (string)null);
                 });
 
             modelBuilder.Entity("PixelSolution.Models.PurchaseRequest", b =>
@@ -874,7 +874,7 @@ namespace PixelSolution.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("PurchaseRequests");
+                    b.ToTable("PurchaseRequests", (string)null);
                 });
 
             modelBuilder.Entity("PixelSolution.Models.PurchaseRequestItem", b =>
@@ -906,7 +906,7 @@ namespace PixelSolution.Migrations
 
                     b.HasIndex("PurchaseRequestId");
 
-                    b.ToTable("PurchaseRequestItems");
+                    b.ToTable("PurchaseRequestItems", (string)null);
                 });
 
             modelBuilder.Entity("PixelSolution.Models.Sale", b =>
@@ -976,7 +976,7 @@ namespace PixelSolution.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Sales");
+                    b.ToTable("Sales", (string)null);
                 });
 
             modelBuilder.Entity("PixelSolution.Models.SaleItem", b =>
@@ -1008,7 +1008,7 @@ namespace PixelSolution.Migrations
 
                     b.HasIndex("SaleId");
 
-                    b.ToTable("SaleItems");
+                    b.ToTable("SaleItems", (string)null);
                 });
 
             modelBuilder.Entity("PixelSolution.Models.Supplier", b =>
@@ -1056,7 +1056,7 @@ namespace PixelSolution.Migrations
 
                     b.HasKey("SupplierId");
 
-                    b.ToTable("Suppliers");
+                    b.ToTable("Suppliers", (string)null);
                 });
 
             modelBuilder.Entity("PixelSolution.Models.SupplierInvoice", b =>
@@ -1133,7 +1133,7 @@ namespace PixelSolution.Migrations
 
                     b.HasIndex("SupplierId");
 
-                    b.ToTable("SupplierInvoices");
+                    b.ToTable("SupplierInvoices", (string)null);
                 });
 
             modelBuilder.Entity("PixelSolution.Models.SupplierInvoiceItem", b =>
@@ -1170,7 +1170,7 @@ namespace PixelSolution.Migrations
 
                     b.HasIndex("SupplierItemId");
 
-                    b.ToTable("SupplierInvoiceItems");
+                    b.ToTable("SupplierInvoiceItems", (string)null);
                 });
 
             modelBuilder.Entity("PixelSolution.Models.SupplierItem", b =>
@@ -1233,7 +1233,7 @@ namespace PixelSolution.Migrations
 
                     b.HasIndex("SupplierId");
 
-                    b.ToTable("SupplierItems");
+                    b.ToTable("SupplierItems", (string)null);
                 });
 
             modelBuilder.Entity("PixelSolution.Models.SupplierPayment", b =>
@@ -1295,7 +1295,7 @@ namespace PixelSolution.Migrations
 
                     b.HasIndex("SupplierInvoiceId");
 
-                    b.ToTable("SupplierPayments");
+                    b.ToTable("SupplierPayments", (string)null);
                 });
 
             modelBuilder.Entity("PixelSolution.Models.User", b =>
@@ -1364,7 +1364,7 @@ namespace PixelSolution.Migrations
                     b.HasIndex("Email")
                         .IsUnique();
 
-                    b.ToTable("Users");
+                    b.ToTable("Users", (string)null);
                 });
 
             modelBuilder.Entity("PixelSolution.Models.UserActivityLog", b =>
@@ -1423,7 +1423,7 @@ namespace PixelSolution.Migrations
 
                     b.HasIndex("UserId", "CreatedAt");
 
-                    b.ToTable("UserActivityLogs");
+                    b.ToTable("UserActivityLogs", (string)null);
                 });
 
             modelBuilder.Entity("PixelSolution.Models.UserDepartment", b =>
@@ -1444,7 +1444,7 @@ namespace PixelSolution.Migrations
 
                     b.HasIndex("DepartmentId");
 
-                    b.ToTable("UserDepartments");
+                    b.ToTable("UserDepartments", (string)null);
                 });
 
             modelBuilder.Entity("PixelSolution.Models.Wishlist", b =>
@@ -1478,7 +1478,7 @@ namespace PixelSolution.Migrations
                     b.HasIndex("CustomerId", "ProductId")
                         .IsUnique();
 
-                    b.ToTable("Wishlists");
+                    b.ToTable("Wishlists", (string)null);
                 });
 
             modelBuilder.Entity("PixelSolution.Models.CustomerCart", b =>

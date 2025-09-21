@@ -184,4 +184,3 @@ C:\Users\Denno\source\repos\PixelSolution\PixelSolution\obj\Debug\net8.0\PixelSo
 C:\Users\Denno\source\repos\PixelSolution\PixelSolution\obj\Debug\net8.0\PixelSolution.genruntimeconfig.cache
 C:\Users\Denno\source\repos\PixelSolution\PixelSolution\obj\Debug\net8.0\ref\PixelSolution.dll
 C:\Users\Denno\source\repos\PixelSolution\PixelSolution\bin\Debug\net8.0\Microsoft.AspNetCore.Authentication.JwtBearer.dll
-C:\Users\Denno\source\repos\PixelSolution\PixelSolution\obj\Debug\net8.0\staticwebassets.upToDateCheck.txt
