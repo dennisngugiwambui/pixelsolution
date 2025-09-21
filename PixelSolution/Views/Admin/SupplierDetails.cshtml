@@ -588,28 +588,76 @@
             <!-- Payments Tab -->
             <div id="paymentsTab" class="tab-content">
                 <div class="section-header">
-                    <h3>Payment History</h3>
-                    <button class="btn btn-primary" onclick="openPaymentModal()">
-                        <i class="fas fa-plus"></i> Record Payment
-                    </button>
+                    <h3>Payment Management</h3>
+                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                        <button class="btn btn-secondary btn-sm" onclick="togglePaymentView('all')" id="allPaymentsBtn">
+                            <i class="fas fa-list"></i> All
+                        </button>
+                        <button class="btn btn-secondary btn-sm" onclick="togglePaymentView('unpaid')" id="unpaidBtn">
+                            <i class="fas fa-exclamation-circle"></i> Unpaid
+                        </button>
+                        <button class="btn btn-secondary btn-sm" onclick="togglePaymentView('paid')" id="paidBtn">
+                            <i class="fas fa-check-circle"></i> Paid
+                        </button>
+                        <button class="btn btn-primary" onclick="openPaymentModal()">
+                            <i class="fas fa-plus"></i> Record Payment
+                        </button>
+                    </div>
                 </div>
-                <div class="table-responsive">
-                    <table class="items-table" id="paymentsTable">
-                        <thead>
-                            <tr>
-                                <th>Payment #</th>
-                                <th>Invoice</th>
-                                <th>Amount</th>
-                                <th>Method</th>
-                                <th>Date</th>
-                                <th>Status</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="paymentsTableBody">
-                            <!-- Payments will be loaded here -->
-                        </tbody>
-                    </table>
+                
+                <!-- Unpaid Invoices Section -->
+                <div id="unpaidInvoicesSection">
+                    <h4 style="margin: 1.5rem 0 1rem 0; color: #dc2626;">
+                        <i class="fas fa-exclamation-triangle"></i> Unpaid Invoices
+                    </h4>
+                    <div class="table-responsive">
+                        <table class="items-table" id="unpaidInvoicesTable">
+                            <thead>
+                                <tr>
+                                    <th><input type="checkbox" id="selectAllUnpaid" onchange="toggleSelectAllUnpaid()"></th>
+                                    <th>Invoice #</th>
+                                    <th>Date</th>
+                                    <th>Amount</th>
+                                    <th>Due Date</th>
+                                    <th>Days Overdue</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="unpaidInvoicesTableBody">
+                                <!-- Unpaid invoices will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div style="margin: 1rem 0; text-align: right;">
+                        <button class="btn btn-success" onclick="confirmSelectedPayments()">
+                            <i class="fas fa-check"></i> Confirm Selected Payments
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Payment History Section -->
+                <div id="paymentHistorySection">
+                    <h4 style="margin: 1.5rem 0 1rem 0; color: #059669;">
+                        <i class="fas fa-history"></i> Payment History
+                    </h4>
+                    <div class="table-responsive">
+                        <table class="items-table" id="paymentsTable">
+                            <thead>
+                                <tr>
+                                    <th>Payment #</th>
+                                    <th>Invoice</th>
+                                    <th>Amount</th>
+                                    <th>Method</th>
+                                    <th>Date</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="paymentsTableBody">
+                                <!-- Payments will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
@@ -694,7 +742,7 @@
                     loadSupplierInvoices();
                     break;
                 case 'payments':
-                    loadSupplierPayments();
+                    loadPaymentData();
                     break;
             }
         }
@@ -742,6 +790,7 @@
                                 <input type="number" 
                                        id="quantity_${product.productId}" 
                                        min="0" 
+                                       value="${product.stockQuantity || 0}"
                                        placeholder="Enter quantity"
                                        class="form-control">
                             </div>
@@ -751,6 +800,7 @@
                                        id="unitCost_${product.productId}" 
                                        min="0" 
                                        step="0.01"
+                                       value="${product.buyingPrice || product.price || 0}"
                                        placeholder="0.00"
                                        class="form-control">
                             </div>
@@ -929,9 +979,12 @@
                     
                     if (invoiceResult.success) {
                         // Update button to show success
-                        confirmBtn.innerHTML = '<i class="fas fa-check"></i> Confirmed & Invoiced';
+                        confirmBtn.innerHTML = '<i class="fas fa-check"></i> Confirmed';
                         confirmBtn.className = 'btn-confirm';
                         confirmBtn.style.background = '#059669';
+                        
+                        // Update supply status in the table
+                        updateSupplyStatus(productId, 'Confirmed');
                         
                         // Hide reject button
                         rejectBtn.style.display = 'none';
@@ -1065,11 +1118,220 @@
         `;
         document.head.appendChild(style);
 
+        // Function to update supply status in the table
+        function updateSupplyStatus(productId, status) {
+            // This will be called after confirmation to update the supplies table
+            loadSupplierSupplies();
+        }
+
+        // Payment view toggle functionality
+        let currentPaymentView = 'all';
+        
+        function togglePaymentView(view) {
+            currentPaymentView = view;
+            
+            // Update button states
+            document.querySelectorAll('#paymentsTab .btn-sm').forEach(btn => {
+                btn.classList.remove('btn-primary');
+                btn.classList.add('btn-secondary');
+            });
+            
+            const activeBtn = document.getElementById(view === 'all' ? 'allPaymentsBtn' : view === 'unpaid' ? 'unpaidBtn' : 'paidBtn');
+            activeBtn.classList.remove('btn-secondary');
+            activeBtn.classList.add('btn-primary');
+            
+            // Show/hide sections based on view
+            const unpaidSection = document.getElementById('unpaidInvoicesSection');
+            const historySection = document.getElementById('paymentHistorySection');
+            
+            switch(view) {
+                case 'all':
+                    unpaidSection.style.display = 'block';
+                    historySection.style.display = 'block';
+                    break;
+                case 'unpaid':
+                    unpaidSection.style.display = 'block';
+                    historySection.style.display = 'none';
+                    break;
+                case 'paid':
+                    unpaidSection.style.display = 'none';
+                    historySection.style.display = 'block';
+                    break;
+            }
+            
+            // Load appropriate data
+            loadPaymentData();
+        }
+
+        function toggleSelectAllUnpaid() {
+            const selectAll = document.getElementById('selectAllUnpaid');
+            const checkboxes = document.querySelectorAll('.unpaid-invoice-checkbox');
+            
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = selectAll.checked;
+            });
+        }
+
+        async function confirmSelectedPayments() {
+            const selectedInvoices = Array.from(document.querySelectorAll('.unpaid-invoice-checkbox:checked')).map(cb => ({
+                invoiceId: parseInt(cb.dataset.invoiceId),
+                amount: parseFloat(cb.dataset.amount)
+            }));
+            
+            if (selectedInvoices.length === 0) {
+                showToast('Please select invoices to confirm payment', 'warning');
+                return;
+            }
+            
+            const totalAmount = selectedInvoices.reduce((sum, inv) => sum + inv.amount, 0);
+            
+            if (!confirm(`Confirm payment for ${selectedInvoices.length} invoice(s)?\\nTotal Amount: KSh ${totalAmount.toFixed(2)}`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/Admin/ConfirmSupplierPayments', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        supplierId: supplierId,
+                        invoiceIds: selectedInvoices.map(inv => inv.invoiceId),
+                        paymentMethod: 'Cash', // Default method
+                        paymentDate: new Date().toISOString().split('T')[0],
+                        notes: `Bulk payment confirmation for ${selectedInvoices.length} invoices`
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    showToast(`Payment confirmed successfully!\\n${selectedInvoices.length} invoices marked as paid\\nTotal: KSh ${totalAmount.toFixed(2)}`, 'success');
+                    loadPaymentData();
+                    loadSupplierInvoices(); // Refresh invoices tab
+                } else {
+                    showToast('Error confirming payments: ' + result.message, 'error');
+                }
+            } catch (error) {
+                console.error('Error confirming payments:', error);
+                showToast('Error confirming payments. Please try again.', 'error');
+            }
+        }
+
+        async function loadPaymentData() {
+            await Promise.all([
+                loadUnpaidInvoices(),
+                loadSupplierPayments()
+            ]);
+        }
+
+        async function loadUnpaidInvoices() {
+            try {
+                const response = await fetch(`/Admin/GetSupplierUnpaidInvoices?supplierId=${supplierId}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayUnpaidInvoices(data.invoices || []);
+                } else {
+                    console.error('Error loading unpaid invoices:', data.message);
+                }
+            } catch (error) {
+                console.error('Error loading unpaid invoices:', error);
+            }
+        }
+
+        function displayUnpaidInvoices(invoices) {
+            const tbody = document.getElementById('unpaidInvoicesTableBody');
+            tbody.innerHTML = '';
+            
+            if (!invoices || invoices.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" style="text-align: center; padding: 2rem; color: #64748b;">
+                            <i class="fas fa-check-circle" style="font-size: 2rem; margin-bottom: 1rem; opacity: 0.3;"></i>
+                            <br>All invoices are paid up!
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            invoices.forEach(invoice => {
+                const dueDate = new Date(invoice.dueDate);
+                const today = new Date();
+                const daysOverdue = Math.max(0, Math.floor((today - dueDate) / (1000 * 60 * 60 * 24)));
+                const isOverdue = daysOverdue > 0;
+                
+                const row = document.createElement('tr');
+                if (isOverdue) {
+                    row.style.backgroundColor = '#fef2f2';
+                    row.style.borderLeft = '4px solid #dc2626';
+                }
+                
+                row.innerHTML = `
+                    <td>
+                        <input type="checkbox" 
+                               class="unpaid-invoice-checkbox" 
+                               data-invoice-id="${invoice.invoiceId}"
+                               data-amount="${invoice.totalAmount}">
+                    </td>
+                    <td><strong>${invoice.invoiceNumber}</strong></td>
+                    <td>${new Date(invoice.invoiceDate).toLocaleDateString()}</td>
+                    <td><strong>KSh ${invoice.totalAmount.toFixed(2)}</strong></td>
+                    <td>${dueDate.toLocaleDateString()}</td>
+                    <td>
+                        ${isOverdue ? 
+                            `<span style="color: #dc2626; font-weight: bold;">${daysOverdue} days</span>` : 
+                            '<span style="color: #059669;">On time</span>'
+                        }
+                    </td>
+                    <td>
+                        <button class="btn btn-success btn-sm" onclick="confirmSinglePayment(${invoice.invoiceId}, ${invoice.totalAmount})">
+                            <i class="fas fa-check"></i> Pay
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        async function confirmSinglePayment(invoiceId, amount) {
+            if (!confirm(`Confirm payment for this invoice?\\nAmount: KSh ${amount.toFixed(2)}`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/Admin/ConfirmSupplierPayments', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        supplierId: supplierId,
+                        invoiceIds: [invoiceId],
+                        paymentMethod: 'Cash',
+                        paymentDate: new Date().toISOString().split('T')[0],
+                        notes: `Single invoice payment confirmation`
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    showToast(`Payment confirmed successfully!\\nAmount: KSh ${amount.toFixed(2)}`, 'success');
+                    loadPaymentData();
+                    loadSupplierInvoices();
+                } else {
+                    showToast('Error confirming payment: ' + result.message, 'error');
+                }
+            } catch (error) {
+                console.error('Error confirming payment:', error);
+                showToast('Error confirming payment. Please try again.', 'error');
+            }
+        }
+
         async function generateInvoice() {
             const selectedSupplies = Array.from(document.querySelectorAll('.supply-checkbox:checked')).map(cb => parseInt(cb.value));
             
             if (selectedSupplies.length === 0) {
-                alert('Please select supply batches to invoice');
+                showToast('Please select supply batches to invoice', 'warning');
                 return;
             }
 
@@ -1082,15 +1344,16 @@
 
                 const result = await response.json();
                 if (result.success) {
-                    alert(`Invoice ${result.invoiceNumber} generated successfully for KSh ${result.totalAmount.toFixed(2)}`);
+                    showToast(`Invoice ${result.invoiceNumber} generated successfully!\\nAmount: KSh ${result.totalAmount.toFixed(2)}`, 'success');
                     loadSupplierSupplies();
+                    loadSupplierInvoices();
                     showTab('invoices');
                 } else {
-                    alert('Error: ' + result.message);
+                    showToast('Error generating invoice: ' + result.message, 'error');
                 }
             } catch (error) {
                 console.error('Error generating invoice:', error);
-                alert('Error generating invoice');
+                showToast('Error generating invoice. Please try again.', 'error');
             }
         }
 
