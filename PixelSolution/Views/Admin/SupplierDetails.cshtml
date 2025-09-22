@@ -719,8 +719,8 @@
         const supplierId = @Model.SupplierId;
         
         document.addEventListener('DOMContentLoaded', function() {
-            loadSupplierItems();
-            loadProducts();
+            loadSupplierProducts();
+            loadProductsForSupplier();
             setupDateFilters();
         });
 
@@ -940,9 +940,16 @@
             }
             
             try {
-                // Disable buttons to prevent double submission
-                const confirmBtn = event.target;
+                // Find the confirm button for this product
+                const confirmBtn = document.querySelector(`button[onclick="confirmProduct(${productId})"]`);
                 const rejectBtn = confirmBtn.parentElement.querySelector('.btn-reject');
+                
+                if (!confirmBtn) {
+                    console.error('Confirm button not found for product:', productId);
+                    return;
+                }
+                
+                // Disable buttons to prevent double submission
                 confirmBtn.disabled = true;
                 rejectBtn.disabled = true;
                 confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
@@ -965,7 +972,23 @@
                     })
                 });
 
-                const supplyResult = await supplyResponse.json();
+                // Check if response is ok and has content
+                if (!supplyResponse.ok) {
+                    throw new Error(`HTTP error! status: ${supplyResponse.status}`);
+                }
+                
+                const responseText = await supplyResponse.text();
+                if (!responseText.trim()) {
+                    throw new Error('Empty response from server');
+                }
+                
+                let supplyResult;
+                try {
+                    supplyResult = JSON.parse(responseText);
+                } catch (jsonError) {
+                    console.error('JSON parsing error:', jsonError, 'Response text:', responseText);
+                    throw new Error('Invalid JSON response from server');
+                }
                 
                 if (supplyResult.success) {
                     // Automatically generate invoice for this supply
@@ -975,7 +998,17 @@
                         body: JSON.stringify({ supplierId: supplierId })
                     });
 
-                    const invoiceResult = await invoiceResponse.json();
+                    let invoiceResult = { success: false, message: 'Invoice generation failed' };
+                    if (invoiceResponse.ok) {
+                        try {
+                            const invoiceText = await invoiceResponse.text();
+                            if (invoiceText.trim()) {
+                                invoiceResult = JSON.parse(invoiceText);
+                            }
+                        } catch (invoiceJsonError) {
+                            console.error('Invoice JSON parsing error:', invoiceJsonError);
+                        }
+                    }
                     
                     if (invoiceResult.success) {
                         // Update button to show success
@@ -1011,19 +1044,30 @@
                     }
                 } else {
                     // Re-enable buttons on error
-                    confirmBtn.disabled = false;
-                    rejectBtn.disabled = false;
-                    confirmBtn.innerHTML = '<i class="fas fa-check"></i> Confirm';
+                    if (confirmBtn) {
+                        confirmBtn.disabled = false;
+                        confirmBtn.innerHTML = '<i class="fas fa-check"></i> Confirm';
+                    }
+                    if (rejectBtn) {
+                        rejectBtn.disabled = false;
+                    }
                     
-                    showToast('Error confirming product: ' + supplyResult.message, 'error');
+                    showToast('Error confirming product: ' + (supplyResult.message || 'Unknown error'), 'error');
                 }
             } catch (error) {
                 console.error('Error confirming product:', error);
                 
                 // Re-enable buttons on error
-                confirmBtn.disabled = false;
-                rejectBtn.disabled = false;
-                confirmBtn.innerHTML = '<i class="fas fa-check"></i> Confirm';
+                const confirmBtn = document.querySelector(`button[onclick="confirmProduct(${productId})"]`);
+                const rejectBtn = confirmBtn ? confirmBtn.parentElement.querySelector('.btn-reject') : null;
+                
+                if (confirmBtn) {
+                    confirmBtn.disabled = false;
+                    confirmBtn.innerHTML = '<i class="fas fa-check"></i> Confirm';
+                }
+                if (rejectBtn) {
+                    rejectBtn.disabled = false;
+                }
                 
                 showToast('Error confirming product. Please try again.', 'error');
             }
@@ -1104,19 +1148,22 @@
             }, 5000);
         }
 
-        // Add CSS animations for toast
-        const style = document.createElement('style');
-        style.textContent = `
-            @@keyframes slideIn {
-                from { transform: translateX(100%); opacity: 0; }
-                to { transform: translateX(0); opacity: 1; }
-            }
-            @@keyframes slideOut {
-                from { transform: translateX(0); opacity: 1; }
-                to { transform: translateX(100%); opacity: 0; }
-            }
-        `;
-        document.head.appendChild(style);
+        // Add CSS animations for toast (only if not already added)
+        if (!document.getElementById('toast-animations')) {
+            const toastStyle = document.createElement('style');
+            toastStyle.id = 'toast-animations';
+            toastStyle.textContent = `
+                @@keyframes slideIn {
+                    from { transform: translateX(100%); opacity: 0; }
+                    to { transform: translateX(0); opacity: 1; }
+                }
+                @@keyframes slideOut {
+                    from { transform: translateX(0); opacity: 1; }
+                    to { transform: translateX(100%); opacity: 0; }
+                }
+            `;
+            document.head.appendChild(toastStyle);
+        }
 
         // Function to update supply status in the table
         function updateSupplyStatus(productId, status) {
