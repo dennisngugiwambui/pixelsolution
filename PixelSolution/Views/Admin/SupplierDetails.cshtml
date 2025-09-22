@@ -452,6 +452,76 @@
         .modal-body {
             padding: 2rem;
         }
+        
+        /* Enhanced badges and statistics */
+        .badge {
+            padding: 0.375rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .badge-warning {
+            background: #fef3c7;
+            color: #92400e;
+            border: 1px solid #fbbf24;
+        }
+        
+        .badge-info {
+            background: #dbeafe;
+            color: #1e40af;
+            border: 1px solid #60a5fa;
+        }
+        
+        .badge-success {
+            background: #dcfce7;
+            color: #166534;
+            border: 1px solid #4ade80;
+        }
+        
+        .badge-danger {
+            background: #fee2e2;
+            color: #dc2626;
+            border: 1px solid #f87171;
+        }
+        
+        /* Enhanced table styling */
+        .text-success {
+            color: #059669 !important;
+        }
+        
+        .text-warning {
+            color: #d97706 !important;
+        }
+        
+        .text-info {
+            color: #0ea5e9 !important;
+        }
+        
+        .text-muted {
+            color: #6b7280 !important;
+        }
+        
+        /* Button enhancements */
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .btn-sm {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+        }
+        
+        /* Table row hover effects */
+        .items-table tbody tr:hover {
+            background-color: #f8fafc;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: all 0.2s ease;
+        }
     </style>
 }
 
@@ -531,7 +601,24 @@
 
                 <!-- Supply batches for all products -->
                 <div>
-                    <h4>Supply History & Batches</h4>
+                    <div class="section-header">
+                        <div>
+                            <h4>Supply History & Batches</h4>
+                            <div id="suppliesStats" style="display: flex; gap: 1rem; margin-top: 0.5rem;">
+                                <span class="badge badge-warning" id="pendingCount">0 Pending</span>
+                                <span class="badge badge-info" id="invoicedCount">0 Invoiced</span>
+                                <span class="badge badge-success" id="paidCount">0 Paid</span>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <button class="btn btn-secondary btn-sm" onclick="selectPendingSupplies()" id="selectPendingBtn">
+                                <i class="fas fa-check-square"></i> Select Pending
+                            </button>
+                            <button class="btn btn-success btn-sm" onclick="generateInvoiceFromSelected()" id="invoiceSelectedBtn">
+                                <i class="fas fa-file-invoice"></i> Invoice Selected
+                            </button>
+                        </div>
+                    </div>
                     <div class="table-responsive">
                     <table class="items-table" id="suppliesTable">
                         <thead>
@@ -560,9 +647,14 @@
             <div id="invoicesTab" class="tab-content">
                 <div class="section-header">
                     <h3>Supplier Invoices</h3>
-                    <button class="btn btn-primary" onclick="generateInvoice()">
-                        <i class="fas fa-plus"></i> New Invoice
-                    </button>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button class="btn btn-secondary" onclick="generateInvoiceForAllPending()">
+                            <i class="fas fa-file-invoice"></i> Invoice All Pending
+                        </button>
+                        <button class="btn btn-primary" onclick="generateInvoice()">
+                            <i class="fas fa-plus"></i> New Invoice
+                        </button>
+                    </div>
                 </div>
                 <div class="table-responsive">
                     <table class="items-table" id="invoicesTable">
@@ -605,56 +697,77 @@
                     </div>
                 </div>
                 
-                <!-- Unpaid Invoices Section -->
-                <div id="unpaidInvoicesSection">
-                    <h4 style="margin: 1.5rem 0 1rem 0; color: #dc2626;">
-                        <i class="fas fa-exclamation-triangle"></i> Unpaid Invoices
-                    </h4>
+                <!-- Unsettled Invoices Section -->
+                <div id="unsettledInvoicesSection">
+                    <div class="section-header">
+                        <div>
+                            <h4 style="color: #dc2626;">
+                                <i class="fas fa-exclamation-triangle"></i> Unsettled Invoices
+                            </h4>
+                            <div style="display: flex; gap: 1rem; margin-top: 0.5rem;">
+                                <span class="badge badge-danger" id="overdueCount">0 Overdue</span>
+                                <span class="badge badge-warning" id="dueCount">0 Due Soon</span>
+                                <span class="badge badge-info" id="totalUnsettledAmount">KSh 0.00 Total</span>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <button class="btn btn-secondary btn-sm" onclick="selectOverdueInvoices()" id="selectOverdueBtn">
+                                <i class="fas fa-exclamation-circle"></i> Select Overdue
+                            </button>
+                            <button class="btn btn-success btn-sm" onclick="settleSelectedInvoices()" id="settleSelectedBtn">
+                                <i class="fas fa-check-circle"></i> Settle Selected
+                            </button>
+                        </div>
+                    </div>
                     <div class="table-responsive">
-                        <table class="items-table" id="unpaidInvoicesTable">
+                        <table class="items-table" id="unsettledInvoicesTable">
                             <thead>
                                 <tr>
-                                    <th><input type="checkbox" id="selectAllUnpaid" onchange="toggleSelectAllUnpaid()"></th>
+                                    <th><input type="checkbox" id="selectAllUnsettled" onchange="toggleSelectAllUnsettled()"></th>
                                     <th>Invoice #</th>
                                     <th>Date</th>
+                                    <th>Products</th>
                                     <th>Amount</th>
                                     <th>Due Date</th>
-                                    <th>Days Overdue</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="unpaidInvoicesTableBody">
-                                <!-- Unpaid invoices will be loaded here -->
-                            </tbody>
-                        </table>
-                    </div>
-                    <div style="margin: 1rem 0; text-align: right;">
-                        <button class="btn btn-success" onclick="confirmSelectedPayments()">
-                            <i class="fas fa-check"></i> Confirm Selected Payments
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Payment History Section -->
-                <div id="paymentHistorySection">
-                    <h4 style="margin: 1.5rem 0 1rem 0; color: #059669;">
-                        <i class="fas fa-history"></i> Payment History
-                    </h4>
-                    <div class="table-responsive">
-                        <table class="items-table" id="paymentsTable">
-                            <thead>
-                                <tr>
-                                    <th>Payment #</th>
-                                    <th>Invoice</th>
-                                    <th>Amount</th>
-                                    <th>Method</th>
-                                    <th>Date</th>
                                     <th>Status</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
-                            <tbody id="paymentsTableBody">
-                                <!-- Payments will be loaded here -->
+                            <tbody id="unsettledInvoicesTableBody">
+                                <!-- Unsettled invoices will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Settled Payments Section -->
+                <div id="settledPaymentsSection">
+                    <div class="section-header">
+                        <div>
+                            <h4 style="color: #059669;">
+                                <i class="fas fa-check-circle"></i> Settled Payments
+                            </h4>
+                            <div style="display: flex; gap: 1rem; margin-top: 0.5rem;">
+                                <span class="badge badge-success" id="settledCount">0 Settled</span>
+                                <span class="badge badge-info" id="totalSettledAmount">KSh 0.00 Total</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="items-table" id="settledPaymentsTable">
+                            <thead>
+                                <tr>
+                                    <th>Invoice #</th>
+                                    <th>Settlement Date</th>
+                                    <th>Products Count</th>
+                                    <th>Amount Paid</th>
+                                    <th>Payment Method</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="settledPaymentsTableBody">
+                                <!-- Settled payments will be loaded here -->
                             </tbody>
                         </table>
                     </div>
@@ -710,6 +823,69 @@
                     <button type="submit" class="btn btn-primary">Add Supply Batch</button>
                 </div>
             </form>
+        </div>
+    </div>
+</div>
+
+<!-- Payment Details Modal -->
+<div id="paymentDetailsModal" class="modal">
+    <div class="modal-content" style="max-width: 900px;">
+        <div class="modal-header">
+            <h2 id="paymentModalTitle">Payment Details</h2>
+            <button onclick="closePaymentDetailsModal()" style="background: none; border: none; color: white; font-size: 1.5rem;">×</button>
+        </div>
+        <div class="modal-body">
+            <!-- Payment Summary -->
+            <div style="background: #f8fafc; padding: 1.5rem; border-radius: 8px; margin-bottom: 2rem;">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                    <div>
+                        <label style="font-weight: 600; color: #374151;">Invoice Number</label>
+                        <p id="modalInvoiceNumber" style="margin: 0.25rem 0 0 0; font-size: 1.1rem;">-</p>
+                    </div>
+                    <div>
+                        <label style="font-weight: 600; color: #374151;">Settlement Date</label>
+                        <p id="modalSettlementDate" style="margin: 0.25rem 0 0 0;">-</p>
+                    </div>
+                    <div>
+                        <label style="font-weight: 600; color: #374151;">Payment Method</label>
+                        <p id="modalPaymentMethod" style="margin: 0.25rem 0 0 0;">-</p>
+                    </div>
+                    <div>
+                        <label style="font-weight: 600; color: #374151;">Total Amount</label>
+                        <p id="modalTotalAmount" style="margin: 0.25rem 0 0 0; font-size: 1.2rem; font-weight: 600; color: #059669;">-</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Products in this Payment -->
+            <div>
+                <h4 style="margin-bottom: 1rem;">Products Included in this Payment</h4>
+                <div class="table-responsive">
+                    <table class="items-table" id="paymentProductsTable">
+                        <thead>
+                            <tr>
+                                <th>Product Name</th>
+                                <th>Batch Number</th>
+                                <th>Quantity</th>
+                                <th>Unit Cost</th>
+                                <th>Total Cost</th>
+                                <th>Supply Date</th>
+                            </tr>
+                        </thead>
+                        <tbody id="paymentProductsTableBody">
+                            <!-- Products will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Payment Notes -->
+            <div style="margin-top: 2rem;">
+                <label style="font-weight: 600; color: #374151;">Payment Notes</label>
+                <div id="modalPaymentNotes" style="background: #f9fafb; padding: 1rem; border-radius: 6px; margin-top: 0.5rem; min-height: 60px;">
+                    No additional notes
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -840,26 +1016,120 @@
             const tbody = document.getElementById('suppliesTableBody');
             tbody.innerHTML = '';
             
+            if (!supplies || supplies.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="10" style="text-align: center; padding: 2rem; color: #64748b;">
+                            <i class="fas fa-box-open" style="font-size: 2rem; margin-bottom: 1rem; opacity: 0.3;"></i>
+                            <br>No supply records found
+                            <br><small>Confirmed products will appear here</small>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
             supplies.forEach(supply => {
                 const row = document.createElement('tr');
+                const canInvoice = supply.paymentStatus === 'Pending';
+                const isInvoiced = supply.paymentStatus === 'Invoiced' || supply.paymentStatus === 'Paid' || supply.paymentStatus === 'Settled';
+                
+                // Add visual styling based on status
+                if (isInvoiced) {
+                    row.style.backgroundColor = '#f0f9ff';
+                    row.style.borderLeft = '4px solid #0ea5e9';
+                } else if (canInvoice) {
+                    row.style.backgroundColor = '#fefce8';
+                    row.style.borderLeft = '4px solid #eab308';
+                }
+                
                 row.innerHTML = `
-                    <td><input type="checkbox" class="supply-checkbox" value="${supply.supplierProductSupplyId}"></td>
-                    <td>${supply.productName}</td>
+                    <td>
+                        <input type="checkbox" 
+                               class="supply-checkbox" 
+                               value="${supply.supplierProductSupplyId}"
+                               ${canInvoice ? '' : 'disabled'}
+                               ${canInvoice ? '' : 'title="Already invoiced or paid"'}>
+                    </td>
+                    <td>
+                        <strong>${supply.productName}</strong>
+                        <br><small class="text-muted">ID: ${supply.productId}</small>
+                    </td>
                     <td>${supply.productId}</td>
-                    <td>${supply.batchNumber || '-'}</td>
-                    <td>${supply.quantitySupplied}</td>
-                    <td>KSh ${supply.unitCost.toFixed(2)}</td>
-                    <td>KSh ${supply.totalCost.toFixed(2)}</td>
+                    <td>
+                        <strong>${supply.batchNumber || 'N/A'}</strong>
+                        ${supply.batchNumber ? '<br><small class="text-success">✓ Batched</small>' : '<br><small class="text-muted">No batch</small>'}
+                    </td>
+                    <td><strong>${supply.quantitySupplied}</strong> units</td>
+                    <td>KSh <strong>${supply.unitCost.toFixed(2)}</strong></td>
+                    <td>KSh <strong>${supply.totalCost.toFixed(2)}</strong></td>
                     <td>${new Date(supply.supplyDate).toLocaleDateString()}</td>
-                    <td><span class="status-badge status-${supply.paymentStatus.toLowerCase()}">${supply.paymentStatus}</span></td>
+                    <td>
+                        <span class="status-badge status-${supply.paymentStatus.toLowerCase()}">
+                            ${supply.paymentStatus}
+                        </span>
+                        ${canInvoice ? '<br><small class="text-warning">⏳ Ready to invoice</small>' : ''}
+                        ${isInvoiced ? '<br><small class="text-info">📄 Invoiced</small>' : ''}
+                    </td>
                     <td>
                         <button class="btn btn-sm btn-info" onclick="viewSupplyDetails(${supply.supplierProductSupplyId})" title="View Details">
                             <i class="fas fa-eye"></i>
                         </button>
+                        ${canInvoice ? `
+                            <button class="btn btn-sm btn-success" onclick="generateInvoiceForSingle(${supply.supplierProductSupplyId})" title="Invoice This Item">
+                                <i class="fas fa-file-invoice"></i>
+                            </button>
+                        ` : ''}
                     </td>
                 `;
                 tbody.appendChild(row);
             });
+            
+            // Update the select all checkbox functionality
+            updateSelectAllState();
+            
+            // Update statistics
+            updateSuppliesStatistics(supplies);
+        }
+        
+        function updateSuppliesStatistics(supplies) {
+            const pending = supplies.filter(s => s.paymentStatus === 'Pending').length;
+            const invoiced = supplies.filter(s => s.paymentStatus === 'Invoiced').length;
+            const paid = supplies.filter(s => s.paymentStatus === 'Paid' || s.paymentStatus === 'Settled').length;
+            
+            document.getElementById('pendingCount').textContent = `${pending} Pending`;
+            document.getElementById('invoicedCount').textContent = `${invoiced} Invoiced`;
+            document.getElementById('paidCount').textContent = `${paid} Paid`;
+            
+            // Enable/disable buttons based on data
+            const selectPendingBtn = document.getElementById('selectPendingBtn');
+            const invoiceSelectedBtn = document.getElementById('invoiceSelectedBtn');
+            
+            selectPendingBtn.disabled = pending === 0;
+            invoiceSelectedBtn.disabled = pending === 0;
+        }
+        
+        function selectPendingSupplies() {
+            // Uncheck all first
+            document.querySelectorAll('.supply-checkbox').forEach(cb => cb.checked = false);
+            
+            // Check only pending supplies
+            document.querySelectorAll('.supply-checkbox:not(:disabled)').forEach(cb => cb.checked = true);
+            
+            updateSelectAllState();
+            showToast(`Selected ${document.querySelectorAll('.supply-checkbox:checked').length} pending supplies for invoicing`, 'info');
+        }
+        
+        function generateInvoiceFromSelected() {
+            const selectedSupplies = Array.from(document.querySelectorAll('.supply-checkbox:checked')).map(cb => parseInt(cb.value));
+            
+            if (selectedSupplies.length === 0) {
+                showToast('Please select supplies to invoice', 'warning');
+                return;
+            }
+            
+            // Use the existing generateInvoice function
+            generateInvoice();
         }
 
         async function loadProductsForSupplier() {
@@ -893,8 +1163,63 @@
 
         function toggleSelectAll() {
             const selectAll = document.getElementById('selectAll');
-            const checkboxes = document.querySelectorAll('.supply-checkbox');
+            const checkboxes = document.querySelectorAll('.supply-checkbox:not(:disabled)');
             checkboxes.forEach(cb => cb.checked = selectAll.checked);
+        }
+        
+        function updateSelectAllState() {
+            const selectAll = document.getElementById('selectAll');
+            const checkboxes = document.querySelectorAll('.supply-checkbox:not(:disabled)');
+            const checkedBoxes = document.querySelectorAll('.supply-checkbox:not(:disabled):checked');
+            
+            if (checkboxes.length === 0) {
+                selectAll.indeterminate = false;
+                selectAll.checked = false;
+                selectAll.disabled = true;
+            } else if (checkedBoxes.length === checkboxes.length) {
+                selectAll.indeterminate = false;
+                selectAll.checked = true;
+                selectAll.disabled = false;
+            } else if (checkedBoxes.length > 0) {
+                selectAll.indeterminate = true;
+                selectAll.checked = false;
+                selectAll.disabled = false;
+            } else {
+                selectAll.indeterminate = false;
+                selectAll.checked = false;
+                selectAll.disabled = false;
+            }
+        }
+        
+        // Function to generate invoice for a single supply
+        async function generateInvoiceForSingle(supplyId) {
+            try {
+                console.log('Generating invoice for single supply:', supplyId);
+                
+                const response = await fetch('/Admin/GenerateSupplierInvoice', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        supplierId: supplierId, 
+                        supplyIds: [supplyId] 
+                    })
+                });
+
+                const result = await response.json();
+                console.log('Single invoice result:', result);
+                
+                if (result.success) {
+                    showToast(`Invoice ${result.invoiceNumber} generated successfully!\\nAmount: KSh ${result.totalAmount.toFixed(2)}`, 'success');
+                    loadSupplierSupplies();
+                    loadSupplierInvoices();
+                    showTab('invoices');
+                } else {
+                    showToast('Error generating invoice: ' + result.message, 'error');
+                }
+            } catch (error) {
+                console.error('Error generating single invoice:', error);
+                showToast('Error generating invoice. Please try again.', 'error');
+            }
         }
 
         function openAddItemModal() {
@@ -911,15 +1236,25 @@
 
         // Individual product confirmation function
         async function confirmProduct(productId) {
+            console.log('confirmProduct called with productId:', productId);
+            
             const quantityInput = document.getElementById(`quantity_${productId}`);
             const unitCostInput = document.getElementById(`unitCost_${productId}`);
             const batchInput = document.getElementById(`batch_${productId}`);
             const supplyDateInput = document.getElementById(`supplyDate_${productId}`);
             
+            if (!quantityInput || !unitCostInput || !supplyDateInput) {
+                console.error('Required input elements not found for product:', productId);
+                showToast('Error: Form elements not found. Please refresh the page.', 'error');
+                return;
+            }
+            
             const quantity = parseInt(quantityInput.value) || 0;
             const unitCost = parseFloat(unitCostInput.value) || 0;
-            const batchNumber = batchInput.value || '';
+            const batchNumber = batchInput ? batchInput.value || '' : '';
             const supplyDate = supplyDateInput.value;
+            
+            console.log('Form values:', { quantity, unitCost, batchNumber, supplyDate });
             
             if (quantity <= 0) {
                 alert('Please enter a valid quantity.');
@@ -983,12 +1318,14 @@
                 let supplyResult;
                 try {
                     supplyResult = JSON.parse(responseText);
+                    console.log('Supply API response:', supplyResult);
                 } catch (jsonError) {
                     console.error('JSON parsing error:', jsonError, 'Response text:', responseText);
                     throw new Error('Invalid JSON response from server');
                 }
                 
                 if (supplyResult.success) {
+                    console.log('Supply created successfully, supplyId:', supplyResult.supplyId);
                     // Automatically generate invoice for this supply using the supply ID
                     const invoiceResponse = await fetch('/Admin/GenerateSupplierInvoice', {
                         method: 'POST',
@@ -1003,12 +1340,18 @@
                     if (invoiceResponse.ok) {
                         try {
                             const invoiceText = await invoiceResponse.text();
+                            console.log('Invoice API response text:', invoiceText);
                             if (invoiceText.trim()) {
                                 invoiceResult = JSON.parse(invoiceText);
+                                console.log('Invoice API response parsed:', invoiceResult);
                             }
                         } catch (invoiceJsonError) {
                             console.error('Invoice JSON parsing error:', invoiceJsonError);
                         }
+                    } else {
+                        console.error('Invoice API failed with status:', invoiceResponse.status);
+                        const errorText = await invoiceResponse.text();
+                        console.error('Invoice API error response:', errorText);
                     }
                     
                     if (invoiceResult.success) {
@@ -1035,6 +1378,9 @@
                         // Refresh other tabs
                         loadSupplierSupplies();
                         loadSupplierInvoices();
+                        
+                        // Also refresh payment data
+                        loadPaymentData();
                     } else {
                         // Supply created but invoice failed
                         confirmBtn.innerHTML = '<i class="fas fa-check"></i> Confirmed (Invoice Pending)';
@@ -1042,6 +1388,11 @@
                         rejectBtn.style.display = 'none';
                         
                         showToast(`Product confirmed successfully!\\nInvoice generation pending - check Invoices tab.`, 'warning');
+                        
+                        // Still refresh tabs to show the supply record
+                        loadSupplierSupplies();
+                        loadSupplierInvoices();
+                        loadPaymentData();
                     }
                 } else {
                     // Re-enable buttons on error
@@ -1267,9 +1618,51 @@
 
         async function loadPaymentData() {
             await Promise.all([
-                loadUnpaidInvoices(),
-                loadSupplierPayments()
+                loadUnsettledInvoices(),
+                loadSettledPayments()
             ]);
+        }
+        
+        async function loadUnsettledInvoices() {
+            try {
+                console.log('Loading unsettled invoices for supplier:', supplierId);
+                const response = await fetch(`/Admin/GetSupplierInvoices?supplierId=${supplierId}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Filter for unsettled invoices (not fully paid)
+                    const unsettledInvoices = data.invoices.filter(invoice => 
+                        invoice.amountDue > 0 && (invoice.status === 'Pending' || invoice.status === 'Partial')
+                    );
+                    console.log('Found unsettled invoices:', unsettledInvoices.length);
+                    displayUnsettledInvoices(unsettledInvoices);
+                } else {
+                    console.error('Failed to load invoices:', data.message);
+                }
+            } catch (error) {
+                console.error('Error loading unsettled invoices:', error);
+            }
+        }
+        
+        async function loadSettledPayments() {
+            try {
+                console.log('Loading settled payments for supplier:', supplierId);
+                const response = await fetch(`/Admin/GetSupplierInvoices?supplierId=${supplierId}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Filter for settled invoices (fully paid)
+                    const settledInvoices = data.invoices.filter(invoice => 
+                        invoice.amountDue <= 0 && invoice.amountPaid > 0
+                    );
+                    console.log('Found settled payments:', settledInvoices.length);
+                    displaySettledPayments(settledInvoices);
+                } else {
+                    console.error('Failed to load invoices:', data.message);
+                }
+            } catch (error) {
+                console.error('Error loading settled payments:', error);
+            }
         }
 
         async function loadUnpaidInvoices() {
@@ -1287,19 +1680,21 @@
             }
         }
 
-        function displayUnpaidInvoices(invoices) {
-            const tbody = document.getElementById('unpaidInvoicesTableBody');
+        function displayUnsettledInvoices(invoices) {
+            const tbody = document.getElementById('unsettledInvoicesTableBody');
             tbody.innerHTML = '';
             
             if (!invoices || invoices.length === 0) {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="7" style="text-align: center; padding: 2rem; color: #64748b;">
+                        <td colspan="8" style="text-align: center; padding: 2rem; color: #64748b;">
                             <i class="fas fa-check-circle" style="font-size: 2rem; margin-bottom: 1rem; opacity: 0.3;"></i>
-                            <br>All invoices are paid up!
+                            <br>All invoices are settled!
+                            <br><small>Great job keeping payments up to date</small>
                         </td>
                     </tr>
                 `;
+                updateUnsettledStatistics([]);
                 return;
             }
             
@@ -1308,38 +1703,241 @@
                 const today = new Date();
                 const daysOverdue = Math.max(0, Math.floor((today - dueDate) / (1000 * 60 * 60 * 24)));
                 const isOverdue = daysOverdue > 0;
+                const isDueSoon = daysOverdue === 0 && Math.floor((dueDate - today) / (1000 * 60 * 60 * 24)) <= 7;
                 
                 const row = document.createElement('tr');
                 if (isOverdue) {
                     row.style.backgroundColor = '#fef2f2';
                     row.style.borderLeft = '4px solid #dc2626';
+                } else if (isDueSoon) {
+                    row.style.backgroundColor = '#fefce8';
+                    row.style.borderLeft = '4px solid #eab308';
                 }
                 
                 row.innerHTML = `
                     <td>
                         <input type="checkbox" 
-                               class="unpaid-invoice-checkbox" 
-                               data-invoice-id="${invoice.invoiceId}"
-                               data-amount="${invoice.totalAmount}">
+                               class="unsettled-invoice-checkbox" 
+                               data-invoice-id="${invoice.supplierInvoiceId}"
+                               data-amount="${invoice.amountDue}">
                     </td>
-                    <td><strong>${invoice.invoiceNumber}</strong></td>
+                    <td>
+                        <strong>${invoice.invoiceNumber}</strong>
+                        ${isOverdue ? '<br><small class="text-danger">⚠️ Overdue</small>' : ''}
+                        ${isDueSoon ? '<br><small class="text-warning">⏰ Due Soon</small>' : ''}
+                    </td>
                     <td>${new Date(invoice.invoiceDate).toLocaleDateString()}</td>
-                    <td><strong>KSh ${invoice.totalAmount.toFixed(2)}</strong></td>
-                    <td>${dueDate.toLocaleDateString()}</td>
                     <td>
-                        ${isOverdue ? 
-                            `<span style="color: #dc2626; font-weight: bold;">${daysOverdue} days</span>` : 
-                            '<span style="color: #059669;">On time</span>'
-                        }
+                        <span class="badge badge-info">${invoice.itemCount || 0} items</span>
                     </td>
                     <td>
-                        <button class="btn btn-success btn-sm" onclick="confirmSinglePayment(${invoice.invoiceId}, ${invoice.totalAmount})">
-                            <i class="fas fa-check"></i> Pay
+                        <strong>KSh ${invoice.amountDue.toFixed(2)}</strong>
+                        ${invoice.amountPaid > 0 ? `<br><small class="text-muted">Paid: KSh ${invoice.amountPaid.toFixed(2)}</small>` : ''}
+                    </td>
+                    <td>
+                        ${dueDate.toLocaleDateString()}
+                        ${isOverdue ? `<br><small class="text-danger">${daysOverdue} days overdue</small>` : ''}
+                        ${isDueSoon ? '<br><small class="text-warning">Due within 7 days</small>' : ''}
+                    </td>
+                    <td>
+                        <span class="status-badge status-${invoice.status.toLowerCase()}">${invoice.status}</span>
+                    </td>
+                    <td>
+                        <button class="btn btn-success btn-sm" onclick="settleInvoice(${invoice.supplierInvoiceId}, ${invoice.amountDue})" title="Settle Payment">
+                            <i class="fas fa-check-circle"></i> Settle
+                        </button>
+                        <button class="btn btn-info btn-sm" onclick="viewInvoiceProducts(${invoice.supplierInvoiceId})" title="View Products">
+                            <i class="fas fa-eye"></i>
                         </button>
                     </td>
                 `;
                 tbody.appendChild(row);
             });
+            
+            updateUnsettledStatistics(invoices);
+        }
+        
+        function displaySettledPayments(payments) {
+            const tbody = document.getElementById('settledPaymentsTableBody');
+            tbody.innerHTML = '';
+            
+            if (!payments || payments.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" style="text-align: center; padding: 2rem; color: #64748b;">
+                            <i class="fas fa-receipt" style="font-size: 2rem; margin-bottom: 1rem; opacity: 0.3;"></i>
+                            <br>No settled payments yet
+                            <br><small>Settled payments will appear here</small>
+                        </td>
+                    </tr>
+                `;
+                updateSettledStatistics([]);
+                return;
+            }
+            
+            payments.forEach(payment => {
+                const row = document.createElement('tr');
+                row.style.backgroundColor = '#f0fdf4';
+                row.style.borderLeft = '4px solid #22c55e';
+                
+                row.innerHTML = `
+                    <td><strong>${payment.invoiceNumber}</strong></td>
+                    <td>${new Date(payment.invoiceDate).toLocaleDateString()}</td>
+                    <td>
+                        <span class="badge badge-success">${payment.itemCount || 0} products</span>
+                    </td>
+                    <td><strong>KSh ${payment.amountPaid.toFixed(2)}</strong></td>
+                    <td>
+                        <span class="badge badge-info">Cash</span>
+                    </td>
+                    <td>
+                        <span class="status-badge status-paid">Settled</span>
+                    </td>
+                    <td>
+                        <button class="btn btn-info btn-sm" onclick="viewSettledPaymentDetails(${payment.supplierInvoiceId})" title="View Payment Details">
+                            <i class="fas fa-eye"></i> View Details
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+            
+            updateSettledStatistics(payments);
+        }
+        
+        function updateUnsettledStatistics(invoices) {
+            const today = new Date();
+            const overdue = invoices.filter(invoice => {
+                const dueDate = new Date(invoice.dueDate);
+                return dueDate < today;
+            }).length;
+            
+            const dueSoon = invoices.filter(invoice => {
+                const dueDate = new Date(invoice.dueDate);
+                const daysUntilDue = Math.floor((dueDate - today) / (1000 * 60 * 60 * 24));
+                return daysUntilDue >= 0 && daysUntilDue <= 7;
+            }).length;
+            
+            const totalAmount = invoices.reduce((sum, invoice) => sum + invoice.amountDue, 0);
+            
+            document.getElementById('overdueCount').textContent = `${overdue} Overdue`;
+            document.getElementById('dueCount').textContent = `${dueSoon} Due Soon`;
+            document.getElementById('totalUnsettledAmount').textContent = `KSh ${totalAmount.toFixed(2)} Total`;
+            
+            // Enable/disable buttons
+            const selectOverdueBtn = document.getElementById('selectOverdueBtn');
+            const settleSelectedBtn = document.getElementById('settleSelectedBtn');
+            
+            selectOverdueBtn.disabled = overdue === 0;
+            settleSelectedBtn.disabled = invoices.length === 0;
+        }
+        
+        function updateSettledStatistics(payments) {
+            const totalAmount = payments.reduce((sum, payment) => sum + payment.amountPaid, 0);
+            
+            document.getElementById('settledCount').textContent = `${payments.length} Settled`;
+            document.getElementById('totalSettledAmount').textContent = `KSh ${totalAmount.toFixed(2)} Total`;
+        }
+        
+        function selectOverdueInvoices() {
+            // Uncheck all first
+            document.querySelectorAll('.unsettled-invoice-checkbox').forEach(cb => cb.checked = false);
+            
+            // Check only overdue invoices (red rows)
+            const overdueRows = document.querySelectorAll('#unsettledInvoicesTableBody tr[style*="border-left: 4px solid #dc2626"]');
+            overdueRows.forEach(row => {
+                const checkbox = row.querySelector('.unsettled-invoice-checkbox');
+                if (checkbox) checkbox.checked = true;
+            });
+            
+            const selectedCount = document.querySelectorAll('.unsettled-invoice-checkbox:checked').length;
+            showToast(`Selected ${selectedCount} overdue invoices for settlement`, 'info');
+        }
+        
+        function toggleSelectAllUnsettled() {
+            const selectAll = document.getElementById('selectAllUnsettled');
+            const checkboxes = document.querySelectorAll('.unsettled-invoice-checkbox');
+            checkboxes.forEach(cb => cb.checked = selectAll.checked);
+        }
+        
+        async function settleSelectedInvoices() {
+            const selectedInvoices = Array.from(document.querySelectorAll('.unsettled-invoice-checkbox:checked')).map(cb => ({
+                invoiceId: parseInt(cb.dataset.invoiceId),
+                amount: parseFloat(cb.dataset.amount)
+            }));
+            
+            if (selectedInvoices.length === 0) {
+                showToast('Please select invoices to settle', 'warning');
+                return;
+            }
+            
+            const totalAmount = selectedInvoices.reduce((sum, inv) => sum + inv.amount, 0);
+            
+            if (!confirm(`Settle ${selectedInvoices.length} invoice(s)?\\nTotal Amount: KSh ${totalAmount.toFixed(2)}`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/Admin/ConfirmSupplierPayments', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        supplierId: supplierId,
+                        invoiceIds: selectedInvoices.map(inv => inv.invoiceId),
+                        paymentMethod: 'Cash',
+                        paymentDate: new Date().toISOString().split('T')[0],
+                        notes: `Bulk settlement for ${selectedInvoices.length} invoices`
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    showToast(`${selectedInvoices.length} invoices settled successfully!\\nTotal: KSh ${totalAmount.toFixed(2)}`, 'success');
+                    loadPaymentData();
+                    loadSupplierInvoices();
+                    loadSupplierSupplies();
+                } else {
+                    showToast('Error settling invoices: ' + result.message, 'error');
+                }
+            } catch (error) {
+                console.error('Error settling invoices:', error);
+                showToast('Error settling invoices. Please try again.', 'error');
+            }
+        }
+        
+        async function settleInvoice(invoiceId, amount) {
+            if (!confirm(`Settle this invoice?\\nAmount: KSh ${amount.toFixed(2)}`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/Admin/ConfirmSupplierPayments', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        supplierId: supplierId,
+                        invoiceIds: [invoiceId],
+                        paymentMethod: 'Cash',
+                        paymentDate: new Date().toISOString().split('T')[0],
+                        notes: 'Single invoice settlement'
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    showToast(`Invoice settled successfully!\\nAmount: KSh ${amount.toFixed(2)}`, 'success');
+                    loadPaymentData();
+                    loadSupplierInvoices();
+                    loadSupplierSupplies();
+                } else {
+                    showToast('Error settling invoice: ' + result.message, 'error');
+                }
+            } catch (error) {
+                console.error('Error settling invoice:', error);
+                showToast('Error settling invoice. Please try again.', 'error');
+            }
         }
 
         async function confirmSinglePayment(invoiceId, amount) {
@@ -1384,6 +1982,7 @@
             }
 
             try {
+                console.log('Generating invoice for supplies:', selectedSupplies);
                 const response = await fetch('/Admin/GenerateSupplierInvoice', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -1391,6 +1990,8 @@
                 });
 
                 const result = await response.json();
+                console.log('Generate invoice result:', result);
+                
                 if (result.success) {
                     showToast(`Invoice ${result.invoiceNumber} generated successfully!\\nAmount: KSh ${result.totalAmount.toFixed(2)}`, 'success');
                     loadSupplierSupplies();
@@ -1401,6 +2002,46 @@
                 }
             } catch (error) {
                 console.error('Error generating invoice:', error);
+                showToast('Error generating invoice. Please try again.', 'error');
+            }
+        }
+        
+        // Function to generate invoice for all pending supplies
+        async function generateInvoiceForAllPending() {
+            try {
+                console.log('Generating invoice for all pending supplies for supplier:', supplierId);
+                
+                // First get all pending supplies
+                const suppliesResponse = await fetch(`/Admin/GetSupplierProductSupplies?supplierId=${supplierId}&status=Pending`);
+                const suppliesData = await suppliesResponse.json();
+                
+                if (!suppliesData.success || !suppliesData.supplies || suppliesData.supplies.length === 0) {
+                    showToast('No pending supplies found to invoice', 'info');
+                    return;
+                }
+                
+                const pendingSupplyIds = suppliesData.supplies.map(s => s.supplierProductSupplyId);
+                console.log('Found pending supplies:', pendingSupplyIds);
+                
+                const response = await fetch('/Admin/GenerateSupplierInvoice', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ supplierId: supplierId, supplyIds: pendingSupplyIds })
+                });
+
+                const result = await response.json();
+                console.log('Generate invoice for pending result:', result);
+                
+                if (result.success) {
+                    showToast(`Invoice ${result.invoiceNumber} generated successfully!\\nAmount: KSh ${result.totalAmount.toFixed(2)}`, 'success');
+                    loadSupplierSupplies();
+                    loadSupplierInvoices();
+                    showTab('invoices');
+                } else {
+                    showToast('Error generating invoice: ' + result.message, 'error');
+                }
+            } catch (error) {
+                console.error('Error generating invoice for pending supplies:', error);
                 showToast('Error generating invoice. Please try again.', 'error');
             }
         }
@@ -1440,21 +2081,43 @@
             }
         });
 
-        function loadSupplierProducts() {
-            fetch(`/Admin/GetSupplierProducts?supplierId=${supplierId}`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        displayProducts(data.products);
-                        loadSupplierSupplies(); // Load supplies separately
-                    } else {
-                        showAlert('Error loading products: ' + data.message, 'error');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    showAlert('Error loading products', 'error');
-                });
+        async function loadSupplierProducts() {
+            try {
+                // Get all products for this supplier
+                const productsResponse = await fetch(`/Admin/GetSupplierProducts?supplierId=${supplierId}`);
+                const productsData = await productsResponse.json();
+                
+                if (!productsData.success) {
+                    showAlert('Error loading products: ' + productsData.message, 'error');
+                    return;
+                }
+                
+                // Get all confirmed supplies to filter out already confirmed products
+                const suppliesResponse = await fetch(`/Admin/GetSupplierProductSupplies?supplierId=${supplierId}`);
+                const suppliesData = await suppliesResponse.json();
+                
+                let confirmedProductIds = [];
+                if (suppliesData.success && suppliesData.supplies) {
+                    // Get product IDs that already have supplies (confirmed products)
+                    confirmedProductIds = [...new Set(suppliesData.supplies.map(s => s.productId))];
+                    console.log('Already confirmed product IDs:', confirmedProductIds);
+                }
+                
+                // Filter out products that are already confirmed
+                const pendingProducts = productsData.products.filter(product => 
+                    !confirmedProductIds.includes(product.productId)
+                );
+                
+                console.log('Total products:', productsData.products.length);
+                console.log('Pending products (not yet confirmed):', pendingProducts.length);
+                
+                displayProducts(pendingProducts);
+                loadSupplierSupplies(); // Load supplies separately
+                
+            } catch (error) {
+                console.error('Error loading products:', error);
+                showAlert('Error loading products', 'error');
+            }
         }
 
         function loadSupplierSupplies() {
@@ -1491,10 +2154,15 @@
         // Additional functions for invoice and payment management
         async function loadSupplierInvoices() {
             try {
+                console.log('Loading invoices for supplier:', supplierId);
                 const response = await fetch(`/Admin/GetSupplierInvoices?supplierId=${supplierId}`);
                 const data = await response.json();
+                console.log('Invoice API response:', data);
                 if (data.success) {
+                    console.log('Found invoices:', data.invoices.length);
                     displayInvoices(data.invoices);
+                } else {
+                    console.error('Failed to load invoices:', data.message);
                 }
             } catch (error) {
                 console.error('Error loading invoices:', error);
@@ -1610,6 +2278,82 @@
 
         function showAlert(message, type) {
             alert(message); // Simple alert for now, can be enhanced with better UI
+        }
+        
+        async function viewSettledPaymentDetails(invoiceId) {
+            try {
+                console.log('Loading payment details for invoice:', invoiceId);
+                
+                // Get invoice details with products
+                const response = await fetch(`/Admin/GetSupplierInvoices?supplierId=${supplierId}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    const invoice = data.invoices.find(inv => inv.supplierInvoiceId === invoiceId);
+                    if (invoice) {
+                        displayPaymentDetailsModal(invoice);
+                    } else {
+                        showToast('Invoice not found', 'error');
+                    }
+                } else {
+                    showToast('Error loading payment details: ' + data.message, 'error');
+                }
+            } catch (error) {
+                console.error('Error loading payment details:', error);
+                showToast('Error loading payment details. Please try again.', 'error');
+            }
+        }
+        
+        function displayPaymentDetailsModal(invoice) {
+            // Update modal title and basic info
+            document.getElementById('paymentModalTitle').textContent = `Payment Details - ${invoice.invoiceNumber}`;
+            document.getElementById('modalInvoiceNumber').textContent = invoice.invoiceNumber;
+            document.getElementById('modalSettlementDate').textContent = new Date(invoice.invoiceDate).toLocaleDateString();
+            document.getElementById('modalPaymentMethod').textContent = 'Cash'; // Default for now
+            document.getElementById('modalTotalAmount').textContent = `KSh ${invoice.amountPaid.toFixed(2)}`;
+            
+            // Display products in the payment
+            const tbody = document.getElementById('paymentProductsTableBody');
+            tbody.innerHTML = '';
+            
+            if (invoice.items && invoice.items.length > 0) {
+                invoice.items.forEach(item => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td><strong>${item.productName}</strong></td>
+                        <td>${item.batchNumber || 'N/A'}</td>
+                        <td>${item.quantity} units</td>
+                        <td>KSh ${item.unitCost.toFixed(2)}</td>
+                        <td><strong>KSh ${item.totalCost.toFixed(2)}</strong></td>
+                        <td>${new Date(item.supplyDate).toLocaleDateString()}</td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            } else {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" style="text-align: center; padding: 2rem; color: #64748b;">
+                            <i class="fas fa-box-open" style="font-size: 2rem; margin-bottom: 1rem; opacity: 0.3;"></i>
+                            <br>No product details available
+                        </td>
+                    </tr>
+                `;
+            }
+            
+            // Update payment notes
+            document.getElementById('modalPaymentNotes').textContent = invoice.notes || 'No additional notes for this payment.';
+            
+            // Show the modal
+            document.getElementById('paymentDetailsModal').style.display = 'block';
+        }
+        
+        function closePaymentDetailsModal() {
+            document.getElementById('paymentDetailsModal').style.display = 'none';
+        }
+        
+        async function viewInvoiceProducts(invoiceId) {
+            // This function shows products for unsettled invoices
+            await viewSettledPaymentDetails(invoiceId);
         }
 
         // Initialize the page
