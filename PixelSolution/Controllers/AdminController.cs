@@ -3093,12 +3093,16 @@ namespace PixelSolution.Controllers
         {
             try
             {
+                _logger.LogInformation("Getting products for supplier ID: {SupplierId}", supplierId);
+                
                 // Get products assigned to this supplier
                 var products = await _context.Products
                     .AsNoTracking()
                     .Include(p => p.Category)
                     .Where(p => p.SupplierId == supplierId && p.IsActive)
                     .ToListAsync();
+                
+                _logger.LogInformation("Found {ProductCount} products for supplier ID: {SupplierId}", products.Count, supplierId);
 
                 // Get supply batches for these products
                 var productIds = products.Select(p => p.ProductId).ToList();
@@ -3144,6 +3148,90 @@ namespace PixelSolution.Controllers
             {
                 _logger.LogError(ex, "Error getting supplier products for supplier ID: {SupplierId}", supplierId);
                 return Json(new { success = false, message = "Error loading supplier products. Please try again." });
+            }
+        }
+
+        [HttpPost]
+        [Authorize(Roles = "Admin,Manager")]
+        public async Task<IActionResult> AssignProductsToSupplier([FromBody] AssignProductsRequest request)
+        {
+            try
+            {
+                _logger.LogInformation("Assigning {ProductCount} products to supplier ID: {SupplierId}", 
+                    request.ProductIds.Count, request.SupplierId);
+
+                // Verify supplier exists
+                var supplier = await _context.Suppliers.FindAsync(request.SupplierId);
+                if (supplier == null)
+                {
+                    return Json(new { success = false, message = "Supplier not found." });
+                }
+
+                // Get products to assign
+                var products = await _context.Products
+                    .Where(p => request.ProductIds.Contains(p.ProductId))
+                    .ToListAsync();
+
+                if (!products.Any())
+                {
+                    return Json(new { success = false, message = "No valid products found to assign." });
+                }
+
+                // Assign products to supplier
+                foreach (var product in products)
+                {
+                    product.SupplierId = request.SupplierId;
+                    product.UpdatedAt = DateTime.UtcNow;
+                }
+
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation("Successfully assigned {ProductCount} products to supplier {SupplierName}", 
+                    products.Count, supplier.CompanyName);
+
+                return Json(new { 
+                    success = true, 
+                    message = $"Successfully assigned {products.Count} products to {supplier.CompanyName}.",
+                    assignedProducts = products.Count
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error assigning products to supplier ID: {SupplierId}", request.SupplierId);
+                return Json(new { success = false, message = "Error assigning products. Please try again." });
+            }
+        }
+
+        [HttpGet]
+        [Authorize(Roles = "Admin,Manager")]
+        public async Task<IActionResult> GetAllProducts()
+        {
+            try
+            {
+                var products = await _context.Products
+                    .AsNoTracking()
+                    .Include(p => p.Category)
+                    .Where(p => p.IsActive)
+                    .Select(p => new
+                    {
+                        productId = p.ProductId,
+                        name = p.Name,
+                        sku = p.SKU,
+                        categoryName = p.Category != null ? p.Category.Name : "No Category",
+                        supplierId = p.SupplierId,
+                        buyingPrice = p.BuyingPrice,
+                        sellingPrice = p.SellingPrice,
+                        stockQuantity = p.StockQuantity
+                    })
+                    .OrderBy(p => p.name)
+                    .ToListAsync();
+
+                return Json(new { success = true, products });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting all products");
+                return Json(new { success = false, message = "Error loading products. Please try again." });
             }
         }
 
@@ -3247,16 +3335,22 @@ namespace PixelSolution.Controllers
         {
             try
             {
+                _logger.LogInformation("Generating invoice for supplier {SupplierId} with {SupplyCount} supplies", 
+                    request.SupplierId, request.SupplyIds.Count);
+
                 // Get the selected supply batches with proper validation
                 var supplies = await _context.SupplierProductSupplies
                     .Include(s => s.Product)
                     .Where(s => request.SupplyIds.Contains(s.SupplierProductSupplyId) && 
-                               s.SupplierId == request.SupplierId &&
-                               s.Product.SupplierId == request.SupplierId) // Ensure product belongs to supplier
+                               s.SupplierId == request.SupplierId)
                     .ToListAsync();
+
+                _logger.LogInformation("Found {SupplyCount} matching supplies for invoice generation", supplies.Count);
 
                 if (!supplies.Any())
                 {
+                    _logger.LogWarning("No valid supply batches found for supplier {SupplierId} with supply IDs: {SupplyIds}", 
+                        request.SupplierId, string.Join(", ", request.SupplyIds));
                     return Json(new { success = false, message = "No valid supply batches found for this supplier." });
                 }
 

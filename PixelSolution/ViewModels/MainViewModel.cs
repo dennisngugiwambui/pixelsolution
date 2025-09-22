@@ -116,6 +116,12 @@ namespace PixelSolution.ViewModels
         public List<int> SupplyIds { get; set; } = new List<int>();
     }
 
+    public class AssignProductsRequest
+    {
+        public int SupplierId { get; set; }
+        public List<int> ProductIds { get; set; } = new List<int>();
+    }
+
     public class RecordPaymentRequest
     {
         public int SupplierInvoiceId { get; set; }
