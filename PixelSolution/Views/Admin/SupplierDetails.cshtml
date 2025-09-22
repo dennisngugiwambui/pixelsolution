@@ -954,21 +954,19 @@
                 rejectBtn.disabled = true;
                 confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
                 
-                // Create supply record and automatically generate invoice
-                const supplyResponse = await fetch('/Admin/AcceptSupplierDelivery', {
+                // Create supply record using the correct endpoint
+                const supplyResponse = await fetch('/Admin/AddSupplierProductSupply', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         supplierId: supplierId,
-                        deliveryDate: supplyDate,
-                        notes: `Product confirmed: ${quantity} units at KSh ${unitCost} each`,
-                        productDeliveries: [{
-                            productId: productId,
-                            quantity: quantity,
-                            unitCost: unitCost,
-                            batchNumber: batchNumber,
-                            expiryDate: null
-                        }]
+                        productId: productId,
+                        quantitySupplied: quantity,
+                        unitCost: unitCost,
+                        batchNumber: batchNumber || `BATCH-${Date.now()}`,
+                        supplyDate: supplyDate,
+                        expiryDate: null,
+                        notes: `Product confirmed: ${quantity} units at KSh ${unitCost} each`
                     })
                 });
 
@@ -991,11 +989,14 @@
                 }
                 
                 if (supplyResult.success) {
-                    // Automatically generate invoice for this supply
-                    const invoiceResponse = await fetch('/Admin/GenerateSupplierInvoiceForPending', {
+                    // Automatically generate invoice for this supply using the supply ID
+                    const invoiceResponse = await fetch('/Admin/GenerateSupplierInvoice', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ supplierId: supplierId })
+                        body: JSON.stringify({ 
+                            supplierId: supplierId,
+                            supplyIds: [supplyResult.supplyId]
+                        })
                     });
 
                     let invoiceResult = { success: false, message: 'Invoice generation failed' };
