@@ -3361,11 +3361,41 @@ namespace PixelSolution.Controllers
                     return Json(new { success = false, message = $"Some items are already invoiced or paid. Please select only pending items." });
                 }
 
-                // Get current user ID for CreatedByUserId
-                var currentUserId = await _context.Users
-                    .Where(u => u.Email == User.Identity.Name)
-                    .Select(u => u.UserId)
-                    .FirstOrDefaultAsync();
+                // Get current user ID for CreatedByUserId with robust fallback
+                var currentUserId = 0;
+                if (!string.IsNullOrEmpty(User.Identity?.Name))
+                {
+                    currentUserId = await _context.Users
+                        .Where(u => u.Email == User.Identity.Name)
+                        .Select(u => u.UserId)
+                        .FirstOrDefaultAsync();
+                }
+
+                // If current user not found, get the first available admin user
+                if (currentUserId <= 0)
+                {
+                    currentUserId = await _context.Users
+                        .Where(u => u.UserType == "Admin")
+                        .Select(u => u.UserId)
+                        .FirstOrDefaultAsync();
+                }
+
+                // If no admin found, get any user
+                if (currentUserId <= 0)
+                {
+                    currentUserId = await _context.Users
+                        .Select(u => u.UserId)
+                        .FirstOrDefaultAsync();
+                }
+
+                // Final validation
+                if (currentUserId <= 0)
+                {
+                    _logger.LogError("No valid user found in database for invoice creation");
+                    return Json(new { success = false, message = "No valid user found for invoice creation. Please ensure at least one user exists in the system." });
+                }
+
+                _logger.LogInformation("Using UserId {UserId} for invoice creation", currentUserId);
 
                 // Generate invoice number
                 var invoiceCount = await _context.SupplierInvoices.CountAsync() + 1;
@@ -3381,7 +3411,7 @@ namespace PixelSolution.Controllers
                 var invoice = new SupplierInvoice
                 {
                     SupplierId = request.SupplierId,
-                    CreatedByUserId = currentUserId > 0 ? currentUserId : 1, // Fallback to admin user
+                    CreatedByUserId = currentUserId,
                     InvoiceNumber = invoiceNumber,
                     InvoiceDate = DateTime.UtcNow,
                     DueDate = DateTime.UtcNow.AddDays(30), // 30 days payment terms
@@ -3438,6 +3468,202 @@ namespace PixelSolution.Controllers
             {
                 _logger.LogError(ex, "Error generating supplier invoice for Supplier ID: {SupplierId}", request.SupplierId);
                 return Json(new { success = false, message = "Error generating invoice. Please try again." });
+            }
+        }
+
+        [HttpGet]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> CheckUsersStatus()
+        {
+            try
+            {
+                var users = await _context.Users
+                    .Select(u => new { u.UserId, u.FirstName, u.LastName, u.Email, u.UserType, u.Status })
+                    .ToListAsync();
+
+                var adminCount = users.Count(u => u.UserType == "Admin");
+                var totalCount = users.Count;
+
+                return Json(new { 
+                    success = true, 
+                    totalUsers = totalCount,
+                    adminUsers = adminCount,
+                    users = users.Take(10) // Show first 10 users
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error checking users status");
+                return Json(new { success = false, message = "Error checking users: " + ex.Message });
+            }
+        }
+
+        [HttpPost]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> CreateDefaultAdminUser()
+        {
+            try
+            {
+                // Check if any admin users exist
+                var adminExists = await _context.Users.AnyAsync(u => u.UserType == "Admin");
+                if (adminExists)
+                {
+                    return Json(new { success = false, message = "Admin user already exists" });
+                }
+
+                // Check if any users exist at all
+                var anyUserExists = await _context.Users.AnyAsync();
+                if (anyUserExists)
+                {
+                    return Json(new { success = false, message = "Users exist but no admin found. Please promote an existing user to admin." });
+                }
+
+                // Create default admin user
+                var defaultAdmin = new User
+                {
+                    FirstName = "System",
+                    LastName = "Administrator",
+                    Email = "admin@pixelsolution.com",
+                    Phone = "0700000000",
+                    PasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin123!"),
+                    UserType = "Admin",
+                    Status = "Active",
+                    Privileges = "All",
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+
+                _context.Users.Add(defaultAdmin);
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation("Created default admin user with ID: {UserId}", defaultAdmin.UserId);
+
+                return Json(new { 
+                    success = true, 
+                    message = "Default admin user created successfully",
+                    userId = defaultAdmin.UserId,
+                    email = defaultAdmin.Email
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating default admin user");
+                return Json(new { success = false, message = "Error creating admin user: " + ex.Message });
+            }
+        }
+
+        [HttpPost]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> FixSupplierInvoiceSchema()
+        {
+            try
+            {
+                var sql = @"
+                    -- Create SupplierInvoiceItems table if it doesn't exist
+                    IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'SupplierInvoiceItems')
+                    BEGIN
+                        CREATE TABLE [dbo].[SupplierInvoiceItems] (
+                            [SupplierInvoiceItemId] int IDENTITY(1,1) NOT NULL,
+                            [SupplierInvoiceId] int NOT NULL,
+                            [SupplierProductSupplyId] int NOT NULL,
+                            [Quantity] int NOT NULL,
+                            [UnitCost] decimal(18,2) NOT NULL,
+                            [TotalCost] decimal(18,2) NOT NULL,
+                            [Description] nvarchar(500) NOT NULL DEFAULT '',
+                            CONSTRAINT [PK_SupplierInvoiceItems] PRIMARY KEY ([SupplierInvoiceItemId]),
+                            CONSTRAINT [FK_SupplierInvoiceItems_SupplierInvoices_SupplierInvoiceId] 
+                                FOREIGN KEY ([SupplierInvoiceId]) REFERENCES [dbo].[SupplierInvoices]([SupplierInvoiceId]) ON DELETE CASCADE,
+                            CONSTRAINT [FK_SupplierInvoiceItems_SupplierProductSupplies_SupplierProductSupplyId] 
+                                FOREIGN KEY ([SupplierProductSupplyId]) REFERENCES [dbo].[SupplierProductSupplies]([SupplierProductSupplyId]) ON DELETE RESTRICT
+                        );
+                        
+                        CREATE INDEX [IX_SupplierInvoiceItems_SupplierInvoiceId] ON [dbo].[SupplierInvoiceItems] ([SupplierInvoiceId]);
+                        CREATE INDEX [IX_SupplierInvoiceItems_SupplierProductSupplyId] ON [dbo].[SupplierInvoiceItems] ([SupplierProductSupplyId]);
+                    END
+
+                    -- Create SupplierProductSupplies table if it doesn't exist
+                    IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'SupplierProductSupplies')
+                    BEGIN
+                        CREATE TABLE [dbo].[SupplierProductSupplies] (
+                            [SupplierProductSupplyId] int IDENTITY(1,1) NOT NULL,
+                            [SupplierId] int NOT NULL,
+                            [ProductId] int NOT NULL,
+                            [QuantitySupplied] int NOT NULL,
+                            [UnitCost] decimal(18,2) NOT NULL,
+                            [TotalCost] decimal(18,2) NOT NULL,
+                            [BatchNumber] nvarchar(50) NOT NULL DEFAULT '',
+                            [SupplyDate] datetime2 NOT NULL,
+                            [ExpiryDate] datetime2 NULL,
+                            [PaymentStatus] nvarchar(20) NOT NULL DEFAULT 'Pending',
+                            [Notes] nvarchar(500) NOT NULL DEFAULT '',
+                            [CreatedAt] datetime2 NOT NULL DEFAULT GETUTCDATE(),
+                            [UpdatedAt] datetime2 NOT NULL DEFAULT GETUTCDATE(),
+                            CONSTRAINT [PK_SupplierProductSupplies] PRIMARY KEY ([SupplierProductSupplyId]),
+                            CONSTRAINT [FK_SupplierProductSupplies_Suppliers_SupplierId] 
+                                FOREIGN KEY ([SupplierId]) REFERENCES [dbo].[Suppliers]([SupplierId]) ON DELETE RESTRICT,
+                            CONSTRAINT [FK_SupplierProductSupplies_Products_ProductId] 
+                                FOREIGN KEY ([ProductId]) REFERENCES [dbo].[Products]([ProductId]) ON DELETE RESTRICT
+                        );
+                        
+                        CREATE INDEX [IX_SupplierProductSupplies_SupplierId] ON [dbo].[SupplierProductSupplies] ([SupplierId]);
+                        CREATE INDEX [IX_SupplierProductSupplies_ProductId] ON [dbo].[SupplierProductSupplies] ([ProductId]);
+                    END
+
+                    -- Add CreatedByUserId column to SupplierInvoices if it doesn't exist
+                    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[SupplierInvoices]') AND name = 'CreatedByUserId')
+                    BEGIN
+                        ALTER TABLE [dbo].[SupplierInvoices] 
+                        ADD [CreatedByUserId] int NOT NULL DEFAULT 1;
+                        
+                        -- Add foreign key constraint
+                        ALTER TABLE [dbo].[SupplierInvoices]
+                        ADD CONSTRAINT FK_SupplierInvoices_Users_CreatedByUserId 
+                        FOREIGN KEY ([CreatedByUserId]) REFERENCES [dbo].[Users]([UserId]);
+                    END
+
+                    -- Add PaymentStatus column to SupplierInvoices if it doesn't exist
+                    IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID(N'[dbo].[SupplierInvoices]') AND name = 'PaymentStatus')
+                    BEGIN
+                        ALTER TABLE [dbo].[SupplierInvoices] 
+                        ADD [PaymentStatus] nvarchar(20) NOT NULL DEFAULT 'Unpaid';
+                    END
+
+                    -- Create SupplierPayments table if it doesn't exist
+                    IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'SupplierPayments')
+                    BEGIN
+                        CREATE TABLE [dbo].[SupplierPayments] (
+                            [SupplierPaymentId] int IDENTITY(1,1) NOT NULL,
+                            [SupplierInvoiceId] int NOT NULL,
+                            [ProcessedByUserId] int NOT NULL,
+                            [ProcessedBy] nvarchar(256) NOT NULL,
+                            [Amount] decimal(18,2) NOT NULL,
+                            [PaymentMethod] nvarchar(50) NOT NULL DEFAULT 'Cash',
+                            [PaymentDate] datetime2 NOT NULL,
+                            [TransactionReference] nvarchar(100) NOT NULL DEFAULT '',
+                            [Notes] nvarchar(500) NOT NULL DEFAULT '',
+                            [CreatedAt] datetime2 NOT NULL DEFAULT GETUTCDATE(),
+                            CONSTRAINT [PK_SupplierPayments] PRIMARY KEY ([SupplierPaymentId]),
+                            CONSTRAINT [FK_SupplierPayments_SupplierInvoices_SupplierInvoiceId] 
+                                FOREIGN KEY ([SupplierInvoiceId]) REFERENCES [dbo].[SupplierInvoices]([SupplierInvoiceId]) ON DELETE CASCADE,
+                            CONSTRAINT [FK_SupplierPayments_Users_ProcessedByUserId] 
+                                FOREIGN KEY ([ProcessedByUserId]) REFERENCES [dbo].[Users]([UserId]) ON DELETE RESTRICT
+                        );
+                        
+                        CREATE INDEX [IX_SupplierPayments_SupplierInvoiceId] ON [dbo].[SupplierPayments] ([SupplierInvoiceId]);
+                        CREATE INDEX [IX_SupplierPayments_ProcessedByUserId] ON [dbo].[SupplierPayments] ([ProcessedByUserId]);
+                    END
+                ";
+
+                await _context.Database.ExecuteSqlRawAsync(sql);
+                
+                _logger.LogInformation("Successfully created/updated all supplier invoice related tables");
+                
+                return Json(new { success = true, message = "Database schema updated successfully - All supplier invoice tables created/updated" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating supplier invoice schema");
+                return Json(new { success = false, message = "Error updating database schema: " + ex.Message });
             }
         }
 

@@ -642,17 +642,65 @@
 
             <!-- Invoices Tab -->
             <div id="invoicesTab" class="tab-content">
+                <!-- Pending Supplies for Invoicing Section -->
                 <div class="section-header">
-                    <h3>Supplier Invoices</h3>
+                    <div>
+                        <h3>Pending Supplies for Invoicing</h3>
+                        <div id="pendingInvoiceStats" style="display: flex; gap: 1rem; margin-top: 0.5rem;">
+                            <span class="badge badge-warning" id="pendingInvoiceCount">0 Pending</span>
+                            <span class="badge badge-success" id="selectedInvoiceCount">0 Selected</span>
+                            <span class="badge badge-info" id="totalInvoiceAmount">KSh 0.00 Total</span>
+                        </div>
+                    </div>
                     <div style="display: flex; gap: 0.5rem;">
-                        <button class="btn btn-secondary" onclick="generateInvoiceForAllPending()">
-                            <i class="fas fa-file-invoice"></i> Invoice All Pending Supplies
+                        <button class="btn btn-secondary btn-sm" onclick="selectAllPendingForInvoice()" id="selectAllPendingBtn">
+                            <i class="fas fa-check-square"></i> Select All
                         </button>
-                        <button class="btn btn-primary" onclick="generateInvoiceFromSupplies()">
-                            <i class="fas fa-plus"></i> Generate Invoice from Supplies
+                        <button class="btn btn-primary btn-sm" onclick="generateInvoiceFromSelected()" id="generateInvoiceBtn">
+                            <i class="fas fa-file-invoice"></i> Generate Invoice
                         </button>
-                        <button class="btn btn-info" onclick="loadSupplierInvoices()">
+                        <button class="btn btn-warning btn-sm" onclick="fixDatabaseSchema()" id="fixSchemaBtn" title="Create all missing supplier invoice tables">
+                            <i class="fas fa-wrench"></i> Fix All Tables
+                        </button>
+                        <button class="btn btn-info btn-sm" onclick="checkUsersStatus()" id="checkUsersBtn" title="Check users in database">
+                            <i class="fas fa-users"></i> Check Users
+                        </button>
+                        <button class="btn btn-info btn-sm" onclick="refreshPendingSupplies()">
                             <i class="fas fa-sync-alt"></i> Refresh
+                        </button>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="items-table" id="pendingSuppliesTable">
+                        <thead>
+                            <tr>
+                                <th><input type="checkbox" id="selectAllPending" onchange="toggleSelectAllPending()"></th>
+                                <th>Product</th>
+                                <th>Batch</th>
+                                <th>Quantity</th>
+                                <th>Unit Cost</th>
+                                <th>Total Cost</th>
+                                <th>Supply Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pendingSuppliesTableBody">
+                            <tr>
+                                <td colspan="8" style="text-align: center; padding: 2rem; color: #64748b;">
+                                    <i class="fas fa-clock" style="font-size: 2rem; margin-bottom: 1rem; opacity: 0.3;"></i>
+                                    <br>Loading pending supplies...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Existing Invoices Section -->
+                <div class="section-header" style="margin-top: 3rem;">
+                    <h3>Generated Invoices</h3>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button class="btn btn-info btn-sm" onclick="loadSupplierInvoices()">
+                            <i class="fas fa-sync-alt"></i> Refresh Invoices
                         </button>
                     </div>
                 </div>
@@ -671,7 +719,12 @@
                             </tr>
                         </thead>
                         <tbody id="invoicesTableBody">
-                            <!-- Invoices will be loaded here -->
+                            <tr>
+                                <td colspan="8" style="text-align: center; padding: 2rem; color: #64748b;">
+                                    <i class="fas fa-file-invoice" style="font-size: 2rem; margin-bottom: 1rem; opacity: 0.3;"></i>
+                                    <br>Loading invoices...
+                                </td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
@@ -963,24 +1016,25 @@
 
         function showTab(tabName) {
             // Hide all tabs
-            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(tab => tab.style.display = 'none');
+            
+            // Remove active class from all buttons
+            document.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
             
             // Show selected tab
-            document.getElementById(tabName + 'Tab').classList.add('active');
+            document.getElementById(tabName + 'Tab').style.display = 'block';
+            
+            // Add active class to clicked button
             event.target.classList.add('active');
             
-            // Load data for the selected tab
-            switch(tabName) {
-                case 'items':
-                    loadSupplierProducts();
-                    break;
-                case 'invoices':
-                    loadSupplierInvoices();
-                    break;
-                case 'payments':
-                    loadPaymentData();
-                    break;
+            // Load data based on tab
+            if (tabName === 'supplies') {
+                loadSupplierSupplies();
+            } else if (tabName === 'invoices') {
+                loadPendingSuppliesForInvoicing(); // Load pending supplies first
+                loadSupplierInvoices(); // Then load existing invoices
+            } else if (tabName === 'payments') {
+                loadPaymentData();
             }
         }
 
@@ -2461,64 +2515,8 @@
             showToast('Supply history refreshed', 'info');
         }
         
-        async function generateInvoiceFromSupplies() {
-            try {
-                console.log('Opening supply selection for invoice generation...');
-                
-                // Get all pending supplies
-                const response = await fetch(`/Admin/GetSupplierProductSupplies?supplierId=${supplierId}`);
-                const data = await response.json();
-                
-                console.log('Supply data response:', data);
-                
-                if (data.success) {
-                    const pendingSupplies = data.supplies.filter(s => s.paymentStatus === 'Pending');
-                    
-                    console.log('All supplies:', data.supplies);
-                    console.log('Pending supplies:', pendingSupplies);
-                    console.log('Pending supplies count:', pendingSupplies.length);
-                    
-                    if (pendingSupplies.length === 0) {
-                        showToast('No pending supplies available for invoicing', 'info');
-                        return;
-                    }
-                    
-                    // For now, generate invoice for all pending supplies
-                    // Later this can be enhanced with a selection modal
-                    const supplyIds = pendingSupplies.map(s => s.supplierProductSupplyId);
-                    
-                    console.log('Supply IDs for invoice:', supplyIds);
-                    console.log('Request payload:', { supplierId: supplierId, supplyIds: supplyIds });
-                    
-                    const invoiceResponse = await fetch('/Admin/GenerateSupplierInvoice', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ 
-                            supplierId: supplierId, 
-                            supplyIds: supplyIds 
-                        })
-                    });
-
-                    const result = await invoiceResponse.json();
-                    console.log('Invoice generation result:', result);
-                    
-                    if (result.success) {
-                        showToast(`Invoice ${result.invoiceNumber} generated successfully!\\nAmount: KSh ${result.totalAmount.toFixed(2)}`, 'success');
-                        loadSupplierInvoices();
-                        loadSupplierSupplies();
-                    } else {
-                        showToast('Error generating invoice: ' + result.message, 'error');
-                        console.error('Invoice generation failed:', result);
-                    }
-                } else {
-                    showToast('Error loading supplies: ' + data.message, 'error');
-                    console.error('Failed to load supplies:', data);
-                }
-            } catch (error) {
-                console.error('Error generating invoice from supplies:', error);
-                showToast('Error generating invoice. Please try again.', 'error');
-            }
-        }
+        // Removed old generateInvoiceFromSupplies function
+        // Invoice generation is now handled by the new pending supplies table in Invoices tab
         
         async function loadAllAvailableProducts() {
             try {
@@ -2566,6 +2564,317 @@
             } catch (error) {
                 console.error('Error loading available products:', error);
                 showToast('Error loading products. Please try again.', 'error');
+            }
+        }
+        
+        // ===== PENDING SUPPLIES FOR INVOICING FUNCTIONS =====
+        
+        async function loadPendingSuppliesForInvoicing() {
+            try {
+                console.log('Loading pending supplies for invoicing...');
+                
+                const response = await fetch(`/Admin/GetSupplierProductSupplies?supplierId=${supplierId}&status=Pending`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayPendingSuppliesForInvoicing(data.supplies || []);
+                } else {
+                    console.error('Failed to load pending supplies:', data.message);
+                    showToast('Error loading pending supplies: ' + data.message, 'error');
+                }
+            } catch (error) {
+                console.error('Error loading pending supplies:', error);
+                showToast('Error loading pending supplies. Please try again.', 'error');
+            }
+        }
+        
+        function displayPendingSuppliesForInvoicing(supplies) {
+            const tbody = document.getElementById('pendingSuppliesTableBody');
+            tbody.innerHTML = '';
+            
+            const pendingSupplies = supplies.filter(s => s.paymentStatus === 'Pending');
+            
+            if (!pendingSupplies || pendingSupplies.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="8" style="text-align: center; padding: 2rem; color: #64748b;">
+                            <i class="fas fa-check-circle" style="font-size: 2rem; margin-bottom: 1rem; opacity: 0.3; color: #10b981;"></i>
+                            <br>No pending supplies found
+                            <br><small>All supplies have been invoiced or there are no confirmed supplies yet</small>
+                        </td>
+                    </tr>
+                `;
+                updatePendingInvoiceStatistics([]);
+                return;
+            }
+            
+            pendingSupplies.forEach(supply => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>
+                        <input type="checkbox" 
+                               class="pending-supply-checkbox" 
+                               value="${supply.supplierProductSupplyId}"
+                               data-amount="${supply.totalCost}"
+                               onchange="updateSelectedInvoiceStats()">
+                    </td>
+                    <td>
+                        <strong>${supply.productName}</strong>
+                        <br><small class="text-muted">SKU: ${supply.productId}</small>
+                    </td>
+                    <td>
+                        <strong>${supply.batchNumber || 'N/A'}</strong>
+                        ${supply.batchNumber ? '<br><small class="text-success">✓ Batched</small>' : '<br><small class="text-muted">No batch</small>'}
+                    </td>
+                    <td><strong>${supply.quantitySupplied}</strong> units</td>
+                    <td>KSh <strong>${supply.unitCost.toFixed(2)}</strong></td>
+                    <td>KSh <strong>${supply.totalCost.toFixed(2)}</strong></td>
+                    <td>${new Date(supply.supplyDate).toLocaleDateString()}</td>
+                    <td>
+                        <button class="btn btn-sm btn-success" onclick="generateSingleInvoice(${supply.supplierProductSupplyId})" title="Invoice This Item">
+                            <i class="fas fa-file-invoice"></i> Invoice
+                        </button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+            
+            updatePendingInvoiceStatistics(pendingSupplies);
+        }
+        
+        function updatePendingInvoiceStatistics(supplies) {
+            const pendingCount = supplies.length;
+            const totalAmount = supplies.reduce((sum, supply) => sum + supply.totalCost, 0);
+            
+            document.getElementById('pendingInvoiceCount').textContent = `${pendingCount} Pending`;
+            document.getElementById('totalInvoiceAmount').textContent = `KSh ${totalAmount.toFixed(2)} Total`;
+            
+            // Enable/disable buttons
+            const selectAllBtn = document.getElementById('selectAllPendingBtn');
+            const generateBtn = document.getElementById('generateInvoiceBtn');
+            
+            selectAllBtn.disabled = pendingCount === 0;
+            generateBtn.disabled = pendingCount === 0;
+            
+            updateSelectedInvoiceStats();
+        }
+        
+        function updateSelectedInvoiceStats() {
+            const selectedCheckboxes = document.querySelectorAll('.pending-supply-checkbox:checked');
+            const selectedCount = selectedCheckboxes.length;
+            const selectedAmount = Array.from(selectedCheckboxes).reduce((sum, cb) => sum + parseFloat(cb.dataset.amount), 0);
+            
+            document.getElementById('selectedInvoiceCount').textContent = `${selectedCount} Selected`;
+            
+            // Update generate button state
+            const generateBtn = document.getElementById('generateInvoiceBtn');
+            generateBtn.disabled = selectedCount === 0;
+            
+            // Update select all checkbox state
+            const selectAllCheckbox = document.getElementById('selectAllPending');
+            const allCheckboxes = document.querySelectorAll('.pending-supply-checkbox');
+            
+            if (allCheckboxes.length === 0) {
+                selectAllCheckbox.indeterminate = false;
+                selectAllCheckbox.checked = false;
+                selectAllCheckbox.disabled = true;
+            } else if (selectedCount === allCheckboxes.length) {
+                selectAllCheckbox.indeterminate = false;
+                selectAllCheckbox.checked = true;
+                selectAllCheckbox.disabled = false;
+            } else if (selectedCount > 0) {
+                selectAllCheckbox.indeterminate = true;
+                selectAllCheckbox.checked = false;
+                selectAllCheckbox.disabled = false;
+            } else {
+                selectAllCheckbox.indeterminate = false;
+                selectAllCheckbox.checked = false;
+                selectAllCheckbox.disabled = false;
+            }
+        }
+        
+        function toggleSelectAllPending() {
+            const selectAll = document.getElementById('selectAllPending');
+            const checkboxes = document.querySelectorAll('.pending-supply-checkbox');
+            checkboxes.forEach(cb => cb.checked = selectAll.checked);
+            updateSelectedInvoiceStats();
+        }
+        
+        function selectAllPendingForInvoice() {
+            const checkboxes = document.querySelectorAll('.pending-supply-checkbox');
+            checkboxes.forEach(cb => cb.checked = true);
+            updateSelectedInvoiceStats();
+            showToast(`Selected ${checkboxes.length} supplies for invoicing`, 'info');
+        }
+        
+        async function generateInvoiceFromSelected() {
+            const selectedSupplies = Array.from(document.querySelectorAll('.pending-supply-checkbox:checked')).map(cb => parseInt(cb.value));
+            
+            if (selectedSupplies.length === 0) {
+                showToast('Please select supplies to invoice', 'warning');
+                return;
+            }
+            
+            const totalAmount = Array.from(document.querySelectorAll('.pending-supply-checkbox:checked'))
+                .reduce((sum, cb) => sum + parseFloat(cb.dataset.amount), 0);
+            
+            if (!confirm(`Generate invoice for ${selectedSupplies.length} selected supplies?\\nTotal Amount: KSh ${totalAmount.toFixed(2)}`)) {
+                return;
+            }
+            
+            try {
+                console.log('Generating invoice for selected supplies:', selectedSupplies);
+                
+                const response = await fetch('/Admin/GenerateSupplierInvoice', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        supplierId: supplierId, 
+                        supplyIds: selectedSupplies 
+                    })
+                });
+
+                const result = await response.json();
+                console.log('Invoice generation result:', result);
+                
+                if (result.success) {
+                    showToast(`Invoice ${result.invoiceNumber} generated successfully!\\nAmount: KSh ${result.totalAmount.toFixed(2)}`, 'success');
+                    loadPendingSuppliesForInvoicing(); // Refresh pending supplies
+                    loadSupplierInvoices(); // Refresh invoices list
+                    loadSupplierSupplies(); // Refresh supplies tab
+                } else {
+                    showToast('Error generating invoice: ' + result.message, 'error');
+                    console.error('Invoice generation failed:', result);
+                }
+            } catch (error) {
+                console.error('Error generating invoice:', error);
+                showToast('Error generating invoice. Please try again.', 'error');
+            }
+        }
+        
+        async function generateSingleInvoice(supplyId) {
+            if (!confirm('Generate invoice for this supply?')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/Admin/GenerateSupplierInvoice', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        supplierId: supplierId, 
+                        supplyIds: [supplyId] 
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    showToast(`Invoice ${result.invoiceNumber} generated successfully!`, 'success');
+                    loadPendingSuppliesForInvoicing();
+                    loadSupplierInvoices();
+                    loadSupplierSupplies();
+                } else {
+                    showToast('Error generating invoice: ' + result.message, 'error');
+                }
+            } catch (error) {
+                console.error('Error generating single invoice:', error);
+                showToast('Error generating invoice. Please try again.', 'error');
+            }
+        }
+        
+        function refreshPendingSupplies() {
+            loadPendingSuppliesForInvoicing();
+            showToast('Pending supplies refreshed', 'info');
+        }
+        
+        async function fixDatabaseSchema() {
+            if (!confirm('This will fix the database schema for invoice generation. Continue?')) {
+                return;
+            }
+            
+            try {
+                showToast('Fixing database schema...', 'info');
+                
+                const response = await fetch('/Admin/FixSupplierInvoiceSchema', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    showToast('Database schema fixed successfully! You can now generate invoices.', 'success');
+                    // Hide the fix schema button after successful fix
+                    document.getElementById('fixSchemaBtn').style.display = 'none';
+                } else {
+                    showToast('Error fixing schema: ' + result.message, 'error');
+                }
+            } catch (error) {
+                console.error('Error fixing database schema:', error);
+                showToast('Error fixing database schema. Please try again.', 'error');
+            }
+        }
+        
+        async function checkUsersStatus() {
+            try {
+                showToast('Checking users in database...', 'info');
+                
+                const response = await fetch('/Admin/CheckUsersStatus');
+                const result = await response.json();
+                
+                if (result.success) {
+                    console.log('Users status:', result);
+                    
+                    let message = `Database Users Status:\\n`;
+                    message += `Total Users: ${result.totalUsers}\\n`;
+                    message += `Admin Users: ${result.adminUsers}\\n\\n`;
+                    
+                    if (result.users && result.users.length > 0) {
+                        message += `Sample Users:\\n`;
+                        result.users.forEach(user => {
+                            message += `- ${user.firstName} ${user.lastName} (${user.email}) - ${user.role}\\n`;
+                        });
+                    } else {
+                        message += `No users found in database!`;
+                    }
+                    
+                    alert(message);
+                    
+                    if (result.totalUsers === 0) {
+                        if (confirm('No users found in database. Create a default admin user?')) {
+                            await createDefaultAdminUser();
+                        }
+                    }
+                } else {
+                    showToast('Error checking users: ' + result.message, 'error');
+                }
+            } catch (error) {
+                console.error('Error checking users status:', error);
+                showToast('Error checking users. Please try again.', 'error');
+            }
+        }
+        
+        async function createDefaultAdminUser() {
+            try {
+                showToast('Creating default admin user...', 'info');
+                
+                const response = await fetch('/Admin/CreateDefaultAdminUser', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    showToast(`Default admin user created successfully!\\nEmail: ${result.email}\\nPassword: Admin123!`, 'success');
+                    alert(`Default Admin User Created:\\n\\nEmail: ${result.email}\\nPassword: Admin123!\\n\\nPlease change the password after first login.`);
+                } else {
+                    showToast('Error creating admin user: ' + result.message, 'error');
+                }
+            } catch (error) {
+                console.error('Error creating default admin user:', error);
+                showToast('Error creating admin user. Please try again.', 'error');
             }
         }
 
