@@ -3144,9 +3144,7 @@ namespace PixelSolution.Controllers
                     SupplyDate = s.SupplyDate,
                     ExpiryDate = s.ExpiryDate,
                     PaymentStatus = s.PaymentStatus,
-                    Notes = s.Notes,
-                    CreatedAt = s.CreatedAt,
-                    UpdatedAt = s.UpdatedAt
+                    Notes = s.Notes
                 }).ToList();
 
                 _logger.LogInformation("Found {SupplyCount} supplies for supplier ID: {SupplierId} with filters", supplies.Count, supplierId);
@@ -3839,11 +3837,13 @@ namespace PixelSolution.Controllers
                             [SupplierInvoiceId] int NOT NULL,
                             [ProcessedByUserId] int NOT NULL,
                             [ProcessedBy] nvarchar(256) NOT NULL,
+                            [PaymentReference] nvarchar(50) NOT NULL,
                             [Amount] decimal(18,2) NOT NULL,
-                            [PaymentMethod] nvarchar(50) NOT NULL DEFAULT 'Cash',
-                            [PaymentDate] datetime2 NOT NULL,
-                            [TransactionReference] nvarchar(100) NOT NULL DEFAULT '',
-                            [Notes] nvarchar(500) NOT NULL DEFAULT '',
+                            [PaymentMethod] nvarchar(20) NOT NULL DEFAULT 'Cash',
+                            [Status] nvarchar(20) NOT NULL DEFAULT 'Completed',
+                            [PaymentDate] datetime2 NOT NULL DEFAULT GETUTCDATE(),
+                            [Notes] nvarchar(1000) NOT NULL DEFAULT '',
+                            [TransactionId] nvarchar(100) NOT NULL DEFAULT '',
                             [CreatedAt] datetime2 NOT NULL DEFAULT GETUTCDATE(),
                             CONSTRAINT [PK_SupplierPayments] PRIMARY KEY ([SupplierPaymentId]),
                             CONSTRAINT [FK_SupplierPayments_SupplierInvoices_SupplierInvoiceId] 
@@ -3854,6 +3854,21 @@ namespace PixelSolution.Controllers
                         
                         CREATE INDEX [IX_SupplierPayments_SupplierInvoiceId] ON [dbo].[SupplierPayments] ([SupplierInvoiceId]);
                         CREATE INDEX [IX_SupplierPayments_ProcessedByUserId] ON [dbo].[SupplierPayments] ([ProcessedByUserId]);
+                    END
+                    ELSE
+                    BEGIN
+                        -- Add missing columns if table exists but columns are missing
+                        IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('SupplierPayments') AND name = 'PaymentReference')
+                            ALTER TABLE [dbo].[SupplierPayments] ADD [PaymentReference] nvarchar(50) NOT NULL DEFAULT '';
+                        
+                        IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('SupplierPayments') AND name = 'Status')
+                            ALTER TABLE [dbo].[SupplierPayments] ADD [Status] nvarchar(20) NOT NULL DEFAULT 'Completed';
+                        
+                        IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('SupplierPayments') AND name = 'TransactionId')
+                            ALTER TABLE [dbo].[SupplierPayments] ADD [TransactionId] nvarchar(100) NOT NULL DEFAULT '';
+                        
+                        IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('SupplierPayments') AND name = 'CreatedAt')
+                            ALTER TABLE [dbo].[SupplierPayments] ADD [CreatedAt] datetime2 NOT NULL DEFAULT GETUTCDATE();
                     END
                 ";
 
@@ -3935,7 +3950,7 @@ namespace PixelSolution.Controllers
                         Amount = payment.Amount,
                         PaymentMethod = payment.PaymentMethod,
                         PaymentDate = payment.PaymentDate.ToString("yyyy-MM-dd"),
-                        TransactionReference = payment.TransactionReference,
+                        PaymentReference = payment.PaymentReference,
                         ProcessedBy = payment.ProcessedBy,
                         Notes = payment.Notes
                     }).ToList(),
