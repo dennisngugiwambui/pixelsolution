@@ -3574,7 +3574,7 @@ namespace PixelSolution.Controllers
                             CONSTRAINT [FK_SupplierInvoiceItems_SupplierInvoices_SupplierInvoiceId] 
                                 FOREIGN KEY ([SupplierInvoiceId]) REFERENCES [dbo].[SupplierInvoices]([SupplierInvoiceId]) ON DELETE CASCADE,
                             CONSTRAINT [FK_SupplierInvoiceItems_SupplierProductSupplies_SupplierProductSupplyId] 
-                                FOREIGN KEY ([SupplierProductSupplyId]) REFERENCES [dbo].[SupplierProductSupplies]([SupplierProductSupplyId]) ON DELETE RESTRICT
+                                FOREIGN KEY ([SupplierProductSupplyId]) REFERENCES [dbo].[SupplierProductSupplies]([SupplierProductSupplyId]) ON DELETE NO ACTION
                         );
                         
                         CREATE INDEX [IX_SupplierInvoiceItems_SupplierInvoiceId] ON [dbo].[SupplierInvoiceItems] ([SupplierInvoiceId]);
