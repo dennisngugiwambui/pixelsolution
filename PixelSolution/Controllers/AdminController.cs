@@ -3089,6 +3089,79 @@ namespace PixelSolution.Controllers
 
         [HttpGet]
         [Authorize(Roles = "Admin,Manager")]
+        public async Task<IActionResult> GetSupplierProductsFiltered(int supplierId, string status = "all", string search = "")
+        {
+            try
+            {
+                _logger.LogInformation("Getting filtered products for supplier ID: {SupplierId}, Status: {Status}, Search: {Search}", 
+                    supplierId, status, search);
+                
+                // Get supply batches for this supplier with filtering
+                var suppliesQuery = _context.SupplierProductSupplies
+                    .AsNoTracking()
+                    .Include(s => s.Product)
+                    .Where(s => s.SupplierId == supplierId);
+
+                // Apply status filter
+                if (status != "all")
+                {
+                    switch (status.ToLower())
+                    {
+                        case "pending":
+                            suppliesQuery = suppliesQuery.Where(s => s.PaymentStatus == "Pending" || s.PaymentStatus == "Received");
+                            break;
+                        case "invoiced":
+                            suppliesQuery = suppliesQuery.Where(s => s.PaymentStatus == "Invoiced");
+                            break;
+                        case "paid":
+                            suppliesQuery = suppliesQuery.Where(s => s.PaymentStatus == "Paid" || s.PaymentStatus == "Settled");
+                            break;
+                    }
+                }
+
+                // Apply search filter
+                if (!string.IsNullOrEmpty(search))
+                {
+                    suppliesQuery = suppliesQuery.Where(s => 
+                        s.Product.Name.Contains(search) ||
+                        s.BatchNumber.Contains(search) ||
+                        s.Product.SKU.Contains(search));
+                }
+
+                var supplies = await suppliesQuery
+                    .OrderByDescending(s => s.SupplyDate)
+                    .ToListAsync();
+
+                var supplierSupplies = supplies.Select(s => new SupplierProductSupplyViewModel
+                {
+                    SupplierProductSupplyId = s.SupplierProductSupplyId,
+                    ProductId = s.ProductId,
+                    ProductName = s.Product.Name,
+                    QuantitySupplied = s.QuantitySupplied,
+                    UnitCost = s.UnitCost,
+                    TotalCost = s.TotalCost,
+                    BatchNumber = s.BatchNumber,
+                    SupplyDate = s.SupplyDate,
+                    ExpiryDate = s.ExpiryDate,
+                    PaymentStatus = s.PaymentStatus,
+                    Notes = s.Notes,
+                    CreatedAt = s.CreatedAt,
+                    UpdatedAt = s.UpdatedAt
+                }).ToList();
+
+                _logger.LogInformation("Found {SupplyCount} supplies for supplier ID: {SupplierId} with filters", supplies.Count, supplierId);
+
+                return Json(new { success = true, supplies = supplierSupplies });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting filtered supplier products for Supplier ID: {SupplierId}", supplierId);
+                return Json(new { success = false, message = "Error loading supplier products: " + ex.Message });
+            }
+        }
+
+        [HttpGet]
+        [Authorize(Roles = "Admin,Manager")]
         public async Task<IActionResult> GetSupplierProducts(int supplierId)
         {
             try
@@ -3358,7 +3431,38 @@ namespace PixelSolution.Controllers
                 var alreadyInvoiced = supplies.Where(s => s.PaymentStatus == "Invoiced" || s.PaymentStatus == "Paid" || s.PaymentStatus == "Settled").ToList();
                 if (alreadyInvoiced.Any())
                 {
-                    return Json(new { success = false, message = $"Some items are already invoiced or paid. Please select only pending items." });
+                    var invoicedItems = string.Join(", ", alreadyInvoiced.Select(s => s.Product.Name));
+                    return Json(new { 
+                        success = false, 
+                        message = $"Some items are already invoiced: {invoicedItems}. Please select only pending items.",
+                        alreadyInvoiced = alreadyInvoiced.Select(s => new { 
+                            ProductName = s.Product.Name, 
+                            Status = s.PaymentStatus,
+                            SupplyId = s.SupplierProductSupplyId
+                        }).ToList()
+                    });
+                }
+
+                // Additional check: Ensure no supply is already in an existing invoice item
+                var supplyIds = supplies.Select(s => s.SupplierProductSupplyId).ToList();
+                var existingInvoiceItems = await _context.SupplierInvoiceItems
+                    .Where(ii => supplyIds.Contains(ii.SupplierProductSupplyId))
+                    .Include(ii => ii.SupplierProductSupply)
+                        .ThenInclude(s => s.Product)
+                    .ToListAsync();
+
+                if (existingInvoiceItems.Any())
+                {
+                    var alreadyInvoicedProducts = string.Join(", ", existingInvoiceItems.Select(ii => ii.SupplierProductSupply.Product.Name));
+                    return Json(new { 
+                        success = false, 
+                        message = $"Some products are already in existing invoices: {alreadyInvoicedProducts}. Products can only be invoiced once.",
+                        existingItems = existingInvoiceItems.Select(ii => new {
+                            ProductName = ii.SupplierProductSupply.Product.Name,
+                            InvoiceId = ii.SupplierInvoiceId,
+                            SupplyId = ii.SupplierProductSupplyId
+                        }).ToList()
+                    });
                 }
 
                 // Get current user ID for CreatedByUserId with robust fallback
@@ -3518,8 +3622,29 @@ namespace PixelSolution.Controllers
         {
             try
             {
-                // Find duplicate invoices (same supplier, same date, same amount)
+                // First, find and remove invoices without any items (empty invoices)
+                var emptyInvoices = await _context.SupplierInvoices
+                    .Where(i => !_context.SupplierInvoiceItems.Any(item => item.SupplierInvoiceId == i.SupplierInvoiceId))
+                    .ToListAsync();
+
+                int emptyDeletedCount = 0;
+                foreach (var emptyInvoice in emptyInvoices)
+                {
+                    // Delete payments if any
+                    var payments = await _context.SupplierPayments
+                        .Where(p => p.SupplierInvoiceId == emptyInvoice.SupplierInvoiceId)
+                        .ToListAsync();
+                    _context.SupplierPayments.RemoveRange(payments);
+
+                    // Delete the empty invoice
+                    _context.SupplierInvoices.Remove(emptyInvoice);
+                    emptyDeletedCount++;
+                }
+
+                // Then find duplicate invoices (same supplier, same date, same amount) that have items
                 var duplicateGroups = await _context.SupplierInvoices
+                    .Include(i => i.SupplierInvoiceItems)
+                    .Where(i => i.SupplierInvoiceItems.Any()) // Only invoices with items
                     .GroupBy(i => new { i.SupplierId, Date = i.InvoiceDate.Date, i.TotalAmount })
                     .Where(g => g.Count() > 1)
                     .Select(g => new { 
@@ -3528,11 +3653,12 @@ namespace PixelSolution.Controllers
                     })
                     .ToListAsync();
 
-                int deletedCount = 0;
+                int duplicateDeletedCount = 0;
                 foreach (var group in duplicateGroups)
                 {
-                    // Keep the first invoice, delete the rest
-                    var invoicesToDelete = group.Invoices.Skip(1).ToList();
+                    // Keep the first invoice (with most items), delete the rest
+                    var invoicesToKeep = group.Invoices.OrderByDescending(i => i.SupplierInvoiceItems.Count).First();
+                    var invoicesToDelete = group.Invoices.Where(i => i.SupplierInvoiceId != invoicesToKeep.SupplierInvoiceId).ToList();
                     
                     foreach (var invoice in invoicesToDelete)
                     {
@@ -3550,18 +3676,22 @@ namespace PixelSolution.Controllers
 
                         // Delete the invoice
                         _context.SupplierInvoices.Remove(invoice);
-                        deletedCount++;
+                        duplicateDeletedCount++;
                     }
                 }
 
                 await _context.SaveChangesAsync();
 
-                _logger.LogInformation("Cleaned up {Count} duplicate invoices", deletedCount);
+                var totalDeleted = emptyDeletedCount + duplicateDeletedCount;
+                _logger.LogInformation("Cleaned up {EmptyCount} empty invoices and {DuplicateCount} duplicate invoices", 
+                    emptyDeletedCount, duplicateDeletedCount);
 
                 return Json(new { 
                     success = true, 
-                    message = $"Successfully cleaned up {deletedCount} duplicate invoices",
-                    deletedCount = deletedCount
+                    message = $"Successfully cleaned up {emptyDeletedCount} empty invoices and {duplicateDeletedCount} duplicate invoices (Total: {totalDeleted})",
+                    deletedCount = totalDeleted,
+                    emptyDeleted = emptyDeletedCount,
+                    duplicatesDeleted = duplicateDeletedCount
                 });
             }
             catch (Exception ex)

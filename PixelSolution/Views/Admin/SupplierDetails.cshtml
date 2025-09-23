@@ -645,7 +645,7 @@
                 <!-- Pending Supplies for Invoicing Section -->
                 <div class="section-header">
                     <div>
-                        <h3>Pending Supplies for Invoicing</h3>
+                        <h3>Supplier Products & Supplies</h3>
                         <div id="pendingInvoiceStats" style="display: flex; gap: 1rem; margin-top: 0.5rem;">
                             <span class="badge badge-warning" id="pendingInvoiceCount">0 Pending</span>
                             <span class="badge badge-success" id="selectedInvoiceCount">0 Selected</span>
@@ -671,6 +671,37 @@
                         <button class="btn btn-info btn-sm" onclick="refreshPendingSupplies()">
                             <i class="fas fa-sync-alt"></i> Refresh
                         </button>
+                    </div>
+                </div>
+                
+                <!-- Filters and Search -->
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <label for="statusFilter" class="form-label">Filter by Status:</label>
+                        <select id="statusFilter" class="form-select" onchange="applyFilters()">
+                            <option value="all">All Supplies</option>
+                            <option value="pending" selected>Pending Only</option>
+                            <option value="invoiced">Invoiced Only</option>
+                            <option value="paid">Paid/Settled</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label for="searchInput" class="form-label">Search Products:</label>
+                        <input type="text" id="searchInput" class="form-control" placeholder="Search by product name, SKU, or batch..." onkeyup="applyFilters()">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Quick Filters:</label>
+                        <div class="btn-group d-block" role="group">
+                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="setFilter('pending')">
+                                <i class="fas fa-clock"></i> Pending
+                            </button>
+                            <button type="button" class="btn btn-outline-success btn-sm" onclick="setFilter('invoiced')">
+                                <i class="fas fa-file-invoice"></i> Invoiced
+                            </button>
+                            <button type="button" class="btn btn-outline-info btn-sm" onclick="setFilter('all')">
+                                <i class="fas fa-list"></i> All
+                            </button>
+                        </div>
                     </div>
                 </div>
                 <div class="table-responsive">
@@ -736,7 +767,7 @@
             <!-- Payments Tab -->
             <div id="paymentsTab" class="tab-content">
                 <div class="section-header">
-                    <h3>Payment Management</h3>
+                    <h4>Supplier Products & Supplies</h4>
                     <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
                         <button class="btn btn-secondary btn-sm" onclick="togglePaymentView('all')" id="allPaymentsBtn">
                             <i class="fas fa-list"></i> All
@@ -2881,10 +2912,288 @@
             }
         }
 
+        async function cleanupDuplicateInvoices() {
+            if (!confirm('Are you sure you want to remove duplicate invoices? This action cannot be undone.')) {
+                return;
+            }
+
+            try {
+                showToast('Cleaning up duplicate invoices...', 'info');
+                
+                const response = await fetch('/Admin/CleanupDuplicateInvoices', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    showToast(`Successfully cleaned up ${result.deletedCount} duplicate invoices`, 'success');
+                    // Refresh the invoices list
+                    loadSupplierInvoices();
+                } else {
+                    showToast('Error cleaning up duplicates: ' + result.message, 'error');
+                }
+            } catch (error) {
+                console.error('Error cleaning up duplicates:', error);
+                showToast('Error cleaning up duplicate invoices', 'error');
+            }
+        }
+
+        async function viewInvoice(invoiceId) {
+            try {
+                const response = await fetch(`/Admin/GetInvoiceDetails?invoiceId=${invoiceId}`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    showInvoiceDetailsModal(result.invoice);
+                } else {
+                    showToast('Error loading invoice: ' + result.message, 'error');
+                }
+            } catch (error) {
+                console.error('Error loading invoice details:', error);
+                showToast('Error loading invoice details', 'error');
+            }
+        }
+
+        function showInvoiceDetailsModal(invoice) {
+            const modal = document.createElement('div');
+            modal.className = 'modal fade';
+            modal.id = 'invoiceDetailsModal';
+            modal.innerHTML = `
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">📄 Invoice Details - ${invoice.invoiceNumber}</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h6>🏢 Supplier Information</h6>
+                                    <p><strong>Company:</strong> ${invoice.supplier.companyName}</p>
+                                    <p><strong>Contact:</strong> ${invoice.supplier.contactPerson}</p>
+                                    <p><strong>Email:</strong> ${invoice.supplier.email}</p>
+                                    <p><strong>Phone:</strong> ${invoice.supplier.phone}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <h6>📋 Invoice Information</h6>
+                                    <p><strong>Invoice Date:</strong> ${invoice.invoiceDate}</p>
+                                    <p><strong>Due Date:</strong> ${invoice.dueDate}</p>
+                                    <p><strong>Status:</strong> <span class="badge bg-primary">${invoice.status}</span></p>
+                                    <p><strong>Payment Status:</strong> <span class="badge bg-warning">${invoice.paymentStatus}</span></p>
+                                </div>
+                            </div>
+                            
+                            <h6 class="mt-4">📦 Invoice Items</h6>
+                            <div class="table-responsive">
+                                <table class="table table-sm table-striped">
+                                    <thead class="table-dark">
+                                        <tr>
+                                            <th>Product</th>
+                                            <th>Batch</th>
+                                            <th>Supply Date</th>
+                                            <th>Qty</th>
+                                            <th>Unit Cost</th>
+                                            <th>Total</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${invoice.items.map(item => `
+                                            <tr>
+                                                <td><strong>${item.productName}</strong></td>
+                                                <td>${item.batchNumber || 'N/A'}</td>
+                                                <td>${item.supplyDate}</td>
+                                                <td>${item.quantity}</td>
+                                                <td>KSh ${item.unitCost.toFixed(2)}</td>
+                                                <td><strong>KSh ${item.totalCost.toFixed(2)}</strong></td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="row mt-4">
+                                <div class="col-md-6">
+                                    <div class="card">
+                                        <div class="card-header"><h6>💰 Payment Summary</h6></div>
+                                        <div class="card-body">
+                                            <p><strong>Subtotal:</strong> KSh ${invoice.amounts.subtotal.toFixed(2)}</p>
+                                            <p><strong>Tax (16%):</strong> KSh ${invoice.amounts.taxAmount.toFixed(2)}</p>
+                                            <p><strong>Total Amount:</strong> KSh ${invoice.amounts.totalAmount.toFixed(2)}</p>
+                                            <p><strong>Amount Paid:</strong> KSh ${invoice.amounts.amountPaid.toFixed(2)}</p>
+                                            <p class="h5"><strong>Amount Due:</strong> <span class="text-danger">KSh ${invoice.amounts.amountDue.toFixed(2)}</span></p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    ${invoice.payments.length > 0 ? `
+                                        <div class="card">
+                                            <div class="card-header"><h6>💳 Payment History</h6></div>
+                                            <div class="card-body">
+                                                ${invoice.payments.map(payment => `
+                                                    <div class="mb-2 p-2 border rounded bg-light">
+                                                        <small>
+                                                            <strong>KSh ${payment.amount.toFixed(2)}</strong> - ${payment.paymentMethod}<br>
+                                                            📅 ${payment.paymentDate} by ${payment.processedBy}<br>
+                                                            ${payment.transactionReference ? `🔗 Ref: ${payment.transactionReference}` : ''}
+                                                        </small>
+                                                    </div>
+                                                `).join('')}
+                                            </div>
+                                        </div>
+                                    ` : '<div class="card"><div class="card-body"><p class="text-muted">No payments recorded</p></div></div>'}
+                                </div>
+                            </div>
+
+                            ${invoice.notes ? `<div class="mt-3 card"><div class="card-header"><h6>📝 Notes</h6></div><div class="card-body"><p>${invoice.notes}</p></div></div>` : ''}
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            ${invoice.amounts.amountDue > 0 ? `
+                                <button type="button" class="btn btn-success" onclick="recordPayment(${invoice.invoiceId})" data-bs-dismiss="modal">
+                                    <i class="fas fa-money-bill"></i> Record Payment
+                                </button>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+            const bootstrapModal = new bootstrap.Modal(modal);
+            bootstrapModal.show();
+
+            // Remove modal from DOM when hidden
+            modal.addEventListener('hidden.bs.modal', () => {
+                document.body.removeChild(modal);
+            });
+        }
+
+        // Filtering and Search Functions
+        function setFilter(status) {
+            document.getElementById('statusFilter').value = status;
+            applyFilters();
+        }
+
+        async function applyFilters() {
+            const status = document.getElementById('statusFilter').value;
+            const search = document.getElementById('searchInput').value.trim();
+            
+            try {
+                const response = await fetch(`/Admin/GetSupplierProductsFiltered?supplierId=${supplierId}&status=${status}&search=${encodeURIComponent(search)}`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    displayPendingSupplies(data.supplies);
+                    updateFilterButtons(status);
+                } else {
+                    showToast('Error applying filters: ' + data.message, 'error');
+                }
+            } catch (error) {
+                console.error('Error applying filters:', error);
+                showToast('Error applying filters', 'error');
+            }
+        }
+
+        function updateFilterButtons(activeStatus) {
+            // Update quick filter button states
+            const buttons = document.querySelectorAll('.btn-group .btn');
+            buttons.forEach(btn => {
+                btn.classList.remove('active');
+                if ((btn.textContent.includes('Pending') && activeStatus === 'pending') ||
+                    (btn.textContent.includes('Invoiced') && activeStatus === 'invoiced') ||
+                    (btn.textContent.includes('All') && activeStatus === 'all')) {
+                    btn.classList.add('active');
+                }
+            });
+        }
+
+        function displayPendingSupplies(supplies) {
+            const tbody = document.getElementById('pendingSuppliesTableBody');
+            tbody.innerHTML = '';
+            
+            if (!supplies || supplies.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="9" style="text-align: center; padding: 2rem; color: #64748b;">
+                            <i class="fas fa-box-open" style="font-size: 2rem; margin-bottom: 1rem; opacity: 0.3;"></i>
+                            <br>No supplies found matching your criteria
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            supplies.forEach(supply => {
+                const row = document.createElement('tr');
+                const isSelectable = supply.paymentStatus === 'Pending' || supply.paymentStatus === 'Received';
+                
+                row.innerHTML = `
+                    <td>
+                        ${isSelectable ? `<input type="checkbox" class="supply-checkbox" value="${supply.supplierProductSupplyId}">` : ''}
+                    </td>
+                    <td><strong>${supply.productName}</strong></td>
+                    <td>${supply.batchNumber || 'N/A'}</td>
+                    <td>${supply.quantitySupplied}</td>
+                    <td>KSh ${supply.unitCost.toFixed(2)}</td>
+                    <td><strong>KSh ${supply.totalCost.toFixed(2)}</strong></td>
+                    <td>${new Date(supply.supplyDate).toLocaleDateString()}</td>
+                    <td>
+                        <span class="status-badge status-${supply.paymentStatus.toLowerCase()}">
+                            ${supply.paymentStatus}
+                        </span>
+                    </td>
+                    <td>${supply.notes || ''}</td>
+                `;
+                
+                // Add visual indicators for different statuses
+                if (!isSelectable) {
+                    row.style.opacity = '0.7';
+                    row.style.backgroundColor = supply.paymentStatus === 'Invoiced' ? '#e8f5e8' : '#f0f8ff';
+                }
+                
+                tbody.appendChild(row);
+            });
+
+            // Update select all checkbox
+            updateSelectAllCheckbox();
+        }
+
+        function updateSelectAllCheckbox() {
+            const checkboxes = document.querySelectorAll('.supply-checkbox');
+            const selectAllCheckbox = document.getElementById('selectAllPending');
+            
+            if (checkboxes.length === 0) {
+                selectAllCheckbox.checked = false;
+                selectAllCheckbox.indeterminate = false;
+                return;
+            }
+
+            const checkedCount = document.querySelectorAll('.supply-checkbox:checked').length;
+            
+            if (checkedCount === 0) {
+                selectAllCheckbox.checked = false;
+                selectAllCheckbox.indeterminate = false;
+            } else if (checkedCount === checkboxes.length) {
+                selectAllCheckbox.checked = true;
+                selectAllCheckbox.indeterminate = false;
+            } else {
+                selectAllCheckbox.checked = false;
+                selectAllCheckbox.indeterminate = true;
+            }
+        }
+
         // Initialize the page
         document.addEventListener('DOMContentLoaded', function() {
             setupDateFilters();
             loadSupplierProducts(); // Load initial data
+            
+            // Set up checkbox change listeners
+            document.addEventListener('change', function(e) {
+                if (e.target.classList.contains('supply-checkbox')) {
+                    updateSelectAllCheckbox();
+                }
+            });
         });
     </script>
 }
