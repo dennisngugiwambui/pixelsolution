@@ -3407,6 +3407,20 @@ namespace PixelSolution.Controllers
                 var taxAmount = subtotal * taxRate;
                 var totalAmount = subtotal + taxAmount;
 
+                // Check for existing invoice with same supplier and amount today (prevent duplicates)
+                var existingInvoice = await _context.SupplierInvoices
+                    .FirstOrDefaultAsync(i => i.SupplierId == request.SupplierId && 
+                                            i.TotalAmount == totalAmount && 
+                                            i.InvoiceDate.Date == DateTime.UtcNow.Date);
+
+                if (existingInvoice != null)
+                {
+                    return Json(new { 
+                        success = false, 
+                        message = $"An invoice for this supplier with the same amount (KSh {totalAmount:N2}) already exists today. Invoice: {existingInvoice.InvoiceNumber}" 
+                    });
+                }
+
                 // Create invoice
                 var invoice = new SupplierInvoice
                 {
@@ -3495,6 +3509,65 @@ namespace PixelSolution.Controllers
             {
                 _logger.LogError(ex, "Error checking users status");
                 return Json(new { success = false, message = "Error checking users: " + ex.Message });
+            }
+        }
+
+        [HttpPost]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> CleanupDuplicateInvoices()
+        {
+            try
+            {
+                // Find duplicate invoices (same supplier, same date, same amount)
+                var duplicateGroups = await _context.SupplierInvoices
+                    .GroupBy(i => new { i.SupplierId, Date = i.InvoiceDate.Date, i.TotalAmount })
+                    .Where(g => g.Count() > 1)
+                    .Select(g => new { 
+                        Key = g.Key, 
+                        Invoices = g.OrderBy(i => i.CreatedAt).ToList() 
+                    })
+                    .ToListAsync();
+
+                int deletedCount = 0;
+                foreach (var group in duplicateGroups)
+                {
+                    // Keep the first invoice, delete the rest
+                    var invoicesToDelete = group.Invoices.Skip(1).ToList();
+                    
+                    foreach (var invoice in invoicesToDelete)
+                    {
+                        // Delete invoice items first
+                        var items = await _context.SupplierInvoiceItems
+                            .Where(i => i.SupplierInvoiceId == invoice.SupplierInvoiceId)
+                            .ToListAsync();
+                        _context.SupplierInvoiceItems.RemoveRange(items);
+
+                        // Delete payments if any
+                        var payments = await _context.SupplierPayments
+                            .Where(p => p.SupplierInvoiceId == invoice.SupplierInvoiceId)
+                            .ToListAsync();
+                        _context.SupplierPayments.RemoveRange(payments);
+
+                        // Delete the invoice
+                        _context.SupplierInvoices.Remove(invoice);
+                        deletedCount++;
+                    }
+                }
+
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation("Cleaned up {Count} duplicate invoices", deletedCount);
+
+                return Json(new { 
+                    success = true, 
+                    message = $"Successfully cleaned up {deletedCount} duplicate invoices",
+                    deletedCount = deletedCount
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error cleaning up duplicate invoices");
+                return Json(new { success = false, message = "Error cleaning up duplicates: " + ex.Message });
             }
         }
 
@@ -3600,9 +3673,9 @@ namespace PixelSolution.Controllers
                             [UpdatedAt] datetime2 NOT NULL DEFAULT GETUTCDATE(),
                             CONSTRAINT [PK_SupplierProductSupplies] PRIMARY KEY ([SupplierProductSupplyId]),
                             CONSTRAINT [FK_SupplierProductSupplies_Suppliers_SupplierId] 
-                                FOREIGN KEY ([SupplierId]) REFERENCES [dbo].[Suppliers]([SupplierId]) ON DELETE RESTRICT,
+                                FOREIGN KEY ([SupplierId]) REFERENCES [dbo].[Suppliers]([SupplierId]) ON DELETE NO ACTION,
                             CONSTRAINT [FK_SupplierProductSupplies_Products_ProductId] 
-                                FOREIGN KEY ([ProductId]) REFERENCES [dbo].[Products]([ProductId]) ON DELETE RESTRICT
+                                FOREIGN KEY ([ProductId]) REFERENCES [dbo].[Products]([ProductId]) ON DELETE NO ACTION
                         );
                         
                         CREATE INDEX [IX_SupplierProductSupplies_SupplierId] ON [dbo].[SupplierProductSupplies] ([SupplierId]);
@@ -3646,7 +3719,7 @@ namespace PixelSolution.Controllers
                             CONSTRAINT [FK_SupplierPayments_SupplierInvoices_SupplierInvoiceId] 
                                 FOREIGN KEY ([SupplierInvoiceId]) REFERENCES [dbo].[SupplierInvoices]([SupplierInvoiceId]) ON DELETE CASCADE,
                             CONSTRAINT [FK_SupplierPayments_Users_ProcessedByUserId] 
-                                FOREIGN KEY ([ProcessedByUserId]) REFERENCES [dbo].[Users]([UserId]) ON DELETE RESTRICT
+                                FOREIGN KEY ([ProcessedByUserId]) REFERENCES [dbo].[Users]([UserId]) ON DELETE NO ACTION
                         );
                         
                         CREATE INDEX [IX_SupplierPayments_SupplierInvoiceId] ON [dbo].[SupplierPayments] ([SupplierInvoiceId]);
@@ -3664,6 +3737,88 @@ namespace PixelSolution.Controllers
             {
                 _logger.LogError(ex, "Error updating supplier invoice schema");
                 return Json(new { success = false, message = "Error updating database schema: " + ex.Message });
+            }
+        }
+
+        [HttpGet]
+        [Authorize(Roles = "Admin,Manager")]
+        public async Task<IActionResult> GetInvoiceDetails(int invoiceId)
+        {
+            try
+            {
+                var invoice = await _context.SupplierInvoices
+                    .Include(i => i.Supplier)
+                    .Include(i => i.SupplierInvoiceItems)
+                        .ThenInclude(item => item.SupplierProductSupply)
+                            .ThenInclude(supply => supply.Product)
+                    .Include(i => i.SupplierPayments)
+                    .FirstOrDefaultAsync(i => i.SupplierInvoiceId == invoiceId);
+
+                if (invoice == null)
+                {
+                    return Json(new { success = false, message = "Invoice not found" });
+                }
+
+                var invoiceDetails = new
+                {
+                    InvoiceId = invoice.SupplierInvoiceId,
+                    InvoiceNumber = invoice.InvoiceNumber,
+                    InvoiceDate = invoice.InvoiceDate.ToString("yyyy-MM-dd"),
+                    DueDate = invoice.DueDate.ToString("yyyy-MM-dd"),
+                    Status = invoice.Status,
+                    PaymentStatus = invoice.PaymentStatus,
+                    
+                    Supplier = new
+                    {
+                        SupplierId = invoice.Supplier.SupplierId,
+                        CompanyName = invoice.Supplier.CompanyName,
+                        ContactPerson = invoice.Supplier.ContactPerson,
+                        Email = invoice.Supplier.Email,
+                        Phone = invoice.Supplier.Phone,
+                        Address = invoice.Supplier.Address
+                    },
+
+                    Amounts = new
+                    {
+                        Subtotal = invoice.Subtotal,
+                        TaxAmount = invoice.TaxAmount,
+                        TotalAmount = invoice.TotalAmount,
+                        AmountPaid = invoice.AmountPaid,
+                        AmountDue = invoice.AmountDue
+                    },
+
+                    Items = invoice.SupplierInvoiceItems.Select(item => new
+                    {
+                        ItemId = item.SupplierInvoiceItemId,
+                        ProductName = item.SupplierProductSupply.Product.Name,
+                        BatchNumber = item.SupplierProductSupply.BatchNumber,
+                        SupplyDate = item.SupplierProductSupply.SupplyDate.ToString("yyyy-MM-dd"),
+                        Quantity = item.Quantity,
+                        UnitCost = item.UnitCost,
+                        TotalCost = item.TotalCost,
+                        Description = item.Description
+                    }).ToList(),
+
+                    Payments = invoice.SupplierPayments.Select(payment => new
+                    {
+                        PaymentId = payment.SupplierPaymentId,
+                        Amount = payment.Amount,
+                        PaymentMethod = payment.PaymentMethod,
+                        PaymentDate = payment.PaymentDate.ToString("yyyy-MM-dd"),
+                        TransactionReference = payment.TransactionReference,
+                        ProcessedBy = payment.ProcessedBy,
+                        Notes = payment.Notes
+                    }).ToList(),
+
+                    Notes = invoice.Notes
+                };
+
+                return Json(new { success = true, invoice = invoiceDetails });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting invoice details for Invoice ID: {InvoiceId}", invoiceId);
+                return Json(new { success = false, message = "Error loading invoice details: " + ex.Message });
             }
         }
 
