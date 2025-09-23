@@ -553,9 +553,10 @@
                 </div>
                 <div class="info-card">
                     <h3 style="margin: 0 0 1rem 0;">Statistics</h3>
-                    <p>Total Items: <strong>@Model.TotalItems</strong></p>
-                    <p>Total Value: <strong>KSh @Model.TotalValue.ToString("N2")</strong></p>
-                    <p>Outstanding: <strong>KSh @Model.OutstandingAmount.ToString("N2")</strong></p>
+                    <p>Total Items: <strong id="totalItems">@Model.TotalItems</strong></p>
+                    <p>Total Value: <strong id="totalValue">KSh @Model.TotalValue.ToString("N2")</strong></p>
+                    <p>Outstanding: <strong id="outstandingAmount">KSh @Model.OutstandingAmount.ToString("N2")</strong></p>
+                    <p>Paid Amount: <strong id="paidAmount">KSh 0.00</strong></p>
                 </div>
             </div>
         </div>
@@ -661,6 +662,9 @@
                         </button>
                         <button class="btn btn-warning btn-sm" onclick="fixDatabaseSchema()" id="fixSchemaBtn" title="Create all missing supplier invoice tables">
                             <i class="fas fa-wrench"></i> Fix All Tables
+                        </button>
+                        <button class="btn btn-warning btn-sm" onclick="fixPaymentsSchema()" id="fixPaymentsBtn" title="Fix payments table schema">
+                            <i class="fas fa-database"></i> Fix Payments
                         </button>
                         <button class="btn btn-info btn-sm" onclick="checkUsersStatus()" id="checkUsersBtn" title="Check users in database">
                             <i class="fas fa-users"></i> Check Users
@@ -1448,74 +1452,28 @@
                 
                 if (supplyResult.success) {
                     console.log('Supply created successfully, supplyId:', supplyResult.supplyId);
-                    // Automatically generate invoice for this supply using the supply ID
-                    const invoiceResponse = await fetch('/Admin/GenerateSupplierInvoice', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ 
-                            supplierId: supplierId,
-                            supplyIds: [supplyResult.supplyId]
-                        })
-                    });
-
-                    let invoiceResult = { success: false, message: 'Invoice generation failed' };
-                    if (invoiceResponse.ok) {
-                        try {
-                            const invoiceText = await invoiceResponse.text();
-                            console.log('Invoice API response text:', invoiceText);
-                            if (invoiceText.trim()) {
-                                invoiceResult = JSON.parse(invoiceText);
-                                console.log('Invoice API response parsed:', invoiceResult);
-                            }
-                        } catch (invoiceJsonError) {
-                            console.error('Invoice JSON parsing error:', invoiceJsonError);
-                        }
-                    } else {
-                        console.error('Invoice API failed with status:', invoiceResponse.status);
-                        const errorText = await invoiceResponse.text();
-                        console.error('Invoice API error response:', errorText);
-                    }
                     
-                    if (invoiceResult.success) {
-                        // Update button to show success
-                        confirmBtn.innerHTML = '<i class="fas fa-check"></i> Confirmed';
-                        confirmBtn.className = 'btn-confirm';
-                        confirmBtn.style.background = '#059669';
-                        
-                        // Update supply status in the table
-                        updateSupplyStatus(productId, 'Confirmed');
-                        
-                        // Hide reject button
-                        rejectBtn.style.display = 'none';
-                        
-                        // Disable form inputs
-                        quantityInput.disabled = true;
-                        unitCostInput.disabled = true;
-                        batchInput.disabled = true;
-                        supplyDateInput.disabled = true;
-                        
-                        // Show success message
-                        showToast(`Product confirmed and invoiced successfully!\\nInvoice: ${invoiceResult.invoiceNumber}\\nAmount: KSh ${invoiceResult.totalAmount.toFixed(2)}`, 'success');
-                        
-                        // Refresh other tabs
-                        loadSupplierSupplies();
-                        loadSupplierInvoices();
-                        
-                        // Also refresh payment data
-                        loadPaymentData();
-                    } else {
-                        // Supply created but invoice failed
-                        confirmBtn.innerHTML = '<i class="fas fa-check"></i> Confirmed (Invoice Pending)';
-                        confirmBtn.style.background = '#f59e0b';
-                        rejectBtn.style.display = 'none';
-                        
-                        showToast(`Product confirmed successfully!\\nInvoice generation pending - check Invoices tab.`, 'warning');
-                        
-                        // Still refresh tabs to show the supply record
-                        loadSupplierSupplies();
-                        loadSupplierInvoices();
-                        loadPaymentData();
-                    }
+                    // Update button to show success (NO AUTO-INVOICING)
+                    confirmBtn.innerHTML = '<i class="fas fa-check"></i> Confirmed';
+                    confirmBtn.className = 'btn-confirm';
+                    confirmBtn.style.background = '#059669';
+                    rejectBtn.style.display = 'none';
+                    
+                    // Update supply status in the table
+                    updateSupplyStatus(productId, 'Confirmed');
+                    
+                    // Disable inputs
+                    quantityInput.disabled = true;
+                    unitCostInput.disabled = true;
+                    batchInput.disabled = true;
+                    supplyDateInput.disabled = true;
+                    
+                    // Show success message - NO INVOICE CREATED YET
+                    showToast(`Product confirmed successfully!\\nReady for invoicing in the Invoices tab.`, 'success');
+                    
+                    // Refresh tabs to show the supply record
+                    loadSupplierSupplies();
+                    loadSupplierInvoices(); // Will show in pending supplies for invoicing
                 } else {
                     // Re-enable buttons on error
                     if (confirmBtn) {
@@ -2312,6 +2270,9 @@
                         <button class="btn btn-sm btn-info" onclick="viewInvoice(${invoice.supplierInvoiceId})">
                             <i class="fas fa-eye"></i>
                         </button>
+                        <button class="btn btn-sm btn-primary" onclick="generatePDF(${invoice.supplierInvoiceId})" title="Generate PDF">
+                            <i class="fas fa-file-pdf"></i>
+                        </button>
                     </td>
                 `;
                 tbody.appendChild(row);
@@ -2349,13 +2310,188 @@
             });
         }
 
-        function recordPayment(invoiceId) {
-            // This would open a payment modal - simplified for now
-            const amount = prompt('Enter payment amount:');
-            const paymentMethod = prompt('Enter payment method (Cash/Bank/Cheque):') || 'Cash';
-            
-            if (amount && !isNaN(amount) && parseFloat(amount) > 0) {
-                submitPayment(invoiceId, parseFloat(amount), paymentMethod);
+        async function recordPayment(invoiceId) {
+            try {
+                // Get invoice details first
+                const response = await fetch(`/Admin/GetInvoiceDetails?invoiceId=${invoiceId}`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    showPaymentModal(result.invoice);
+                } else {
+                    showToast('Error loading invoice details: ' + result.message, 'error');
+                }
+            } catch (error) {
+                console.error('Error loading invoice for payment:', error);
+                showToast('Error loading invoice details', 'error');
+            }
+        }
+
+        function showPaymentModal(invoice) {
+            const modal = document.createElement('div');
+            modal.className = 'modal fade';
+            modal.id = 'paymentModal';
+            modal.innerHTML = `
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">💳 Record Payment - ${invoice.invoiceNumber}</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <strong>Supplier:</strong> ${invoice.supplier.companyName}
+                                </div>
+                                <div class="col-md-6">
+                                    <strong>Invoice Date:</strong> ${invoice.invoiceDate}
+                                </div>
+                            </div>
+                            
+                            <div class="card mb-3">
+                                <div class="card-body">
+                                    <div class="row text-center">
+                                        <div class="col-4">
+                                            <h6 class="text-muted">Total Amount</h6>
+                                            <h4 class="text-primary">KSh ${invoice.amounts.totalAmount.toFixed(2)}</h4>
+                                        </div>
+                                        <div class="col-4">
+                                            <h6 class="text-muted">Amount Paid</h6>
+                                            <h4 class="text-success">KSh ${invoice.amounts.amountPaid.toFixed(2)}</h4>
+                                        </div>
+                                        <div class="col-4">
+                                            <h6 class="text-muted">Amount Due</h6>
+                                            <h4 class="text-danger">KSh ${invoice.amounts.amountDue.toFixed(2)}</h4>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <form id="paymentForm">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <label for="paymentAmount" class="form-label">Payment Amount *</label>
+                                        <input type="number" class="form-control" id="paymentAmount" 
+                                               max="${invoice.amounts.amountDue}" min="0.01" step="0.01" 
+                                               value="${invoice.amounts.amountDue}" required>
+                                        <small class="text-muted">Maximum: KSh ${invoice.amounts.amountDue.toFixed(2)}</small>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="paymentMethod" class="form-label">Payment Method *</label>
+                                        <select class="form-select" id="paymentMethod" required>
+                                            <option value="Cash">Cash</option>
+                                            <option value="Bank_Transfer">Bank Transfer</option>
+                                            <option value="Cheque">Cheque</option>
+                                            <option value="M-Pesa">M-Pesa</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                
+                                <div class="row mt-3">
+                                    <div class="col-md-6">
+                                        <label for="paymentReference" class="form-label">Payment Reference</label>
+                                        <input type="text" class="form-control" id="paymentReference" 
+                                               placeholder="Transaction ID, Cheque No, etc.">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="paymentDate" class="form-label">Payment Date *</label>
+                                        <input type="date" class="form-control" id="paymentDate" 
+                                               value="${new Date().toISOString().split('T')[0]}" required>
+                                    </div>
+                                </div>
+                                
+                                <div class="mt-3">
+                                    <label for="paymentNotes" class="form-label">Notes</label>
+                                    <textarea class="form-control" id="paymentNotes" rows="2" 
+                                              placeholder="Additional payment notes..."></textarea>
+                                </div>
+
+                                <div class="mt-3" id="balanceInfo">
+                                    <div class="alert alert-info">
+                                        <strong>Balance after payment:</strong> 
+                                        <span id="remainingBalance">KSh 0.00</span>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                            <button type="button" class="btn btn-success" onclick="processPayment(${invoice.invoiceId})">
+                                <i class="fas fa-money-bill"></i> Record Payment
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            document.body.appendChild(modal);
+            const bootstrapModal = new bootstrap.Modal(modal);
+            bootstrapModal.show();
+
+            // Calculate balance on amount change
+            document.getElementById('paymentAmount').addEventListener('input', function() {
+                const paymentAmount = parseFloat(this.value) || 0;
+                const amountDue = invoice.amounts.amountDue;
+                const remainingBalance = Math.max(0, amountDue - paymentAmount);
+                document.getElementById('remainingBalance').textContent = `KSh ${remainingBalance.toFixed(2)}`;
+                
+                if (remainingBalance === 0) {
+                    document.getElementById('balanceInfo').className = 'alert alert-success';
+                    document.getElementById('balanceInfo').innerHTML = '<strong>✅ Invoice will be fully paid!</strong>';
+                } else {
+                    document.getElementById('balanceInfo').className = 'alert alert-info';
+                    document.getElementById('balanceInfo').innerHTML = `<strong>Balance after payment:</strong> <span id="remainingBalance">KSh ${remainingBalance.toFixed(2)}</span>`;
+                }
+            });
+
+            // Remove modal from DOM when hidden
+            modal.addEventListener('hidden.bs.modal', () => {
+                document.body.removeChild(modal);
+            });
+        }
+
+        async function processPayment(invoiceId) {
+            const form = document.getElementById('paymentForm');
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+
+            const paymentData = {
+                supplierInvoiceId: invoiceId,
+                amount: parseFloat(document.getElementById('paymentAmount').value),
+                paymentMethod: document.getElementById('paymentMethod').value,
+                paymentReference: document.getElementById('paymentReference').value,
+                paymentDate: document.getElementById('paymentDate').value,
+                notes: document.getElementById('paymentNotes').value
+            };
+
+            try {
+                const response = await fetch('/Admin/RecordSupplierPayment', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                    },
+                    body: JSON.stringify(paymentData)
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    showToast(`Payment recorded successfully! Amount: KSh ${paymentData.amount.toFixed(2)}`, 'success');
+                    
+                    // Close modal
+                    bootstrap.Modal.getInstance(document.getElementById('paymentModal')).hide();
+                    
+                    // Refresh data
+                    loadSupplierInvoices();
+                    loadSupplierPayments();
+                } else {
+                    showToast('Error recording payment: ' + result.message, 'error');
+                }
+            } catch (error) {
+                console.error('Error recording payment:', error);
+                showToast('Error recording payment', 'error');
             }
         }
 
@@ -2939,6 +3075,27 @@
             }
         }
 
+        async function fixPaymentsSchema() {
+            try {
+                showToast('Fixing payments table schema...', 'info');
+                
+                const response = await fetch('/Admin/FixPaymentsTableSchema', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    showToast('Payments table schema fixed successfully!', 'success');
+                } else {
+                    showToast('Error fixing payments schema: ' + result.message, 'error');
+                }
+            } catch (error) {
+                console.error('Error fixing payments schema:', error);
+                showToast('Error fixing payments table schema', 'error');
+            }
+        }
+
         async function viewInvoice(invoiceId) {
             try {
                 const response = await fetch(`/Admin/GetInvoiceDetails?invoiceId=${invoiceId}`);
@@ -3048,6 +3205,9 @@
                             ${invoice.notes ? `<div class="mt-3 card"><div class="card-header"><h6>📝 Notes</h6></div><div class="card-body"><p>${invoice.notes}</p></div></div>` : ''}
                         </div>
                         <div class="modal-footer">
+                            <button type="button" class="btn btn-primary" onclick="generatePDF(${invoice.invoiceId})">
+                                <i class="fas fa-file-pdf"></i> Generate PDF
+                            </button>
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                             ${invoice.amounts.amountDue > 0 ? `
                                 <button type="button" class="btn btn-success" onclick="recordPayment(${invoice.invoiceId})" data-bs-dismiss="modal">
@@ -3181,6 +3341,12 @@
                 selectAllCheckbox.checked = false;
                 selectAllCheckbox.indeterminate = true;
             }
+        }
+
+        function generatePDF(invoiceId) {
+            // Open PDF in new window
+            const pdfUrl = `/Admin/GenerateInvoicePDF?invoiceId=${invoiceId}`;
+            window.open(pdfUrl, '_blank');
         }
 
         // Initialize the page

@@ -3030,6 +3030,19 @@ namespace PixelSolution.Controllers
                     return RedirectToAction("Suppliers");
                 }
 
+                // Calculate real statistics from database
+                var supplierInvoices = await _context.SupplierInvoices
+                    .Where(i => i.SupplierId == id)
+                    .ToListAsync();
+
+                var supplierSupplies = await _context.SupplierProductSupplies
+                    .Where(s => s.SupplierId == id)
+                    .ToListAsync();
+
+                var totalItems = supplierSupplies.Sum(s => s.QuantitySupplied);
+                var totalValue = supplierInvoices.Sum(i => i.TotalAmount);
+                var outstandingAmount = supplierInvoices.Sum(i => i.AmountDue);
+
                 var supplierViewModel = new SupplierDetailsViewModel
                 {
                     SupplierId = supplier.SupplierId,
@@ -3039,7 +3052,10 @@ namespace PixelSolution.Controllers
                     Phone = supplier.Phone,
                     Address = supplier.Address,
                     Status = supplier.Status,
-                    CreatedAt = supplier.CreatedAt
+                    CreatedAt = supplier.CreatedAt,
+                    TotalItems = totalItems,
+                    TotalValue = totalValue,
+                    OutstandingAmount = outstandingAmount
                 };
 
                 return View(supplierViewModel);
@@ -3697,6 +3713,246 @@ namespace PixelSolution.Controllers
                 _logger.LogError(ex, "Error cleaning up duplicate invoices");
                 return Json(new { success = false, message = "Error cleaning up duplicates: " + ex.Message });
             }
+        }
+
+        [HttpPost]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> FixPaymentsTableSchema()
+        {
+            try
+            {
+                var sql = @"
+                    -- Fix SupplierPayments table schema
+                    IF EXISTS (SELECT * FROM sys.tables WHERE name = 'SupplierPayments')
+                    BEGIN
+                        -- Add missing columns if they don't exist
+                        IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('SupplierPayments') AND name = 'PaymentReference')
+                            ALTER TABLE [dbo].[SupplierPayments] ADD [PaymentReference] nvarchar(50) NOT NULL DEFAULT '';
+                        
+                        IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('SupplierPayments') AND name = 'Status')
+                            ALTER TABLE [dbo].[SupplierPayments] ADD [Status] nvarchar(20) NOT NULL DEFAULT 'Completed';
+                        
+                        IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('SupplierPayments') AND name = 'TransactionId')
+                            ALTER TABLE [dbo].[SupplierPayments] ADD [TransactionId] nvarchar(100) NOT NULL DEFAULT '';
+                        
+                        IF NOT EXISTS (SELECT * FROM sys.columns WHERE object_id = OBJECT_ID('SupplierPayments') AND name = 'CreatedAt')
+                            ALTER TABLE [dbo].[SupplierPayments] ADD [CreatedAt] datetime2 NOT NULL DEFAULT GETUTCDATE();
+                        
+                        -- Update existing records to have proper defaults
+                        UPDATE [dbo].[SupplierPayments] 
+                        SET [PaymentReference] = COALESCE([PaymentReference], '')
+                        WHERE [PaymentReference] IS NULL;
+                        
+                        UPDATE [dbo].[SupplierPayments] 
+                        SET [Status] = COALESCE([Status], 'Completed')
+                        WHERE [Status] IS NULL;
+                        
+                        UPDATE [dbo].[SupplierPayments] 
+                        SET [TransactionId] = COALESCE([TransactionId], '')
+                        WHERE [TransactionId] IS NULL;
+                    END
+                ";
+
+                await _context.Database.ExecuteSqlRawAsync(sql);
+                
+                _logger.LogInformation("Successfully fixed SupplierPayments table schema");
+                
+                return Json(new { success = true, message = "SupplierPayments table schema fixed successfully" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fixing SupplierPayments table schema");
+                return Json(new { success = false, message = "Error fixing payments table schema: " + ex.Message });
+            }
+        }
+
+        [HttpGet]
+        [Authorize(Roles = "Admin,Manager")]
+        public async Task<IActionResult> GenerateInvoicePDF(int invoiceId)
+        {
+            try
+            {
+                var invoice = await _context.SupplierInvoices
+                    .Include(i => i.Supplier)
+                    .Include(i => i.SupplierInvoiceItems)
+                        .ThenInclude(item => item.SupplierProductSupply)
+                            .ThenInclude(supply => supply.Product)
+                    .Include(i => i.SupplierPayments)
+                    .FirstOrDefaultAsync(i => i.SupplierInvoiceId == invoiceId);
+
+                if (invoice == null)
+                {
+                    return NotFound("Invoice not found");
+                }
+
+                // Generate HTML content for PDF
+                var htmlContent = GenerateInvoiceHTML(invoice);
+                
+                // For now, return the HTML content directly
+                // In production, you would use a library like iTextSharp or PuppeteerSharp to convert to PDF
+                return Content(htmlContent, "text/html");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error generating PDF for Invoice ID: {InvoiceId}", invoiceId);
+                return BadRequest("Error generating invoice PDF: " + ex.Message);
+            }
+        }
+
+        private string GenerateInvoiceHTML(SupplierInvoice invoice)
+        {
+            var html = $@"
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset='utf-8'>
+    <title>Invoice {invoice.InvoiceNumber}</title>
+    <style>
+        body {{ font-family: Arial, sans-serif; margin: 20px; }}
+        .header {{ text-align: center; margin-bottom: 30px; }}
+        .company-info {{ text-align: center; margin-bottom: 20px; }}
+        .invoice-details {{ margin-bottom: 20px; }}
+        .supplier-info {{ margin-bottom: 20px; }}
+        .items-table {{ width: 100%; border-collapse: collapse; margin-bottom: 20px; }}
+        .items-table th, .items-table td {{ border: 1px solid #ddd; padding: 8px; text-align: left; }}
+        .items-table th {{ background-color: #f2f2f2; }}
+        .totals {{ text-align: right; margin-top: 20px; }}
+        .totals table {{ margin-left: auto; }}
+        .total-row {{ font-weight: bold; }}
+        .footer {{ margin-top: 30px; text-align: center; font-size: 12px; color: #666; }}
+    </style>
+</head>
+<body>
+    <div class='header'>
+        <h1>SUPPLIER INVOICE</h1>
+        <div class='company-info'>
+            <h2>PixelSolution</h2>
+            <p>Business Management System</p>
+        </div>
+    </div>
+
+    <div class='invoice-details'>
+        <table style='width: 100%;'>
+            <tr>
+                <td><strong>Invoice Number:</strong> {invoice.InvoiceNumber}</td>
+                <td style='text-align: right;'><strong>Invoice Date:</strong> {invoice.InvoiceDate:yyyy-MM-dd}</td>
+            </tr>
+            <tr>
+                <td><strong>Due Date:</strong> {invoice.DueDate:yyyy-MM-dd}</td>
+                <td style='text-align: right;'><strong>Status:</strong> {invoice.Status}</td>
+            </tr>
+        </table>
+    </div>
+
+    <div class='supplier-info'>
+        <h3>Supplier Information</h3>
+        <p><strong>Company:</strong> {invoice.Supplier.CompanyName}</p>
+        <p><strong>Contact Person:</strong> {invoice.Supplier.ContactPerson}</p>
+        <p><strong>Email:</strong> {invoice.Supplier.Email}</p>
+        <p><strong>Phone:</strong> {invoice.Supplier.Phone}</p>
+        <p><strong>Address:</strong> {invoice.Supplier.Address}</p>
+    </div>
+
+    <h3>Invoice Items</h3>
+    <table class='items-table'>
+        <thead>
+            <tr>
+                <th>Product</th>
+                <th>Batch Number</th>
+                <th>Supply Date</th>
+                <th>Quantity</th>
+                <th>Unit Cost</th>
+                <th>Total Cost</th>
+            </tr>
+        </thead>
+        <tbody>";
+
+            foreach (var item in invoice.SupplierInvoiceItems)
+            {
+                html += $@"
+            <tr>
+                <td>{item.SupplierProductSupply.Product.Name}</td>
+                <td>{item.SupplierProductSupply.BatchNumber ?? "N/A"}</td>
+                <td>{item.SupplierProductSupply.SupplyDate:yyyy-MM-dd}</td>
+                <td>{item.Quantity}</td>
+                <td>KSh {item.UnitCost:N2}</td>
+                <td>KSh {item.TotalCost:N2}</td>
+            </tr>";
+            }
+
+            html += $@"
+        </tbody>
+    </table>
+
+    <div class='totals'>
+        <table>
+            <tr>
+                <td><strong>Subtotal:</strong></td>
+                <td style='text-align: right;'>KSh {invoice.Subtotal:N2}</td>
+            </tr>
+            <tr>
+                <td><strong>Tax (16%):</strong></td>
+                <td style='text-align: right;'>KSh {invoice.TaxAmount:N2}</td>
+            </tr>
+            <tr class='total-row'>
+                <td><strong>Total Amount:</strong></td>
+                <td style='text-align: right;'>KSh {invoice.TotalAmount:N2}</td>
+            </tr>
+            <tr>
+                <td><strong>Amount Paid:</strong></td>
+                <td style='text-align: right;'>KSh {invoice.AmountPaid:N2}</td>
+            </tr>
+            <tr class='total-row' style='color: red;'>
+                <td><strong>Amount Due:</strong></td>
+                <td style='text-align: right;'>KSh {invoice.AmountDue:N2}</td>
+            </tr>
+        </table>
+    </div>";
+
+            if (invoice.SupplierPayments.Any())
+            {
+                html += @"
+    <h3>Payment History</h3>
+    <table class='items-table'>
+        <thead>
+            <tr>
+                <th>Payment Date</th>
+                <th>Amount</th>
+                <th>Method</th>
+                <th>Reference</th>
+                <th>Processed By</th>
+            </tr>
+        </thead>
+        <tbody>";
+
+                foreach (var payment in invoice.SupplierPayments)
+                {
+                    html += $@"
+            <tr>
+                <td>{payment.PaymentDate:yyyy-MM-dd}</td>
+                <td>KSh {payment.Amount:N2}</td>
+                <td>{payment.PaymentMethod}</td>
+                <td>{payment.PaymentReference}</td>
+                <td>{payment.ProcessedBy}</td>
+            </tr>";
+                }
+
+                html += @"
+        </tbody>
+    </table>";
+            }
+
+            html += $@"
+    {(string.IsNullOrEmpty(invoice.Notes) ? "" : $"<div style='margin-top: 20px;'><h3>Notes</h3><p>{invoice.Notes}</p></div>")}
+
+    <div class='footer'>
+        <p>Generated on {DateTime.Now:yyyy-MM-dd HH:mm:ss} | PixelSolution Business Management System</p>
+        <p>This is a computer-generated invoice and does not require a signature.</p>
+    </div>
+</body>
+</html>";
+
+            return html;
         }
 
         [HttpPost]
