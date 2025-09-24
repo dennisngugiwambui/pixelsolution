@@ -2229,7 +2229,8 @@ namespace PixelSolution.Services
                 var normalFont = FontFactory.GetFont(FontFactory.HELVETICA, 9, darkText);
                 var boldFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 9, darkText);
                 var smallFont = FontFactory.GetFont(FontFactory.HELVETICA, 8, new BaseColor(127, 140, 141));
-                var amountFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 10, darkText);
+                var headerFont = sectionHeaderFont; // Alias for sectionHeaderFont
+                var defaultAmountFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 10, darkText);
 
                 // Professional Header Layout
                 var headerTable = new PdfPTable(2);
@@ -2335,44 +2336,40 @@ namespace PixelSolution.Services
                 billingTable.AddCell(invoiceDetailsCell);
                 document.Add(billingTable);
 
+                // Define colors
+                var primaryColor = primaryBlue; // Use the same as primaryBlue for consistency
+                var redColor = redAmount;       // Use the same as redAmount for consistency
+
                 // Professional Items Table
                 var itemsHeader = new Paragraph("DESCRIPTION", sectionHeaderFont);
                 itemsHeader.SpacingBefore = 20;
                 itemsHeader.SpacingAfter = 15;
                 document.Add(itemsHeader);
 
-                var itemsTable = new PdfPTable(6);
-                itemsTable.WidthPercentage = 100;
-                itemsTable.SetWidths(new float[] { 3.5f, 1.5f, 1.5f, 1f, 1.5f, 1.5f });
-
-                // Professional table headers
-                var headerCells = new string[] { "Product Name", "Batch Number", "Supply Date", "Qty", "Unit Cost", "Total" };
+                // Create supplier details section
+                var supplierDetailsTitle = new Paragraph("SUPPLIER DETAILS", sectionHeaderFont);
+                var supplierDetailsCell = new PdfPCell();
+                supplierDetailsCell.Border = Rectangle.NO_BORDER;
+                supplierDetailsCell.Padding = 10;
+                supplierDetailsCell.BackgroundColor = new BaseColor(248, 249, 250);
                 
-                foreach (var header in headerCells)
-                {
-                    var headerCell = new PdfPCell(new Phrase(header, tableHeaderFont));
-                    headerCell.BackgroundColor = primaryBlue;
-                    headerCell.Border = Rectangle.BOX;
-                    headerCell.BorderColor = borderGray;
-                    headerCell.Padding = 8;
-                    headerCell.HorizontalAlignment = Element.ALIGN_CENTER;
-                    itemsTable.AddCell(headerCell);
-                }
                 supplierDetailsCell.AddElement(supplierDetailsTitle);
                 supplierDetailsCell.AddElement(new Paragraph(" ", normalFont) { SpacingAfter = 10 });
-
                 supplierDetailsCell.AddElement(new Paragraph($"Company: {invoice.Supplier.CompanyName}", boldFont));
                 supplierDetailsCell.AddElement(new Paragraph($"Contact Person: {invoice.Supplier.ContactPerson}", normalFont));
                 supplierDetailsCell.AddElement(new Paragraph($"Email: {invoice.Supplier.Email}", normalFont));
                 supplierDetailsCell.AddElement(new Paragraph($"Phone: {invoice.Supplier.Phone}", normalFont));
                 supplierDetailsCell.AddElement(new Paragraph($"Address: {invoice.Supplier.Address}", normalFont));
 
+                // Add supplier details to a table for better layout
+                var detailsTable = new PdfPTable(1);
+                detailsTable.WidthPercentage = 100;
                 detailsTable.AddCell(supplierDetailsCell);
                 document.Add(detailsTable);
                 document.Add(new Paragraph(" ", normalFont) { SpacingAfter = 20 });
 
                 // Invoice Items Section
-                var itemsTitle = new Paragraph("📦 Invoice Items", headerFont);
+                var itemsTitle = new Paragraph("📦 Invoice Items", sectionHeaderFont);
                 itemsTitle.SpacingBefore = 10;
                 itemsTitle.SpacingAfter = 15;
                 document.Add(itemsTitle);
@@ -2386,10 +2383,12 @@ namespace PixelSolution.Services
                 var headerCells = new string[] { "Product Name", "Batch Number", "Supply Date", "Qty", "Unit Cost", "Total Cost" };
                 foreach (var header in headerCells)
                 {
-                    var cell = new PdfPCell(new Phrase(header, FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 10, BaseColor.WHITE)));
+                    var cell = new PdfPCell(new Phrase(header, FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 9, BaseColor.WHITE)));
                     cell.BackgroundColor = primaryColor;
-                    cell.Padding = 10;
+                    cell.Padding = 8;
                     cell.HorizontalAlignment = Element.ALIGN_CENTER;
+                    cell.Border = Rectangle.BOX;
+                    cell.BorderColor = borderGray;
                     itemsTable.AddCell(cell);
                 }
 
@@ -2448,9 +2447,9 @@ namespace PixelSolution.Services
                     if (isGrandTotal) labelCell.BackgroundColor = new BaseColor(248, 249, 250);
                     totalsTable.AddCell(labelCell);
 
-                    var amountFont = isAmountDue ? FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 10, redColor) :
+                    var currentAmountFont = isAmountDue ? FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 10, redColor) :
                                    isGrandTotal ? boldFont : normalFont;
-                    var amountCell = new PdfPCell(new Phrase($"KSh {amount:N2}", amountFont));
+                    var amountCell = new PdfPCell(new Phrase($"KSh {amount:N2}", currentAmountFont));
                     amountCell.Border = Rectangle.NO_BORDER;
                     amountCell.HorizontalAlignment = Element.ALIGN_RIGHT;
                     amountCell.Padding = 5;
@@ -2464,7 +2463,7 @@ namespace PixelSolution.Services
                 // Payment History (if any)
                 if (invoice.SupplierPayments.Any())
                 {
-                    var paymentTitle = new Paragraph("💳 Payment History", headerFont);
+                    var paymentTitle = new Paragraph("💳 Payment History", sectionHeaderFont);
                     paymentTitle.SpacingAfter = 15;
                     document.Add(paymentTitle);
 
