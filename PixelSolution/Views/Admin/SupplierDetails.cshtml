@@ -525,41 +525,196 @@
     </style>
 }
 
-<div class="main-content">
-    <div class="dashboard-content">
-        <!-- Supplier Header -->
-        <div class="supplier-header">
-            <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
-                <div>
-                    <h1 style="margin: 0 0 0.5rem 0; font-size: 2rem;">@Model.CompanyName</h1>
-                    <p style="margin: 0; opacity: 0.9;">Contact: @Model.ContactPerson</p>
-                </div>
-                <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
-                    <button class="btn btn-secondary" onclick="window.history.back()">
-                        <i class="fas fa-arrow-left"></i> Back
-                    </button>
-                </div>
+<!-- Sidebar -->
+<div class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+        <div class="logo-container">
+            <div class="logo-icon">
+                <i class="fas fa-bolt"></i>
             </div>
-            
-            <div class="supplier-info">
-                <div class="info-card">
-                    <h3 style="margin: 0 0 1rem 0;">Contact Information</h3>
-                    <p><i class="fas fa-envelope"></i> @Model.Email</p>
-                    <p><i class="fas fa-phone"></i> @Model.Phone</p>
-                    @if (!string.IsNullOrEmpty(Model.Address))
-                    {
-                        <p><i class="fas fa-map-marker-alt"></i> @Model.Address</p>
-                    }
-                </div>
-                <div class="info-card">
-                    <h3 style="margin: 0 0 1rem 0;">Statistics</h3>
-                    <p>Total Items: <strong id="totalItems">@Model.TotalItems</strong></p>
-                    <p>Total Value: <strong id="totalValue">KSh @Model.TotalValue.ToString("N2")</strong></p>
-                    <p>Outstanding: <strong id="outstandingAmount">KSh @Model.OutstandingAmount.ToString("N2")</strong></p>
-                    <p>Paid Amount: <strong id="paidAmount">KSh 0.00</strong></p>
-                </div>
+            <div class="logo-text">PixelSolution</div>
+        </div>
+        <div class="user-info">
+            <div class="user-avatar">@User.Identity.Name?.Substring(0, 2).ToUpper()</div>
+            <div class="user-details">
+                <h4>@User.Identity.Name</h4>
+                <p>System Administrator</p>
             </div>
         </div>
+    </div>
+
+    <nav class="nav-menu">
+        <div class="nav-section">
+            <div class="nav-section-title">Main</div>
+            <div class="nav-item">
+                <a href="@Url.Action("Dashboard", "Admin")" class="nav-link">
+                    <i class="fas fa-chart-pie"></i>
+                    Dashboard
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Sales", "Admin")" class="nav-link">
+                    <i class="fas fa-shopping-cart"></i>
+                    Sales
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Inventory", "Admin")" class="nav-link">
+                    <i class="fas fa-box"></i>
+                    Inventory
+                </a>
+            </div>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-section-title">Management</div>
+            <div class="nav-item">
+                <a href="@Url.Action("Users", "Admin")" class="nav-link">
+                    <i class="fas fa-users"></i>
+                    Employees
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Departments", "Admin")" class="nav-link active">
+                    <i class="fas fa-building"></i>
+                    Departments
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Suppliers", "Admin")" class="nav-link">
+                    <i class="fas fa-truck"></i>
+                    Suppliers
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Categories", "Admin")" class="nav-link">
+                    <i class="fas fa-tags"></i>
+                    Categories
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Products", "Admin")" class="nav-link">
+                    <i class="fas fa-cube"></i>
+                    Products
+                </a>
+            </div>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-section-title">Operations</div>
+            <div class="nav-item">
+                <a href="@Url.Action("PurchaseRequests", "Admin")" class="nav-link">
+                    <i class="fas fa-file-invoice"></i>
+                    Purchase Requests
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("CartManagement", "Admin")" class="nav-link">
+                    <i class="fas fa-shopping-basket"></i>
+                    Cart Management
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("WishlistManagement", "Admin")" class="nav-link">
+                    <i class="fas fa-heart"></i>
+                    Wishlist Management
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Messages", "Admin")" class="nav-link">
+                    <i class="fas fa-envelope"></i>
+                    Messages
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Reports", "Admin")" class="nav-link">
+                    <i class="fas fa-chart-bar"></i>
+                    Reports
+                </a>
+            </div>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-section-title">System</div>
+            <div class="nav-item">
+                <a href="@Url.Action("Settings", "Admin")" class="nav-link">
+                    <i class="fas fa-cog"></i>
+                    Settings
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("LogoutGet", "Auth")" class="nav-link">
+                    <i class="fas fa-sign-out-alt"></i>
+                    Logout
+                </a>
+            </div>
+        </div>
+    </nav>
+</div>
+
+
+<!-- Main Content -->
+<div class="main-content" id="mainContent">
+    <!-- Header -->
+    <header class="header">
+        <div class="header-left">
+            <button class="sidebar-toggle" id="sidebarToggle">
+                <i class="fas fa-bars"></i>
+            </button>
+            <h1 class="page-title">Departments Management</h1>
+        </div>
+        <div class="header-right">
+            <div class="search-container">
+                <input type="text" class="search-input" placeholder="Search departments..." id="headerSearch">
+                <i class="fas fa-search search-icon"></i>
+            </div>
+            <div class="header-actions">
+                <button class="action-btn" title="Notifications">
+                    <i class="fas fa-bell"></i>
+                    <span class="notification-badge">3</span>
+                </button>
+                <button class="action-btn" title="Messages">
+                    <i class="fas fa-envelope"></i>
+                    <span class="notification-badge">8</span>
+                </button>
+                <button class="action-btn" title="Profile">
+                    <i class="fas fa-user-circle"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+    <div class="supplier-header">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
+            <div>
+                <h1 style="margin: 0 0 0.5rem 0; font-size: 2rem;">@Model.CompanyName</h1>
+                <p style="margin: 0; opacity: 0.9;">Contact: @Model.ContactPerson</p>
+            </div>
+            <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                <button class="btn btn-secondary" onclick="window.history.back()">
+                    <i class="fas fa-arrow-left"></i> Back
+                </button>
+            </div>
+        </div>
+
+        <div class="supplier-info">
+            <div class="info-card">
+                <h3 style="margin: 0 0 1rem 0;">Contact Information</h3>
+                <p><i class="fas fa-envelope"></i> @Model.Email</p>
+                <p><i class="fas fa-phone"></i> @Model.Phone</p>
+                @if (!string.IsNullOrEmpty(Model.Address))
+                {
+                    <p><i class="fas fa-map-marker-alt"></i> @Model.Address</p>
+                }
+            </div>
+            <div class="info-card">
+                <h3 style="margin: 0 0 1rem 0;">Statistics</h3>
+                <p>Total Items: <strong id="totalItems">@Model.TotalItems</strong></p>
+                <p>Total Value: <strong id="totalValue">KSh @Model.TotalValue.ToString("N2")</strong></p>
+                <p>Outstanding: <strong id="outstandingAmount">KSh @Model.OutstandingAmount.ToString("N2")</strong></p>
+                <p>Paid Amount: <strong id="paidAmount">KSh 0.00</strong></p>
+            </div>
+        </div>
+       </div>
 
         <!-- Tabs Container -->
         <div class="tabs-container">
@@ -1043,6 +1198,7 @@
 </div>
 
 @section Scripts {
+    @Html.AntiForgeryToken()
     <script>
         const supplierId = @Model.SupplierId;
         
