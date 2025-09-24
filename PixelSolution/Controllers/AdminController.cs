@@ -3030,18 +3030,30 @@ namespace PixelSolution.Controllers
                     return RedirectToAction("Suppliers");
                 }
 
-                // Calculate real statistics from database
-                var supplierInvoices = await _context.SupplierInvoices
-                    .Where(i => i.SupplierId == id)
-                    .ToListAsync();
+                // Calculate real statistics from database with error handling
+                int totalItems = 0;
+                decimal totalValue = 0;
+                decimal outstandingAmount = 0;
 
-                var supplierSupplies = await _context.SupplierProductSupplies
-                    .Where(s => s.SupplierId == id)
-                    .ToListAsync();
+                try
+                {
+                    var supplierInvoices = await _context.SupplierInvoices
+                        .Where(i => i.SupplierId == id)
+                        .ToListAsync();
 
-                var totalItems = supplierSupplies.Sum(s => s.QuantitySupplied);
-                var totalValue = supplierInvoices.Sum(i => i.TotalAmount);
-                var outstandingAmount = supplierInvoices.Sum(i => i.AmountDue);
+                    var supplierSupplies = await _context.SupplierProductSupplies
+                        .Where(s => s.SupplierId == id)
+                        .ToListAsync();
+
+                    totalItems = supplierSupplies.Sum(s => s.QuantitySupplied);
+                    totalValue = supplierInvoices.Sum(i => i.TotalAmount);
+                    outstandingAmount = supplierInvoices.Sum(i => i.AmountDue);
+                }
+                catch (Exception dbEx)
+                {
+                    _logger.LogWarning(dbEx, "Could not load supplier statistics for supplier {SupplierId}, tables may not exist yet", id);
+                    // Use default values (0) if tables don't exist yet
+                }
 
                 var supplierViewModel = new SupplierDetailsViewModel
                 {
@@ -3785,12 +3797,12 @@ namespace PixelSolution.Controllers
                     return NotFound("Invoice not found");
                 }
 
-                // Generate HTML content for PDF
-                var htmlContent = GenerateInvoiceHTML(invoice);
+                // Generate actual PDF using ReportService
+                var pdfBytes = await _reportService.GenerateSupplierInvoicePDFAsync(invoice);
                 
-                // For now, return the HTML content directly
-                // In production, you would use a library like iTextSharp or PuppeteerSharp to convert to PDF
-                return Content(htmlContent, "text/html");
+                var fileName = $"Supplier_Invoice_{invoice.InvoiceNumber}_{DateTime.Now:yyyyMMdd_HHmmss}.pdf";
+                
+                return File(pdfBytes, "application/pdf", fileName);
             }
             catch (Exception ex)
             {
@@ -3806,148 +3818,515 @@ namespace PixelSolution.Controllers
 <html>
 <head>
     <meta charset='utf-8'>
-    <title>Invoice {invoice.InvoiceNumber}</title>
+    <title>Supplier Invoice - {invoice.InvoiceNumber}</title>
     <style>
-        body {{ font-family: Arial, sans-serif; margin: 20px; }}
-        .header {{ text-align: center; margin-bottom: 30px; }}
-        .company-info {{ text-align: center; margin-bottom: 20px; }}
-        .invoice-details {{ margin-bottom: 20px; }}
-        .supplier-info {{ margin-bottom: 20px; }}
-        .items-table {{ width: 100%; border-collapse: collapse; margin-bottom: 20px; }}
-        .items-table th, .items-table td {{ border: 1px solid #ddd; padding: 8px; text-align: left; }}
-        .items-table th {{ background-color: #f2f2f2; }}
-        .totals {{ text-align: right; margin-top: 20px; }}
-        .totals table {{ margin-left: auto; }}
-        .total-row {{ font-weight: bold; }}
-        .footer {{ margin-top: 30px; text-align: center; font-size: 12px; color: #666; }}
+        @page {{
+            size: A4;
+            margin: 0.5in;
+        }}
+        
+        body {{
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+            line-height: 1.4;
+            background: white;
+        }}
+        
+        .invoice-container {{
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            min-height: 100vh;
+        }}
+        
+        .header {{
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            margin-bottom: 30px;
+            border-radius: 8px;
+        }}
+        
+        .company-logo {{
+            font-size: 2.5em;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }}
+        
+        .company-tagline {{
+            font-size: 1.1em;
+            opacity: 0.9;
+            margin-bottom: 20px;
+        }}
+        
+        .invoice-title {{
+            font-size: 1.8em;
+            font-weight: bold;
+            background: rgba(255,255,255,0.2);
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+        }}
+        
+        .invoice-meta {{
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }}
+        
+        .invoice-details, .supplier-details {{
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }}
+        
+        .invoice-details h3, .supplier-details h3 {{
+            margin-top: 0;
+            color: #667eea;
+            font-size: 1.2em;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 8px;
+        }}
+        
+        .detail-row {{
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            padding: 5px 0;
+        }}
+        
+        .detail-label {{
+            font-weight: 600;
+            color: #555;
+        }}
+        
+        .detail-value {{
+            color: #333;
+        }}
+        
+        .items-section {{
+            margin: 30px 0;
+        }}
+        
+        .section-title {{
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #667eea;
+        }}
+        
+        .items-table {{
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            overflow: hidden;
+        }}
+        
+        .items-table th {{
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 10px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.9em;
+        }}
+        
+        .items-table td {{
+            padding: 12px 10px;
+            border-bottom: 1px solid #eee;
+            font-size: 0.9em;
+        }}
+        
+        .items-table tr:nth-child(even) {{
+            background-color: #f8f9fa;
+        }}
+        
+        .items-table tr:hover {{
+            background-color: #e3f2fd;
+        }}
+        
+        .totals-section {{
+            margin: 30px 0;
+            display: flex;
+            justify-content: flex-end;
+        }}
+        
+        .totals-table {{
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            min-width: 300px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }}
+        
+        .total-row {{
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #ddd;
+        }}
+        
+        .total-row.grand-total {{
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #667eea;
+            border-bottom: 3px solid #667eea;
+            margin-top: 10px;
+            padding-top: 15px;
+        }}
+        
+        .total-row.amount-due {{
+            color: #d32f2f;
+            font-weight: bold;
+            font-size: 1.1em;
+        }}
+        
+        .payment-history {{
+            margin: 30px 0;
+        }}
+        
+        .payment-table {{
+            width: 100%;
+            border-collapse: collapse;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            overflow: hidden;
+        }}
+        
+        .payment-table th {{
+            background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+            color: white;
+            padding: 12px 10px;
+            text-align: left;
+            font-weight: 600;
+        }}
+        
+        .payment-table td {{
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }}
+        
+        .payment-table tr:nth-child(even) {{
+            background-color: #f8f9fa;
+        }}
+        
+        .signatures-section {{
+            margin: 50px 0 30px 0;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 50px;
+        }}
+        
+        .signature-box {{
+            text-align: center;
+            padding: 20px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            background: #fafafa;
+        }}
+        
+        .signature-line {{
+            border-bottom: 2px solid #333;
+            margin: 40px 0 15px 0;
+            height: 1px;
+        }}
+        
+        .signature-label {{
+            font-weight: bold;
+            color: #555;
+            margin-bottom: 5px;
+        }}
+        
+        .signature-title {{
+            font-size: 0.9em;
+            color: #777;
+        }}
+        
+        .notes-section {{
+            margin: 30px 0;
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 20px;
+        }}
+        
+        .notes-title {{
+            color: #856404;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }}
+        
+        .footer {{
+            margin-top: 50px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            text-align: center;
+            border-top: 3px solid #667eea;
+        }}
+        
+        .footer-info {{
+            font-size: 0.9em;
+            color: #666;
+            margin-bottom: 10px;
+        }}
+        
+        .generated-by {{
+            font-size: 0.8em;
+            color: #888;
+            font-style: italic;
+        }}
+        
+        .status-badge {{
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: bold;
+            text-transform: uppercase;
+        }}
+        
+        .status-pending {{
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }}
+        
+        .status-paid {{
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }}
+        
+        .status-overdue {{
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }}
+        
+        @media print {{
+            body {{
+                margin: 0;
+                padding: 10px;
+            }}
+            
+            .invoice-container {{
+                box-shadow: none;
+                border: none;
+            }}
+            
+            .header {{
+                background: #667eea !important;
+                -webkit-print-color-adjust: exact;
+                color-adjust: exact;
+            }}
+        }}
     </style>
 </head>
 <body>
-    <div class='header'>
-        <h1>SUPPLIER INVOICE</h1>
-        <div class='company-info'>
-            <h2>PixelSolution</h2>
-            <p>Business Management System</p>
+    <div class='invoice-container'>
+        <!-- Header Section -->
+        <div class='header'>
+            <div class='company-logo'>🏢 PixelSolution</div>
+            <div class='company-tagline'>Professional Business Management System</div>
+            <div class='invoice-title'>📄 SUPPLIER INVOICE</div>
         </div>
-    </div>
 
-    <div class='invoice-details'>
-        <table style='width: 100%;'>
-            <tr>
-                <td><strong>Invoice Number:</strong> {invoice.InvoiceNumber}</td>
-                <td style='text-align: right;'><strong>Invoice Date:</strong> {invoice.InvoiceDate:yyyy-MM-dd}</td>
-            </tr>
-            <tr>
-                <td><strong>Due Date:</strong> {invoice.DueDate:yyyy-MM-dd}</td>
-                <td style='text-align: right;'><strong>Status:</strong> {invoice.Status}</td>
-            </tr>
-        </table>
-    </div>
+        <!-- Invoice Meta Information -->
+        <div class='invoice-meta'>
+            <div class='invoice-details'>
+                <h3>📋 Invoice Details</h3>
+                <div class='detail-row'>
+                    <span class='detail-label'>Invoice Number:</span>
+                    <span class='detail-value'><strong>{invoice.InvoiceNumber}</strong></span>
+                </div>
+                <div class='detail-row'>
+                    <span class='detail-label'>Invoice Date:</span>
+                    <span class='detail-value'>{invoice.InvoiceDate:dddd, MMMM dd, yyyy}</span>
+                </div>
+                <div class='detail-row'>
+                    <span class='detail-label'>Due Date:</span>
+                    <span class='detail-value'>{invoice.DueDate:dddd, MMMM dd, yyyy}</span>
+                </div>
+                <div class='detail-row'>
+                    <span class='detail-label'>Status:</span>
+                    <span class='detail-value'>
+                        <span class='status-badge status-{invoice.Status.ToLower()}'>{invoice.Status}</span>
+                    </span>
+                </div>
+            </div>
 
-    <div class='supplier-info'>
-        <h3>Supplier Information</h3>
-        <p><strong>Company:</strong> {invoice.Supplier.CompanyName}</p>
-        <p><strong>Contact Person:</strong> {invoice.Supplier.ContactPerson}</p>
-        <p><strong>Email:</strong> {invoice.Supplier.Email}</p>
-        <p><strong>Phone:</strong> {invoice.Supplier.Phone}</p>
-        <p><strong>Address:</strong> {invoice.Supplier.Address}</p>
-    </div>
+            <div class='supplier-details'>
+                <h3>🏪 Supplier Information</h3>
+                <div class='detail-row'>
+                    <span class='detail-label'>Company:</span>
+                    <span class='detail-value'><strong>{invoice.Supplier.CompanyName}</strong></span>
+                </div>
+                <div class='detail-row'>
+                    <span class='detail-label'>Contact Person:</span>
+                    <span class='detail-value'>{invoice.Supplier.ContactPerson}</span>
+                </div>
+                <div class='detail-row'>
+                    <span class='detail-label'>Email:</span>
+                    <span class='detail-value'>{invoice.Supplier.Email}</span>
+                </div>
+                <div class='detail-row'>
+                    <span class='detail-label'>Phone:</span>
+                    <span class='detail-value'>{invoice.Supplier.Phone}</span>
+                </div>
+                <div class='detail-row'>
+                    <span class='detail-label'>Address:</span>
+                    <span class='detail-value'>{invoice.Supplier.Address}</span>
+                </div>
+            </div>
+        </div>
 
-    <h3>Invoice Items</h3>
-    <table class='items-table'>
-        <thead>
-            <tr>
-                <th>Product</th>
-                <th>Batch Number</th>
-                <th>Supply Date</th>
-                <th>Quantity</th>
-                <th>Unit Cost</th>
-                <th>Total Cost</th>
-            </tr>
-        </thead>
-        <tbody>";
+        <!-- Items Section -->
+        <div class='items-section'>
+            <div class='section-title'>📦 Invoice Items</div>
+            <table class='items-table'>
+                <thead>
+                    <tr>
+                        <th>Product Name</th>
+                        <th>Batch Number</th>
+                        <th>Supply Date</th>
+                        <th>Quantity</th>
+                        <th>Unit Cost</th>
+                        <th>Total Cost</th>
+                    </tr>
+                </thead>
+                <tbody>";
 
             foreach (var item in invoice.SupplierInvoiceItems)
             {
                 html += $@"
-            <tr>
-                <td>{item.SupplierProductSupply.Product.Name}</td>
-                <td>{item.SupplierProductSupply.BatchNumber ?? "N/A"}</td>
-                <td>{item.SupplierProductSupply.SupplyDate:yyyy-MM-dd}</td>
-                <td>{item.Quantity}</td>
-                <td>KSh {item.UnitCost:N2}</td>
-                <td>KSh {item.TotalCost:N2}</td>
-            </tr>";
+                    <tr>
+                        <td><strong>{item.SupplierProductSupply.Product.Name}</strong></td>
+                        <td>{item.SupplierProductSupply.BatchNumber ?? "N/A"}</td>
+                        <td>{item.SupplierProductSupply.SupplyDate:MMM dd, yyyy}</td>
+                        <td>{item.Quantity:N0}</td>
+                        <td>KSh {item.UnitCost:N2}</td>
+                        <td><strong>KSh {item.TotalCost:N2}</strong></td>
+                    </tr>";
             }
 
             html += $@"
-        </tbody>
-    </table>
+                </tbody>
+            </table>
+        </div>
 
-    <div class='totals'>
-        <table>
-            <tr>
-                <td><strong>Subtotal:</strong></td>
-                <td style='text-align: right;'>KSh {invoice.Subtotal:N2}</td>
-            </tr>
-            <tr>
-                <td><strong>Tax (16%):</strong></td>
-                <td style='text-align: right;'>KSh {invoice.TaxAmount:N2}</td>
-            </tr>
-            <tr class='total-row'>
-                <td><strong>Total Amount:</strong></td>
-                <td style='text-align: right;'>KSh {invoice.TotalAmount:N2}</td>
-            </tr>
-            <tr>
-                <td><strong>Amount Paid:</strong></td>
-                <td style='text-align: right;'>KSh {invoice.AmountPaid:N2}</td>
-            </tr>
-            <tr class='total-row' style='color: red;'>
-                <td><strong>Amount Due:</strong></td>
-                <td style='text-align: right;'>KSh {invoice.AmountDue:N2}</td>
-            </tr>
-        </table>
-    </div>";
+        <!-- Totals Section -->
+        <div class='totals-section'>
+            <div class='totals-table'>
+                <div class='total-row'>
+                    <span>Subtotal:</span>
+                    <span>KSh {invoice.Subtotal:N2}</span>
+                </div>
+                <div class='total-row'>
+                    <span>Tax (16%):</span>
+                    <span>KSh {invoice.TaxAmount:N2}</span>
+                </div>
+                <div class='total-row grand-total'>
+                    <span>Total Amount:</span>
+                    <span>KSh {invoice.TotalAmount:N2}</span>
+                </div>
+                <div class='total-row'>
+                    <span>Amount Paid:</span>
+                    <span>KSh {invoice.AmountPaid:N2}</span>
+                </div>
+                <div class='total-row amount-due'>
+                    <span>Amount Due:</span>
+                    <span>KSh {invoice.AmountDue:N2}</span>
+                </div>
+            </div>
+        </div>";
 
+            // Payment History Section
             if (invoice.SupplierPayments.Any())
             {
                 html += @"
-    <h3>Payment History</h3>
-    <table class='items-table'>
-        <thead>
-            <tr>
-                <th>Payment Date</th>
-                <th>Amount</th>
-                <th>Method</th>
-                <th>Reference</th>
-                <th>Processed By</th>
-            </tr>
-        </thead>
-        <tbody>";
+        <div class='payment-history'>
+            <div class='section-title'>💳 Payment History</div>
+            <table class='payment-table'>
+                <thead>
+                    <tr>
+                        <th>Payment Date</th>
+                        <th>Amount</th>
+                        <th>Method</th>
+                        <th>Reference</th>
+                        <th>Processed By</th>
+                    </tr>
+                </thead>
+                <tbody>";
 
                 foreach (var payment in invoice.SupplierPayments)
                 {
                     html += $@"
-            <tr>
-                <td>{payment.PaymentDate:yyyy-MM-dd}</td>
-                <td>KSh {payment.Amount:N2}</td>
-                <td>{payment.PaymentMethod}</td>
-                <td>{payment.PaymentReference}</td>
-                <td>{payment.ProcessedBy}</td>
-            </tr>";
+                    <tr>
+                        <td>{payment.PaymentDate:MMM dd, yyyy}</td>
+                        <td><strong>KSh {payment.Amount:N2}</strong></td>
+                        <td>{payment.PaymentMethod}</td>
+                        <td>{payment.PaymentReference}</td>
+                        <td>{payment.ProcessedBy}</td>
+                    </tr>";
                 }
 
                 html += @"
-        </tbody>
-    </table>";
+                </tbody>
+            </table>
+        </div>";
+            }
+
+            // Notes Section
+            if (!string.IsNullOrEmpty(invoice.Notes))
+            {
+                html += $@"
+        <div class='notes-section'>
+            <div class='notes-title'>📝 Additional Notes</div>
+            <p>{invoice.Notes}</p>
+        </div>";
             }
 
             html += $@"
-    {(string.IsNullOrEmpty(invoice.Notes) ? "" : $"<div style='margin-top: 20px;'><h3>Notes</h3><p>{invoice.Notes}</p></div>")}
+        <!-- Signatures Section -->
+        <div class='signatures-section'>
+            <div class='signature-box'>
+                <div class='signature-label'>Admin Signature</div>
+                <div class='signature-line'></div>
+                <div class='signature-title'>Authorized Administrator</div>
+                <div class='signature-title'>PixelSolution</div>
+            </div>
+            
+            <div class='signature-box'>
+                <div class='signature-label'>Supplier Signature</div>
+                <div class='signature-line'></div>
+                <div class='signature-title'>{invoice.Supplier.ContactPerson}</div>
+                <div class='signature-title'>{invoice.Supplier.CompanyName}</div>
+            </div>
+        </div>
 
-    <div class='footer'>
-        <p>Generated on {DateTime.Now:yyyy-MM-dd HH:mm:ss} | PixelSolution Business Management System</p>
-        <p>This is a computer-generated invoice and does not require a signature.</p>
+        <!-- Footer Section -->
+        <div class='footer'>
+            <div class='footer-info'>
+                <strong>PixelSolution Business Management System</strong><br>
+                Professional Supplier Invoice Management<br>
+                📧 support@pixelsolution.com | 📞 +254-XXX-XXXX
+            </div>
+            <div class='generated-by'>
+                Generated on {DateTime.Now:dddd, MMMM dd, yyyy 'at' HH:mm:ss} by PixelSolution System<br>
+                This is an official computer-generated invoice document.
+            </div>
+        </div>
     </div>
 </body>
 </html>";

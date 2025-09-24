@@ -152,6 +152,7 @@ namespace PixelSolution.Services.Interfaces
         Task<byte[]> GenerateReceiptPdfAsync(ReceiptPdfRequest request);
         Task<byte[]> GenerateReceiptPDFAsync(string receiptHtml);
         Task<byte[]> GeneratePurchaseRequestReceiptAsync(int purchaseRequestId);
+        Task<byte[]> GenerateSupplierInvoicePDFAsync(SupplierInvoice invoice);
     }
 
     public interface ISalesService

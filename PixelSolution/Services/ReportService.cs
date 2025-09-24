@@ -2202,5 +2202,422 @@ namespace PixelSolution.Services
                 throw new Exception($"Error generating receipt PDF from HTML: {ex.Message}", ex);
             }
         }
+
+        public async Task<byte[]> GenerateSupplierInvoicePDFAsync(SupplierInvoice invoice)
+        {
+            try
+            {
+                using var memoryStream = new MemoryStream();
+                var document = new Document(PageSize.A4, 40, 40, 40, 40);
+                var writer = PdfWriter.GetInstance(document, memoryStream);
+                document.Open();
+
+                // Professional Colors
+                var primaryBlue = new BaseColor(52, 73, 94);  // Professional dark blue
+                var accentBlue = new BaseColor(41, 128, 185); // Bright blue for highlights
+                var darkText = new BaseColor(44, 62, 80);     // Professional dark text
+                var lightGray = new BaseColor(236, 240, 241);  // Light background
+                var borderGray = new BaseColor(189, 195, 199); // Table borders
+                var greenAmount = new BaseColor(39, 174, 96);  // Positive amounts
+                var redAmount = new BaseColor(231, 76, 60);    // Outstanding amounts
+
+                // Professional Typography
+                var companyFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 20, primaryBlue);
+                var invoiceTitleFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 16, darkText);
+                var sectionHeaderFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 12, primaryBlue);
+                var tableHeaderFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 9, BaseColor.WHITE);
+                var normalFont = FontFactory.GetFont(FontFactory.HELVETICA, 9, darkText);
+                var boldFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 9, darkText);
+                var smallFont = FontFactory.GetFont(FontFactory.HELVETICA, 8, new BaseColor(127, 140, 141));
+                var amountFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 10, darkText);
+
+                // Professional Header Layout
+                var headerTable = new PdfPTable(2);
+                headerTable.WidthPercentage = 100;
+                headerTable.SetWidths(new float[] { 2, 1 });
+                headerTable.SpacingAfter = 30;
+
+                // Company Information (Left)
+                var companyCell = new PdfPCell();
+                companyCell.Border = Rectangle.NO_BORDER;
+                companyCell.PaddingRight = 20;
+
+                var companyName = new Paragraph("PIXELSOLUTION", companyFont);
+                companyCell.AddElement(companyName);
+
+                var companyAddress = new Paragraph("Building Name\n123 Business Street\nNairobi, Kenya\nZip Code", normalFont);
+                companyAddress.SpacingBefore = 5;
+                companyCell.AddElement(companyAddress);
+
+                var companyContact = new Paragraph("+254-XXX-XXXX\nsupport@pixelsolution.com\nwww.pixelsolution.com", normalFont);
+                companyContact.SpacingBefore = 8;
+                companyCell.AddElement(companyContact);
+
+                headerTable.AddCell(companyCell);
+
+                // Logo/Invoice Title (Right)
+                var logoCell = new PdfPCell();
+                logoCell.Border = Rectangle.NO_BORDER;
+                logoCell.HorizontalAlignment = Element.ALIGN_RIGHT;
+
+                var invoiceTitle = new Paragraph("INVOICE", invoiceTitleFont);
+                invoiceTitle.Alignment = Element.ALIGN_RIGHT;
+                logoCell.AddElement(invoiceTitle);
+
+                var invoiceNumber = new Paragraph($"#{invoice.InvoiceNumber}", boldFont);
+                invoiceNumber.Alignment = Element.ALIGN_RIGHT;
+                invoiceNumber.SpacingBefore = 5;
+                logoCell.AddElement(invoiceNumber);
+
+                var invoiceDate = new Paragraph($"Date: {invoice.InvoiceDate:MM/dd/yyyy}\nDue: {invoice.DueDate:MM/dd/yyyy}", normalFont);
+                invoiceDate.Alignment = Element.ALIGN_RIGHT;
+                invoiceDate.SpacingBefore = 8;
+                logoCell.AddElement(invoiceDate);
+
+                headerTable.AddCell(logoCell);
+                document.Add(headerTable);
+
+                // Professional Billing Information Layout
+                var billingTable = new PdfPTable(2);
+                billingTable.WidthPercentage = 100;
+                billingTable.SetWidths(new float[] { 1, 1 });
+                billingTable.SpacingAfter = 25;
+
+                // Bill To Section (Left)
+                var billToCell = new PdfPCell();
+                billToCell.Border = Rectangle.NO_BORDER;
+                billToCell.PaddingRight = 20;
+
+                var billToHeader = new Paragraph("BILL TO", sectionHeaderFont);
+                billToCell.AddElement(billToHeader);
+
+                var supplierInfo = new Paragraph($"{invoice.Supplier.CompanyName}\n{invoice.Supplier.ContactPerson}\n{invoice.Supplier.Address}\n{invoice.Supplier.Phone}\n{invoice.Supplier.Email}", normalFont);
+                supplierInfo.SpacingBefore = 8;
+                billToCell.AddElement(supplierInfo);
+
+                billingTable.AddCell(billToCell);
+
+                // Invoice Details (Right)
+                var invoiceDetailsCell = new PdfPCell();
+                invoiceDetailsCell.Border = Rectangle.NO_BORDER;
+                var detailsHeader = new Paragraph("INVOICE DETAILS", sectionHeaderFont);
+                invoiceDetailsCell.AddElement(detailsHeader);
+
+                // Create a clean details table
+                var innerDetailsTable = new PdfPTable(2);
+                innerDetailsTable.WidthPercentage = 100;
+                innerDetailsTable.SetWidths(new float[] { 1, 1 });
+                innerDetailsTable.SpacingBefore = 8;
+
+                // Add detail rows
+                var detailItems = new (string label, string value)[] {
+                    ("Invoice Number:", invoice.InvoiceNumber),
+                    ("Issue Date:", invoice.InvoiceDate.ToString("MM/dd/yyyy")),
+                    ("Due Date:", invoice.DueDate.ToString("MM/dd/yyyy")),
+                    ("Status:", invoice.Status.ToUpper())
+                };
+
+                foreach (var (label, value) in detailItems)
+                {
+                    var labelCell = new PdfPCell(new Phrase(label, normalFont));
+                    labelCell.Border = Rectangle.NO_BORDER;
+                    labelCell.PaddingBottom = 4;
+                    innerDetailsTable.AddCell(labelCell);
+
+                    var valueCell = new PdfPCell(new Phrase(value, boldFont));
+                    valueCell.Border = Rectangle.NO_BORDER;
+                    valueCell.PaddingBottom = 4;
+                    valueCell.HorizontalAlignment = Element.ALIGN_RIGHT;
+                    innerDetailsTable.AddCell(valueCell);
+                }
+
+                invoiceDetailsCell.AddElement(innerDetailsTable);
+                billingTable.AddCell(invoiceDetailsCell);
+                document.Add(billingTable);
+
+                // Professional Items Table
+                var itemsHeader = new Paragraph("DESCRIPTION", sectionHeaderFont);
+                itemsHeader.SpacingBefore = 20;
+                itemsHeader.SpacingAfter = 15;
+                document.Add(itemsHeader);
+
+                var itemsTable = new PdfPTable(6);
+                itemsTable.WidthPercentage = 100;
+                itemsTable.SetWidths(new float[] { 3.5f, 1.5f, 1.5f, 1f, 1.5f, 1.5f });
+
+                // Professional table headers
+                var headerCells = new string[] { "Product Name", "Batch Number", "Supply Date", "Qty", "Unit Cost", "Total" };
+                
+                foreach (var header in headerCells)
+                {
+                    var headerCell = new PdfPCell(new Phrase(header, tableHeaderFont));
+                    headerCell.BackgroundColor = primaryBlue;
+                    headerCell.Border = Rectangle.BOX;
+                    headerCell.BorderColor = borderGray;
+                    headerCell.Padding = 8;
+                    headerCell.HorizontalAlignment = Element.ALIGN_CENTER;
+                    itemsTable.AddCell(headerCell);
+                }
+                supplierDetailsCell.AddElement(supplierDetailsTitle);
+                supplierDetailsCell.AddElement(new Paragraph(" ", normalFont) { SpacingAfter = 10 });
+
+                supplierDetailsCell.AddElement(new Paragraph($"Company: {invoice.Supplier.CompanyName}", boldFont));
+                supplierDetailsCell.AddElement(new Paragraph($"Contact Person: {invoice.Supplier.ContactPerson}", normalFont));
+                supplierDetailsCell.AddElement(new Paragraph($"Email: {invoice.Supplier.Email}", normalFont));
+                supplierDetailsCell.AddElement(new Paragraph($"Phone: {invoice.Supplier.Phone}", normalFont));
+                supplierDetailsCell.AddElement(new Paragraph($"Address: {invoice.Supplier.Address}", normalFont));
+
+                detailsTable.AddCell(supplierDetailsCell);
+                document.Add(detailsTable);
+                document.Add(new Paragraph(" ", normalFont) { SpacingAfter = 20 });
+
+                // Invoice Items Section
+                var itemsTitle = new Paragraph("📦 Invoice Items", headerFont);
+                itemsTitle.SpacingBefore = 10;
+                itemsTitle.SpacingAfter = 15;
+                document.Add(itemsTitle);
+
+                // Items Table
+                var itemsTable = new PdfPTable(6);
+                itemsTable.WidthPercentage = 100;
+                itemsTable.SetWidths(new float[] { 3, 2, 2, 1, 1.5f, 1.5f });
+
+                // Table Headers
+                var headerCells = new string[] { "Product Name", "Batch Number", "Supply Date", "Qty", "Unit Cost", "Total Cost" };
+                foreach (var header in headerCells)
+                {
+                    var cell = new PdfPCell(new Phrase(header, FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 10, BaseColor.WHITE)));
+                    cell.BackgroundColor = primaryColor;
+                    cell.Padding = 10;
+                    cell.HorizontalAlignment = Element.ALIGN_CENTER;
+                    itemsTable.AddCell(cell);
+                }
+
+                // Table Rows
+                bool alternateRow = false;
+                foreach (var item in invoice.SupplierInvoiceItems)
+                {
+                    var rowColor = alternateRow ? new BaseColor(248, 249, 250) : BaseColor.WHITE;
+                    
+                    var cells = new string[]
+                    {
+                        item.SupplierProductSupply.Product.Name,
+                        item.SupplierProductSupply.BatchNumber ?? "N/A",
+                        item.SupplierProductSupply.SupplyDate.ToString("MMM dd, yyyy"),
+                        item.Quantity.ToString("N0"),
+                        $"KSh {item.UnitCost:N2}",
+                        $"KSh {item.TotalCost:N2}"
+                    };
+
+                    foreach (var cellText in cells)
+                    {
+                        var cell = new PdfPCell(new Phrase(cellText, normalFont));
+                        cell.BackgroundColor = rowColor;
+                        cell.Padding = 8;
+                        cell.HorizontalAlignment = Element.ALIGN_LEFT;
+                        itemsTable.AddCell(cell);
+                    }
+                    alternateRow = !alternateRow;
+                }
+
+                document.Add(itemsTable);
+                document.Add(new Paragraph(" ", normalFont) { SpacingAfter = 20 });
+
+                // Totals Section
+                var totalsTable = new PdfPTable(2);
+                totalsTable.WidthPercentage = 50;
+                totalsTable.HorizontalAlignment = Element.ALIGN_RIGHT;
+                totalsTable.SetWidths(new float[] { 1, 1 });
+
+                // Totals data
+                var totalsData = new (string label, decimal amount, bool isGrandTotal, bool isAmountDue)[]
+                {
+                    ("Subtotal:", invoice.Subtotal, false, false),
+                    ("Tax (16%):", invoice.TaxAmount, false, false),
+                    ("Total Amount:", invoice.TotalAmount, true, false),
+                    ("Amount Paid:", invoice.AmountPaid, false, false),
+                    ("Amount Due:", invoice.AmountDue, false, true)
+                };
+
+                foreach (var (label, amount, isGrandTotal, isAmountDue) in totalsData)
+                {
+                    var labelCell = new PdfPCell(new Phrase(label, isGrandTotal ? boldFont : normalFont));
+                    labelCell.Border = Rectangle.NO_BORDER;
+                    labelCell.HorizontalAlignment = Element.ALIGN_RIGHT;
+                    labelCell.Padding = 5;
+                    if (isGrandTotal) labelCell.BackgroundColor = new BaseColor(248, 249, 250);
+                    totalsTable.AddCell(labelCell);
+
+                    var amountFont = isAmountDue ? FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 10, redColor) :
+                                   isGrandTotal ? boldFont : normalFont;
+                    var amountCell = new PdfPCell(new Phrase($"KSh {amount:N2}", amountFont));
+                    amountCell.Border = Rectangle.NO_BORDER;
+                    amountCell.HorizontalAlignment = Element.ALIGN_RIGHT;
+                    amountCell.Padding = 5;
+                    if (isGrandTotal) amountCell.BackgroundColor = new BaseColor(248, 249, 250);
+                    totalsTable.AddCell(amountCell);
+                }
+
+                document.Add(totalsTable);
+                document.Add(new Paragraph(" ", normalFont) { SpacingAfter = 30 });
+
+                // Payment History (if any)
+                if (invoice.SupplierPayments.Any())
+                {
+                    var paymentTitle = new Paragraph("💳 Payment History", headerFont);
+                    paymentTitle.SpacingAfter = 15;
+                    document.Add(paymentTitle);
+
+                    var paymentTable = new PdfPTable(5);
+                    paymentTable.WidthPercentage = 100;
+                    paymentTable.SetWidths(new float[] { 2, 2, 1.5f, 2, 2 });
+
+                    // Payment Headers
+                    var paymentHeaders = new string[] { "Payment Date", "Amount", "Method", "Reference", "Processed By" };
+                    foreach (var header in paymentHeaders)
+                    {
+                        var cell = new PdfPCell(new Phrase(header, FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 10, BaseColor.WHITE)));
+                        cell.BackgroundColor = new BaseColor(76, 175, 80); // Green
+                        cell.Padding = 8;
+                        cell.HorizontalAlignment = Element.ALIGN_CENTER;
+                        paymentTable.AddCell(cell);
+                    }
+
+                    // Payment Rows
+                    alternateRow = false;
+                    foreach (var payment in invoice.SupplierPayments)
+                    {
+                        var rowColor = alternateRow ? new BaseColor(248, 249, 250) : BaseColor.WHITE;
+                        
+                        var paymentCells = new string[]
+                        {
+                            payment.PaymentDate.ToString("MMM dd, yyyy"),
+                            $"KSh {payment.Amount:N2}",
+                            payment.PaymentMethod,
+                            payment.PaymentReference,
+                            payment.ProcessedBy
+                        };
+
+                        foreach (var cellText in paymentCells)
+                        {
+                            var cell = new PdfPCell(new Phrase(cellText, normalFont));
+                            cell.BackgroundColor = rowColor;
+                            cell.Padding = 6;
+                            cell.HorizontalAlignment = Element.ALIGN_LEFT;
+                            paymentTable.AddCell(cell);
+                        }
+                        alternateRow = !alternateRow;
+                    }
+
+                    document.Add(paymentTable);
+                    document.Add(new Paragraph(" ", normalFont) { SpacingAfter = 30 });
+                }
+
+                // Notes Section (if any)
+                if (!string.IsNullOrEmpty(invoice.Notes))
+                {
+                    var notesTitle = new Paragraph("📝 Additional Notes", headerFont);
+                    notesTitle.SpacingAfter = 10;
+                    document.Add(notesTitle);
+
+                    var notesCell = new PdfPCell(new Phrase(invoice.Notes, normalFont));
+                    notesCell.BackgroundColor = new BaseColor(255, 243, 205);
+                    notesCell.Border = Rectangle.LEFT_BORDER;
+                    notesCell.BorderColor = new BaseColor(255, 193, 7);
+                    notesCell.BorderWidth = 3;
+                    notesCell.Padding = 15;
+
+                    var notesTable = new PdfPTable(1);
+                    notesTable.WidthPercentage = 100;
+                    notesTable.AddCell(notesCell);
+                    document.Add(notesTable);
+                    document.Add(new Paragraph(" ", normalFont) { SpacingAfter = 30 });
+                }
+
+                // Signatures Section
+                var signaturesTitle = new Paragraph("✍️ Signatures", headerFont);
+                signaturesTitle.SpacingAfter = 20;
+                document.Add(signaturesTitle);
+
+                var signaturesTable = new PdfPTable(2);
+                signaturesTable.WidthPercentage = 100;
+                signaturesTable.SetWidths(new float[] { 1, 1 });
+
+                // Admin Signature
+                var adminSigCell = new PdfPCell();
+                adminSigCell.Border = Rectangle.BOX;
+                adminSigCell.BorderColor = lightGray;
+                adminSigCell.Padding = 20;
+                adminSigCell.BackgroundColor = new BaseColor(250, 250, 250);
+
+                adminSigCell.AddElement(new Paragraph("Admin Signature", boldFont) { Alignment = Element.ALIGN_CENTER });
+                adminSigCell.AddElement(new Paragraph(" ", normalFont) { SpacingAfter = 40 }); // Space for signature
+                adminSigCell.AddElement(new Paragraph("_________________________", normalFont) { Alignment = Element.ALIGN_CENTER });
+                adminSigCell.AddElement(new Paragraph("Authorized Administrator", smallFont) { Alignment = Element.ALIGN_CENTER });
+                adminSigCell.AddElement(new Paragraph("PixelSolution", smallFont) { Alignment = Element.ALIGN_CENTER });
+
+                signaturesTable.AddCell(adminSigCell);
+
+                // Supplier Signature
+                var supplierSigCell = new PdfPCell();
+                supplierSigCell.Border = Rectangle.BOX;
+                supplierSigCell.BorderColor = lightGray;
+                supplierSigCell.Padding = 20;
+                supplierSigCell.BackgroundColor = new BaseColor(250, 250, 250);
+
+                supplierSigCell.AddElement(new Paragraph("Supplier Signature", boldFont) { Alignment = Element.ALIGN_CENTER });
+                supplierSigCell.AddElement(new Paragraph(" ", normalFont) { SpacingAfter = 40 }); // Space for signature
+                supplierSigCell.AddElement(new Paragraph("_________________________", normalFont) { Alignment = Element.ALIGN_CENTER });
+                supplierSigCell.AddElement(new Paragraph(invoice.Supplier.ContactPerson, smallFont) { Alignment = Element.ALIGN_CENTER });
+                supplierSigCell.AddElement(new Paragraph(invoice.Supplier.CompanyName, smallFont) { Alignment = Element.ALIGN_CENTER });
+
+                signaturesTable.AddCell(supplierSigCell);
+                document.Add(signaturesTable);
+                document.Add(new Paragraph(" ", normalFont) { SpacingAfter = 30 });
+
+                // Footer
+                var footerTable = new PdfPTable(1);
+                footerTable.WidthPercentage = 100;
+                var footerCell = new PdfPCell();
+                footerCell.Border = Rectangle.TOP_BORDER;
+                footerCell.BorderColor = primaryColor;
+                footerCell.BorderWidth = 2;
+                footerCell.Padding = 15;
+                footerCell.BackgroundColor = new BaseColor(248, 249, 250);
+
+                var footerInfo = new Paragraph("PixelSolution Business Management System", boldFont);
+                footerInfo.Alignment = Element.ALIGN_CENTER;
+                footerCell.AddElement(footerInfo);
+
+                var contactInfo = new Paragraph("Professional Supplier Invoice Management", normalFont);
+                contactInfo.Alignment = Element.ALIGN_CENTER;
+                footerCell.AddElement(contactInfo);
+
+                var contactDetails = new Paragraph("📧 support@pixelsolution.com | 📞 +254-XXX-XXXX", smallFont);
+                contactDetails.Alignment = Element.ALIGN_CENTER;
+                contactDetails.SpacingBefore = 5;
+                footerCell.AddElement(contactDetails);
+
+                var generatedBy = new Paragraph($"Generated on {DateTime.Now:dddd, MMMM dd, yyyy 'at' HH:mm:ss} by PixelSolution System", smallFont);
+                generatedBy.Alignment = Element.ALIGN_CENTER;
+                generatedBy.SpacingBefore = 10;
+                footerCell.AddElement(generatedBy);
+
+                var officialDoc = new Paragraph("This is an official computer-generated invoice document.", smallFont);
+                officialDoc.Alignment = Element.ALIGN_CENTER;
+                officialDoc.SpacingBefore = 5;
+                footerCell.AddElement(officialDoc);
+
+                footerTable.AddCell(footerCell);
+                document.Add(footerTable);
+
+                document.Close();
+                return memoryStream.ToArray();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error generating supplier invoice PDF: {ex.Message}", ex);
+            }
+        }
     }
 }
