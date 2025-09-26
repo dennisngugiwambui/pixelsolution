@@ -2099,7 +2099,8 @@
         async function settleSelectedInvoices() {
             const selectedInvoices = Array.from(document.querySelectorAll('.unsettled-invoice-checkbox:checked')).map(cb => ({
                 invoiceId: parseInt(cb.dataset.invoiceId),
-                amount: parseFloat(cb.dataset.amount)
+                amount: parseFloat(cb.dataset.amount),
+                dueAmount: parseFloat(cb.dataset.dueAmount || cb.dataset.amount) // Get due amount if available
             }));
             
             if (selectedInvoices.length === 0) {
@@ -2107,110 +2108,154 @@
                 return;
             }
             
+            // Validate amounts before proceeding
+            const invalidInvoices = selectedInvoices.filter(inv => {
+                return isNaN(inv.amount) || inv.amount <= 0 || (inv.dueAmount !== undefined && inv.amount > inv.dueAmount);
+            });
+            
+            if (invalidInvoices.length > 0) {
+                const invalidList = invalidInvoices.map(inv => `Invoice ${inv.invoiceId}: ${inv.amount} (Due: ${inv.dueAmount || 'N/A'})`).join('\n');
+                showToast(`Invalid payment amounts for selected invoices. Please check the amounts.\n${invalidList}`, 'error');
+                return;
+            }
+            
             const totalAmount = selectedInvoices.reduce((sum, inv) => sum + inv.amount, 0);
             
-            if (!confirm(`Settle ${selectedInvoices.length} invoice(s)?\\nTotal Amount: KSh ${totalAmount.toFixed(2)}`)) {
+            if (!confirm(`Settle ${selectedInvoices.length} invoice(s)?\nTotal Amount: KSh ${totalAmount.toFixed(2)}`)) {
                 return;
             }
             
             try {
                 let successCount = 0;
                 let failedCount = 0;
+                const errors = [];
                 
                 // Process each invoice individually
                 for (const invoice of selectedInvoices) {
                     try {
+                        console.log(`Processing payment for invoice ${invoice.invoiceId}`, invoice);
+                        
+                        const paymentData = {
+                            supplierInvoiceId: invoice.invoiceId,
+                            amount: invoice.amount,
+                            paymentMethod: 'Cash',
+                            paymentReference: `BULK-SETTLE-${invoice.invoiceId}-${Date.now()}`,
+                            paymentDate: new Date().toISOString(), // Send full ISO string
+                            notes: `Bulk settlement (${selectedInvoices.length} invoices)`
+                        };
+                        
+                        console.log('Sending payment data:', paymentData);
+                        
                         const response = await fetch('/Admin/RecordSupplierPayment', {
                             method: 'POST',
                             headers: { 
                                 'Content-Type': 'application/json',
                                 'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
                             },
-                            body: JSON.stringify({
-                                supplierInvoiceId: invoice.invoiceId,
-                                amount: invoice.amount,
-                                paymentMethod: 'Cash',
-                                paymentReference: `BULK-SETTLE-${invoice.invoiceId}-${Date.now()}`,
-                                paymentDate: new Date().toISOString().split('T')[0],
-                                notes: `Bulk settlement (${selectedInvoices.length} invoices)`
-                            })
+                            body: JSON.stringify(paymentData)
                         });
+                        
+                        const result = await response.json();
+                        console.log('Payment response for invoice', invoice.invoiceId, ':', result);
 
-                        if (response.ok) {
-                            const result = await response.json();
-                            if (result.success) {
-                                successCount++;
-                            } else {
-                                failedCount++;
-                                console.error('Failed to settle invoice:', invoice.invoiceId, result.message);
-                            }
+                        if (response.ok && result.success) {
+                            successCount++;
                         } else {
                             failedCount++;
-                            console.error('HTTP error settling invoice:', invoice.invoiceId, response.status);
+                            const errorMsg = result.message || `HTTP ${response.status}`;
+                            errors.push(`Invoice ${invoice.invoiceId}: ${errorMsg}`);
+                            console.error('Failed to settle invoice:', invoice.invoiceId, errorMsg);
                         }
                     } catch (error) {
                         failedCount++;
+                        const errorMsg = error.message || 'Unknown error';
+                        errors.push(`Invoice ${invoice.invoiceId}: ${errorMsg}`);
                         console.error('Error settling invoice:', invoice.invoiceId, error);
                     }
                 }
                 
                 // Show results
                 if (successCount > 0) {
-                    showToast(`${successCount} invoice(s) settled successfully!${failedCount > 0 ? ` (${failedCount} failed)` : ''}`, 
-                             failedCount > 0 ? 'warning' : 'success');
+                    const successMsg = `${successCount} invoice(s) settled successfully!`;
+                    const errorMsg = failedCount > 0 ? `\n\nFailed to process ${failedCount} invoice(s):\n${errors.join('\n')}` : '';
+                    
+                    showToast(successMsg + errorMsg, failedCount > 0 ? 'warning' : 'success');
+                    
+                    // Refresh data
                     loadPaymentData();
                     loadSupplierInvoices();
                     loadSupplierSupplies();
                     updateSupplierStatistics();
                 } else {
-                    showToast('Failed to settle any invoices. Please try again.', 'error');
+                    showToast(`Failed to settle any invoices. Errors:\n${errors.join('\n')}`, 'error');
                 }
             } catch (error) {
                 console.error('Error in bulk settlement:', error);
-                showToast('Error settling invoices. Please try again.', 'error');
+                showToast(`Error settling invoices: ${error.message}`, 'error');
             }
         }
         
-        async function settleInvoice(invoiceId, amount) {
-            if (!confirm(`Settle this invoice?\\nAmount: KSh ${amount.toFixed(2)}`)) {
+        async function settleInvoice(invoiceId, amount, dueAmount) {
+            // Convert to numbers and validate
+            const paymentAmount = parseFloat(amount);
+            const invoiceDueAmount = dueAmount !== undefined ? parseFloat(dueAmount) : paymentAmount;
+            
+            // Validate amount
+            if (isNaN(paymentAmount) || paymentAmount <= 0) {
+                showToast('Please enter a valid payment amount', 'error');
+                return;
+            }
+            
+            if (paymentAmount > invoiceDueAmount) {
+                showToast(`Payment amount (KSh ${paymentAmount.toFixed(2)}) cannot be greater than the due amount (KSh ${invoiceDueAmount.toFixed(2)})`, 'error');
+                return;
+            }
+            
+            if (!confirm(`Settle this invoice?\\nAmount: KSh ${paymentAmount.toFixed(2)}\\nDue Amount: KSh ${invoiceDueAmount.toFixed(2)}`)) {
                 return;
             }
             
             try {
+                const paymentData = {
+                    supplierInvoiceId: invoiceId,
+                    amount: paymentAmount,
+                    paymentMethod: 'Cash',
+                    paymentReference: `SETTLE-${invoiceId}-${Date.now()}`,
+                    paymentDate: new Date().toISOString(), // Full ISO string
+                    notes: 'Single invoice settlement'
+                };
+                
+                console.log('Sending payment data:', paymentData);
+                
                 const response = await fetch('/Admin/RecordSupplierPayment', {
                     method: 'POST',
                     headers: { 
                         'Content-Type': 'application/json',
                         'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
                     },
-                    body: JSON.stringify({
-                        supplierInvoiceId: invoiceId,
-                        amount: amount,
-                        paymentMethod: 'Cash',
-                        paymentReference: `SETTLE-${invoiceId}-${Date.now()}`,
-                        paymentDate: new Date().toISOString().split('T')[0],
-                        notes: 'Single invoice settlement'
-                    })
+                    body: JSON.stringify(paymentData)
                 });
+                
+                const result = await response.json();
+                console.log('Payment response:', result);
 
                 if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                    throw new Error(result.message || `HTTP error! status: ${response.status}`);
                 }
 
-                const result = await response.json();
-                
                 if (result.success) {
-                    showToast(`Invoice settled successfully!\\nAmount: KSh ${amount.toFixed(2)}`, 'success');
+                    showToast(`Invoice settled successfully!\\nAmount: KSh ${paymentAmount.toFixed(2)}`, 'success');
+                    // Refresh data
                     loadPaymentData();
                     loadSupplierInvoices();
                     loadSupplierSupplies();
                     updateSupplierStatistics();
                 } else {
-                    showToast('Error settling invoice: ' + result.message, 'error');
+                    throw new Error(result.message || 'Failed to settle invoice');
                 }
             } catch (error) {
                 console.error('Error settling invoice:', error);
-                showToast('Error settling invoice. Please try again.', 'error');
+                showToast(`Error settling invoice: ${error.message}`, 'error');
             }
         }
 
