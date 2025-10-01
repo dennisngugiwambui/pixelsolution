@@ -189,6 +189,9 @@ namespace PixelSolution.Models
         [StringLength(20)]
         public string Status { get; set; } = "Completed"; // Pending, Completed, Cancelled
 
+        [StringLength(50)]
+        public string? MpesaReceiptNumber { get; set; } // M-Pesa transaction code (e.g., QGH7SK61SU)
+
         public DateTime SaleDate { get; set; } = DateTime.UtcNow;
 
         // Navigation Properties

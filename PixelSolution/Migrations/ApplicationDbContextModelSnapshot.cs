@@ -60,7 +60,7 @@ namespace PixelSolution.Migrations
 
                     b.HasKey("CategoryId");
 
-                    b.ToTable("Categories", (string)null);
+                    b.ToTable("Categories");
                 });
 
             modelBuilder.Entity("PixelSolution.Models.Customer", b =>
@@ -121,7 +121,7 @@ namespace PixelSolution.Migrations
                     b.HasIndex("Email")
                         .IsUnique();
 
-                    b.ToTable("Customers", (string)null);
+                    b.ToTable("Customers");
                 });
 
             modelBuilder.Entity("PixelSolution.Models.CustomerCart", b =>
@@ -163,7 +163,7 @@ namespace PixelSolution.Migrations
 
                     b.HasIndex("ProductId");
 
-                    b.ToTable("CustomerCarts", (string)null);
+                    b.ToTable("CustomerCarts");
                 });
 
             modelBuilder.Entity("PixelSolution.Models.CustomerWishlist", b =>
@@ -197,7 +197,7 @@ namespace PixelSolution.Migrations
                     b.HasIndex("CustomerId", "ProductId")
                         .IsUnique();
 
-                    b.ToTable("CustomerWishlists", (string)null);
+                    b.ToTable("CustomerWishlists");
                 });
 
             modelBuilder.Entity("PixelSolution.Models.Department", b =>
@@ -225,7 +225,7 @@ namespace PixelSolution.Migrations
 
                     b.HasKey("DepartmentId");
 
-                    b.ToTable("Departments", (string)null);
+                    b.ToTable("Departments");
                 });
 
             modelBuilder.Entity("PixelSolution.Models.EmployeeFine", b =>
@@ -280,7 +280,7 @@ namespace PixelSolution.Migrations
 
                     b.HasIndex("IssuedByUserId");
 
-                    b.ToTable("EmployeeFines", (string)null);
+                    b.ToTable("EmployeeFines");
                 });
 
             modelBuilder.Entity("PixelSolution.Models.EmployeePayment", b =>
@@ -343,7 +343,7 @@ namespace PixelSolution.Migrations
 
                     b.HasIndex("ProcessedByUserId");
 
-                    b.ToTable("EmployeePayments", (string)null);
+                    b.ToTable("EmployeePayments");
                 });
 
             modelBuilder.Entity("PixelSolution.Models.EmployeeProfile", b =>
@@ -416,7 +416,7 @@ namespace PixelSolution.Migrations
                     b.HasIndex("UserId")
                         .IsUnique();
 
-                    b.ToTable("EmployeeProfiles", (string)null);
+                    b.ToTable("EmployeeProfiles");
                 });
 
             modelBuilder.Entity("PixelSolution.Models.EmployeeSalary", b =>
@@ -469,7 +469,7 @@ namespace PixelSolution.Migrations
 
                     b.HasIndex("EmployeeProfileId");
 
-                    b.ToTable("EmployeeSalaries", (string)null);
+                    b.ToTable("EmployeeSalaries");
                 });
 
             modelBuilder.Entity("PixelSolution.Models.Message", b =>
@@ -518,7 +518,7 @@ namespace PixelSolution.Migrations
 
                     b.HasIndex("ToUserId");
 
-                    b.ToTable("Messages", (string)null);
+                    b.ToTable("Messages");
                 });
 
             modelBuilder.Entity("PixelSolution.Models.MpesaToken", b =>
@@ -558,7 +558,7 @@ namespace PixelSolution.Migrations
 
                     b.HasIndex("IsActive");
 
-                    b.ToTable("MpesaTokens", (string)null);
+                    b.ToTable("MpesaTokens");
                 });
 
             modelBuilder.Entity("PixelSolution.Models.MpesaTransaction", b =>
@@ -625,7 +625,7 @@ namespace PixelSolution.Migrations
 
                     b.HasIndex("SaleId");
 
-                    b.ToTable("MpesaTransactions", (string)null);
+                    b.ToTable("MpesaTransactions");
                 });
 
             modelBuilder.Entity("PixelSolution.Models.Product", b =>
@@ -701,7 +701,7 @@ namespace PixelSolution.Migrations
 
                     b.HasIndex("SupplierId");
 
-                    b.ToTable("Products", (string)null);
+                    b.ToTable("Products");
                 });
 
             modelBuilder.Entity("PixelSolution.Models.ProductRequest", b =>
@@ -766,7 +766,7 @@ namespace PixelSolution.Migrations
                     b.HasIndex("RequestNumber")
                         .IsUnique();
 
-                    b.ToTable("ProductRequests", (string)null);
+                    b.ToTable("ProductRequests");
                 });
 
             modelBuilder.Entity("PixelSolution.Models.ProductRequestItem", b =>
@@ -803,7 +803,7 @@ namespace PixelSolution.Migrations
 
                     b.HasIndex("ProductRequestId");
 
-                    b.ToTable("ProductRequestItems", (string)null);
+                    b.ToTable("ProductRequestItems");
                 });
 
             modelBuilder.Entity("PixelSolution.Models.PurchaseRequest", b =>
@@ -874,7 +874,7 @@ namespace PixelSolution.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("PurchaseRequests", (string)null);
+                    b.ToTable("PurchaseRequests");
                 });
 
             modelBuilder.Entity("PixelSolution.Models.PurchaseRequestItem", b =>
@@ -906,7 +906,7 @@ namespace PixelSolution.Migrations
 
                     b.HasIndex("PurchaseRequestId");
 
-                    b.ToTable("PurchaseRequestItems", (string)null);
+                    b.ToTable("PurchaseRequestItems");
                 });
 
             modelBuilder.Entity("PixelSolution.Models.Sale", b =>
@@ -943,6 +943,10 @@ namespace PixelSolution.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
+                    b.Property<string>("MpesaReceiptNumber")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
                     b.Property<string>("PaymentMethod")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -976,7 +980,7 @@ namespace PixelSolution.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Sales", (string)null);
+                    b.ToTable("Sales");
                 });
 
             modelBuilder.Entity("PixelSolution.Models.SaleItem", b =>
@@ -1008,7 +1012,7 @@ namespace PixelSolution.Migrations
 
                     b.HasIndex("SaleId");
 
-                    b.ToTable("SaleItems", (string)null);
+                    b.ToTable("SaleItems");
                 });
 
             modelBuilder.Entity("PixelSolution.Models.Supplier", b =>
@@ -1056,7 +1060,7 @@ namespace PixelSolution.Migrations
 
                     b.HasKey("SupplierId");
 
-                    b.ToTable("Suppliers", (string)null);
+                    b.ToTable("Suppliers");
                 });
 
             modelBuilder.Entity("PixelSolution.Models.SupplierInvoice", b =>
@@ -1107,7 +1111,7 @@ namespace PixelSolution.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
-                    b.Property<decimal>("SubTotal")
+                    b.Property<decimal>("Subtotal")
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<int>("SupplierId")
@@ -1133,7 +1137,7 @@ namespace PixelSolution.Migrations
 
                     b.HasIndex("SupplierId");
 
-                    b.ToTable("SupplierInvoices", (string)null);
+                    b.ToTable("SupplierInvoices");
                 });
 
             modelBuilder.Entity("PixelSolution.Models.SupplierInvoiceItem", b =>
@@ -1155,7 +1159,7 @@ namespace PixelSolution.Migrations
                     b.Property<int>("SupplierInvoiceId")
                         .HasColumnType("int");
 
-                    b.Property<int>("SupplierItemId")
+                    b.Property<int>("SupplierProductSupplyId")
                         .HasColumnType("int");
 
                     b.Property<decimal>("TotalCost")
@@ -1168,72 +1172,9 @@ namespace PixelSolution.Migrations
 
                     b.HasIndex("SupplierInvoiceId");
 
-                    b.HasIndex("SupplierItemId");
+                    b.HasIndex("SupplierProductSupplyId");
 
-                    b.ToTable("SupplierInvoiceItems", (string)null);
-                });
-
-            modelBuilder.Entity("PixelSolution.Models.SupplierItem", b =>
-                {
-                    b.Property<int>("SupplierItemId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("SupplierItemId"));
-
-                    b.Property<string>("BatchNumber")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETUTCDATE()");
-
-                    b.Property<DateTime?>("ExpiryDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Notes")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<int>("ProductId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Quantity")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<int>("SupplierId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("SupplyDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<decimal>("TotalCost")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("UnitCost")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETUTCDATE()");
-
-                    b.HasKey("SupplierItemId");
-
-                    b.HasIndex("ProductId");
-
-                    b.HasIndex("SupplierId");
-
-                    b.ToTable("SupplierItems", (string)null);
+                    b.ToTable("SupplierInvoiceItems");
                 });
 
             modelBuilder.Entity("PixelSolution.Models.SupplierPayment", b =>
@@ -1270,6 +1211,11 @@ namespace PixelSolution.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
+                    b.Property<string>("ProcessedBy")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
                     b.Property<int>("ProcessedByUserId")
                         .HasColumnType("int");
 
@@ -1295,7 +1241,70 @@ namespace PixelSolution.Migrations
 
                     b.HasIndex("SupplierInvoiceId");
 
-                    b.ToTable("SupplierPayments", (string)null);
+                    b.ToTable("SupplierPayments");
+                });
+
+            modelBuilder.Entity("PixelSolution.Models.SupplierProductSupply", b =>
+                {
+                    b.Property<int>("SupplierProductSupplyId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("SupplierProductSupplyId"));
+
+                    b.Property<string>("BatchNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<DateTime?>("ExpiryDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Notes")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("PaymentStatus")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<int>("ProductId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("QuantitySupplied")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SupplierId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("SupplyDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal>("TotalCost")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("UnitCost")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.HasKey("SupplierProductSupplyId");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("SupplierId");
+
+                    b.ToTable("SupplierProductSupplies");
                 });
 
             modelBuilder.Entity("PixelSolution.Models.User", b =>
@@ -1364,7 +1373,7 @@ namespace PixelSolution.Migrations
                     b.HasIndex("Email")
                         .IsUnique();
 
-                    b.ToTable("Users", (string)null);
+                    b.ToTable("Users");
                 });
 
             modelBuilder.Entity("PixelSolution.Models.UserActivityLog", b =>
@@ -1423,7 +1432,7 @@ namespace PixelSolution.Migrations
 
                     b.HasIndex("UserId", "CreatedAt");
 
-                    b.ToTable("UserActivityLogs", (string)null);
+                    b.ToTable("UserActivityLogs");
                 });
 
             modelBuilder.Entity("PixelSolution.Models.UserDepartment", b =>
@@ -1444,7 +1453,7 @@ namespace PixelSolution.Migrations
 
                     b.HasIndex("DepartmentId");
 
-                    b.ToTable("UserDepartments", (string)null);
+                    b.ToTable("UserDepartments");
                 });
 
             modelBuilder.Entity("PixelSolution.Models.Wishlist", b =>
@@ -1478,7 +1487,7 @@ namespace PixelSolution.Migrations
                     b.HasIndex("CustomerId", "ProductId")
                         .IsUnique();
 
-                    b.ToTable("Wishlists", (string)null);
+                    b.ToTable("Wishlists");
                 });
 
             modelBuilder.Entity("PixelSolution.Models.CustomerCart", b =>
@@ -1759,34 +1768,15 @@ namespace PixelSolution.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("PixelSolution.Models.SupplierItem", "SupplierItem")
+                    b.HasOne("PixelSolution.Models.SupplierProductSupply", "SupplierProductSupply")
                         .WithMany("SupplierInvoiceItems")
-                        .HasForeignKey("SupplierItemId")
+                        .HasForeignKey("SupplierProductSupplyId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("SupplierInvoice");
 
-                    b.Navigation("SupplierItem");
-                });
-
-            modelBuilder.Entity("PixelSolution.Models.SupplierItem", b =>
-                {
-                    b.HasOne("PixelSolution.Models.Product", "Product")
-                        .WithMany()
-                        .HasForeignKey("ProductId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("PixelSolution.Models.Supplier", "Supplier")
-                        .WithMany()
-                        .HasForeignKey("SupplierId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Product");
-
-                    b.Navigation("Supplier");
+                    b.Navigation("SupplierProductSupply");
                 });
 
             modelBuilder.Entity("PixelSolution.Models.SupplierPayment", b =>
@@ -1806,6 +1796,25 @@ namespace PixelSolution.Migrations
                     b.Navigation("ProcessedByUser");
 
                     b.Navigation("SupplierInvoice");
+                });
+
+            modelBuilder.Entity("PixelSolution.Models.SupplierProductSupply", b =>
+                {
+                    b.HasOne("PixelSolution.Models.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("PixelSolution.Models.Supplier", "Supplier")
+                        .WithMany()
+                        .HasForeignKey("SupplierId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+
+                    b.Navigation("Supplier");
                 });
 
             modelBuilder.Entity("PixelSolution.Models.UserActivityLog", b =>
@@ -1921,7 +1930,7 @@ namespace PixelSolution.Migrations
                     b.Navigation("SupplierPayments");
                 });
 
-            modelBuilder.Entity("PixelSolution.Models.SupplierItem", b =>
+            modelBuilder.Entity("PixelSolution.Models.SupplierProductSupply", b =>
                 {
                     b.Navigation("SupplierInvoiceItems");
                 });

@@ -64,6 +64,9 @@ namespace PixelSolution.Controllers
                     return Ok(new { ResultCode = 1, ResultDesc = "Invalid callback structure - missing stkCallback" });
                 }
                 
+                // Log the entire callback for debugging
+                _logger.LogInformation("📥 Full callback data: {CallbackData}", callbackData.ToString());
+                
                 var merchantRequestId = stkCallback.TryGetProperty("MerchantRequestID", out var merchantProp) ? merchantProp.GetString() : null;
                 var checkoutRequestId = stkCallback.TryGetProperty("CheckoutRequestID", out var checkoutProp) ? checkoutProp.GetString() : null;
                 var resultCode = stkCallback.TryGetProperty("ResultCode", out var resultProp) ? resultProp.GetInt32() : -1;
@@ -108,11 +111,17 @@ namespace PixelSolution.Controllers
                     // Extract payment details if available
                     if (stkCallback.TryGetProperty("CallbackMetadata", out var metadata))
                     {
-                        var items = metadata.GetProperty("Item");
-                        foreach (var item in items.EnumerateArray())
+                        if (metadata.TryGetProperty("Item", out var itemsProperty))
                         {
-                            var name = item.GetProperty("Name").GetString();
-                            var value = item.GetProperty("Value");
+                            foreach (var item in itemsProperty.EnumerateArray())
+                            {
+                                if (!item.TryGetProperty("Name", out var nameProperty) || 
+                                    !item.TryGetProperty("Value", out var value))
+                                {
+                                    continue; // Skip items without Name or Value
+                                }
+                                
+                                var name = nameProperty.GetString();
 
                             switch (name)
                             {

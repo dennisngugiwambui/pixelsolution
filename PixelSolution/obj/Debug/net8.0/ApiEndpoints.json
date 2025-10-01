@@ -460,6 +460,26 @@
   },
   {
     "ContainingType": "PixelSolution.Controllers.MpesaCallbackController",
+    "Method": "C2BConfirmation",
+    "RelativePath": "api/mpesa/c2b/confirmation",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "PixelSolution.Controllers.MpesaCallbackController",
+    "Method": "C2BValidation",
+    "RelativePath": "api/mpesa/c2b/validation",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "PixelSolution.Controllers.MpesaCallbackController",
     "Method": "MpesaCallback",
     "RelativePath": "api/mpesa/callback",
     "HttpMethod": "POST",
@@ -522,6 +542,16 @@
   },
   {
     "ContainingType": "PixelSolution.Controllers.MpesaTestController",
+    "Method": "ClearTokens",
+    "RelativePath": "api/MpesaTest/clear-tokens",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "PixelSolution.Controllers.MpesaTestController",
     "Method": "QueryStkStatus",
     "RelativePath": "api/MpesaTest/query-stk",
     "HttpMethod": "POST",
@@ -534,6 +564,16 @@
         "IsRequired": true
       }
     ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "PixelSolution.Controllers.MpesaTestController",
+    "Method": "RegisterC2BUrls",
+    "RelativePath": "api/MpesaTest/register-c2b",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [],
     "ReturnTypes": []
   },
   {
@@ -563,6 +603,22 @@
       {
         "Name": "request",
         "Type": "PixelSolution.Controllers.StkTestRequest",
+        "IsRequired": true
+      }
+    ],
+    "ReturnTypes": []
+  },
+  {
+    "ContainingType": "PixelSolution.Controllers.MpesaTestController",
+    "Method": "TestQRCode",
+    "RelativePath": "api/MpesaTest/test-qr",
+    "HttpMethod": "POST",
+    "IsController": true,
+    "Order": 0,
+    "Parameters": [
+      {
+        "Name": "request",
+        "Type": "PixelSolution.Controllers.QRCodeTestRequest",
         "IsRequired": true
       }
     ],

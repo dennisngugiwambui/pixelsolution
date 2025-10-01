@@ -147,8 +147,8 @@
     <StaticWebAssetEndpoint Include="_content/PixelSolution/js/sales.js">
       <AssetFile>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\js\sales.js'))</AssetFile>
       <Selectors><![CDATA[[]]]></Selectors>
-      <EndpointProperties><![CDATA[[{"Name":"integrity","Value":"sha256-HyIMnpItQGjFTb9dGiJPdyU4C4ZuMXoq\u002BYtQgde2Y9s="}]]]></EndpointProperties>
-      <ResponseHeaders><![CDATA[[{"Name":"Accept-Ranges","Value":"bytes"},{"Name":"Cache-Control","Value":"no-cache"},{"Name":"Content-Length","Value":"50488"},{"Name":"Content-Type","Value":"text/javascript"},{"Name":"ETag","Value":"\u0022HyIMnpItQGjFTb9dGiJPdyU4C4ZuMXoq\u002BYtQgde2Y9s=\u0022"},{"Name":"Last-Modified","Value":"Sat, 13 Sep 2025 07:17:23 GMT"}]]]></ResponseHeaders>
+      <EndpointProperties><![CDATA[[{"Name":"integrity","Value":"sha256-jZhg/lp4x71SlTdXpIA/A96P5T5qOs9U22qja7g4rOo="}]]]></EndpointProperties>
+      <ResponseHeaders><![CDATA[[{"Name":"Accept-Ranges","Value":"bytes"},{"Name":"Cache-Control","Value":"no-cache"},{"Name":"Content-Length","Value":"56187"},{"Name":"Content-Type","Value":"text/javascript"},{"Name":"ETag","Value":"\u0022jZhg/lp4x71SlTdXpIA/A96P5T5qOs9U22qja7g4rOo=\u0022"},{"Name":"Last-Modified","Value":"Tue, 30 Sep 2025 20:33:12 GMT"}]]]></ResponseHeaders>
     </StaticWebAssetEndpoint>
     <StaticWebAssetEndpoint Include="_content/PixelSolution/js/sales.js.backup">
       <AssetFile>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\js\sales.js.backup'))</AssetFile>
@@ -162,11 +162,11 @@
       <EndpointProperties><![CDATA[[{"Name":"fingerprint","Value":"laq9u0ozei"},{"Name":"integrity","Value":"sha256-XQuqYuqqZlhv\u002BEsKOktHqhEqzKT3FxIqNExnw7HATwk="},{"Name":"label","Value":"_content/PixelSolution/js/sales.js.backup"}]]]></EndpointProperties>
       <ResponseHeaders><![CDATA[[{"Name":"Accept-Ranges","Value":"bytes"},{"Name":"Cache-Control","Value":"max-age=31536000, immutable"},{"Name":"Content-Length","Value":"48898"},{"Name":"Content-Type","Value":"application/octet-stream"},{"Name":"ETag","Value":"\u0022XQuqYuqqZlhv\u002BEsKOktHqhEqzKT3FxIqNExnw7HATwk=\u0022"},{"Name":"Last-Modified","Value":"Fri, 01 Aug 2025 10:17:59 GMT"}]]]></ResponseHeaders>
     </StaticWebAssetEndpoint>
-    <StaticWebAssetEndpoint Include="_content/PixelSolution/js/sales.tdbpsfiqzc.js">
+    <StaticWebAssetEndpoint Include="_content/PixelSolution/js/sales.lu0942id68.js">
       <AssetFile>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\js\sales.js'))</AssetFile>
       <Selectors><![CDATA[[]]]></Selectors>
-      <EndpointProperties><![CDATA[[{"Name":"fingerprint","Value":"tdbpsfiqzc"},{"Name":"integrity","Value":"sha256-HyIMnpItQGjFTb9dGiJPdyU4C4ZuMXoq\u002BYtQgde2Y9s="},{"Name":"label","Value":"_content/PixelSolution/js/sales.js"}]]]></EndpointProperties>
-      <ResponseHeaders><![CDATA[[{"Name":"Accept-Ranges","Value":"bytes"},{"Name":"Cache-Control","Value":"max-age=31536000, immutable"},{"Name":"Content-Length","Value":"50488"},{"Name":"Content-Type","Value":"text/javascript"},{"Name":"ETag","Value":"\u0022HyIMnpItQGjFTb9dGiJPdyU4C4ZuMXoq\u002BYtQgde2Y9s=\u0022"},{"Name":"Last-Modified","Value":"Sat, 13 Sep 2025 07:17:23 GMT"}]]]></ResponseHeaders>
+      <EndpointProperties><![CDATA[[{"Name":"fingerprint","Value":"lu0942id68"},{"Name":"integrity","Value":"sha256-jZhg/lp4x71SlTdXpIA/A96P5T5qOs9U22qja7g4rOo="},{"Name":"label","Value":"_content/PixelSolution/js/sales.js"}]]]></EndpointProperties>
+      <ResponseHeaders><![CDATA[[{"Name":"Accept-Ranges","Value":"bytes"},{"Name":"Cache-Control","Value":"max-age=31536000, immutable"},{"Name":"Content-Length","Value":"56187"},{"Name":"Content-Type","Value":"text/javascript"},{"Name":"ETag","Value":"\u0022jZhg/lp4x71SlTdXpIA/A96P5T5qOs9U22qja7g4rOo=\u0022"},{"Name":"Last-Modified","Value":"Tue, 30 Sep 2025 20:33:12 GMT"}]]]></ResponseHeaders>
     </StaticWebAssetEndpoint>
     <StaticWebAssetEndpoint Include="_content/PixelSolution/js/sales_backup.js">
       <AssetFile>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)..\staticwebassets\js\sales_backup.js'))</AssetFile>
