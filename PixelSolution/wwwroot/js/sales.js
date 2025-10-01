@@ -737,14 +737,28 @@ function selectPaymentMethod(method) {
         document.getElementById('cashPaymentForm').style.display = 'none';
         document.getElementById('mpesaPaymentForm').style.display = 'block';
         
+        // Hide QR code section initially
+        document.getElementById('qrCodeSection').style.display = 'none';
+        
         // Focus on phone input
         setTimeout(() => {
             document.getElementById('customerPhone').focus();
         }, 100);
         
-        // Add event listener for phone number validation
+        // Add event listeners for phone number
         const phoneInput = document.getElementById('customerPhone');
-        phoneInput.addEventListener('input', updateCompletePaymentButton);
+        phoneInput.addEventListener('input', function() {
+            updateCompletePaymentButton();
+            
+            // Generate QR code when phone number is complete
+            const phoneValue = phoneInput.value.trim();
+            if (phoneValue.length === 9 && /^[0-9]+$/.test(phoneValue)) {
+                generateQRCode();
+            } else {
+                // Hide QR code if phone is invalid
+                document.getElementById('qrCodeSection').style.display = 'none';
+            }
+        });
     }
     
     updateCompletePaymentButton();
@@ -795,8 +809,54 @@ function calculateChange() {
 // Validate M-Pesa form
 function validateMpesaForm() {
     const phoneNumber = document.getElementById('customerPhone').value;
-    const isValid = phoneNumber.length === 9 && /^[0-9]+$/.test(phoneNumber);
+    const isValid = phoneNumber.length >= 7 && phoneNumber.length <= 9 && /^[0-9]+$/.test(phoneNumber);
+    
+    // Generate QR code when phone number is valid
+    if (isValid && phoneNumber.length === 9) {
+        generateQRCode();
+    }
+    
     return isValid;
+}
+
+// Generate QR Code for M-Pesa payment
+async function generateQRCode() {
+    try {
+        const qrSection = document.getElementById('qrCodeSection');
+        const qrImage = document.getElementById('qrCodeImage');
+        
+        // Show loading state
+        qrSection.style.display = 'block';
+        qrImage.innerHTML = '<i class="fas fa-spinner fa-spin" style="font-size: 2rem; color: #10b981;"></i>';
+        
+        const response = await fetch('/api/MpesaTest/test-qr', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                MerchantName: 'PixelSolution',
+                RefNo: 'SALE-' + Date.now(),
+                Amount: currentTotal,
+                TrxCode: 'BG',
+                Size: '250'
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success && result.data && result.data.QRCode) {
+            // Display QR code image
+            qrImage.innerHTML = `<img src="data:image/png;base64,${result.data.QRCode}" alt="M-Pesa QR Code" style="width: 100%; max-width: 250px; border-radius: 8px;">`;
+        } else {
+            // Hide QR section if generation fails
+            qrSection.style.display = 'none';
+            console.warn('QR Code generation failed:', result.message);
+        }
+    } catch (error) {
+        console.error('Error generating QR code:', error);
+        document.getElementById('qrCodeSection').style.display = 'none';
+    }
 }
 
 // Update complete payment button state
@@ -834,7 +894,19 @@ async function completePayment() {
     completeBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
     
     try {
-        // Prepare sale data
+        // Prepare sale data - Convert payment method to proper format for backend
+        const paymentMethodFormatted = selectedPaymentMethod === 'mpesa' ? 'M-Pesa' : 
+                                       selectedPaymentMethod === 'cash' ? 'Cash' : selectedPaymentMethod;
+        
+        const rawPhone = document.getElementById('customerPhone').value;
+        const formattedPhone = selectedPaymentMethod === 'mpesa' ? formatPhoneNumberForAPI(rawPhone) : null;
+        
+        console.log('📱 Phone number debug:', {
+            raw: rawPhone,
+            formatted: formattedPhone,
+            length: formattedPhone?.length
+        });
+        
         const saleData = {
             items: cart.map(item => ({
                 productId: item.id,
@@ -842,9 +914,9 @@ async function completePayment() {
                 unitPrice: item.price,
                 total: item.total
             })),
-            paymentMethod: selectedPaymentMethod,
+            paymentMethod: paymentMethodFormatted,
             totalAmount: currentTotal,
-            customerPhone: selectedPaymentMethod === 'mpesa' ? formatPhoneNumberForAPI(document.getElementById('customerPhone').value) : null,
+            customerPhone: formattedPhone,
             cashReceived: selectedPaymentMethod === 'cash' ? parseFloat(document.getElementById('cashReceived').value) : null
         };
         
@@ -917,10 +989,65 @@ async function completePayment() {
     }
 }
 
+// Show payment processing modal with spinner
+function showPaymentProcessingModal(message = 'Processing payment...') {
+    const modal = document.createElement('div');
+    modal.id = 'paymentProcessingModal';
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10000;
+    `;
+    
+    modal.innerHTML = `
+        <div style="background: white; padding: 2rem; border-radius: 12px; text-align: center; min-width: 300px;">
+            <div class="spinner" style="margin: 0 auto 1rem; width: 50px; height: 50px; border: 4px solid #f3f3f3; border-top: 4px solid #10b981; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+            <h3 style="margin: 0 0 0.5rem 0; color: #374151;">${message}</h3>
+            <p id="paymentStatusText" style="margin: 0; color: #6b7280; font-size: 0.875rem;">Waiting for payment confirmation...</p>
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Add spinner animation
+    if (!document.getElementById('spinnerStyle')) {
+        const style = document.createElement('style');
+        style.id = 'spinnerStyle';
+        style.textContent = '@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }';
+        document.head.appendChild(style);
+    }
+}
+
+// Update payment processing modal message
+function updatePaymentProcessingMessage(message) {
+    const statusText = document.getElementById('paymentStatusText');
+    if (statusText) {
+        statusText.textContent = message;
+    }
+}
+
+// Close payment processing modal
+function closePaymentProcessingModal() {
+    const modal = document.getElementById('paymentProcessingModal');
+    if (modal) {
+        modal.remove();
+    }
+}
+
 // Enhanced poll payment status for M-Pesa payments with real-time feedback
 async function pollPaymentStatusWithFeedback(saleId, totalAmount, checkoutRequestId) {
     let attempts = 0;
     const maxAttempts = 30; // Poll for 5 minutes (30 attempts * 10 seconds)
+    
+    // Show processing modal
+    showPaymentProcessingModal('Processing M-Pesa Payment');
     
     // Status messages for different stages
     const statusMessages = {
@@ -937,7 +1064,11 @@ async function pollPaymentStatusWithFeedback(saleId, totalAmount, checkoutReques
     
     const checkStatus = async () => {
         try {
-            const response = await fetch(`/Sales/CheckPaymentStatus?saleId=${saleId}`);
+            // Determine the correct endpoint based on current page
+            const currentPath = window.location.pathname;
+            const endpoint = currentPath.includes('/Admin/') ? '/Sales/CheckPaymentStatus' : '/Employee/CheckPaymentStatus';
+            
+            const response = await fetch(`${endpoint}?saleId=${saleId}`);
             const result = await response.json();
             
             console.log('💳 Payment status check:', result);
@@ -949,32 +1080,41 @@ async function pollPaymentStatusWithFeedback(saleId, totalAmount, checkoutReques
                     
                     switch (result.status) {
                         case 'Completed':
-                            showToast('🎉 Payment confirmed! Generating receipt...', 'success');
-                            
-                            // Generate receipt now that payment is confirmed
-                            const saleData = { 
-                                totalAmount: totalAmount,
-                                paymentMethod: 'M-Pesa',
-                                mpesaReceiptNumber: result.mpesaReceiptNumber
-                            };
-                            generateReceipt(saleId, saleData);
-                            await updateTodayStats();
+                            updatePaymentProcessingMessage('Payment successful! ✅');
+                            setTimeout(() => {
+                                closePaymentProcessingModal();
+                                showToast('🎉 Payment confirmed! Generating receipt...', 'success');
+                                
+                                // Generate receipt now that payment is confirmed
+                                const saleData = { 
+                                    totalAmount: totalAmount,
+                                    paymentMethod: 'M-Pesa',
+                                    mpesaReceiptNumber: result.mpesaReceiptNumber
+                                };
+                                generateReceipt(saleId, saleData);
+                                updateTodayStats();
+                            }, 1000);
                             return;
                             
                         case 'Failed':
-                            showToast(`❌ Payment failed: ${result.message}`, 'error');
-                            showToast('Please try again or use a different payment method.', 'info');
+                            updatePaymentProcessingMessage('Payment failed ❌');
+                            setTimeout(() => {
+                                closePaymentProcessingModal();
+                                showToast(`❌ Payment failed: ${result.message}`, 'error');
+                                showToast('Please try again or use a different payment method.', 'info');
+                            }, 1000);
                             return;
                             
                         case 'Pending':
                             if (!pinReminderShown) {
-                                showToast('📱 Please check your phone and enter your M-Pesa PIN', 'info');
+                                updatePaymentProcessingMessage('Please enter your M-Pesa PIN on your phone 📱');
                                 pinReminderShown = true;
                             }
                             break;
                     }
                 }
             } else {
+                closePaymentProcessingModal();
                 showToast(`Error checking payment: ${result.message}`, 'error');
                 return;
             }
@@ -982,17 +1122,18 @@ async function pollPaymentStatusWithFeedback(saleId, totalAmount, checkoutReques
             // Continue polling if status is still pending
             attempts++;
             if (attempts < maxAttempts) {
-                // Show progress updates
+                // Show progress updates in modal
                 if (attempts === 5) {
-                    showToast('⏳ Still waiting for payment confirmation...', 'info');
+                    updatePaymentProcessingMessage('Still waiting for payment confirmation... ⏳');
                 } else if (attempts === 15) {
-                    showToast('⏳ Please complete the payment on your phone (2 min elapsed)', 'warning');
+                    updatePaymentProcessingMessage('Please complete the payment on your phone (2 min elapsed) ⏰');
                 } else if (attempts === 25) {
-                    showToast('⏳ Payment taking longer than expected (4 min elapsed)', 'warning');
+                    updatePaymentProcessingMessage('Payment taking longer than expected (4 min elapsed) ⚠️');
                 }
                 
                 setTimeout(checkStatus, 10000); // Check every 10 seconds
             } else {
+                closePaymentProcessingModal();
                 showToast('⏰ Payment confirmation timeout. Please check your M-Pesa messages or try again.', 'error');
                 showToast('If payment was successful, the receipt will be available in transaction history.', 'info');
             }

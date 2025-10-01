@@ -633,6 +633,11 @@ namespace PixelSolution.Services
             {
                 html.AppendLine($"<p><strong>Customer:</strong> {sale.CustomerName}</p>");
             }
+            html.AppendLine($"<p><strong>Payment Method:</strong> {sale.PaymentMethod}</p>");
+            if (sale.PaymentMethod.Equals("M-Pesa", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrEmpty(sale.MpesaReceiptNumber))
+            {
+                html.AppendLine($"<p><strong>M-Pesa Code:</strong> {sale.MpesaReceiptNumber}</p>");
+            }
 
             // Items Table
             html.AppendLine("<table>");

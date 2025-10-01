@@ -137,7 +137,7 @@ namespace PixelSolution.Controllers
                     }
                 }
 
-                // Handle MPESA payments
+                // Handle MPESA payments - Initiate STK Push BEFORE creating sale
                 if (model.PaymentMethod.Equals("M-Pesa", StringComparison.OrdinalIgnoreCase))
                 {
                     _logger.LogInformation("Processing MPESA payment for amount: {Amount}, Phone: {Phone}", model.TotalAmount, model.CustomerPhone);
@@ -153,33 +153,21 @@ namespace PixelSolution.Controllers
                     // Validate phone number format (should be 12 digits starting with 254)
                     if (string.IsNullOrEmpty(formattedPhone) || formattedPhone.Length != 12 || !formattedPhone.StartsWith("254"))
                     {
-                        return Json(new { success = false, message = "Phone number must be in format 254XXXXXXXXX (12 digits)" });
+                        _logger.LogError("Invalid phone format. Original: {Original}, Formatted: {Formatted}, Length: {Length}", 
+                            model.CustomerPhone, formattedPhone, formattedPhone?.Length ?? 0);
+                        return Json(new { success = false, message = $"Invalid phone number format. Expected 12 digits (254XXXXXXXXX), got {formattedPhone?.Length ?? 0} digits: {formattedPhone}" });
                     }
                     _logger.LogInformation("Formatted phone number: {FormattedPhone}", formattedPhone);
 
                     try
                     {
-                        // Step 1: Check if M-Pesa token is available from middleware
-                        var mpesaToken = HttpContext.Items["mpesa_token"]?.ToString();
-                        if (string.IsNullOrEmpty(mpesaToken))
+                        // Step 1: Validate amount (minimum only, no maximum limit)
+                        if (model.TotalAmount < 1)
                         {
-                            _logger.LogError("M-Pesa token not found in request context. Middleware may not be configured.");
-                            return Json(new { 
-                                success = false, 
-                                message = "M-Pesa authentication failed. Please try again.",
-                                status = "token_error"
-                            });
+                            return Json(new { success = false, message = "Amount must be at least KSh 1" });
                         }
 
-                        _logger.LogInformation("✅ M-Pesa token retrieved from middleware");
-                        
-                        // Step 2: Validate amount (same as MpesaTestController)
-                        if (model.TotalAmount < 1 || model.TotalAmount > 70000)
-                        {
-                            return Json(new { success = false, message = "Amount must be between KSh 1 and KSh 70,000" });
-                        }
-
-                        // Step 3: Initiate STK Push with status feedback
+                        // Step 2: Initiate STK Push FIRST - before creating sale record
                         _logger.LogInformation("📱 Initiating MPESA STK Push for phone: {Phone}, amount: {Amount}", formattedPhone, model.TotalAmount);
                         
                         var stkPushResponse = await _mpesaService.InitiateStkPushAsync(
@@ -201,7 +189,7 @@ namespace PixelSolution.Controllers
                             });
                         }
                         
-                        // Step 3: Validate STK Push response
+                        // Step 3: Validate STK Push response - ONLY proceed if successful
                         _logger.LogInformation("🔍 MPESA Response Details - Code: {Code}, Description: {Description}, CheckoutRequestID: {CheckoutRequestID}", 
                             stkPushResponse.ResponseCode, stkPushResponse.ResponseDescription, stkPushResponse.CheckoutRequestID);
                         
@@ -218,7 +206,7 @@ namespace PixelSolution.Controllers
                         
                         _logger.LogInformation("✅ MPESA STK Push initiated successfully. CheckoutRequestId: {CheckoutRequestId}", stkPushResponse.CheckoutRequestID);
                         
-                        // Step 4: Store MPESA transaction for callback tracking
+                        // Step 4: Store MPESA transaction data for creating sale record
                         mpesaTransactionData = new
                         {
                             CheckoutRequestId = stkPushResponse.CheckoutRequestID,
@@ -246,24 +234,13 @@ namespace PixelSolution.Controllers
                         {
                             mpesaErrorMessage = "MPESA service timeout. Please try again.";
                         }
-                        else if (mpesaEx.Message.Contains("sandbox"))
-                        {
-                            mpesaErrorMessage = "MPESA sandbox limitation. For testing, the sale will be processed as completed.";
-                            _logger.LogWarning("MPESA sandbox issue - proceeding with sale completion for testing");
-                            // Don't return error for sandbox issues - continue with sale processing
-                        }
                         else
                         {
                             mpesaErrorMessage = $"MPESA error: {mpesaEx.Message}";
                         }
                         
-                        // For sandbox/testing, don't fail the entire sale due to MPESA issues
-                        if (!mpesaEx.Message.Contains("sandbox"))
-                        {
-                            return Json(new { success = false, message = mpesaErrorMessage });
-                        }
-                        
-                        _logger.LogInformation("Continuing with sale processing despite MPESA sandbox issue");
+                        // Do NOT create sale if STK push fails
+                        return Json(new { success = false, message = mpesaErrorMessage });
                     }
                 }
 

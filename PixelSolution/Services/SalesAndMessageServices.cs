@@ -91,9 +91,10 @@ namespace PixelSolution.Services
                 await _context.SaveChangesAsync();
                 Console.WriteLine($"[DEBUG] Sale saved with ID: {sale.SaleId}");
 
-                // Update product stock quantities (only if not from purchase request)
+                // Update product stock quantities (only if not from purchase request or M-Pesa pending payment)
                 bool isFromPurchaseRequest = sale.PaymentMethod == "Purchase Request";
-                Console.WriteLine($"[DEBUG] Updating stock for {sale.SaleItems.Count} products. From Purchase Request: {isFromPurchaseRequest}");
+                bool isMpesaPending = sale.PaymentMethod.Equals("M-Pesa", StringComparison.OrdinalIgnoreCase) && sale.Status == "Pending";
+                Console.WriteLine($"[DEBUG] Updating stock for {sale.SaleItems.Count} products. From Purchase Request: {isFromPurchaseRequest}, M-Pesa Pending: {isMpesaPending}");
                 
                 foreach (var saleItem in sale.SaleItems)
                 {
@@ -104,6 +105,10 @@ namespace PixelSolution.Services
                         if (isFromPurchaseRequest)
                         {
                             Console.WriteLine($"[DEBUG] Product {product.Name} - Skipping stock deduction (already deducted in purchase request)");
+                        }
+                        else if (isMpesaPending)
+                        {
+                            Console.WriteLine($"[DEBUG] Product {product.Name} - Skipping stock deduction (M-Pesa payment pending callback confirmation)");
                         }
                         else
                         {

@@ -25,13 +25,45 @@ namespace PixelSolution.Controllers
         }
 
         /// <summary>
+        /// Clear all M-Pesa tokens from database to force fresh token generation
+        /// </summary>
+        [HttpPost("clear-tokens")]
+        public async Task<IActionResult> ClearTokens()
+        {
+            try
+            {
+                _logger.LogInformation("🧹 Clearing all M-Pesa tokens from database...");
+                
+                var allTokens = await _context.MpesaTokens.ToListAsync();
+                _context.MpesaTokens.RemoveRange(allTokens);
+                await _context.SaveChangesAsync();
+                
+                return Ok(new
+                {
+                    success = true,
+                    message = $"Cleared {allTokens.Count} tokens from database",
+                    timestamp = DateTime.UtcNow
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Failed to clear tokens");
+                return BadRequest(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+        }
+
+        /// <summary>
         /// Test M-Pesa token generation and database caching
         /// </summary>
         [HttpGet("test-token")]
         public async Task<IActionResult> TestToken()
         {
             try
-        {
+            {
                 _logger.LogInformation("🧪 Testing M-Pesa token generation...");
                 
                 var token = await _mpesaService.GetAccessTokenAsync();
@@ -423,6 +455,70 @@ namespace PixelSolution.Controllers
                 });
             }
         }
+
+        /// <summary>
+        /// Test QR Code generation
+        /// </summary>
+        [HttpPost("test-qr")]
+        public async Task<IActionResult> TestQRCode([FromBody] QRCodeTestRequest request)
+        {
+            try
+            {
+                _logger.LogInformation("🧪 Testing QR Code generation for amount: {Amount}", request.Amount);
+
+                var result = await _mpesaService.GenerateQRCodeAsync(
+                    request.MerchantName ?? "PixelSolution",
+                    request.RefNo ?? "INV-" + DateTime.Now.ToString("yyyyMMddHHmmss"),
+                    request.Amount,
+                    request.TrxCode ?? "BG",
+                    request.Size ?? "300"
+                );
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "QR Code generated successfully",
+                    data = result,
+                    timestamp = DateTime.UtcNow
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ QR Code generation test failed");
+                return BadRequest(new
+                {
+                    success = false,
+                    message = ex.Message,
+                    stackTrace = ex.StackTrace
+                });
+            }
+        }
+
+        /// <summary>
+        /// Test C2B URL registration
+        /// </summary>
+        [HttpPost("register-c2b")]
+        public async Task<IActionResult> RegisterC2BUrls()
+        {
+            try
+            {
+                _logger.LogInformation(" Registering C2B URLs with Safaricom...");
+                var result = await _mpesaService.RegisterC2BUrlsAsync();
+                _logger.LogInformation(" C2B URLs registered successfully");
+                return Ok(new { success = true, message = "C2B URLs registered successfully", data = result });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, " Error registering C2B URLs");
+                return Ok(new { success = false, message = $"Failed to register C2B URLs: {ex.Message}" });
+                return BadRequest(new
+                {
+                    success = false,
+                    message = ex.Message,
+                    stackTrace = ex.StackTrace
+                });
+            }
+        }
     }
 
     // Request models for testing
@@ -443,5 +539,14 @@ namespace PixelSolution.Controllers
         public decimal Amount { get; set; }
         public string Remarks { get; set; } = string.Empty;
         public string Occasion { get; set; } = string.Empty;
+    }
+
+    public class QRCodeTestRequest
+    {
+        public string? MerchantName { get; set; }
+        public string? RefNo { get; set; }
+        public decimal Amount { get; set; }
+        public string? TrxCode { get; set; }
+        public string? Size { get; set; }
     }
 }

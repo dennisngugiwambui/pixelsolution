@@ -121,16 +121,24 @@ namespace PixelSolution.Controllers
                                     _logger.LogInformation("💳 MPESA Receipt: {Receipt}", mpesaReceiptNumber);
                                     break;
                                 case "Amount":
-                                    if (decimal.TryParse(value.GetString(), out var amount))
+                                    // Amount can be sent as number or string
+                                    if (value.ValueKind == JsonValueKind.Number)
+                                    {
+                                        amountReceived = value.GetDecimal();
+                                    }
+                                    else if (value.ValueKind == JsonValueKind.String && decimal.TryParse(value.GetString(), out var amount))
                                     {
                                         amountReceived = amount;
                                     }
+                                    _logger.LogInformation("💰 Amount received: {Amount}", amountReceived);
                                     break;
                                 case "TransactionDate":
-                                    transactionDate = value.GetString();
+                                    // TransactionDate can be sent as number or string
+                                    transactionDate = value.ValueKind == JsonValueKind.Number ? value.GetInt64().ToString() : value.GetString();
                                     break;
                                 case "PhoneNumber":
-                                    phoneNumber = value.GetString();
+                                    // PhoneNumber can be sent as number or string
+                                    phoneNumber = value.ValueKind == JsonValueKind.Number ? value.GetInt64().ToString() : value.GetString();
                                     break;
                             }
                         }
@@ -149,6 +157,7 @@ namespace PixelSolution.Controllers
                     sale.Status = "Completed";
                     sale.AmountPaid = amountReceived ?? sale.TotalAmount;
                     sale.ChangeGiven = Math.Max(0, sale.AmountPaid - sale.TotalAmount);
+                    sale.MpesaReceiptNumber = mpesaReceiptNumber; // Save M-Pesa receipt number
 
                     // Update product inventory - CRITICAL: Reduce stock for purchased items
                     var saleItems = await _context.SaleItems
@@ -311,6 +320,112 @@ namespace PixelSolution.Controllers
             public decimal? Amount { get; set; }
             public string? MpesaReceiptNumber { get; set; }
             public string? PhoneNumber { get; set; }
+        }
+
+        [HttpPost("c2b/validation")]
+        public IActionResult C2BValidation()
+        {
+            try
+            {
+                using var reader = new StreamReader(Request.Body);
+                var rawBody = reader.ReadToEndAsync().Result;
+                
+                _logger.LogInformation("📥 C2B Validation request received: {RawBody}", rawBody);
+
+                // For now, accept all transactions
+                // You can add custom validation logic here
+                return Ok(new
+                {
+                    ResultCode = 0,
+                    ResultDesc = "Accepted"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Error in C2B validation");
+                return Ok(new
+                {
+                    ResultCode = 1,
+                    ResultDesc = "Rejected"
+                });
+            }
+        }
+
+        [HttpPost("c2b/confirmation")]
+        public async Task<IActionResult> C2BConfirmation()
+        {
+            try
+            {
+                using var reader = new StreamReader(Request.Body);
+                var rawBody = await reader.ReadToEndAsync();
+                
+                _logger.LogInformation("📥 C2B Confirmation received: {RawBody}", rawBody);
+
+                // Parse C2B payment data
+                var c2bData = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(rawBody);
+                
+                if (c2bData != null)
+                {
+                    // Extract transaction details
+                    var transactionType = c2bData.ContainsKey("TransactionType") ? c2bData["TransactionType"].GetString() : "";
+                    var transId = c2bData.ContainsKey("TransID") ? c2bData["TransID"].GetString() : "";
+                    var transAmount = c2bData.ContainsKey("TransAmount") ? c2bData["TransAmount"].GetDecimal() : 0;
+                    var businessShortCode = c2bData.ContainsKey("BusinessShortCode") ? c2bData["BusinessShortCode"].GetString() : "";
+                    var billRefNumber = c2bData.ContainsKey("BillRefNumber") ? c2bData["BillRefNumber"].GetString() : "";
+                    var msisdn = c2bData.ContainsKey("MSISDN") ? c2bData["MSISDN"].GetString() : "";
+                    var firstName = c2bData.ContainsKey("FirstName") ? c2bData["FirstName"].GetString() : "";
+                    var middleName = c2bData.ContainsKey("MiddleName") ? c2bData["MiddleName"].GetString() : "";
+                    var lastName = c2bData.ContainsKey("LastName") ? c2bData["LastName"].GetString() : "";
+                    
+                    _logger.LogInformation("💰 C2B Payment: TransID={TransID}, Amount={Amount}, Phone={Phone}, BillRef={BillRef}", 
+                        transId, transAmount, msisdn, billRefNumber);
+
+                    // Try to find pending sale by amount and phone number
+                    var pendingSale = await _context.Sales
+                        .Where(s => s.Status == "Pending" && 
+                                   s.PaymentMethod == "M-Pesa" &&
+                                   s.TotalAmount == transAmount &&
+                                   (string.IsNullOrEmpty(s.CustomerPhone) || s.CustomerPhone.Contains(msisdn.Substring(msisdn.Length - 9))))
+                        .OrderByDescending(s => s.SaleDate)
+                        .FirstOrDefaultAsync();
+
+                    if (pendingSale != null)
+                    {
+                        // Link M-Pesa transaction to sale
+                        pendingSale.MpesaReceiptNumber = transId;
+                        pendingSale.Status = "Completed";
+                        pendingSale.AmountPaid = transAmount;
+                        
+                        await _context.SaveChangesAsync();
+                        
+                        _logger.LogInformation("✅ C2B Payment linked to Sale #{SaleNumber}, TransID: {TransID}", 
+                            pendingSale.SaleNumber, transId);
+                    }
+                    else
+                    {
+                        // Save as unlinked C2B transaction for manual reconciliation
+                        _logger.LogWarning("⚠️ No matching pending sale found for C2B payment. TransID: {TransID}, Amount: {Amount}", 
+                            transId, transAmount);
+                        
+                        // You could save to a separate C2BTransaction table for manual linking later
+                    }
+                }
+
+                return Ok(new
+                {
+                    ResultCode = 0,
+                    ResultDesc = "Success"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Error in C2B confirmation");
+                return Ok(new
+                {
+                    ResultCode = 1,
+                    ResultDesc = "Failed"
+                });
+            }
         }
     }
 }

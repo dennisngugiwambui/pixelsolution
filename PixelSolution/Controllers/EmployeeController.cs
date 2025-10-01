@@ -20,6 +20,7 @@ namespace PixelSolution.Controllers
         private readonly ApplicationDbContext _context;
         private readonly ILogger<EmployeeController> _logger;
         private readonly IActivityLogService _activityLogService;
+        private readonly IMpesaService _mpesaService;
 
         public EmployeeController(
             IReportService reportService, 
@@ -28,7 +29,8 @@ namespace PixelSolution.Controllers
             ICategoryService categoryService,
             ApplicationDbContext context,
             ILogger<EmployeeController> logger,
-            IActivityLogService activityLogService)
+            IActivityLogService activityLogService,
+            IMpesaService mpesaService)
         {
             _reportService = reportService;
             _saleService = saleService;
@@ -37,6 +39,7 @@ namespace PixelSolution.Controllers
             _context = context;
             _logger = logger;
             _activityLogService = activityLogService;
+            _mpesaService = mpesaService;
         }
 
         public async Task<IActionResult> Index()
@@ -372,7 +375,8 @@ namespace PixelSolution.Controllers
         {
             try
             {
-                _logger.LogInformation("Employee processing sale with {ItemCount} items", request.Items?.Count ?? 0);
+                _logger.LogInformation("Employee processing sale with {ItemCount} items, Payment Method: {PaymentMethod}", 
+                    request.Items?.Count ?? 0, request.PaymentMethod);
 
                 if (request.Items == null || !request.Items.Any())
                 {
@@ -386,6 +390,14 @@ namespace PixelSolution.Controllers
                 }
 
                 var employeeId = int.Parse(userId);
+                var currentUser = await _context.Users.FindAsync(employeeId);
+                if (currentUser == null)
+                {
+                    return Json(new { success = false, message = "User not found" });
+                }
+                
+                // Variable to store MPESA transaction data for callback tracking
+                object? mpesaTransactionData = null;
                 
                 // Log employee sale processing
                 await _activityLogService.LogActivityAsync(
@@ -424,57 +436,248 @@ namespace PixelSolution.Controllers
                     }
                 }
 
+                // Handle MPESA payments - Initiate STK Push BEFORE creating sale
+                if (request.PaymentMethod.Equals("M-Pesa", StringComparison.OrdinalIgnoreCase))
+                {
+                    _logger.LogInformation("🔵 Processing MPESA payment for amount: {Amount}, Phone: '{Phone}', Length: {Length}", 
+                        request.TotalAmount, request.CustomerPhone, request.CustomerPhone?.Length ?? 0);
+                    
+                    if (string.IsNullOrEmpty(request.CustomerPhone))
+                    {
+                        return Json(new { success = false, message = "Phone number is required for MPESA payments." });
+                    }
+
+                    // Clean and format phone number
+                    var formattedPhone = request.CustomerPhone?.Trim() ?? "";
+                    
+                    _logger.LogInformation("🔵 After trim: '{Phone}', Length: {Length}", formattedPhone, formattedPhone.Length);
+                    
+                    // Remove any non-digit characters
+                    formattedPhone = new string(formattedPhone.Where(char.IsDigit).ToArray());
+                    
+                    _logger.LogInformation("🔵 After cleaning (digits only): '{Phone}', Length: {Length}", formattedPhone, formattedPhone.Length);
+                    
+                    // Format phone number if needed
+                    if (!formattedPhone.StartsWith("254"))
+                    {
+                        // Remove leading 0 if present
+                        if (formattedPhone.StartsWith("0"))
+                        {
+                            formattedPhone = "254" + formattedPhone.Substring(1);
+                        }
+                        else
+                        {
+                            formattedPhone = "254" + formattedPhone;
+                        }
+                    }
+
+                    // Validate phone number format (should be 12 digits starting with 254)
+                    if (formattedPhone.Length != 12 || !formattedPhone.StartsWith("254") || !formattedPhone.All(char.IsDigit))
+                    {
+                        _logger.LogError("Invalid phone format. Original: {Original}, Cleaned: {Cleaned}, Formatted: {Formatted}, Length: {Length}", 
+                            request.CustomerPhone, new string(request.CustomerPhone.Where(char.IsDigit).ToArray()), formattedPhone, formattedPhone.Length);
+                        return Json(new { success = false, message = $"Invalid phone number format. Expected 12 digits (254XXXXXXXXX), got {formattedPhone.Length} digits: {formattedPhone}" });
+                    }
+
+                    // Update the phone number to formatted version
+                    request.CustomerPhone = formattedPhone;
+                    _logger.LogInformation("Phone number formatted: {FormattedPhone}", formattedPhone);
+
+                    try
+                    {
+                        // Validate amount (minimum only, no maximum limit)
+                        if (request.TotalAmount < 1)
+                        {
+                            return Json(new { success = false, message = "Amount must be at least KSh 1" });
+                        }
+
+                        // Initiate STK Push FIRST - before creating sale record
+                        _logger.LogInformation("📱 Initiating MPESA STK Push for phone: {Phone}, amount: {Amount}", request.CustomerPhone, request.TotalAmount);
+                        
+                        var stkPushResponse = await _mpesaService.InitiateStkPushAsync(
+                            request.CustomerPhone,
+                            request.TotalAmount,
+                            "SALE" + DateTime.Now.ToString("yyyyMMddHHmmss").Substring(0, 8),
+                            "Payment for purchase"
+                        );
+                        
+                        _logger.LogInformation("📋 MPESA STK Push response: {Response}", System.Text.Json.JsonSerializer.Serialize(stkPushResponse));
+                        
+                        if (stkPushResponse == null)
+                        {
+                            _logger.LogError("❌ MPESA STK Push failed: Null response");
+                            return Json(new { 
+                                success = false, 
+                                message = "MPESA Error: No response from service. Please try again.",
+                                status = "stk_failed"
+                            });
+                        }
+                        
+                        // Validate STK Push response - ONLY proceed if successful
+                        _logger.LogInformation("🔍 MPESA Response Details - Code: {Code}, Description: {Description}, CheckoutRequestID: {CheckoutRequestID}", 
+                            stkPushResponse.ResponseCode, stkPushResponse.ResponseDescription, stkPushResponse.CheckoutRequestID);
+                        
+                        if (stkPushResponse.ResponseCode != "0")
+                        {
+                            var errorMsg = stkPushResponse.ResponseDescription ?? "Unknown MPESA error";
+                            _logger.LogError("❌ MPESA STK Push failed: Code {Code}, Error: {Error}", stkPushResponse.ResponseCode, errorMsg);
+                            return Json(new { 
+                                success = false, 
+                                message = $"MPESA Error ({stkPushResponse.ResponseCode}): {errorMsg}. Please try again.",
+                                status = "stk_rejected"
+                            });
+                        }
+                        
+                        _logger.LogInformation("✅ MPESA STK Push initiated successfully. CheckoutRequestId: {CheckoutRequestId}", stkPushResponse.CheckoutRequestID);
+                        
+                        // Store MPESA transaction data for creating sale record
+                        mpesaTransactionData = new
+                        {
+                            CheckoutRequestId = stkPushResponse.CheckoutRequestID,
+                            MerchantRequestId = stkPushResponse.MerchantRequestID,
+                            PhoneNumber = request.CustomerPhone,
+                            Amount = request.TotalAmount,
+                            Status = "STK_SENT"
+                        };
+                    }
+                    catch (Exception mpesaEx)
+                    {
+                        _logger.LogError(mpesaEx, "MPESA STK Push failed: {ErrorMessage}", mpesaEx.Message);
+                        
+                        var mpesaErrorMessage = "MPESA service error";
+                        if (mpesaEx.Message.Contains("401") || mpesaEx.Message.Contains("Unauthorized"))
+                        {
+                            mpesaErrorMessage = "MPESA authentication failed. Please check API credentials.";
+                        }
+                        else if (mpesaEx.Message.Contains("400") || mpesaEx.Message.Contains("Bad Request"))
+                        {
+                            mpesaErrorMessage = "Invalid MPESA request. Please check phone number format.";
+                        }
+                        else if (mpesaEx.Message.Contains("timeout") || mpesaEx.Message.Contains("network"))
+                        {
+                            mpesaErrorMessage = "MPESA service timeout. Please try again.";
+                        }
+                        else
+                        {
+                            mpesaErrorMessage = $"MPESA error: {mpesaEx.Message}";
+                        }
+                        
+                        // Do NOT create sale if STK push fails
+                        return Json(new { success = false, message = mpesaErrorMessage });
+                    }
+                }
+
                 // Create sale record
                 var sale = new Sale
                 {
-                    UserId = int.Parse(userId),
-                    SaleDate = DateTime.Now,
-                    SaleNumber = $"SAL{DateTime.Now:yyyyMMddHHmmss}",
-                    TotalAmount = request.TotalAmount,
-                    AmountPaid = request.TotalAmount,
-                    PaymentMethod = request.PaymentMethod,
+                    UserId = employeeId,
+                    SaleDate = DateTime.UtcNow,
+                    CashierName = $"{currentUser.FirstName} {currentUser.LastName}",
                     CustomerPhone = request.CustomerPhone ?? "",
-                    CashierName = User.Identity?.Name ?? "Employee",
-                    ChangeGiven = request.PaymentMethod == "cash" && request.CashReceived.HasValue 
-                        ? request.CashReceived.Value - request.TotalAmount : 0
+                    PaymentMethod = request.PaymentMethod,
+                    AmountPaid = request.PaymentMethod.Equals("M-Pesa", StringComparison.OrdinalIgnoreCase) ? 0 : request.TotalAmount,
+                    ChangeGiven = request.PaymentMethod.Equals("M-Pesa", StringComparison.OrdinalIgnoreCase) ? 0 : 
+                                  (request.PaymentMethod == "Cash" && request.CashReceived.HasValue ? request.CashReceived.Value - request.TotalAmount : 0),
+                    Status = request.PaymentMethod.Equals("M-Pesa", StringComparison.OrdinalIgnoreCase) ? "Pending" : "Completed",
+                    SaleItems = new List<SaleItem>()
                 };
 
-                _context.Sales.Add(sale);
-                await _context.SaveChangesAsync(); // Save to get the SaleId
-
-                // Create sale items
+                // Add sale items
                 foreach (var item in request.Items)
                 {
                     var saleItem = new SaleItem
                     {
-                        SaleId = sale.SaleId,
                         ProductId = item.ProductId,
                         Quantity = item.Quantity,
                         UnitPrice = item.UnitPrice,
                         TotalPrice = item.Total
                     };
-                    _context.SaleItems.Add(saleItem);
+                    sale.SaleItems.Add(saleItem);
+                }
 
-                    // Update stock quantities
-                    var product = await _context.Products.FindAsync(item.ProductId);
-                    if (product != null)
+                // Create sale using service (handles stock deduction logic)
+                var createdSale = await _saleService.CreateSaleAsync(sale);
+                _logger.LogInformation("Sale created successfully with ID: {SaleId}, Number: {SaleNumber}, Status: {Status}", 
+                    createdSale.SaleId, createdSale.SaleNumber, createdSale.Status);
+
+                // Store MPESA transaction information if this was an MPESA payment
+                if (mpesaTransactionData != null && request.PaymentMethod.Equals("M-Pesa", StringComparison.OrdinalIgnoreCase))
+                {
+                    try
                     {
-                        product.StockQuantity -= item.Quantity;
-                        _context.Products.Update(product);
+                        var mpesaData = (dynamic)mpesaTransactionData;
+                        var mpesaTransaction = new MpesaTransaction
+                        {
+                            SaleId = createdSale.SaleId,
+                            CheckoutRequestId = mpesaData.CheckoutRequestId,
+                            MerchantRequestId = mpesaData.MerchantRequestId,
+                            PhoneNumber = mpesaData.PhoneNumber,
+                            Amount = mpesaData.Amount,
+                            Status = "STK_SENT",
+                            CreatedAt = DateTime.UtcNow
+                        };
+
+                        _context.MpesaTransactions.Add(mpesaTransaction);
+                        await _context.SaveChangesAsync();
+                        
+                        _logger.LogInformation("💾 MPESA transaction stored with ID: {TransactionId} for Sale: {SaleId} - Status: STK_SENT", 
+                            mpesaTransaction.MpesaTransactionId, createdSale.SaleId);
+                        
+                        // Log M-Pesa sale initiation
+                        await _activityLogService.LogActivityAsync(
+                            employeeId, 
+                            "M-Pesa Payment Initiated", 
+                            $"Employee initiated M-Pesa payment for sale #{createdSale.SaleNumber}",
+                            "Sale",
+                            createdSale.SaleId,
+                            new { 
+                                SaleNumber = createdSale.SaleNumber,
+                                TotalAmount = request.TotalAmount,
+                                CheckoutRequestId = mpesaData.CheckoutRequestId
+                            },
+                            HttpContext.Connection.RemoteIpAddress?.ToString(),
+                            Request.Headers["User-Agent"]
+                        );
+                        
+                        // Return success with detailed status for frontend
+                        return Json(new
+                        {
+                            success = true,
+                            message = "STK Push sent successfully! Check your phone.",
+                            saleId = createdSale.SaleId,
+                            saleNumber = createdSale.SaleNumber,
+                            totalAmount = request.TotalAmount,
+                            paymentMethod = "M-Pesa",
+                            status = "STK_SENT",
+                            waitingForCallback = true,
+                            checkoutRequestId = mpesaData.CheckoutRequestId,
+                            statusMessages = new
+                            {
+                                current = "STK Push sent to your phone",
+                                next = "Please enter your M-Pesa PIN to complete payment"
+                            }
+                        });
+                    }
+                    catch (Exception mpesaDbEx)
+                    {
+                        _logger.LogError(mpesaDbEx, "❌ Failed to store MPESA transaction data: {ErrorMessage}", mpesaDbEx.Message);
+                        return Json(new { 
+                            success = false, 
+                            message = "Failed to save M-Pesa transaction. Please try again.",
+                            status = "db_error"
+                        });
                     }
                 }
 
-                await _context.SaveChangesAsync();
-
-                // Log successful sale completion
+                // For non-M-Pesa payments, log completion
                 await _activityLogService.LogActivityAsync(
                     employeeId, 
                     "Sale Completed", 
-                    $"Employee completed sale #{sale.SaleNumber} for KSh {request.TotalAmount:N2}",
+                    $"Employee completed sale #{createdSale.SaleNumber} for KSh {request.TotalAmount:N2}",
                     "Sale",
-                    sale.SaleId,
+                    createdSale.SaleId,
                     new { 
-                        SaleNumber = sale.SaleNumber,
+                        SaleNumber = createdSale.SaleNumber,
                         TotalAmount = request.TotalAmount,
                         PaymentMethod = request.PaymentMethod,
                         ItemCount = request.Items.Count
@@ -483,14 +686,84 @@ namespace PixelSolution.Controllers
                     Request.Headers["User-Agent"]
                 );
 
-                _logger.LogInformation("Employee sale processed successfully. Sale ID: {SaleId}", sale.SaleId);
+                _logger.LogInformation("Employee sale processed successfully. Sale ID: {SaleId}", createdSale.SaleId);
 
-                return Json(new { success = true, saleId = sale.SaleId, message = "Sale processed successfully" });
+                return Json(new { 
+                    success = true, 
+                    saleId = createdSale.SaleId, 
+                    saleNumber = createdSale.SaleNumber,
+                    message = "Sale processed successfully",
+                    status = "Completed"
+                });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error processing employee sale");
-                return Json(new { success = false, message = "An error occurred while processing the sale" });
+                return Json(new { success = false, message = "An error occurred while processing the sale: " + ex.Message });
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> CheckPaymentStatus(int saleId)
+        {
+            try
+            {
+                var sale = await _context.Sales.FirstOrDefaultAsync(s => s.SaleId == saleId);
+                if (sale == null)
+                {
+                    return Json(new { success = false, message = "Sale not found" });
+                }
+
+                // Check if this is an M-Pesa payment
+                if (sale.PaymentMethod.Equals("M-Pesa", StringComparison.OrdinalIgnoreCase))
+                {
+                    var mpesaTransaction = await _context.MpesaTransactions
+                        .FirstOrDefaultAsync(mt => mt.SaleId == saleId);
+
+                    if (mpesaTransaction == null)
+                    {
+                        return Json(new { 
+                            success = false, 
+                            status = "Error", 
+                            message = "M-Pesa transaction record not found" 
+                        });
+                    }
+
+                    // Return current status
+                    return Json(new
+                    {
+                        success = true,
+                        status = mpesaTransaction.Status,
+                        saleStatus = sale.Status,
+                        message = mpesaTransaction.Status switch
+                        {
+                            "Completed" => "Payment completed successfully!",
+                            "Failed" => $"Payment failed: {mpesaTransaction.ErrorMessage ?? "Unknown error"}",
+                            "Pending" => "Waiting for payment confirmation...",
+                            _ => "Payment status unknown"
+                        },
+                        mpesaReceiptNumber = mpesaTransaction.MpesaReceiptNumber,
+                        completedAt = mpesaTransaction.CompletedAt
+                    });
+                }
+
+                // For non-M-Pesa payments, return completed status
+                return Json(new
+                {
+                    success = true,
+                    status = "Completed",
+                    saleStatus = sale.Status,
+                    message = "Payment completed"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error checking payment status for sale {SaleId}: {ErrorMessage}", saleId, ex.Message);
+                return Json(new { 
+                    success = false, 
+                    status = "Error", 
+                    message = "Error checking payment status" 
+                });
             }
         }
 
