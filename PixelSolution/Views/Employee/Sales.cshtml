@@ -1263,7 +1263,10 @@
         </div>
 
         <div style="display: flex; gap: 0.75rem; margin-top: 1.5rem; justify-content: center;">
-            <button class="btn btn-secondary" onclick="closeReceiptModal()" style="padding: 0.75rem 3rem;">Close</button>
+            <button class="btn btn-primary" onclick="printReceipt()" style="padding: 0.75rem 2rem;">
+                <i class="fas fa-print"></i> Print Receipt
+            </button>
+            <button class="btn btn-secondary" onclick="closeReceiptModal()" style="padding: 0.75rem 2rem;">Close</button>
         </div>
     </div>
 </div>
@@ -1306,6 +1309,101 @@
 </form>
 
 @section Scripts {
+    <!-- Security: Disable Developer Tools and Console for Employees -->
+    <script>
+        (function() {
+            'use strict';
+            
+            // Disable right-click
+            document.addEventListener('contextmenu', function(e) {
+                e.preventDefault();
+                return false;
+            });
+            
+            // Disable keyboard shortcuts for DevTools
+            document.addEventListener('keydown', function(e) {
+                // F12
+                if (e.keyCode === 123) {
+                    e.preventDefault();
+                    return false;
+                }
+                // Ctrl+Shift+I (Inspect)
+                if (e.ctrlKey && e.shiftKey && e.keyCode === 73) {
+                    e.preventDefault();
+                    return false;
+                }
+                // Ctrl+Shift+J (Console)
+                if (e.ctrlKey && e.shiftKey && e.keyCode === 74) {
+                    e.preventDefault();
+                    return false;
+                }
+                // Ctrl+U (View Source)
+                if (e.ctrlKey && e.keyCode === 85) {
+                    e.preventDefault();
+                    return false;
+                }
+                // Ctrl+Shift+C (Inspect Element)
+                if (e.ctrlKey && e.shiftKey && e.keyCode === 67) {
+                    e.preventDefault();
+                    return false;
+                }
+            });
+            
+            // Detect if DevTools is open
+            var devtools = {
+                isOpen: false,
+                orientation: null
+            };
+            
+            var threshold = 160;
+            var emitEvent = function(state, orientation) {
+                window.dispatchEvent(new CustomEvent('devtoolschange', {
+                    detail: {
+                        isOpen: state,
+                        orientation: orientation
+                    }
+                }));
+            };
+            
+            setInterval(function() {
+                var widthThreshold = window.outerWidth - window.innerWidth > threshold;
+                var heightThreshold = window.outerHeight - window.innerHeight > threshold;
+                var orientation = widthThreshold ? 'vertical' : 'horizontal';
+                
+                if (!(heightThreshold && widthThreshold) && ((window.Firebug && window.Firebug.chrome && window.Firebug.chrome.isInitialized) || widthThreshold || heightThreshold)) {
+                    if (!devtools.isOpen || devtools.orientation !== orientation) {
+                        emitEvent(true, orientation);
+                        // Redirect if DevTools detected
+                        window.location.href = '/Auth/Login?message=Security violation detected';
+                    }
+                    devtools.isOpen = true;
+                    devtools.orientation = orientation;
+                } else {
+                    if (devtools.isOpen) {
+                        emitEvent(false, null);
+                    }
+                    devtools.isOpen = false;
+                    devtools.orientation = null;
+                }
+            }, 500);
+            
+            // Clear console periodically
+            if (window.console) {
+                setInterval(function() {
+                    console.clear();
+                }, 1000);
+            }
+            
+            // Disable console methods
+            var noop = function() {};
+            console.log = noop;
+            console.warn = noop;
+            console.error = noop;
+            console.info = noop;
+            console.debug = noop;
+        })();
+    </script>
+    
     <script src="~/js/dashboard.js"></script>
     <script src="~/js/sales.js"></script>
     <script>

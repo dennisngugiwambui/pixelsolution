@@ -2757,33 +2757,222 @@ namespace PixelSolution.Services
         {
             try
             {
+                // Fetch M-Pesa transactions
+                var transactions = await _context.MpesaTransactions
+                    .Where(t => t.CreatedAt >= request.StartDate && t.CreatedAt <= request.EndDate)
+                    .OrderByDescending(t => t.CreatedAt)
+                    .ToListAsync();
+
                 using (var stream = new MemoryStream())
                 {
-                    var document = new Document(PageSize.A4, 25, 25, 30, 30);
-                    PdfWriter.GetInstance(document, stream);
+                    var document = new Document(PageSize.A4, 40, 40, 60, 60);
+                    var writer = PdfWriter.GetInstance(document, stream);
                     
                     document.Open();
                     
                     // Fonts
-                    var titleFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 18, BaseColor.BLACK);
-                    var subtitleFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 14, BaseColor.DARK_GRAY);
+                    var titleFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 22, new BaseColor(37, 99, 235)); // Blue
+                    var companyFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 16, BaseColor.BLACK);
+                    var headerFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 12, BaseColor.BLACK);
                     var normalFont = FontFactory.GetFont(FontFactory.HELVETICA, 10, BaseColor.BLACK);
+                    var boldFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 10, BaseColor.BLACK);
+                    var smallFont = FontFactory.GetFont(FontFactory.HELVETICA, 9, BaseColor.DARK_GRAY);
                     
-                    // Title
-                    var title = new Paragraph(request.Title, titleFont)
+                    // ==================== COMPANY HEADER ====================
+                    var companyHeader = new PdfPTable(1) { WidthPercentage = 100 };
+                    companyHeader.DefaultCell.Border = Rectangle.NO_BORDER;
+                    companyHeader.DefaultCell.HorizontalAlignment = Element.ALIGN_CENTER;
+                    
+                    // Company Name
+                    var companyCell = new PdfPCell(new Phrase("PIXEL SOLUTION COMPANY LTD", companyFont))
+                    {
+                        Border = Rectangle.NO_BORDER,
+                        HorizontalAlignment = Element.ALIGN_CENTER,
+                        PaddingBottom = 5
+                    };
+                    companyHeader.AddCell(companyCell);
+                    
+                    // Address
+                    var addressCell = new PdfPCell(new Phrase("Nairobi, Kenya", normalFont))
+                    {
+                        Border = Rectangle.NO_BORDER,
+                        HorizontalAlignment = Element.ALIGN_CENTER,
+                        PaddingBottom = 3
+                    };
+                    companyHeader.AddCell(addressCell);
+                    
+                    // Contact Info
+                    var contactCell = new PdfPCell(new Phrase("Phone: +254758024400 | Email: info@pixelsolution.com", smallFont))
+                    {
+                        Border = Rectangle.NO_BORDER,
+                        HorizontalAlignment = Element.ALIGN_CENTER,
+                        PaddingBottom = 10
+                    };
+                    companyHeader.AddCell(contactCell);
+                    
+                    document.Add(companyHeader);
+                    
+                    // Horizontal line
+                    var line = new LineSeparator(1f, 100f, BaseColor.DARK_GRAY, Element.ALIGN_CENTER, -2);
+                    document.Add(new Chunk(line));
+                    document.Add(new Paragraph(" ")); // Spacing
+                    
+                    // ==================== REPORT TITLE ====================
+                    var reportTitle = new Paragraph("M-PESA TRANSACTIONS REPORT", titleFont)
                     {
                         Alignment = Element.ALIGN_CENTER,
+                        SpacingAfter = 10
+                    };
+                    document.Add(reportTitle);
+                    
+                    // Report Period
+                    var periodText = $"Period: {request.StartDate:MMMM dd, yyyy} to {request.EndDate:MMMM dd, yyyy}";
+                    var period = new Paragraph(periodText, normalFont)
+                    {
+                        Alignment = Element.ALIGN_CENTER,
+                        SpacingAfter = 15
+                    };
+                    document.Add(period);
+                    
+                    // ==================== SUMMARY STATISTICS ====================
+                    var completed = transactions.Where(t => t.Status == "Completed").ToList();
+                    var pending = transactions.Where(t => t.Status == "Pending" || t.Status == "STK_SENT").ToList();
+                    var failed = transactions.Where(t => t.Status == "Failed").ToList();
+                    
+                    var summaryTable = new PdfPTable(4) { WidthPercentage = 100, SpacingAfter = 15 };
+                    summaryTable.SetWidths(new float[] { 1f, 1f, 1f, 1f });
+                    
+                    // Summary Headers
+                    AddTableCell(summaryTable, "Total Transactions", headerFont, BaseColor.LIGHT_GRAY, true);
+                    AddTableCell(summaryTable, "Completed", headerFont, new BaseColor(209, 250, 229), true);
+                    AddTableCell(summaryTable, "Pending", headerFont, new BaseColor(254, 243, 199), true);
+                    AddTableCell(summaryTable, "Failed", headerFont, new BaseColor(254, 226, 226), true);
+                    
+                    // Summary Data
+                    AddTableCell(summaryTable, transactions.Count.ToString(), boldFont, BaseColor.WHITE);
+                    AddTableCell(summaryTable, $"{completed.Count}\nKSh {completed.Sum(t => t.Amount):N2}", normalFont, BaseColor.WHITE);
+                    AddTableCell(summaryTable, $"{pending.Count}\nKSh {pending.Sum(t => t.Amount):N2}", normalFont, BaseColor.WHITE);
+                    AddTableCell(summaryTable, failed.Count.ToString(), normalFont, BaseColor.WHITE);
+                    
+                    document.Add(summaryTable);
+                    
+                    // ==================== TRANSACTIONS TABLE ====================
+                    if (transactions.Any())
+                    {
+                        var transTable = new PdfPTable(6) { WidthPercentage = 100, SpacingAfter = 20 };
+                        transTable.SetWidths(new float[] { 1.5f, 1.5f, 1f, 1.3f, 1f, 1.2f });
+                        
+                        // Table Headers
+                        AddTableHeaderCell(transTable, "Transaction ID", headerFont);
+                        AddTableHeaderCell(transTable, "Phone Number", headerFont);
+                        AddTableHeaderCell(transTable, "Amount (KSh)", headerFont);
+                        AddTableHeaderCell(transTable, "M-Pesa Receipt", headerFont);
+                        AddTableHeaderCell(transTable, "Status", headerFont);
+                        AddTableHeaderCell(transTable, "Date/Time", headerFont);
+                        
+                        // Table Data
+                        foreach (var trans in transactions.Take(50)) // Limit to 50 for PDF size
+                        {
+                            AddTableCell(transTable, trans.TransactionId ?? "-", smallFont, BaseColor.WHITE);
+                            AddTableCell(transTable, trans.PhoneNumber ?? "-", smallFont, BaseColor.WHITE);
+                            AddTableCell(transTable, trans.Amount.ToString("N2"), smallFont, BaseColor.WHITE);
+                            AddTableCell(transTable, trans.MpesaReceiptNumber ?? "-", smallFont, BaseColor.WHITE);
+                            
+                            // Status with color
+                            var statusColor = trans.Status == "Completed" ? new BaseColor(209, 250, 229) :
+                                            trans.Status == "Failed" ? new BaseColor(254, 226, 226) :
+                                            new BaseColor(254, 243, 199);
+                            AddTableCell(transTable, trans.Status ?? "Pending", smallFont, statusColor);
+                            
+                            AddTableCell(transTable, trans.CreatedAt.ToString("MMM dd, HH:mm"), smallFont, BaseColor.WHITE);
+                        }
+                        
+                        document.Add(transTable);
+                        
+                        if (transactions.Count > 50)
+                        {
+                            var note = new Paragraph($"Note: Showing first 50 of {transactions.Count} transactions", smallFont)
+                            {
+                                Alignment = Element.ALIGN_CENTER,
+                                SpacingAfter = 15
+                            };
+                            document.Add(note);
+                        }
+                    }
+                    else
+                    {
+                        var noData = new Paragraph("No transactions found for the selected period.", normalFont)
+                        {
+                            Alignment = Element.ALIGN_CENTER,
+                            SpacingAfter = 20
+                        };
+                        document.Add(noData);
+                    }
+                    
+                    // ==================== FOOTER SECTION ====================
+                    document.Add(new Paragraph(" ")); // Spacing
+                    document.Add(new Chunk(line)); // Horizontal line
+                    
+                    // Printed By Information
+                    var printedBy = new Paragraph(
+                        $"Printed by: {User.Identity?.Name ?? "System"}\n" +
+                        $"Date & Time: {DateTime.Now:MMMM dd, yyyy HH:mm:ss}\n" +
+                        $"Report Generated: {DateTime.Now:yyyy-MM-dd HH:mm:ss}",
+                        smallFont
+                    )
+                    {
+                        Alignment = Element.ALIGN_LEFT,
                         SpacingAfter = 20
                     };
-                    document.Add(title);
+                    document.Add(printedBy);
                     
-                    // Subtitle  
-                    var subtitle = new Paragraph(request.Subtitle, subtitleFont)
+                    // ==================== SIGNATURE SECTION ====================
+                    var signatureTable = new PdfPTable(2) { WidthPercentage = 100 };
+                    signatureTable.SetWidths(new float[] { 1f, 1f });
+                    
+                    // Authorized By
+                    var authorizedCell = new PdfPCell(new Phrase(
+                        "Authorized By:\n\n\n" +
+                        "_______________________\n" +
+                        "Name & Signature\n" +
+                        "Date: _______________",
+                        normalFont
+                    ))
                     {
-                        Alignment = Element.ALIGN_CENTER,
-                        SpacingAfter = 30
+                        Border = Rectangle.NO_BORDER,
+                        HorizontalAlignment = Element.ALIGN_LEFT,
+                        PaddingRight = 20
                     };
-                    document.Add(subtitle);
+                    signatureTable.AddCell(authorizedCell);
+                    
+                    // Verified By
+                    var verifiedCell = new PdfPCell(new Phrase(
+                        "Verified By:\n\n\n" +
+                        "_______________________\n" +
+                        "Name & Signature\n" +
+                        "Date: _______________",
+                        normalFont
+                    ))
+                    {
+                        Border = Rectangle.NO_BORDER,
+                        HorizontalAlignment = Element.ALIGN_LEFT,
+                        PaddingLeft = 20
+                    };
+                    signatureTable.AddCell(verifiedCell);
+                    
+                    document.Add(signatureTable);
+                    
+                    // Document Authenticity Note
+                    document.Add(new Paragraph(" "));
+                    var authenticityNote = new Paragraph(
+                        "This is an official document generated by Pixel Solution POS System. " +
+                        "Any alterations will invalidate this document.",
+                        new Font(FontFactory.GetFont(FontFactory.HELVETICA_OBLIQUE, 8, BaseColor.DARK_GRAY))
+                    )
+                    {
+                        Alignment = Element.ALIGN_CENTER
+                    };
+                    document.Add(authenticityNote);
                     
                     document.Close();
                     return stream.ToArray();
@@ -2791,8 +2980,39 @@ namespace PixelSolution.Services
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error generating M-Pesa transactions PDF");
                 throw new Exception($"Error generating M-Pesa transactions PDF: {ex.Message}", ex);
             }
+        }
+        
+        // Helper method for table cells
+        private void AddTableCell(PdfPTable table, string text, Font font, BaseColor backgroundColor, bool isHeader = false)
+        {
+            var cell = new PdfPCell(new Phrase(text, font))
+            {
+                BackgroundColor = backgroundColor,
+                HorizontalAlignment = Element.ALIGN_CENTER,
+                VerticalAlignment = Element.ALIGN_MIDDLE,
+                Padding = isHeader ? 8 : 5,
+                Border = Rectangle.BOX,
+                BorderColor = BaseColor.LIGHT_GRAY
+            };
+            table.AddCell(cell);
+        }
+        
+        private void AddTableHeaderCell(PdfPTable table, string text, Font font)
+        {
+            var cell = new PdfPCell(new Phrase(text, font))
+            {
+                BackgroundColor = new BaseColor(59, 130, 246), // Blue background
+                HorizontalAlignment = Element.ALIGN_CENTER,
+                VerticalAlignment = Element.ALIGN_MIDDLE,
+                Padding = 8,
+                Border = Rectangle.BOX,
+                BorderColor = BaseColor.WHITE
+            };
+            cell.Phrase.Font.Color = BaseColor.WHITE;
+            table.AddCell(cell);
         }
     }
 }

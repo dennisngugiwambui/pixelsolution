@@ -138,6 +138,10 @@ else
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 
+// ==================== SECURITY MIDDLEWARE ====================
+// Protect against SQL Injection, XSS, Brute Force, Rate Limiting, etc.
+app.UseMiddleware<SecurityMiddleware>();
+
 app.UseRouting();
 
 // Enable CORS for mobile app

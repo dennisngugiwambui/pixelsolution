@@ -387,9 +387,9 @@ function updateCartDisplay() {
                         <span class="quantity-display">${item.quantity}</span>
                         <button class="quantity-btn" onclick="updateQuantity(${item.id}, 1)" ${item.quantity >= item.maxStock ? 'disabled' : ''}>+</button>
                     </div>
-                    <button class="edit-price-btn" onclick="editItemPrice(${item.id})" title="Edit Price" style="width: 28px; height: 28px; border: none; background: #dbeafe; color: #2563eb; border-radius: 6px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 0.75rem; transition: all 0.2s; margin-left: 0.25rem;">
+                    ${isEmployeeView() ? '' : `<button class="edit-price-btn" onclick="editItemPrice(${item.id})" title="Edit Price" style="width: 28px; height: 28px; border: none; background: #dbeafe; color: #2563eb; border-radius: 6px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 0.75rem; transition: all 0.2s; margin-left: 0.25rem;">
                         <i class="fas fa-edit"></i>
-                    </button>
+                    </button>`}
                     <button class="remove-btn" onclick="removeFromCart(${item.id})" style="margin-left: 0.25rem;">
                         <i class="fas fa-trash"></i>
                     </button>
@@ -1762,8 +1762,20 @@ function editItemPrice(productId) {
     showToast(`Price ${priceChange} for ${item.name}`, 'success');
 }
 
-// Force add edit buttons to existing cart items (fallback function)
+// Check if current view is Employee view (employees cannot edit prices)
+function isEmployeeView() {
+    const currentPath = window.location.pathname.toLowerCase();
+    return currentPath.includes('/employee/');
+}
+
+// Force add edit buttons to existing cart items (fallback function - Admin only)
 function forceAddEditButtons() {
+    // Don't add edit buttons for employees
+    if (isEmployeeView()) {
+        console.log('⚠️ Edit buttons disabled for employee view');
+        return;
+    }
+    
     console.log('🔧 Force adding edit buttons to cart items');
     const cartItems = document.querySelectorAll('.cart-item-controls');
     cartItems.forEach((controls, index) => {

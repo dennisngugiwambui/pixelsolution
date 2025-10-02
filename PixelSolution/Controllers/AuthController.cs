@@ -123,18 +123,28 @@ namespace PixelSolution.Controllers
 
                 _logger.LogInformation($"🔍 Authenticating: {email}");
 
+                // Get client IP for security tracking
+                var clientIp = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "Unknown";
+                
                 // The AuthService now handles all password fixing automatically
                 var user = await _authService.AuthenticateAsync(email, password);
 
                 if (user == null)
                 {
-                    _logger.LogWarning($"❌ FINAL AUTHENTICATION FAILED for {email}");
+                    _logger.LogWarning($"❌ FINAL AUTHENTICATION FAILED for {email} from IP: {clientIp}");
+                    
+                    // Record failed login attempt for security monitoring
+                    PixelSolution.Middleware.SecurityMiddleware.RecordFailedLogin(clientIp);
+                    
                     ViewBag.ErrorMessage = "Invalid email or password. Please check your credentials.";
                     ViewData["ReturnUrl"] = returnUrl;
                     return View(model);
                 }
 
-                _logger.LogInformation($"✅ FINAL LOGIN SUCCESS: {user.Email}");
+                _logger.LogInformation($"✅ FINAL LOGIN SUCCESS: {user.Email} from IP: {clientIp}");
+                
+                // Record successful login (resets failed attempts)
+                PixelSolution.Middleware.SecurityMiddleware.RecordSuccessfulLogin(clientIp);
 
                 // Create authentication cookie
                 var claims = new List<Claim>
