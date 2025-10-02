@@ -673,6 +673,14 @@
                         <i class="fas fa-file-pdf"></i>
                         Export PDF
                     </button>
+                    <button class="btn btn-info btn-sm" onclick="registerC2BUrls()">
+                        <i class="fas fa-broadcast-tower"></i>
+                        Enable Till Payments
+                    </button>
+                    <button class="btn btn-secondary btn-sm" onclick="testC2BEndpoint()">
+                        <i class="fas fa-vial"></i>
+                        Test C2B
+                    </button>
                     <button class="btn btn-primary btn-sm" onclick="refreshTransactions()">
                         <i class="fas fa-sync-alt"></i>
                         Refresh
@@ -1285,6 +1293,51 @@
         function refreshTransactions() {
             loadAllData();
             showToast('Transactions refreshed', 'success');
+        }
+
+        async function registerC2BUrls() {
+            try {
+                showToast('Registering C2B URLs with Safaricom...', 'info');
+                
+                const response = await fetch('/Admin/RegisterC2BUrls', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                    }
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    showToast('✅ C2B URLs registered! Your till can now receive direct payments.', 'success');
+                    console.log('C2B Registration Result:', result.data);
+                } else {
+                    showToast('❌ Failed to register C2B URLs: ' + result.message, 'error');
+                }
+            } catch (error) {
+                console.error('Error registering C2B URLs:', error);
+                showToast('Error registering C2B URLs', 'error');
+            }
+        }
+
+        async function testC2BEndpoint() {
+            try {
+                showToast('Testing C2B endpoint accessibility...', 'info');
+                
+                const response = await fetch('https://83b963d77f01.ngrok-free.app/api/mpesa/c2b/test');
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showToast('✅ C2B endpoint is accessible via ngrok!', 'success');
+                    console.log('C2B Test Result:', result);
+                } else {
+                    showToast('❌ C2B endpoint not accessible', 'error');
+                }
+            } catch (error) {
+                console.error('Error testing C2B endpoint:', error);
+                showToast('❌ C2B endpoint test failed - check ngrok connection', 'error');
+            }
         }
 
         async function viewTransactionDetails(checkoutRequestId, transactionId) {

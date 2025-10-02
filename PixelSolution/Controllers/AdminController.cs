@@ -2806,6 +2806,35 @@ namespace PixelSolution.Controllers
                 return Json(new List<object>());
             }
         }
+
+        [HttpPost]
+        public async Task<IActionResult> RegisterC2BUrls()
+        {
+            try
+            {
+                _logger.LogInformation("🔧 Admin requested C2B URL registration");
+                
+                // Use the existing MpesaService to register C2B URLs
+                var mpesaService = HttpContext.RequestServices.GetRequiredService<IMpesaService>();
+                var result = await mpesaService.RegisterC2BUrlsAsync();
+                
+                _logger.LogInformation("✅ C2B URLs registered successfully");
+                
+                return Json(new { 
+                    success = true, 
+                    message = "C2B URLs registered successfully! Your till can now receive direct payments.",
+                    data = result 
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Failed to register C2B URLs");
+                return Json(new { 
+                    success = false, 
+                    message = $"Failed to register C2B URLs: {ex.Message}" 
+                });
+            }
+        }
         public IActionResult Settings()
         {
             try

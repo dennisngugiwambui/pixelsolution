@@ -332,6 +332,17 @@ namespace PixelSolution.Controllers
             public string? PhoneNumber { get; set; }
         }
 
+        [HttpGet("c2b/test")]
+        public IActionResult TestC2BEndpoint()
+        {
+            _logger.LogInformation("🧪 C2B Test endpoint accessed");
+            return Ok(new { 
+                message = "C2B endpoint is accessible", 
+                timestamp = DateTime.Now,
+                ngrokWorking = true 
+            });
+        }
+
         [HttpPost("c2b/validation")]
         public IActionResult C2BValidation()
         {
@@ -341,6 +352,7 @@ namespace PixelSolution.Controllers
                 var rawBody = reader.ReadToEndAsync().Result;
                 
                 _logger.LogInformation("📥 C2B Validation request received: {RawBody}", rawBody);
+                _logger.LogInformation("🔍 C2B Validation Headers: {Headers}", string.Join(", ", Request.Headers.Select(h => $"{h.Key}: {h.Value}")));
 
                 // For now, accept all transactions
                 // You can add custom validation logic here
@@ -370,6 +382,7 @@ namespace PixelSolution.Controllers
                 var rawBody = await reader.ReadToEndAsync();
                 
                 _logger.LogInformation("📥 C2B Confirmation received: {RawBody}", rawBody);
+                _logger.LogInformation("🔍 C2B Headers: {Headers}", string.Join(", ", Request.Headers.Select(h => $"{h.Key}: {h.Value}")));
 
                 // Parse C2B payment data
                 var c2bData = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(rawBody);

@@ -29,6 +29,7 @@
                         <button type="button" class="btn btn-warning" onclick="testLaravelStkPush()">🚀 Test Laravel-Style STK Push</button>
                         <button type="button" class="btn btn-info" onclick="testMpesaMiddleware()">🔧 Test M-Pesa Middleware</button>
                         <button type="button" class="btn btn-secondary" onclick="queryStkStatus()">🔍 Query STK Status</button>
+                        <button type="button" class="btn btn-warning" onclick="registerC2BUrls()">📡 Register C2B URLs</button>
                         <button type="button" class="btn btn-light" onclick="testB2C()">💸 Test B2C (Future)</button>
                         <button type="button" class="btn btn-danger btn-sm" onclick="clearResults()">🗑️ Clear Results</button>
                     </div>
@@ -264,6 +265,30 @@ async function testMpesaMiddleware() {
         }
     } catch (error) {
         logResult(`💥 Middleware test error: ${error.message}`, 'error');
+    }
+}
+
+async function registerC2BUrls() {
+    logResult('📡 Registering C2B URLs with Safaricom...');
+    
+    try {
+        const response = await fetch('/api/MpesaTest/register-c2b', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        const result = await response.json();
+        
+        if (result.success) {
+            logResult(`✅ C2B URLs registered successfully: ${result.message}`, 'success');
+            logResult(`Response: ${JSON.stringify(result.data, null, 2)}`, 'info');
+            logResult('🎉 You can now receive payments directly to your till!', 'success');
+        } else {
+            logResult(`❌ C2B URL registration failed: ${result.message}`, 'error');
+        }
+    } catch (error) {
+        logResult(`💥 C2B registration error: ${error.message}`, 'error');
     }
 }
 

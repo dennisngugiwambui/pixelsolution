@@ -43,6 +43,8 @@ namespace PixelSolution.Controllers
             _mpesaService = mpesaService;
         }
 
+        [HttpGet("")]
+        [HttpGet("Index")]
         public async Task<IActionResult> Index()
         {
             try
@@ -78,6 +80,7 @@ namespace PixelSolution.Controllers
             }
         }
 
+        [HttpGet("Sales")]
         public async Task<IActionResult> Sales()
         {
             try
@@ -111,6 +114,7 @@ namespace PixelSolution.Controllers
             }
         }
 
+        [HttpGet("Messages")]
         public async Task<IActionResult> Messages(int? userId)
         {
             try
@@ -292,6 +296,7 @@ namespace PixelSolution.Controllers
             return messages;
         }
 
+        [HttpGet("Settings")]
         public async Task<IActionResult> Settings()
         {
             try
@@ -326,7 +331,7 @@ namespace PixelSolution.Controllers
             }
         }
 
-        [HttpGet]
+        [HttpGet("GetDashboardData")]
         public async Task<IActionResult> GetDashboardData()
         {
             try
@@ -341,7 +346,7 @@ namespace PixelSolution.Controllers
             }
         }
 
-        [HttpGet]
+        [HttpGet("GetProductsForSale")]
         public async Task<IActionResult> GetProductsForSale()
         {
             try
@@ -705,7 +710,7 @@ namespace PixelSolution.Controllers
             }
         }
 
-        [HttpGet]
+        [HttpGet("CheckPaymentStatus")]
         public async Task<IActionResult> CheckPaymentStatus(int saleId)
         {
             try
@@ -891,7 +896,7 @@ namespace PixelSolution.Controllers
             }
         }
 
-        [HttpGet]
+        [HttpGet("GetCategories")]
         public async Task<IActionResult> GetCategories()
         {
             try
@@ -913,7 +918,7 @@ namespace PixelSolution.Controllers
             }
         }
 
-        [HttpGet]
+        [HttpGet("GetTodaysSalesStats")]
         public async Task<IActionResult> GetTodaysSalesStats()
         {
             try
@@ -944,7 +949,7 @@ namespace PixelSolution.Controllers
             }
         }
 
-        [HttpGet]
+        [HttpGet("GetNotifications")]
         public IActionResult GetNotifications()
         {
             try
@@ -958,7 +963,7 @@ namespace PixelSolution.Controllers
             }
         }
 
-        [HttpGet]
+        [HttpGet("GetReceiptData")]
         public async Task<IActionResult> GetReceiptData(int saleId)
         {
             try
@@ -1000,7 +1005,7 @@ namespace PixelSolution.Controllers
             }
         }
 
-        [HttpGet]
+        [HttpGet("GetConversationMessages")]
         public async Task<IActionResult> GetConversationMessages(int userId)
         {
             try
@@ -1147,7 +1152,7 @@ namespace PixelSolution.Controllers
             }
         }
 
-        [HttpGet]
+        [HttpGet("GetConversationsList")]
         public async Task<IActionResult> GetConversationsList()
         {
             try
@@ -1191,7 +1196,7 @@ namespace PixelSolution.Controllers
             }
         }
 
-        [HttpGet]
+        [HttpGet("GetUnreadCount")]
         public async Task<IActionResult> GetUnreadCount()
         {
             try
@@ -1211,7 +1216,7 @@ namespace PixelSolution.Controllers
         }
 
         // Test endpoint to debug messages and users
-        [HttpGet]
+        [HttpGet("TestMessagesAndUsers")]
         public async Task<IActionResult> TestMessagesAndUsers()
         {
             try
@@ -1273,7 +1278,7 @@ namespace PixelSolution.Controllers
             }
         }
 
-        [HttpGet]
+        [HttpGet("GetUsers")]
         public async Task<IActionResult> GetUsers()
         {
             try
@@ -1301,7 +1306,7 @@ namespace PixelSolution.Controllers
             }
         }
 
-        [HttpGet]
+        [HttpGet("GetUserOnlineStatus")]
         public async Task<IActionResult> GetUserOnlineStatus(int userId)
         {
             try
@@ -1341,7 +1346,7 @@ namespace PixelSolution.Controllers
             }
         }
 
-        [HttpGet]
+        [HttpGet("CheckNewMessages")]
         public async Task<IActionResult> CheckNewMessages(int lastMessageId = 0)
         {
             try
