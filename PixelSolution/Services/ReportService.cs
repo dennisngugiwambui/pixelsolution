@@ -3,12 +3,14 @@ using PixelSolution.Data;
 using PixelSolution.Models;
 using PixelSolution.ViewModels;
 using PixelSolution.Controllers;
+using PixelSolution.Services.Interfaces;
 using iTextSharp.text;
 using iTextSharp.text.pdf;
 using System.Globalization;
-using Microsoft.EntityFrameworkCore;
-using PixelSolution.Models.Enums;
+using System.Text;
+using ClosedXML.Excel;
 
+namespace PixelSolution.Services
 {
     public class ReportService : IReportService
     {
@@ -2213,7 +2215,7 @@ using PixelSolution.Models.Enums;
             return await GenerateSalesReceiptInternalAsync(saleId);
         }
 
-        public async Task<byte[]> GenerateReceiptPdfAsync(ReceiptPdfRequest request)
+        public async Task<byte[]> GenerateReceiptPdfAsync(PixelSolution.ViewModels.ReceiptPdfRequest request)
         {
             try
             {
@@ -2747,6 +2749,50 @@ using PixelSolution.Models.Enums;
             }
             catch (Exception ex)
             {
+                throw new Exception($"Error generating supplier invoice PDF: {ex.Message}", ex);
+            }
+        }
+
+        public async Task<byte[]> GenerateMpesaTransactionsPDFAsync(PixelSolution.Controllers.MpesaTransactionsReportRequest request)
+        {
+            try
+            {
+                using (var stream = new MemoryStream())
+                {
+                    var document = new Document(PageSize.A4, 25, 25, 30, 30);
+                    PdfWriter.GetInstance(document, stream);
+                    
+                    document.Open();
+                    
+                    // Fonts
+                    var titleFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 18, BaseColor.BLACK);
+                    var subtitleFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 14, BaseColor.DARK_GRAY);
+                    var normalFont = FontFactory.GetFont(FontFactory.HELVETICA, 10, BaseColor.BLACK);
+                    
+                    // Title
+                    var title = new Paragraph(request.Title, titleFont)
+                    {
+                        Alignment = Element.ALIGN_CENTER,
+                        SpacingAfter = 20
+                    };
+                    document.Add(title);
+                    
+                    // Subtitle  
+                    var subtitle = new Paragraph(request.Subtitle, subtitleFont)
+                    {
+                        Alignment = Element.ALIGN_CENTER,
+                        SpacingAfter = 30
+                    };
+                    document.Add(subtitle);
+                    
+                    document.Close();
+                    return stream.ToArray();
+                }
+            }
+            catch (Exception ex)
+            {
                 throw new Exception($"Error generating M-Pesa transactions PDF: {ex.Message}", ex);
             }
         }
+    }
+}

@@ -6476,6 +6476,20 @@ namespace PixelSolution.Controllers
                             : await _reportService.GenerateSuppliersReportAsync();
                         fileName = $"Suppliers_Report_{DateTime.Now:yyyyMMdd}";
                         break;
+                    case "mpesa":
+                        var mpesaRequest = new MpesaTransactionsReportRequest
+                        {
+                            Title = "M-Pesa Transactions Report",
+                            Subtitle = $"Generated on {DateTime.Now:MMMM dd, yyyy}",
+                            Transactions = new List<MpesaTransactionReportItem>(), // This will be populated by the service
+                            TotalAmount = 0,
+                            CompletedCount = 0,
+                            PendingCount = 0,
+                            FailedCount = 0
+                        };
+                        reportData = await _reportService.GenerateMpesaTransactionsPDFAsync(mpesaRequest);
+                        fileName = $"MPesa_Transactions_Report_{DateTime.Now:yyyyMMdd}";
+                        break;
                     case "comprehensive":
                         reportData = await _reportService.GenerateComprehensiveReportAsync(startDate, endDate);
                         fileName = $"Comprehensive_Report_{DateTime.Now:yyyyMMdd}";

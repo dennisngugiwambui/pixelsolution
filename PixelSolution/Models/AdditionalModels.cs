@@ -480,6 +480,20 @@ namespace PixelSolution.Models
         // Navigation Properties
         [ForeignKey("CustomerId")]
         public virtual Customer Customer { get; set; } = null!;
+        
+        [ForeignKey("ProductId")]
+        public virtual Product Product { get; set; } = null!;
+    }
+
+    public class MpesaToken
+    {
+        [Key]
+        public int MpesaTokenId { get; set; }
+
+        [Required]
+        [StringLength(500)]
+        public string AccessToken { get; set; } = string.Empty;
+
         [Required]
         public DateTime ExpiresAt { get; set; }
 
@@ -493,7 +507,7 @@ namespace PixelSolution.Models
 
         // Helper method to check if token is still valid
         [NotMapped]
-        public bool IsValid => IsActive && ExpiresAt > DateTime.UtcNow;
+        public bool IsValid => IsActive && ExpiresAt > DateTime.UtcNow.AddMinutes(5);
     }
 
     public class PaymentRequest

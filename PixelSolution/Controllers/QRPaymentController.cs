@@ -2,9 +2,9 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PixelSolution.Services;
 using System.Security.Claims;
-using QRCoder;
-using System.Drawing;
-using System.Drawing.Imaging;
+// using QRCoder;
+// using System.Drawing;
+// using System.Drawing.Imaging;
 
 namespace PixelSolution.Controllers
 {
@@ -36,15 +36,15 @@ namespace PixelSolution.Controllers
                     request.Description, 
                     userId);
 
-                // Generate QR code image
+                // Generate QR code data (image generation temporarily disabled)
                 var qrCodeData = GenerateQRCodeData(qrPayment.QRCodeReference, qrPayment.Amount);
-                var qrCodeImage = GenerateQRCodeImage(qrCodeData);
+                // var qrCodeImage = GenerateQRCodeImage(qrCodeData);
 
                 return Ok(new
                 {
                     success = true,
                     qrReference = qrPayment.QRCodeReference,
-                    qrCodeImage = Convert.ToBase64String(qrCodeImage),
+                    qrCodeData = qrCodeData, // Return QR data instead of image for now
                     amount = qrPayment.Amount,
                     expiresAt = qrPayment.ExpiresAt,
                     tillNumber = qrPayment.TillNumber
@@ -278,17 +278,18 @@ namespace PixelSolution.Controllers
             return $"Till:6509715|Amount:{amount}|Ref:{qrReference}|Desc:PixelSolution Payment";
         }
 
-        private byte[] GenerateQRCodeImage(string data)
-        {
-            using var qrGenerator = new QRCodeGenerator();
-            using var qrCodeData = qrGenerator.CreateQrCode(data, QRCodeGenerator.ECCLevel.Q);
-            using var qrCode = new QRCode(qrCodeData);
-            using var qrCodeImage = qrCode.GetGraphic(20);
-            
-            using var stream = new MemoryStream();
-            qrCodeImage.Save(stream, ImageFormat.Png);
-            return stream.ToArray();
-        }
+        // QR Code image generation temporarily disabled - requires QRCoder package
+        // private byte[] GenerateQRCodeImage(string data)
+        // {
+        //     using var qrGenerator = new QRCodeGenerator();
+        //     using var qrCodeData = qrGenerator.CreateQrCode(data, QRCodeGenerator.ECCLevel.Q);
+        //     using var qrCode = new QRCode(qrCodeData);
+        //     using var qrCodeImage = qrCode.GetGraphic(20);
+        //     
+        //     using var stream = new MemoryStream();
+        //     qrCodeImage.Save(stream, ImageFormat.Png);
+        //     return stream.ToArray();
+        // }
     }
 
     public class CreateQRRequest

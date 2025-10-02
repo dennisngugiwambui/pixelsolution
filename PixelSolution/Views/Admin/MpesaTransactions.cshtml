@@ -3,6 +3,11 @@
     Layout = "_AdminLayout";
 }
 
+@* Add CSRF token for PDF export *@
+<form id="hiddenForm" style="display: none;">
+    @Html.AntiForgeryToken()
+</form>
+
 @section Styles {
     <link href="~/css/dashboard.css" rel="stylesheet">
     <style>
@@ -731,13 +736,13 @@
     <!-- Tabs -->
     <div class="tabs-container">
         <div class="tabs-header">
-            <button class="tab-btn active" onclick="switchTab('all')">
+            <button class="tab-btn active" onclick="window.switchTab('all')">
                 <i class="fas fa-list"></i> All Transactions
             </button>
-            <button class="tab-btn" onclick="switchTab('stk')">
+            <button class="tab-btn" onclick="window.switchTab('stk')">
                 <i class="fas fa-mobile-alt"></i> STK Push
             </button>
-            <button class="tab-btn" onclick="switchTab('unused')">
+            <button class="tab-btn" onclick="window.switchTab('unused')">
                 <i class="fas fa-unlink"></i> Unused C2B
             </button>
         </div>
@@ -931,6 +936,8 @@
 @section Scripts {
     <script src="~/js/dashboard.js"></script>
     <script>
+        console.log('M-Pesa Transactions script loading...');
+        
         let allTransactions = [];
         let stkTransactions = [];
         let unusedTransactions = [];
@@ -942,27 +949,53 @@
         let unusedCurrentPage = 1;
 
         document.addEventListener('DOMContentLoaded', function() {
-            loadAllData();
+            console.log('DOM Content Loaded - initializing M-Pesa transactions...');
+            
+            // Initialize data loading
+            loadAllData().catch(error => {
+                console.error('Error in loadAllData:', error);
+                showToast('Error loading transaction data', 'error');
+            });
             
             // Auto-refresh every 30 seconds
-            setInterval(loadAllData, 30000);
+            setInterval(() => {
+                loadAllData().catch(error => console.error('Auto-refresh error:', error));
+            }, 30000);
             
-            // Setup event listeners
-            document.getElementById('statusFilter').addEventListener('change', filterByStatus);
-            document.getElementById('sortBy').addEventListener('change', filterByStatus);
-            document.getElementById('searchInput').addEventListener('input', filterByStatus);
-            document.getElementById('recordsPerPage').addEventListener('change', function() {
-                recordsPerPage = parseInt(this.value);
-                currentPage = 1;
-                filterByStatus();
-            });
-            
-            // Close modal when clicking outside
-            document.getElementById('transactionModal').addEventListener('click', function(e) {
-                if (e.target === this) {
-                    closeTransactionModal();
+            // Setup event listeners with error handling
+            try {
+                const statusFilter = document.getElementById('statusFilter');
+                if (statusFilter) statusFilter.addEventListener('change', filterByStatus);
+                
+                const sortBy = document.getElementById('sortBy');
+                if (sortBy) sortBy.addEventListener('change', filterByStatus);
+                
+                const searchInput = document.getElementById('searchInput');
+                if (searchInput) searchInput.addEventListener('input', filterByStatus);
+                
+                const recordsPerPageEl = document.getElementById('recordsPerPage');
+                if (recordsPerPageEl) {
+                    recordsPerPageEl.addEventListener('change', function() {
+                        recordsPerPage = parseInt(this.value);
+                        currentPage = 1;
+                        filterByStatus();
+                    });
                 }
-            });
+                
+                // Close modal when clicking outside
+                const transactionModal = document.getElementById('transactionModal');
+                if (transactionModal) {
+                    transactionModal.addEventListener('click', function(e) {
+                        if (e.target === this) {
+                            closeTransactionModal();
+                        }
+                    });
+                }
+                
+                console.log('Event listeners attached successfully');
+            } catch (error) {
+                console.error('Error setting up event listeners:', error);
+            }
         });
 
         async function loadAllData() {
@@ -978,16 +1011,39 @@
 
         async function loadMpesaTransactions() {
             try {
+                console.log('Loading M-Pesa transactions...');
                 const response = await fetch('/Admin/GetMpesaTransactions');
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
                 const data = await response.json();
-                allTransactions = data;
-                stkTransactions = data.filter(t => t.checkoutRequestId);
+                console.log('Loaded M-Pesa transactions:', data);
+                console.log('Transaction count:', data ? data.length : 0);
+                
+                allTransactions = Array.isArray(data) ? data : [];
+                stkTransactions = allTransactions.filter(t => t.checkoutRequestId);
                 filteredTransactions = [...allTransactions];
+                
+                console.log('Processed transactions:', {
+                    all: allTransactions.length,
+                    stk: stkTransactions.length,
+                    filtered: filteredTransactions.length
+                });
                 
                 displayAllTransactions();
                 displayStkTransactions();
             } catch (error) {
                 console.error('Error loading M-Pesa transactions:', error);
+                showToast('Error loading M-Pesa transactions: ' + error.message, 'error');
+                
+                // Set empty arrays to prevent further errors
+                allTransactions = [];
+                stkTransactions = [];
+                filteredTransactions = [];
+                displayAllTransactions();
+                displayStkTransactions();
             }
         }
 
@@ -1004,21 +1060,39 @@
         }
 
         function displayAllTransactions() {
+            console.log('Displaying all transactions, count:', filteredTransactions.length);
             const tbody = document.getElementById('allTransactionsBody');
             
-            if (allTransactions.length === 0) {
+            if (!tbody) {
+                console.error('allTransactionsBody element not found');
+                return;
+            }
+            
+            if (filteredTransactions.length === 0) {
                 tbody.innerHTML = `
                     <tr>
                         <td colspan="7" class="empty-state">
                             <i class="fas fa-inbox"></i>
-                            <p>No transactions found</p>
+                            <p>No M-Pesa transactions found</p>
                         </td>
                     </tr>
                 `;
+                // Update pagination info if element exists
+                const paginationInfo = document.getElementById('paginationInfo');
+                if (paginationInfo) {
+                    updatePaginationInfo(0, 0, 0, 'paginationInfo');
+                }
                 return;
             }
 
-            tbody.innerHTML = allTransactions.map(t => `
+            // Calculate pagination
+            const startIndex = (currentPage - 1) * recordsPerPage;
+            const endIndex = startIndex + recordsPerPage;
+            const paginatedData = filteredTransactions.slice(startIndex, endIndex);
+
+            console.log('Paginated data:', paginatedData.length, 'items');
+
+            tbody.innerHTML = paginatedData.map(t => `
                 <tr>
                     <td><code style="font-size: 0.75rem;">${t.transactionId || 'N/A'}</code></td>
                     <td>${t.phoneNumber || 'N/A'}</td>
@@ -1031,6 +1105,19 @@
                     </td>
                 </tr>
             `).join('');
+            
+            // Update pagination info and controls if elements exist
+            const paginationInfo = document.getElementById('paginationInfo');
+            if (paginationInfo) {
+                updatePaginationInfo(startIndex + 1, Math.min(endIndex, filteredTransactions.length), filteredTransactions.length, 'paginationInfo');
+            }
+            
+            const pageNumbers = document.getElementById('pageNumbers');
+            if (pageNumbers) {
+                updatePaginationControls(filteredTransactions.length, currentPage, recordsPerPage, 'pageNumbers', 'prevPage', 'nextPage');
+            }
+            
+            console.log('All transactions displayed successfully');
         }
 
         function displayStkTransactions() {
@@ -1056,7 +1143,9 @@
                     <td>${t.mpesaReceiptNumber ? `<span style="color: #10b981; font-weight: 600;">${t.mpesaReceiptNumber}</span>` : '-'}</td>
                     <td><span class="status-badge status-${(t.status || 'pending').toLowerCase().replace('_', '')}">${t.status || 'Pending'}</span></td>
                     <td>${new Date(t.createdAt).toLocaleString('en-KE')}</td>
-                    <td>${t.saleId || '-'}</td>
+                    <td>
+                        ${t.checkoutRequestId ? `<button class="btn btn-primary btn-sm" onclick="viewTransactionDetails('${t.checkoutRequestId}', '${t.transactionId || ''}')"><i class="fas fa-eye"></i></button>` : '-'}
+                    </td>
                 </tr>
             `).join('');
         }
@@ -1113,14 +1202,41 @@
         }
 
         function switchTab(tabName) {
+            console.log('Switching to tab:', tabName);
+            
             // Update tab buttons
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-            event.target.closest('.tab-btn').classList.add('active');
+            
+            // Find and activate the clicked tab button
+            const tabButtons = document.querySelectorAll('.tab-btn');
+            tabButtons.forEach(btn => {
+                if (btn.onclick && btn.onclick.toString().includes(`'${tabName}'`)) {
+                    btn.classList.add('active');
+                }
+            });
 
             // Update tab content
             document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-            document.getElementById(`tab-${tabName}`).classList.add('active');
+            const targetTab = document.getElementById(`tab-${tabName}`);
+            if (targetTab) {
+                targetTab.classList.add('active');
+            }
+            
+            // Reset pagination for the new tab
+            if (tabName === 'all') {
+                currentPage = 1;
+                displayAllTransactions();
+            } else if (tabName === 'stk') {
+                stkCurrentPage = 1;
+                displayStkTransactions();
+            } else if (tabName === 'unused') {
+                unusedCurrentPage = 1;
+                displayUnusedTransactions();
+            }
         }
+        
+        // Make switchTab globally accessible
+        window.switchTab = switchTab;
 
         function filterTable(tableId, searchId) {
             const searchValue = document.getElementById(searchId).value.toLowerCase();
@@ -1313,22 +1429,29 @@
                 const result = await response.json();
                 
                 if (result.success) {
-                    showToast('Status query completed - check console for details', 'success');
-                    console.log('M-Pesa Status Query Result:', result.data);
+                    // Show the API response without updating database
+                    const apiStatus = result.data?.ResultCode === '0' ? 'Completed' : 
+                                    result.data?.ResultCode === '1032' ? 'Cancelled' : 
+                                    result.data?.ResultCode === '1' ? 'Failed' : 'Unknown';
                     
-                    // Refresh transaction data
-                    await loadAllData();
+                    const message = `API Status Check Result:
+                    • Database Status: ${window.currentTransaction.status}
+                    • API Response: ${apiStatus}
+                    • Result Code: ${result.data?.ResultCode || 'N/A'}
+                    • Description: ${result.data?.ResultDesc || 'N/A'}`;
                     
-                    // Update modal with fresh data
-                    const updatedTransaction = allTransactions.find(t => 
-                        t.checkoutRequestId === window.currentTransaction.checkoutRequestId
-                    );
+                    showToast('Status query completed - see console for details', 'info');
+                    console.log('M-Pesa API Status Query:', {
+                        databaseStatus: window.currentTransaction.status,
+                        apiResponse: result.data,
+                        apiStatus: apiStatus
+                    });
                     
-                    if (updatedTransaction) {
-                        viewTransactionDetails(updatedTransaction.checkoutRequestId, updatedTransaction.transactionId);
-                    }
+                    // Show detailed result in alert
+                    alert(message);
                 } else {
-                    showToast(result.message || 'Status query failed', 'error');
+                    showToast('Status query failed: ' + (result.message || 'Unknown error'), 'error');
+                    console.error('Status query error:', result);
                 }
             } catch (error) {
                 console.error('Error querying transaction status:', error);
@@ -1467,73 +1590,41 @@
                     return;
                 }
 
-                // Open new window for PDF generation
-                const pdfWindow = window.open('', '_blank');
-                pdfWindow.document.write(`
-                    <html>
-                        <head>
-                            <title>Generating M-Pesa Transactions Report...</title>
-                            <style>
-                                body { font-family: Arial, sans-serif; padding: 20px; text-align: center; }
-                                .spinner { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 40px; height: 40px; animation: spin 2s linear infinite; margin: 20px auto; }
-                                @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-                            </style>
-                        </head>
-                        <body>
-                            <h2>Generating M-Pesa Transactions Report</h2>
-                            <div class="spinner"></div>
-                            <p>Please wait while we generate your PDF report...</p>
-                        </body>
-                    </html>
-                `);
-
-                // Prepare data for PDF generation
-                const reportData = {
-                    title: 'M-Pesa Transactions Report',
-                    subtitle: `Generated on ${new Date().toLocaleDateString('en-KE')}`,
-                    transactions: dataToExport,
-                    totalAmount: dataToExport.reduce((sum, t) => sum + (t.amount || 0), 0),
-                    completedCount: dataToExport.filter(t => t.status === 'Completed').length,
-                    pendingCount: dataToExport.filter(t => t.status === 'Pending' || t.status === 'STK_SENT').length,
-                    failedCount: dataToExport.filter(t => t.status === 'Failed').length
-                };
-
-                const response = await fetch('/Admin/GenerateMpesaTransactionsPDF', {
+                showToast('Generating M-Pesa Transactions PDF report...', 'info');
+                
+                const response = await fetch('/Admin/ExportReport', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
                     },
-                    body: JSON.stringify(reportData)
+                    body: JSON.stringify({
+                        reportType: 'mpesa',
+                        format: 'pdf',
+                        startDate: new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0],
+                        endDate: new Date().toISOString().split('T')[0]
+                    })
                 });
 
                 if (response.ok) {
                     const blob = await response.blob();
                     const url = window.URL.createObjectURL(blob);
-                    
-                    // Create download link in the new window
-                    pdfWindow.document.body.innerHTML = `
-                        <h2>Report Generated Successfully!</h2>
-                        <p>Your M-Pesa transactions report is ready for download.</p>
-                        <a href="${url}" download="mpesa-transactions-${new Date().toISOString().split('T')[0]}.pdf" 
-                           style="background: #3b82f6; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;"
-                           onclick="setTimeout(() => window.close(), 1000)">Download PDF Report</a>
-                        <br><br>
-                        <button onclick="window.close()" style="background: #6b7280; color: white; padding: 8px 16px; border: none; border-radius: 5px; cursor: pointer;">Close Window</button>
-                    `;
-                    
-                    // Auto-trigger download
-                    const downloadLink = pdfWindow.document.querySelector('a[download]');
-                    downloadLink.click();
-                    
-                    showToast('PDF report generated successfully', 'success');
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `MPesa_Transactions_Report_${new Date().toISOString().split('T')[0]}.pdf`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(url);
+                    showToast('M-Pesa Transactions Report downloaded successfully!', 'success');
                 } else {
-                    pdfWindow.close();
-                    showToast('Failed to generate PDF report', 'error');
+                    const errorText = await response.text();
+                    console.error('PDF generation failed:', errorText);
+                    showToast('Failed to generate PDF report: ' + response.status, 'error');
                 }
             } catch (error) {
                 console.error('Error generating PDF:', error);
-                showToast('Error generating PDF report', 'error');
+                showToast('Error generating PDF report: ' + error.message, 'error');
             }
         }
 
@@ -1558,7 +1649,7 @@
                 position: fixed;
                 top: 20px;
                 right: 20px;
-                background: ${type === 'success' ? '#10b981' : '#ef4444'};
+                background: ${type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#f59e0b'};
                 color: white;
                 padding: 1rem 1.5rem;
                 border-radius: 8px;
@@ -1573,5 +1664,25 @@
                 toast.remove();
             }, 3000);
         }
+        
+        console.log('M-Pesa Transactions script loaded successfully!');
+        console.log('switchTab function available:', typeof window.switchTab);
+        
+        // Test API endpoint directly
+        setTimeout(() => {
+            console.log('Testing API endpoint...');
+            fetch('/Admin/GetMpesaTransactions')
+                .then(response => {
+                    console.log('API Response status:', response.status);
+                    console.log('API Response ok:', response.ok);
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('API Response data:', data);
+                })
+                .catch(error => {
+                    console.error('API Test error:', error);
+                });
+        }, 2000);
     </script>
 }
