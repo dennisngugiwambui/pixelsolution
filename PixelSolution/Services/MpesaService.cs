@@ -352,6 +352,11 @@ namespace PixelSolution.Services
 
         public async Task<object> RegisterC2BUrlsAsync()
         {
+            // C2B URL registration disabled - only using STK Push (Lipa na Mpesa Production)
+            _logger.LogInformation("⚠️ C2B URL registration is disabled. Using STK Push only.");
+            return new { success = false, message = "C2B registration disabled - using STK Push only" };
+            
+            /* DISABLED C2B REGISTRATION
             try
             {
                 _logger.LogInformation("📝 Registering C2B URLs for shortcode: {Shortcode}", _settings.Shortcode);
@@ -394,6 +399,7 @@ namespace PixelSolution.Services
                 _logger.LogError(ex, "💥 Error registering C2B URLs");
                 throw;
             }
+            */
         }
     }
 }

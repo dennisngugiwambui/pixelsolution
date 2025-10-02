@@ -543,20 +543,83 @@ namespace PixelSolution.Controllers
         {
             try
             {
-                _logger.LogInformation(" Registering C2B URLs with Safaricom...");
+                _logger.LogInformation("📝 Registering C2B URLs with Safaricom...");
                 var result = await _mpesaService.RegisterC2BUrlsAsync();
-                _logger.LogInformation(" C2B URLs registered successfully");
+                _logger.LogInformation("✅ C2B URLs registered successfully");
                 return Ok(new { success = true, message = "C2B URLs registered successfully", data = result });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, " Error registering C2B URLs");
-                return Ok(new { success = false, message = $"Failed to register C2B URLs: {ex.Message}" });
+                _logger.LogError(ex, "❌ Error registering C2B URLs");
                 return BadRequest(new
                 {
                     success = false,
-                    message = ex.Message,
+                    message = $"Failed to register C2B URLs: {ex.Message}",
                     stackTrace = ex.StackTrace
+                });
+            }
+        }
+
+        /// <summary>
+        /// Debug M-Pesa credentials and password generation
+        /// </summary>
+        [HttpGet("debug-credentials")]
+        public IActionResult DebugCredentials()
+        {
+            try
+            {
+                var settings = HttpContext.RequestServices.GetRequiredService<Microsoft.Extensions.Options.IOptions<MpesaSettings>>().Value;
+                
+                // Generate password for debugging
+                var timestamp = DateTime.Now.ToString("yyyyMMddHHmmss");
+                var passwordString = $"{settings.Shortcode}{settings.Passkey}{timestamp}";
+                var password = Convert.ToBase64String(Encoding.UTF8.GetBytes(passwordString));
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "M-Pesa configuration details",
+                    configuration = new
+                    {
+                        consumerKeyLength = settings.ConsumerKey?.Length ?? 0,
+                        consumerKeyPreview = settings.ConsumerKey?.Substring(0, Math.Min(10, settings.ConsumerKey?.Length ?? 0)) + "...",
+                        consumerSecretLength = settings.ConsumerSecret?.Length ?? 0,
+                        consumerSecretPreview = settings.ConsumerSecret?.Substring(0, Math.Min(10, settings.ConsumerSecret?.Length ?? 0)) + "...",
+                        businessShortCode = settings.Shortcode,
+                        tillNumber = settings.TillNumber,
+                        passkeyLength = settings.Passkey?.Length ?? 0,
+                        passkeyPreview = settings.Passkey?.Substring(0, Math.Min(20, settings.Passkey?.Length ?? 0)) + "...",
+                        transactionType = settings.TransactionType,
+                        baseUrl = settings.BaseUrl,
+                        isSandbox = settings.IsSandbox,
+                        callbackUrl = settings.CallbackUrl
+                    },
+                    passwordGeneration = new
+                    {
+                        timestamp = timestamp,
+                        formula = "Base64(BusinessShortCode + Passkey + Timestamp)",
+                        passwordStringLength = passwordString.Length,
+                        passwordStringPreview = passwordString.Substring(0, Math.Min(30, passwordString.Length)) + "...",
+                        base64PasswordLength = password.Length,
+                        base64PasswordPreview = password.Substring(0, Math.Min(40, password.Length)) + "..."
+                    },
+                    stkPushRequest = new
+                    {
+                        businessShortCode = settings.Shortcode,
+                        partyB = settings.TillNumber,
+                        transactionType = settings.TransactionType,
+                        note = "BusinessShortCode (3560959) is used for STK request, PartyB (6509715) is the recipient till"
+                    },
+                    timestamp = DateTime.UtcNow
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Error debugging credentials");
+                return BadRequest(new
+                {
+                    success = false,
+                    message = ex.Message
                 });
             }
         }

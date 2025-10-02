@@ -1188,7 +1188,7 @@
                 <label class="form-label">Customer Phone Number:</label>
                 <div style="display: flex; align-items: center;">
                     <span style="padding: 0.75rem; background: #f3f4f6; border: 2px solid #e5e7eb; border-right: none; border-radius: 8px 0 0 8px; font-weight: 600;">+254</span>
-                    <input type="text" id="customerPhone" class="form-input" style="border-radius: 0 8px 8px 0;" placeholder="7XXXXXXXX or 10XXXXXXXX or 11XXXXXXXX" maxlength="9" inputmode="numeric">
+                    <input type="text" id="customerPhone" class="form-input" style="border-radius: 0 8px 8px 0;" placeholder="7XXXXXXXX or 10XXXXXXXX or 11XXXXXXXX" maxlength="9" inputmode="numeric" onkeypress="if(event.key === 'Enter') { event.preventDefault(); validateAndCompletePayment(); }">
                 </div>
                 <small style="color: #6b7280; font-size: 0.75rem; margin-top: 0.25rem; display: block;">Enter 9 digits starting with 7, 10, or 11. Examples: 712345678, 101234567, 110123456</small>
             </div>

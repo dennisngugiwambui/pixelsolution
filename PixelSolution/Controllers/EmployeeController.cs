@@ -375,7 +375,7 @@ namespace PixelSolution.Controllers
             }
         }
 
-        [HttpPost]
+        [HttpPost("ProcessSale")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ProcessSale([FromBody] SaleRequest request)
         {
@@ -1034,7 +1034,7 @@ namespace PixelSolution.Controllers
             }
         }
 
-        [HttpPost]
+        [HttpPost("SendMessage")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> SendMessage([FromBody] SendMessageRequest request)
         {
@@ -1065,7 +1065,7 @@ namespace PixelSolution.Controllers
             }
         }
 
-        [HttpPost]
+        [HttpPost("SendQuickMessage")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> SendQuickMessage([FromBody] SendQuickMessageRequest request)
         {
@@ -1120,7 +1120,7 @@ namespace PixelSolution.Controllers
             }
         }
 
-        [HttpPost]
+        [HttpPost("MarkMessagesAsRead")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> MarkMessagesAsRead([FromBody] MarkMessagesRequest request)
         {
@@ -1169,7 +1169,7 @@ namespace PixelSolution.Controllers
             }
         }
 
-        [HttpPost]
+        [HttpPost("GenerateReceiptPDF")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> GenerateReceiptPDF([FromBody] ReceiptRequest request)
         {
