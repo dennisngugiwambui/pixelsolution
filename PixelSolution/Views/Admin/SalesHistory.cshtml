@@ -753,7 +753,10 @@
                                 <div style="font-size: 0.75rem; color: #9ca3af;">@sale.TotalQuantity qty</div>
                             </td>
                             <td>
-                                <div class="amount">KSh @sale.TotalAmount.ToString("N2")</div>
+                                @{
+                                    var displayAmount = sale.TotalAmount > 0 ? sale.TotalAmount : sale.AmountPaid;
+                                }
+                                <div class="amount">KSh @displayAmount.ToString("N2")</div>
                                 @if (sale.ChangeGiven > 0)
                                 {
                                     <div style="font-size: 0.75rem; color: #9ca3af;">Change: KSh @sale.ChangeGiven.ToString("N2")</div>

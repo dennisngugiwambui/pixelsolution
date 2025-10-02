@@ -146,20 +146,19 @@ namespace PixelSolution.Services.Interfaces
         Task<byte[]> GenerateCategoriesReportExcelAsync();
         Task<byte[]> GenerateCategoriesReportAsync();
         Task<byte[]> GenerateSuppliersReportExcelAsync();
-        Task<byte[]> GenerateSuppliersReportAsync();
         Task<byte[]> GenerateComprehensiveReportAsync(DateTime? startDate = null, DateTime? endDate = null);
         Task<byte[]> GenerateReceiptPdfAsync(int saleId);
         Task<byte[]> GenerateReceiptPdfAsync(ReceiptPdfRequest request);
         Task<byte[]> GenerateReceiptPDFAsync(string receiptHtml);
         Task<byte[]> GeneratePurchaseRequestReceiptAsync(int purchaseRequestId);
         Task<byte[]> GenerateSupplierInvoicePDFAsync(SupplierInvoice invoice);
+        Task<byte[]> GenerateMpesaTransactionsPDFAsync(MpesaTransactionsReportRequest request);
     }
 
     public interface ISalesService
     {
         Task<ProcessSaleResult> ProcessSaleAsync(ProcessSaleRequest request, int userId);
     }
-
     public interface IBarcodeService
     {
         Task<byte[]> GenerateBarcodeAsync(string data, int width = 200, int height = 50);

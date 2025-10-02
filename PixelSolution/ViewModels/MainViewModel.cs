@@ -485,6 +485,7 @@ namespace PixelSolution.ViewModels
         public string PaymentMethod { get; set; } = string.Empty;
         public decimal AmountPaid { get; set; }
         public decimal ChangeGiven { get; set; }
+        public decimal? CashReceived { get; set; }  // Amount customer gave for cash payment
         public string? CustomerName { get; set; }
         public string? CustomerPhone { get; set; }
         public string? CustomerEmail { get; set; }

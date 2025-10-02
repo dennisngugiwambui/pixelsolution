@@ -80,9 +80,16 @@ namespace PixelSolution.Services
                 sale.SaleDate = DateTime.UtcNow;
                 Console.WriteLine($"[DEBUG] Generated sale number: {sale.SaleNumber}");
 
-                // Calculate total amount from sale items
-                sale.TotalAmount = sale.SaleItems.Sum(si => si.TotalPrice);
-                Console.WriteLine($"[DEBUG] Calculated total amount: {sale.TotalAmount}");
+                // Calculate total amount from sale items ONLY if not already set
+                if (sale.TotalAmount == 0 && sale.SaleItems.Any())
+                {
+                    sale.TotalAmount = sale.SaleItems.Sum(si => si.TotalPrice);
+                    Console.WriteLine($"[DEBUG] Calculated total amount from items: {sale.TotalAmount}");
+                }
+                else
+                {
+                    Console.WriteLine($"[DEBUG] Total amount already set: {sale.TotalAmount}");
+                }
 
                 Console.WriteLine("[DEBUG] Adding sale to context");
                 _context.Sales.Add(sale);

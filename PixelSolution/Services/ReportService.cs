@@ -1,20 +1,18 @@
 using Microsoft.EntityFrameworkCore;
 using PixelSolution.Data;
 using PixelSolution.Models;
-using PixelSolution.Services.Interfaces;
 using PixelSolution.ViewModels;
+using PixelSolution.Controllers;
 using iTextSharp.text;
 using iTextSharp.text.pdf;
-using ClosedXML.Excel;
-using System.IO;
-using System.Text;
+using System.Globalization;
+using Microsoft.EntityFrameworkCore;
+using PixelSolution.Models.Enums;
 
-namespace PixelSolution.Services
 {
     public class ReportService : IReportService
     {
         private readonly ApplicationDbContext _context;
-
         public ReportService(ApplicationDbContext context)
         {
             _context = context;
@@ -24,22 +22,25 @@ namespace PixelSolution.Services
         {
             try
             {
+                // Use local time for proper date filtering
                 var today = DateTime.Today;
+                var tomorrow = today.AddDays(1);
                 var thisMonth = new DateTime(today.Year, today.Month, 1);
+                var nextMonth = thisMonth.AddMonths(1);
                 var lastMonth = thisMonth.AddMonths(-1);
 
-                // Today's sales - use TotalAmount for consistency
+                // Today's sales - use TotalAmount and include both Completed and Pending
                 var todaySales = await _context.Sales
-                    .Where(s => s.SaleDate.Date == today && s.Status == "Completed")
+                    .Where(s => s.SaleDate >= today && s.SaleDate < tomorrow && s.Status == "Completed")
                     .SumAsync(s => s.TotalAmount);
 
                 var todaySalesCount = await _context.Sales
-                    .Where(s => s.SaleDate.Date == today && s.Status == "Completed")
+                    .Where(s => s.SaleDate >= today && s.SaleDate < tomorrow && s.Status == "Completed")
                     .CountAsync();
 
                 // This month's sales
                 var thisMonthSales = await _context.Sales
-                    .Where(s => s.SaleDate >= thisMonth && s.Status == "Completed")
+                    .Where(s => s.SaleDate >= thisMonth && s.SaleDate < nextMonth && s.Status == "Completed")
                     .SumAsync(s => s.TotalAmount);
 
                 var lastMonthSales = await _context.Sales
@@ -604,66 +605,193 @@ namespace PixelSolution.Services
 
         private string GenerateReceiptHtml(Sale sale)
         {
+            // CRITICAL FIX: Handle legacy sales with zero values
+            decimal actualTotal = sale.TotalAmount;
+            decimal tax = 0;
+            decimal subtotal = 0;
+            
+            // Recalculate if TotalAmount is 0 (legacy sales)
+            if (actualTotal == 0)
+            {
+                // Try to calculate from items first
+                if (sale.SaleItems != null && sale.SaleItems.Any())
+                {
+                    actualTotal = sale.SaleItems.Sum(si => si.TotalPrice);
+                }
+                
+                // If items also have zero totals, use AmountPaid as fallback
+                if (actualTotal == 0 && sale.AmountPaid > 0)
+                {
+                    actualTotal = sale.AmountPaid;
+                }
+            }
+            
+            // Calculate tax and subtotal properly
+            subtotal = actualTotal / 1.16m; // Remove VAT to get subtotal
+            tax = actualTotal - subtotal;   // VAT is the difference
+            
             var html = new StringBuilder();
 
+            // THERMAL PRINTER OPTIMIZED FORMAT
             html.AppendLine("<!DOCTYPE html>");
             html.AppendLine("<html><head>");
             html.AppendLine("<title>Sales Receipt</title>");
             html.AppendLine("<style>");
-            html.AppendLine("body { font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; }");
-            html.AppendLine(".header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 20px; margin-bottom: 20px; }");
-            html.AppendLine("table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }");
-            html.AppendLine("th, td { padding: 8px; text-align: left; border-bottom: 1px solid #ddd; }");
-            html.AppendLine("th { background-color: #f5f5f5; }");
-            html.AppendLine(".total-row { font-weight: bold; background-color: #f0f0f0; }");
+            html.AppendLine("body { font-family: 'Courier New', monospace; width: 300px; margin: 0 auto; padding: 10px; font-size: 12px; }");
+            html.AppendLine(".center { text-align: center; }");
+            html.AppendLine(".bold { font-weight: bold; }");
+            html.AppendLine(".line { border-bottom: 1px dashed #000; margin: 5px 0; }");
+            html.AppendLine(".double-line { border-bottom: 2px solid #000; margin: 5px 0; }");
+            html.AppendLine(".item-row { display: flex; justify-content: space-between; margin: 2px 0; }");
+            html.AppendLine(".total-row { font-weight: bold; font-size: 14px; }");
+            html.AppendLine(".success { color: #10b981; font-weight: bold; }");
             html.AppendLine("</style>");
             html.AppendLine("</head><body>");
 
-            // Header
-            html.AppendLine("<div class='header'>");
-            html.AppendLine("<h1>PIXEL SOLUTION COMPANY LTD</h1>");
-            html.AppendLine("<p>Advanced Sales Management System</p>");
-            html.AppendLine("</div>");
+            // Header - Centered
+            html.AppendLine("<div class='center bold' style='font-size: 16px;'>PIXEL SOLUTION COMPANY LTD</div>");
+            html.AppendLine("<div class='center' style='font-size: 11px;'>Sales Receipt</div>");
+            html.AppendLine("<div class='center' style='font-size: 10px;'>Receipt #: " + sale.SaleNumber + "</div>");
+            html.AppendLine("<div class='center' style='font-size: 10px;'>" + sale.SaleDate.ToString("dd/MM/yyyy, HH:mm:ss") + "</div>");
+            html.AppendLine("<div class='line'></div>");
 
-            // Receipt Info
-            html.AppendLine($"<p><strong>Receipt No:</strong> {sale.SaleNumber}</p>");
-            html.AppendLine($"<p><strong>Date:</strong> {sale.SaleDate:dd/MM/yyyy HH:mm}</p>");
-            html.AppendLine($"<p><strong>Sales Person:</strong> {sale.User.FirstName} {sale.User.LastName}</p>");
+            // Optional customer info
             if (!string.IsNullOrEmpty(sale.CustomerName))
             {
-                html.AppendLine($"<p><strong>Customer:</strong> {sale.CustomerName}</p>");
+                html.AppendLine($"<div>Customer: {sale.CustomerName}</div>");
             }
-            html.AppendLine($"<p><strong>Payment Method:</strong> {sale.PaymentMethod}</p>");
+            if (!string.IsNullOrEmpty(sale.CustomerPhone))
+            {
+                html.AppendLine($"<div>Phone: {sale.CustomerPhone}</div>");
+            }
+            
+            html.AppendLine("<div class='line'></div>");
+
+            // Items - No table, just text formatting
+
+            if (sale.SaleItems != null && sale.SaleItems.Any())
+            {
+                // Check if we need to recalculate item prices (for legacy sales)
+                bool needsRecalculation = sale.SaleItems.All(si => si.TotalPrice == 0) && actualTotal > 0;
+                int totalItems = sale.SaleItems.Count;
+                
+                foreach (var item in sale.SaleItems)
+                {
+                    decimal itemTotal = item.TotalPrice;
+                    decimal itemPrice = item.UnitPrice;
+                    
+                    if (needsRecalculation)
+                    {
+                        // For legacy items, distribute the total proportionally
+                        if (totalItems == 1)
+                        {
+                            // Single item - assign full total
+                            itemTotal = actualTotal;
+                            itemPrice = item.Quantity > 0 ? itemTotal / item.Quantity : itemTotal;
+                        }
+                        else
+                        {
+                            // Multiple items - distribute evenly
+                            itemTotal = actualTotal / totalItems;
+                            itemPrice = item.Quantity > 0 ? itemTotal / item.Quantity : itemTotal;
+                        }
+                    }
+                    else if (itemTotal == 0 && actualTotal > 0)
+                    {
+                        // Single zero item among non-zero items
+                        itemTotal = actualTotal;
+                        itemPrice = item.Quantity > 0 ? itemTotal / item.Quantity : itemTotal;
+                    }
+                    
+                    // Product name (bold)
+                    html.AppendLine($"<div class='bold'>{item.Product?.Name ?? "Unknown Product"}</div>");
+                    
+                    // Quantity x Unit Price = Item Total (aligned)
+                    html.AppendLine($"<div class='item-row'>");
+                    html.AppendLine($"  <span>{item.Quantity} x KSh {itemPrice:N2}</span>");
+                    html.AppendLine($"  <span class='bold'>KSh {itemTotal:N2}</span>");
+                    html.AppendLine("</div>");
+                    html.AppendLine("<br/>");
+                }
+            }
+
+            html.AppendLine("<div class='line'></div>");
+            
+            // Totals section
+            html.AppendLine("<div class='item-row'>");
+            html.AppendLine($"  <span>Subtotal:</span>");
+            html.AppendLine($"  <span>KSh {subtotal:N2}</span>");
+            html.AppendLine("</div>");
+            
+            html.AppendLine("<div class='item-row'>");
+            html.AppendLine($"  <span>VAT (16%):</span>");
+            html.AppendLine($"  <span>KSh {tax:N2}</span>");
+            html.AppendLine("</div>");
+            
+            html.AppendLine("<div class='double-line'></div>");
+            
+            html.AppendLine("<div class='item-row total-row'>");
+            html.AppendLine($"  <span>Total:</span>");
+            html.AppendLine($"  <span class='success'>KSh {actualTotal:N2}</span>");
+            html.AppendLine("</div>");
+            
+            html.AppendLine("<div class='line'></div>");
+
+            // Payment info
+            html.AppendLine("<div class='item-row'>");
+            html.AppendLine($"  <span>Payment Method:</span>");
+            html.AppendLine($"  <span class='bold'>{sale.PaymentMethod}</span>");
+            html.AppendLine("</div>");
+            
+            // CASH vs M-PESA display logic
+            if (sale.PaymentMethod.Equals("Cash", StringComparison.OrdinalIgnoreCase))
+            {
+                // CASH: Show Amount Given and Change Given
+                decimal amountGiven = sale.AmountPaid > 0 ? sale.AmountPaid : actualTotal;
+                decimal changeGiven = sale.ChangeGiven;
+                
+                // If AmountPaid is 0 (legacy), calculate from total + change
+                if (sale.AmountPaid == 0 && sale.ChangeGiven > 0)
+                {
+                    amountGiven = actualTotal + sale.ChangeGiven;
+                }
+                
+                html.AppendLine("<div class='item-row'>");
+                html.AppendLine($"  <span>Amount Given:</span>");
+                html.AppendLine($"  <span>KSh {amountGiven:N2}</span>");
+                html.AppendLine("</div>");
+                
+                html.AppendLine("<div class='item-row'>");
+                html.AppendLine($"  <span>Change Given:</span>");
+                html.AppendLine($"  <span>KSh {changeGiven:N2}</span>");
+                html.AppendLine("</div>");
+            }
+            else
+            {
+                // M-PESA: Amount Paid = Total (exact amount), Change = 0
+                html.AppendLine("<div class='item-row'>");
+                html.AppendLine($"  <span>Amount Paid:</span>");
+                html.AppendLine($"  <span>KSh {actualTotal:N2}</span>");
+                html.AppendLine("</div>");
+                
+                html.AppendLine("<div class='item-row'>");
+                html.AppendLine($"  <span>Change Given:</span>");
+                html.AppendLine($"  <span>KSh 0.00</span>");
+                html.AppendLine("</div>");
+            }
+            
             if (sale.PaymentMethod.Equals("M-Pesa", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrEmpty(sale.MpesaReceiptNumber))
             {
-                html.AppendLine($"<p><strong>M-Pesa Code:</strong> {sale.MpesaReceiptNumber}</p>");
+                html.AppendLine("<div class='line'></div>");
+                html.AppendLine("<div class='center' style='background: #d1fae5; padding: 5px; margin: 5px 0;'>");
+                html.AppendLine($"  <div class='bold'>M-Pesa Code:</div>");
+                html.AppendLine($"  <div class='bold' style='font-size: 14px;'>{sale.MpesaReceiptNumber}</div>");
+                html.AppendLine("</div>");
             }
-
-            // Items Table
-            html.AppendLine("<table>");
-            html.AppendLine("<thead>");
-            html.AppendLine("<tr><th>Item</th><th>Qty</th><th>Price</th><th>Total</th></tr>");
-            html.AppendLine("</thead>");
-            html.AppendLine("<tbody>");
-
-            foreach (var item in sale.SaleItems)
-            {
-                html.AppendLine("<tr>");
-                html.AppendLine($"<td>{item.Product.Name}</td>");
-                html.AppendLine($"<td>{item.Quantity}</td>");
-                html.AppendLine($"<td>KSh {item.UnitPrice:N2}</td>");
-                html.AppendLine($"<td>KSh {item.TotalPrice:N2}</td>");
-                html.AppendLine("</tr>");
-            }
-
-            html.AppendLine("<tr class='total-row'>");
-            html.AppendLine($"<td colspan='3'><strong>TOTAL</strong></td>");
-            html.AppendLine($"<td><strong>KSh {sale.TotalAmount:N2}</strong></td>");
-            html.AppendLine("</tr>");
-            html.AppendLine("</tbody>");
-            html.AppendLine("</table>");
-
-            html.AppendLine("<p>Thank you for your business!</p>");
+            
+            html.AppendLine("<div class='line'></div>");
+            html.AppendLine("<div class='center' style='margin-top: 10px;'>Thank you for your business!</div>");
+            html.AppendLine("<div class='center' style='font-size: 10px;'>Served by: " + (sale.CashierName ?? (sale.User != null ? $"{sale.User.FirstName} {sale.User.LastName}" : "Staff")) + "</div>");
             html.AppendLine("</body></html>");
 
             return html.ToString();
@@ -2612,7 +2740,6 @@ namespace PixelSolution.Services
                 officialDoc.SpacingBefore = 5;
                 footerCell.AddElement(officialDoc);
 
-                footerTable.AddCell(footerCell);
                 document.Add(footerTable);
 
                 document.Close();
@@ -2620,8 +2747,6 @@ namespace PixelSolution.Services
             }
             catch (Exception ex)
             {
-                throw new Exception($"Error generating supplier invoice PDF: {ex.Message}", ex);
+                throw new Exception($"Error generating M-Pesa transactions PDF: {ex.Message}", ex);
             }
         }
-    }
-}

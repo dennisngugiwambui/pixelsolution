@@ -11,6 +11,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"]</title>
 
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='45' fill='%232563eb'/%3E%3Cpath d='M50 25 L60 45 L50 40 L40 45 Z M50 55 L60 75 L50 70 L40 75 Z' fill='white'/%3E%3C/svg%3E">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='45' fill='%232563eb'/%3E%3Cpath d='M50 25 L60 45 L50 40 L40 45 Z M50 55 L60 75 L50 70 L40 75 Z' fill='white'/%3E%3C/svg%3E">
+
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
 
@@ -531,6 +535,179 @@
                     font-weight: 900;
                 }
 
+        /* Alert Messages */
+        .alert {
+            padding: 1rem;
+            border-radius: var(--border-radius);
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 0.875rem;
+            animation: slideDown 0.3s ease-out;
+        }
+
+        .alert-danger {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            color: var(--danger-color);
+        }
+
+        .alert-success {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            color: var(--success-color);
+        }
+
+        .alert-info {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            color: var(--primary-color);
+        }
+
+        .alert i {
+            font-size: 1.25rem;
+        }
+
+        @@keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @@keyframes slideUp {
+            from {
+                opacity: 1;
+                transform: translateY(0);
+            }
+            to {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+        }
+
+        @@keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+            20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+
+        .shake {
+            animation: shake 0.5s ease-in-out;
+        }
+
+        /* Toast Notifications */
+        .toast-container {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 9999;
+            max-width: 400px;
+        }
+
+        .toast {
+            background: var(--background-primary);
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-xl);
+            padding: 1rem 1.25rem;
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            animation: slideInRight 0.3s ease-out;
+            border-left: 4px solid;
+        }
+
+        .toast.toast-error {
+            border-left-color: var(--danger-color);
+        }
+
+        .toast.toast-success {
+            border-left-color: var(--success-color);
+        }
+
+        .toast.toast-info {
+            border-left-color: var(--primary-color);
+        }
+
+        .toast-icon {
+            font-size: 1.5rem;
+            flex-shrink: 0;
+        }
+
+        .toast-error .toast-icon {
+            color: var(--danger-color);
+        }
+
+        .toast-success .toast-icon {
+            color: var(--success-color);
+        }
+
+        .toast-info .toast-icon {
+            color: var(--primary-color);
+        }
+
+        .toast-content {
+            flex: 1;
+        }
+
+        .toast-title {
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+        }
+
+        .toast-message {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .toast-close {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 1.25rem;
+            padding: 0.25rem;
+            line-height: 1;
+            transition: var(--transition);
+        }
+
+        .toast-close:hover {
+            color: var(--text-primary);
+        }
+
+        @@keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(100%);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @@keyframes slideOutRight {
+            from {
+                opacity: 1;
+                transform: translateX(0);
+            }
+            to {
+                opacity: 0;
+                transform: translateX(100%);
+            }
+        }
+
+        .toast.removing {
+            animation: slideOutRight 0.3s ease-out forwards;
+        }
+
         /* Footer */
         .login-footer {
             text-align: center;
@@ -608,6 +785,29 @@
                 padding: 2rem 1.5rem;
                 margin: 0.5rem;
                 max-width: 320px;
+            }
+
+            .toast-container {
+                top: 0.5rem;
+                right: 0.5rem;
+                left: 0.5rem;
+                max-width: none;
+            }
+
+            .toast {
+                padding: 0.875rem 1rem;
+            }
+
+            .toast-icon {
+                font-size: 1.25rem;
+            }
+
+            .toast-title {
+                font-size: 0.875rem;
+            }
+
+            .toast-message {
+                font-size: 0.8125rem;
             }
 
             .logo-title {
@@ -713,6 +913,9 @@
     </style>
 </head>
 <body>
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
     <div class="login-container">
         <!-- Logo Section -->
         <div class="logo-section">
@@ -723,11 +926,28 @@
             <p class="logo-subtitle">The top selling shop</p>
         </div>
 
-        <!-- Validation Summary -->
-        @if (!ViewData.ModelState.IsValid)
+        <!-- Error Messages -->
+        @if (ViewBag.ErrorMessage != null)
         {
-            <div class="validation-summary-errors" role="alert">
-                @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+            <div class="alert alert-danger" role="alert" id="errorAlert">
+                <i class="fas fa-exclamation-circle"></i>
+                <span>@ViewBag.ErrorMessage</span>
+            </div>
+        }
+
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success" role="alert" id="successAlert">
+                <i class="fas fa-check-circle"></i>
+                <span>@TempData["SuccessMessage"]</span>
+            </div>
+        }
+
+        @if (TempData["InfoMessage"] != null)
+        {
+            <div class="alert alert-info" role="alert" id="infoAlert">
+                <i class="fas fa-info-circle"></i>
+                <span>@TempData["InfoMessage"]</span>
             </div>
         }
 
@@ -798,8 +1018,107 @@
 
     <!-- JavaScript -->
     <script>
+        // Toast Notification System
+        function showToast(message, type = 'info', duration = 5000) {
+            const toastContainer = document.getElementById('toastContainer');
+            if (!toastContainer) return;
+
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            
+            const iconMap = {
+                'error': 'fa-exclamation-circle',
+                'success': 'fa-check-circle',
+                'info': 'fa-info-circle'
+            };
+
+            const titleMap = {
+                'error': 'Error',
+                'success': 'Success',
+                'info': 'Information'
+            };
+
+            toast.innerHTML = `
+                <i class="fas ${iconMap[type]} toast-icon"></i>
+                <div class="toast-content">
+                    <div class="toast-title">${titleMap[type]}</div>
+                    <div class="toast-message">${message}</div>
+                </div>
+                <button class="toast-close" onclick="closeToast(this)">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+
+            toastContainer.appendChild(toast);
+
+            // Auto remove after duration
+            setTimeout(() => {
+                closeToast(toast.querySelector('.toast-close'));
+            }, duration);
+        }
+
+        function closeToast(button) {
+            const toast = button.closest('.toast');
+            if (toast) {
+                toast.classList.add('removing');
+                setTimeout(() => {
+                    toast.remove();
+                }, 300);
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
             console.log('Login page initialized');
+
+            // Show toast notifications from server-side messages
+            @if (ViewBag.ErrorMessage != null)
+            {
+                <text>
+                showToast('@Html.Raw(ViewBag.ErrorMessage)', 'error', 6000);
+                // Add shake animation to error alert
+                const errorAlert = document.getElementById('errorAlert');
+                if (errorAlert) {
+                    errorAlert.classList.add('shake');
+                }
+                </text>
+            }
+
+            @if (TempData["SuccessMessage"] != null)
+            {
+                <text>
+                showToast('@Html.Raw(TempData["SuccessMessage"])', 'success', 4000);
+                </text>
+            }
+
+            @if (TempData["InfoMessage"] != null)
+            {
+                <text>
+                showToast('@Html.Raw(TempData["InfoMessage"])', 'info', 4000);
+                </text>
+            }
+
+            // Hide inline alerts when user starts typing
+            function hideAlerts() {
+                const errorAlert = document.getElementById('errorAlert');
+                const successAlert = document.getElementById('successAlert');
+                const infoAlert = document.getElementById('infoAlert');
+                
+                if (errorAlert) {
+                    errorAlert.style.animation = 'slideUp 0.3s ease-out';
+                    setTimeout(() => errorAlert.remove(), 300);
+                }
+                if (successAlert) {
+                    successAlert.style.animation = 'slideUp 0.3s ease-out';
+                    setTimeout(() => successAlert.remove(), 300);
+                }
+                if (infoAlert) {
+                    infoAlert.style.animation = 'slideUp 0.3s ease-out';
+                    setTimeout(() => infoAlert.remove(), 300);
+                }
+            }
+
+            // Auto-dismiss inline alerts after 8 seconds
+            setTimeout(hideAlerts, 8000);
 
             // Password toggle functionality
             const togglePassword = document.getElementById('togglePassword');
@@ -832,6 +1151,52 @@
 
             if (loginForm && submitBtn) {
                 loginForm.addEventListener('submit', function(e) {
+                    // Client-side validation
+                    const emailInput = document.getElementById('Email');
+                    const passwordInput = document.getElementById('passwordInput');
+                    
+                    let hasError = false;
+
+                    if (!emailInput.value.trim()) {
+                        showToast('Please enter your email address', 'error');
+                        emailInput.classList.add('is-invalid');
+                        emailInput.parentElement.parentElement.classList.add('shake');
+                        setTimeout(() => emailInput.parentElement.parentElement.classList.remove('shake'), 500);
+                        emailInput.focus();
+                        e.preventDefault();
+                        return false;
+                    }
+
+                    if (!isValidEmail(emailInput.value)) {
+                        showToast('Please enter a valid email address', 'error');
+                        emailInput.classList.add('is-invalid');
+                        emailInput.parentElement.parentElement.classList.add('shake');
+                        setTimeout(() => emailInput.parentElement.parentElement.classList.remove('shake'), 500);
+                        emailInput.focus();
+                        e.preventDefault();
+                        return false;
+                    }
+
+                    if (!passwordInput.value.trim()) {
+                        showToast('Please enter your password', 'error');
+                        passwordInput.classList.add('is-invalid');
+                        passwordInput.parentElement.parentElement.classList.add('shake');
+                        setTimeout(() => passwordInput.parentElement.parentElement.classList.remove('shake'), 500);
+                        passwordInput.focus();
+                        e.preventDefault();
+                        return false;
+                    }
+
+                    if (passwordInput.value.length < 6) {
+                        showToast('Password must be at least 6 characters', 'error');
+                        passwordInput.classList.add('is-invalid');
+                        passwordInput.parentElement.parentElement.classList.add('shake');
+                        setTimeout(() => passwordInput.parentElement.parentElement.classList.remove('shake'), 500);
+                        passwordInput.focus();
+                        e.preventDefault();
+                        return false;
+                    }
+
                     // Add loading state
                     submitBtn.classList.add('loading');
                     submitBtn.disabled = true;
@@ -848,7 +1213,14 @@
             const emailInput = document.getElementById('Email');
             const passwordInputField = document.getElementById('passwordInput');
 
+            // Hide alerts when user starts typing
             if (emailInput) {
+                emailInput.addEventListener('input', function() {
+                    hideAlerts();
+                    // Remove validation classes while typing
+                    this.classList.remove('is-invalid', 'is-valid');
+                });
+
                 emailInput.addEventListener('blur', function() {
                     if (this.value && !isValidEmail(this.value)) {
                         this.classList.add('is-invalid');
@@ -860,8 +1232,12 @@
                         this.classList.remove('is-valid', 'is-invalid');
                     }
                 });
-
-                emailInput.addEventListener('input', function() {
+            }
+            
+            if (passwordInputField) {
+                passwordInputField.addEventListener('input', function() {
+                    hideAlerts();
+                    // Remove validation classes while typing
                     this.classList.remove('is-invalid', 'is-valid');
                 });
             }

@@ -30,6 +30,10 @@ namespace PixelSolution.Data
         public DbSet<Message> Messages { get; set; }
         public DbSet<MpesaTransaction> MpesaTransactions { get; set; }
         public DbSet<MpesaToken> MpesaTokens { get; set; }
+        public DbSet<UnusedMpesaTransaction> UnusedMpesaTransactions { get; set; }
+        public DbSet<PendingMpesaTransaction> PendingMpesaTransactions { get; set; }
+        public DbSet<QRCodePayment> QRCodePayments { get; set; }
+        public DbSet<ManualMpesaEntry> ManualMpesaEntries { get; set; }
         public DbSet<UserDepartment> UserDepartments { get; set; }
         public DbSet<UserActivityLog> UserActivityLogs { get; set; }
         

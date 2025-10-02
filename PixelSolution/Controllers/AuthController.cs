@@ -91,7 +91,22 @@ namespace PixelSolution.Controllers
 
                 if (model == null || !ModelState.IsValid)
                 {
-                    ViewBag.ErrorMessage = "Please check your input and try again.";
+                    // Get specific validation errors
+                    var errors = ModelState.Values
+                        .SelectMany(v => v.Errors)
+                        .Select(e => e.ErrorMessage)
+                        .Where(m => !string.IsNullOrEmpty(m))
+                        .ToList();
+                    
+                    if (errors.Any())
+                    {
+                        ViewBag.ErrorMessage = string.Join(" ", errors);
+                    }
+                    else
+                    {
+                        ViewBag.ErrorMessage = "Please enter valid email and password.";
+                    }
+                    
                     ViewData["ReturnUrl"] = returnUrl;
                     return View(model ?? new LoginViewModel());
                 }

@@ -339,6 +339,9 @@ namespace PixelSolution.Models
         [StringLength(15)]
         public string PhoneNumber { get; set; } = string.Empty;
 
+        [StringLength(200)]
+        public string CustomerName { get; set; } = string.Empty; // M-Pesa account name
+
         [Required]
         [Column(TypeName = "decimal(18,2)")]
         public decimal Amount { get; set; }
@@ -364,6 +367,68 @@ namespace PixelSolution.Models
         // Navigation Properties
         [ForeignKey("SaleId")]
         public virtual Sale Sale { get; set; } = null!;
+    }
+
+    public class UnusedMpesaTransaction
+    {
+        [Key]
+        public int Id { get; set; }
+
+        [Required]
+        [StringLength(50)]
+        public string TransactionCode { get; set; } = string.Empty;
+
+        [Required]
+        [StringLength(20)]
+        public string TillNumber { get; set; } = string.Empty;
+
+        [Required]
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal Amount { get; set; }
+
+        [StringLength(15)]
+        public string PhoneNumber { get; set; } = string.Empty;
+
+        [StringLength(200)]
+        public string CustomerName { get; set; } = string.Empty; // M-Pesa account holder name
+
+        public DateTime ReceivedAt { get; set; } = DateTime.UtcNow;
+
+        public bool IsUsed { get; set; } = false;
+
+        public DateTime? UsedAt { get; set; }
+
+        public int? SaleId { get; set; }
+
+        [ForeignKey("SaleId")]
+        public virtual Sale? Sale { get; set; }
+    }
+
+    public class PendingMpesaTransaction
+    {
+        [Key]
+        public int Id { get; set; }
+
+        [Required]
+        public string SessionId { get; set; } = string.Empty;
+
+        [Required]
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal Amount { get; set; }
+
+        [StringLength(15)]
+        public string PhoneNumber { get; set; } = string.Empty;
+
+        [Required]
+        public string CartData { get; set; } = string.Empty; // JSON of cart items
+
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+        public DateTime? ExpiresAt { get; set; }
+
+        public string? CheckoutRequestId { get; set; }
+
+        public string Status { get; set; } = "Pending"; // Pending, Completed, Failed, Expired
     }
 
     // Request/Response Models for API
@@ -415,20 +480,6 @@ namespace PixelSolution.Models
         // Navigation Properties
         [ForeignKey("CustomerId")]
         public virtual Customer Customer { get; set; } = null!;
-
-        [ForeignKey("ProductId")]
-        public virtual Product Product { get; set; } = null!;
-    }
-
-    public class MpesaToken
-    {
-        [Key]
-        public int MpesaTokenId { get; set; }
-
-        [Required]
-        [StringLength(500)]
-        public string AccessToken { get; set; } = string.Empty;
-
         [Required]
         public DateTime ExpiresAt { get; set; }
 
@@ -671,5 +722,93 @@ namespace PixelSolution.Models
 
         [ForeignKey("ProcessedByUserId")]
         public virtual User ProcessedByUser { get; set; } = null!;
+    }
+
+    public class QRCodePayment
+    {
+        [Key]
+        public int QRCodePaymentId { get; set; }
+        
+        [Required]
+        public string QRCodeReference { get; set; } = string.Empty; // Unique reference for this QR payment
+        
+        [Required]
+        public decimal Amount { get; set; }
+        
+        [Required]
+        public string TillNumber { get; set; } = "6509715";
+        
+        public string? CustomerPhone { get; set; }
+        
+        public string? CustomerName { get; set; }
+        
+        [Required]
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        
+        public DateTime? PaidAt { get; set; }
+        
+        [Required]
+        public string Status { get; set; } = "Pending"; // Pending, Paid, Expired
+        
+        public string? MpesaReceiptNumber { get; set; }
+        
+        public string? TransactionCode { get; set; }
+        
+        public int? SaleId { get; set; }
+        
+        public virtual Sale? Sale { get; set; }
+        
+        public DateTime ExpiresAt { get; set; } = DateTime.UtcNow.AddMinutes(30); // QR expires in 30 minutes
+        
+        public string? Description { get; set; }
+        
+        public int CreatedByUserId { get; set; }
+        
+        public virtual User CreatedByUser { get; set; } = null!;
+    }
+
+    public class ManualMpesaEntry
+    {
+        [Key]
+        public int ManualMpesaEntryId { get; set; }
+        
+        [Required]
+        public string MpesaMessage { get; set; } = string.Empty; // Full M-Pesa message
+        
+        [Required]
+        public string TransactionCode { get; set; } = string.Empty; // Extracted from message
+        
+        [Required]
+        public decimal Amount { get; set; }
+        
+        [Required]
+        public string SenderPhone { get; set; } = string.Empty;
+        
+        public string? SenderName { get; set; }
+        
+        [Required]
+        public DateTime TransactionDate { get; set; }
+        
+        [Required]
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        
+        [Required]
+        public string Status { get; set; } = "Pending"; // Pending, Verified, Linked, Invalid
+        
+        public int? SaleId { get; set; }
+        
+        public virtual Sale? Sale { get; set; }
+        
+        public int EnteredByUserId { get; set; }
+        
+        public virtual User EnteredByUser { get; set; } = null!;
+        
+        public string? VerificationNotes { get; set; }
+        
+        public bool IsVerified { get; set; } = false;
+        
+        public DateTime? VerifiedAt { get; set; }
+        
+        public string TillNumber { get; set; } = "6509715"; // Default till number
     }
 }

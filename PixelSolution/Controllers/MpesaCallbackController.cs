@@ -151,6 +151,7 @@ namespace PixelSolution.Controllers
                                     break;
                             }
                         }
+                        }
                     }
 
                     // Update M-Pesa transaction record with completion details
@@ -386,8 +387,22 @@ namespace PixelSolution.Controllers
                     var middleName = c2bData.ContainsKey("MiddleName") ? c2bData["MiddleName"].GetString() : "";
                     var lastName = c2bData.ContainsKey("LastName") ? c2bData["LastName"].GetString() : "";
                     
-                    _logger.LogInformation("💰 C2B Payment: TransID={TransID}, Amount={Amount}, Phone={Phone}, BillRef={BillRef}", 
-                        transId, transAmount, msisdn, billRefNumber);
+                    // Build customer full name
+                    var customerName = $"{firstName} {middleName} {lastName}".Trim();
+                    
+                    _logger.LogInformation("💰 C2B Payment: TransID={TransID}, Amount={Amount}, Phone={Phone}, Customer={Customer}, Till={Till}", 
+                        transId, transAmount, msisdn, customerName, businessShortCode);
+
+                    // VALIDATE: Only accept payments to our till 6509715
+                    if (businessShortCode != "6509715")
+                    {
+                        _logger.LogWarning("⚠️ Payment rejected - Wrong till number: {Till}. Expected: 6509715", businessShortCode);
+                        return Ok(new
+                        {
+                            ResultCode = 0,
+                            ResultDesc = "Payment received but for different till"
+                        });
+                    }
 
                     // Try to find pending sale by amount and phone number
                     var pendingSale = await _context.Sales
@@ -398,6 +413,24 @@ namespace PixelSolution.Controllers
                         .OrderByDescending(s => s.SaleDate)
                         .FirstOrDefaultAsync();
 
+                    // Record ALL transactions to till 6509715
+                    _logger.LogInformation("💾 Recording transaction: Code={Code}, Amount={Amount}, Customer={Customer}", 
+                        transId, transAmount, customerName);
+                    
+                    var unusedTransaction = new UnusedMpesaTransaction
+                    {
+                        TransactionCode = transId ?? "",
+                        TillNumber = businessShortCode ?? "6509715",
+                        Amount = transAmount,
+                        PhoneNumber = msisdn ?? "",
+                        CustomerName = customerName,
+                        ReceivedAt = DateTime.UtcNow,
+                        IsUsed = pendingSale != null,
+                        SaleId = pendingSale?.SaleId
+                    };
+
+                    _context.UnusedMpesaTransactions.Add(unusedTransaction);
+
                     if (pendingSale != null)
                     {
                         // Link M-Pesa transaction to sale
@@ -405,19 +438,17 @@ namespace PixelSolution.Controllers
                         pendingSale.Status = "Completed";
                         pendingSale.AmountPaid = transAmount;
                         
-                        await _context.SaveChangesAsync();
-                        
                         _logger.LogInformation("✅ C2B Payment linked to Sale #{SaleNumber}, TransID: {TransID}", 
                             pendingSale.SaleNumber, transId);
                     }
                     else
                     {
-                        // Save as unlinked C2B transaction for manual reconciliation
-                        _logger.LogWarning("⚠️ No matching pending sale found for C2B payment. TransID: {TransID}, Amount: {Amount}", 
+                        _logger.LogWarning("⚠️ No matching pending sale found for C2B payment. TransID: {TransID}, Amount: {Amount} - Saved for manual verification", 
                             transId, transAmount);
-                        
-                        // You could save to a separate C2BTransaction table for manual linking later
                     }
+
+                    await _context.SaveChangesAsync();
+                    _logger.LogInformation("✅ Transaction saved to database: {Code}", transId);
                 }
 
                 return Ok(new

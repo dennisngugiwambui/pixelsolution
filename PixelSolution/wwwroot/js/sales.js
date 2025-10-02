@@ -4,6 +4,7 @@ let allProducts = [];
 let allCategories = [];
 let selectedPaymentMethod = null;
 let currentTotal = 0;
+let currentSaleId = null; // Store current sale ID for manual verification
 
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🚀 Sales page loaded - Edit button functionality enabled');
@@ -35,10 +36,10 @@ async function loadCategories() {
     try {
         console.log('Loading categories from server...');
         
-        // Determine the correct endpoint based on current page
-        const currentPath = window.location.pathname;
-        const endpoint = currentPath.includes('/Admin/') ? '/Admin/GetCategories' : '/Employee/GetCategories';
-        console.log('🔗 Using categories endpoint:', endpoint);
+        // Determine the correct endpoint based on current page (case-insensitive)
+        const currentPath = window.location.pathname.toLowerCase();
+        const endpoint = currentPath.includes('/admin/') ? '/Admin/GetCategories' : '/Employee/GetCategories';
+        console.log('🔗 Using categories endpoint:', endpoint, '(from path:', window.location.pathname, ')');
         
         const response = await fetch(endpoint);
         
@@ -80,10 +81,10 @@ async function loadProducts() {
         console.log('Loading products from server...');
         showLoadingState();
 
-        // Determine the correct endpoint based on current page
-        const currentPath = window.location.pathname;
-        const endpoint = currentPath.includes('/Admin/') ? '/Admin/GetProductsForSale' : '/Employee/GetProductsForSale';
-        console.log('🔗 Using endpoint:', endpoint);
+        // Determine the correct endpoint based on current page (case-insensitive)
+        const currentPath = window.location.pathname.toLowerCase();
+        const endpoint = currentPath.includes('/admin/') ? '/Admin/GetProductsForSale' : '/Employee/GetProductsForSale';
+        console.log('🔗 Using endpoint:', endpoint, '(from path:', window.location.pathname, ')');
 
         const response = await fetch(endpoint);
 
@@ -413,10 +414,10 @@ async function loadTodayStats() {
 async function updateTodayStats() {
     console.log('🔄 Updating today\'s stats...');
     try {
-        // Determine the correct endpoint based on current page
-        const currentPath = window.location.pathname;
-        const endpoint = currentPath.includes('/Admin/') ? '/Admin/GetTodaysSalesStats' : '/Employee/GetTodaysSalesStats';
-        console.log('🔗 Using stats endpoint:', endpoint);
+        // Determine the correct endpoint based on current page (case-insensitive)
+        const currentPath = window.location.pathname.toLowerCase();
+        const endpoint = currentPath.includes('/admin/') ? '/Admin/GetTodaysSalesStats' : '/Employee/GetTodaysSalesStats';
+        console.log('🔗 Using stats endpoint:', endpoint, '(from path:', window.location.pathname, ')');
         
         const response = await fetch(endpoint);
         console.log('📊 Stats response status:', response.status);
@@ -461,10 +462,10 @@ async function updateTodayStats() {
 // Load notifications
 async function loadNotifications() {
     try {
-        // Determine the correct endpoint based on current page
-        const currentPath = window.location.pathname;
-        const endpoint = currentPath.includes('/Admin/') ? '/Admin/GetNotifications' : '/Employee/GetNotifications';
-        console.log('🔔 Using notifications endpoint:', endpoint);
+        // Determine the correct endpoint based on current page (case-insensitive)
+        const currentPath = window.location.pathname.toLowerCase();
+        const endpoint = currentPath.includes('/admin/') ? '/Admin/GetNotifications' : '/Employee/GetNotifications';
+        console.log('🔔 Using notifications endpoint:', endpoint, '(from path:', window.location.pathname, ')');
         
         const response = await fetch(endpoint);
         
@@ -696,16 +697,35 @@ function closePaymentModal() {
     const paymentOptions = document.querySelectorAll('.payment-option');
     paymentOptions.forEach(option => option.classList.remove('selected'));
     
-    // Hide payment forms
-    document.getElementById('cashPaymentForm').style.display = 'none';
-    document.getElementById('mpesaPaymentForm').style.display = 'none';
-    document.getElementById('paymentMethodSelection').style.display = 'block';
+    // Hide payment forms - check if elements exist first
+    const cashForm = document.getElementById('cashPaymentForm');
+    const stkForm = document.getElementById('stkPaymentForm');
+    const qrForm = document.getElementById('qrPaymentForm');
+    const manualForm = document.getElementById('manualPaymentForm');
+    const methodSelection = document.getElementById('paymentMethodSelection');
+    const backBtn = document.getElementById('backToOptionsBtn');
     
-    // Reset form inputs
-    document.getElementById('cashReceived').value = '';
-    document.getElementById('customerPhone').value = '';
-    document.getElementById('changeDisplay').style.display = 'none';
-    document.getElementById('completePaymentBtn').disabled = true;
+    if (cashForm) cashForm.style.display = 'none';
+    if (stkForm) stkForm.style.display = 'none';
+    if (qrForm) qrForm.style.display = 'none';
+    if (manualForm) manualForm.style.display = 'none';
+    if (methodSelection) methodSelection.style.display = 'block';
+    if (backBtn) backBtn.style.display = 'none';
+    
+    // Reset form inputs - check if elements exist
+    const cashInput = document.getElementById('cashReceived');
+    const phoneInput = document.getElementById('customerPhone');
+    const qrPhoneInput = document.getElementById('qrCustomerPhone');
+    const manualCodeInput = document.getElementById('manualMpesaCode');
+    const changeDisplay = document.getElementById('changeDisplay');
+    const completeBtn = document.getElementById('completePaymentBtn');
+    
+    if (cashInput) cashInput.value = '';
+    if (phoneInput) phoneInput.value = '';
+    if (qrPhoneInput) qrPhoneInput.value = '';
+    if (manualCodeInput) manualCodeInput.value = '';
+    if (changeDisplay) changeDisplay.style.display = 'none';
+    if (completeBtn) completeBtn.disabled = true;
 }
 
 // Select payment method
@@ -717,51 +737,66 @@ function selectPaymentMethod(method) {
     const paymentOptions = document.querySelectorAll('.payment-option');
     paymentOptions.forEach(option => option.classList.remove('selected'));
     
-    // Hide method selection and show appropriate form
+    // Hide method selection and all forms
     document.getElementById('paymentMethodSelection').style.display = 'none';
+    document.getElementById('cashPaymentForm').style.display = 'none';
+    document.getElementById('stkPaymentForm').style.display = 'none';
+    document.getElementById('qrPaymentForm').style.display = 'none';
+    document.getElementById('manualPaymentForm').style.display = 'none';
     
+    // Show back button
+    document.getElementById('backToOptionsBtn').style.display = 'flex';
+    
+    // Show appropriate form
     if (method === 'cash') {
         document.getElementById('cashPaymentForm').style.display = 'block';
-        document.getElementById('mpesaPaymentForm').style.display = 'none';
-        
-        // Focus on cash input
-        setTimeout(() => {
-            document.getElementById('cashReceived').focus();
-        }, 100);
-        
-        // Add event listener for cash amount changes
+        setTimeout(() => document.getElementById('cashReceived').focus(), 100);
         const cashInput = document.getElementById('cashReceived');
         cashInput.addEventListener('input', calculateChange);
         
-    } else if (method === 'mpesa') {
-        document.getElementById('cashPaymentForm').style.display = 'none';
-        document.getElementById('mpesaPaymentForm').style.display = 'block';
-        
-        // Hide QR code section initially
-        document.getElementById('qrCodeSection').style.display = 'none';
-        
-        // Focus on phone input
-        setTimeout(() => {
-            document.getElementById('customerPhone').focus();
-        }, 100);
-        
-        // Add event listeners for phone number
+    } else if (method === 'stk') {
+        document.getElementById('stkPaymentForm').style.display = 'block';
+        setTimeout(() => document.getElementById('customerPhone').focus(), 100);
         const phoneInput = document.getElementById('customerPhone');
-        phoneInput.addEventListener('input', function() {
-            updateCompletePaymentButton();
-            
-            // Generate QR code when phone number is complete
-            const phoneValue = phoneInput.value.trim();
-            if (phoneValue.length === 9 && /^[0-9]+$/.test(phoneValue)) {
-                generateQRCode();
-            } else {
-                // Hide QR code if phone is invalid
-                document.getElementById('qrCodeSection').style.display = 'none';
-            }
-        });
+        phoneInput.addEventListener('input', updateCompletePaymentButton);
+        
+    } else if (method === 'qr') {
+        document.getElementById('qrPaymentForm').style.display = 'block';
+        setTimeout(() => document.getElementById('qrCustomerPhone').focus(), 100);
+        const phoneInput = document.getElementById('qrCustomerPhone');
+        phoneInput.addEventListener('input', updateCompletePaymentButton);
+        
+    } else if (method === 'manual') {
+        document.getElementById('manualPaymentForm').style.display = 'block';
+        setTimeout(() => document.getElementById('manualMpesaCode').focus(), 100);
+        const codeInput = document.getElementById('manualMpesaCode');
+        codeInput.addEventListener('input', updateCompletePaymentButton);
     }
     
     updateCompletePaymentButton();
+}
+
+// Back to payment options
+function backToPaymentOptions() {
+    // Hide all forms
+    document.getElementById('cashPaymentForm').style.display = 'none';
+    document.getElementById('stkPaymentForm').style.display = 'none';
+    document.getElementById('qrPaymentForm').style.display = 'none';
+    document.getElementById('manualPaymentForm').style.display = 'none';
+    
+    // Show payment method selection
+    document.getElementById('paymentMethodSelection').style.display = 'block';
+    
+    // Hide back button
+    document.getElementById('backToOptionsBtn').style.display = 'none';
+    
+    // Reset selected method
+    selectedPaymentMethod = null;
+    
+    // Reset button
+    const completeBtn = document.getElementById('completePaymentBtn');
+    completeBtn.disabled = true;
+    completeBtn.innerHTML = 'Complete Payment';
 }
 
 // Set quick amount for cash payment
@@ -811,53 +846,10 @@ function validateMpesaForm() {
     const phoneNumber = document.getElementById('customerPhone').value;
     const isValid = phoneNumber.length >= 7 && phoneNumber.length <= 9 && /^[0-9]+$/.test(phoneNumber);
     
-    // Generate QR code when phone number is valid
-    if (isValid && phoneNumber.length === 9) {
-        generateQRCode();
-    }
-    
     return isValid;
 }
 
-// Generate QR Code for M-Pesa payment
-async function generateQRCode() {
-    try {
-        const qrSection = document.getElementById('qrCodeSection');
-        const qrImage = document.getElementById('qrCodeImage');
-        
-        // Show loading state
-        qrSection.style.display = 'block';
-        qrImage.innerHTML = '<i class="fas fa-spinner fa-spin" style="font-size: 2rem; color: #10b981;"></i>';
-        
-        const response = await fetch('/api/MpesaTest/test-qr', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                MerchantName: 'PixelSolution',
-                RefNo: 'SALE-' + Date.now(),
-                Amount: currentTotal,
-                TrxCode: 'BG',
-                Size: '250'
-            })
-        });
-        
-        const result = await response.json();
-        
-        if (result.success && result.data && result.data.QRCode) {
-            // Display QR code image
-            qrImage.innerHTML = `<img src="data:image/png;base64,${result.data.QRCode}" alt="M-Pesa QR Code" style="width: 100%; max-width: 250px; border-radius: 8px;">`;
-        } else {
-            // Hide QR section if generation fails
-            qrSection.style.display = 'none';
-            console.warn('QR Code generation failed:', result.message);
-        }
-    } catch (error) {
-        console.error('Error generating QR code:', error);
-        document.getElementById('qrCodeSection').style.display = 'none';
-    }
-}
+// This function is no longer used - QR code is generated via showQRCodeModal button
 
 // Update complete payment button state
 function updateCompletePaymentButton() {
@@ -865,16 +857,60 @@ function updateCompletePaymentButton() {
     if (!completeBtn) return;
     
     let isValid = false;
+    let buttonText = 'Complete Payment';
     
     if (selectedPaymentMethod === 'cash') {
         const cashReceived = parseFloat(document.getElementById('cashReceived').value) || 0;
         isValid = cashReceived >= currentTotal;
-    } else if (selectedPaymentMethod === 'mpesa') {
+        buttonText = 'Complete Cash Payment';
+    } else if (selectedPaymentMethod === 'stk') {
         const phoneNumber = document.getElementById('customerPhone').value;
         isValid = validatePhoneNumber(phoneNumber);
+        buttonText = 'Send STK Push';
+    } else if (selectedPaymentMethod === 'qr') {
+        const phoneNumber = document.getElementById('qrCustomerPhone').value;
+        isValid = validatePhoneNumber(phoneNumber);
+        buttonText = 'Generate QR Code';
+    } else if (selectedPaymentMethod === 'manual') {
+        const code = document.getElementById('manualMpesaCode').value.trim();
+        isValid = code.length >= 5;
+        buttonText = 'Verify & Complete';
     }
     
     completeBtn.disabled = !isValid;
+    completeBtn.innerHTML = buttonText;
+}
+
+// Validate and complete payment (for Enter key support)
+function validateAndCompletePayment() {
+    console.log('Validating payment for method:', selectedPaymentMethod);
+    
+    if (!selectedPaymentMethod) {
+        showToast('⚠️ Please select a payment method', 'warning');
+        return;
+    }
+    
+    let isValid = false;
+    
+    if (selectedPaymentMethod === 'cash') {
+        const cashReceived = parseFloat(document.getElementById('cashReceived').value) || 0;
+        isValid = cashReceived >= currentTotal;
+        if (!isValid) {
+            showToast('⚠️ Amount received must be at least KSh ' + currentTotal.toFixed(2), 'warning');
+            return;
+        }
+    } else if (selectedPaymentMethod === 'stk') {
+        const phoneNumber = document.getElementById('customerPhone').value;
+        isValid = phoneNumber && phoneNumber.length === 9;
+        if (!isValid) {
+            showToast('⚠️ Please enter a valid 9-digit phone number', 'warning');
+            return;
+        }
+    }
+    
+    if (isValid) {
+        completePayment();
+    }
 }
 
 // Complete payment
@@ -889,17 +925,29 @@ async function completePayment() {
         return;
     }
     
+    // MANUAL VERIFICATION - Don't create sale, verify code first
+    if (selectedPaymentMethod === 'manual') {
+        await verifyManualMpesaCode();
+        return;
+    }
+    
+    // QR CODE - Don't create sale, wait for payment
+    if (selectedPaymentMethod === 'qr') {
+        showToast('Please wait for customer to scan QR and pay, then use Manual Verify to complete', 'info');
+        return;
+    }
+    
     const completeBtn = document.getElementById('completePaymentBtn');
     completeBtn.disabled = true;
     completeBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
     
     try {
-        // Prepare sale data - Convert payment method to proper format for backend
-        const paymentMethodFormatted = selectedPaymentMethod === 'mpesa' ? 'M-Pesa' : 
-                                       selectedPaymentMethod === 'cash' ? 'Cash' : selectedPaymentMethod;
+        // Only STK and Cash create sales immediately
+        // All M-Pesa methods (stk, qr, manual) should be labeled as "M-Pesa"
+        const paymentMethodFormatted = selectedPaymentMethod === 'cash' ? 'Cash' : 'M-Pesa';
         
-        const rawPhone = document.getElementById('customerPhone').value;
-        const formattedPhone = selectedPaymentMethod === 'mpesa' ? formatPhoneNumberForAPI(rawPhone) : null;
+        const rawPhone = selectedPaymentMethod === 'stk' ? document.getElementById('customerPhone').value : '';
+        const formattedPhone = selectedPaymentMethod === 'stk' ? formatPhoneNumberForAPI(rawPhone) : null;
         
         console.log('📱 Phone number debug:', {
             raw: rawPhone,
@@ -907,28 +955,40 @@ async function completePayment() {
             length: formattedPhone?.length
         });
         
+        // Get cash received value for cash payments
+        const cashReceivedValue = selectedPaymentMethod === 'cash' 
+            ? parseFloat(document.getElementById('cashReceived').value) 
+            : null;
+        
         const saleData = {
-            items: cart.map(item => ({
+            Items: cart.map(item => ({
                 productId: item.id,
                 quantity: item.quantity,
                 unitPrice: item.price,
-                total: item.total
+                totalPrice: item.total  // Backend expects TotalPrice not total
             })),
             paymentMethod: paymentMethodFormatted,
             totalAmount: currentTotal,
             customerPhone: formattedPhone,
-            cashReceived: selectedPaymentMethod === 'cash' ? parseFloat(document.getElementById('cashReceived').value) : null
+            cashReceived: cashReceivedValue
         };
+        
+        console.log('💰 Cash payment data:', {
+            method: selectedPaymentMethod,
+            total: currentTotal,
+            cashReceived: cashReceivedValue,
+            change: cashReceivedValue ? (cashReceivedValue - currentTotal) : 0
+        });
         
         console.log('💳 Processing sale:', saleData);
         
         // Get CSRF token
         const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
         
-        // Determine the correct endpoint based on current page
-        const currentPath = window.location.pathname;
-        const endpoint = currentPath.includes('/Admin/') ? '/Sales/ProcessSale' : '/Employee/ProcessSale';
-        console.log('🔗 Using sales endpoint:', endpoint);
+        // Determine the correct endpoint based on current page (case-insensitive)
+        const currentPath = window.location.pathname.toLowerCase();
+        const endpoint = currentPath.includes('/admin/') ? '/Sales/ProcessSale' : '/Employee/ProcessSale';
+        console.log('🔗 Using sales endpoint:', endpoint, '(from path:', window.location.pathname, ')');
         
         const response = await fetch(endpoint, {
             method: 'POST',
@@ -943,7 +1003,11 @@ async function completePayment() {
         console.log('💳 Sale processing result:', result);
         
         if (result.success) {
-            if (selectedPaymentMethod === 'mpesa' && result.waitingForCallback) {
+            // Store sale ID for manual verification
+            currentSaleId = result.saleId;
+            
+            // STK Push - wait for callback, don't print receipt yet
+            if (selectedPaymentMethod === 'stk' && result.waitingForCallback) {
                 // Show status messages for M-Pesa flow
                 showToast(result.message || 'STK Push sent successfully!', 'success');
                 
@@ -954,7 +1018,7 @@ async function completePayment() {
                     }, 2000);
                 }
                 
-                // Clear cart and close payment modal but don't generate receipt yet
+                // Clear cart and close payment modal but DON'T generate receipt yet
                 cart = [];
                 updateCartDisplay();
                 closePaymentModal();
@@ -962,10 +1026,11 @@ async function completePayment() {
                 // Start polling for payment status with enhanced feedback
                 pollPaymentStatusWithFeedback(result.saleId, result.totalAmount, result.checkoutRequestId);
                 
-            } else {
+            } else if (selectedPaymentMethod === 'cash') {
+                // Cash - immediate receipt
                 showToast('Payment processed successfully!', 'success');
                 
-                // Generate and show receipt for non-M-Pesa payments
+                // Generate and show receipt for cash payments
                 generateReceipt(result.saleId, saleData);
                 
                 // Clear cart and close payment modal
@@ -1041,32 +1106,150 @@ function closePaymentProcessingModal() {
     }
 }
 
+// Enhanced payment modal with visual states
+function showEnhancedPaymentModal(state, options) {
+    // Remove existing modal if any
+    const existingModal = document.getElementById('paymentProcessingModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    const modal = document.createElement('div');
+    modal.id = 'paymentProcessingModal';
+    modal.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(0, 0, 0, 0.8);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 99999;
+        animation: fadeIn 0.3s ease-in;
+        margin: 0;
+        padding: 0;
+    `;
+    
+    // State-specific styling
+    const stateColors = {
+        'STK_SENT': '#3b82f6',
+        'WAITING_PIN': '#3b82f6',
+        'PROCESSING': '#f59e0b',
+        'SUCCESS': '#10b981',
+        'FAILED': '#ef4444',
+        'WAITING': '#6b7280',
+        'WAITING_LONG': '#f59e0b',
+        'TIMEOUT_WARNING': '#f97316',
+        'TIMEOUT': '#ef4444'
+    };
+    
+    const color = options.color || stateColors[state] || '#3b82f6';
+    const icon = options.icon || 'fa-spinner fa-spin';
+    
+    modal.innerHTML = `
+        <div style="background: white; padding: 3rem 2.5rem; border-radius: 20px; text-align: center; width: 90%; max-width: 480px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); animation: slideUp 0.3s ease-out; margin: auto;">
+            <div style="margin: 0 auto 1.75rem; width: 100px; height: 100px; background: ${color}15; border-radius: 50%; display: flex; align-items: center; justify-content: center; position: relative;">
+                <div style="position: absolute; width: 100%; height: 100%; border-radius: 50%; border: 3px solid ${color}30; animation: pulse 2s ease-in-out infinite;"></div>
+                <i class="fas ${icon}" style="font-size: 3rem; color: ${color}; z-index: 1;"></i>
+            </div>
+            <h3 style="margin: 0 0 1rem 0; color: #1f2937; font-size: 1.75rem; font-weight: 700; letter-spacing: -0.025em;">${options.title}</h3>
+            <p style="margin: 0 0 0.75rem 0; color: #374151; font-size: 1.1rem; font-weight: 500; line-height: 1.5;">${options.message}</p>
+            <p id="paymentStatusText" style="margin: 0; color: #6b7280; font-size: 0.95rem; line-height: 1.6;">${options.detail || ''}</p>
+            ${options.saleId ? `<p style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid #e5e7eb; color: #9ca3af; font-size: 0.8rem; font-weight: 500;">Sale ID: ${options.saleId}</p>` : ''}
+        </div>
+    `;
+    
+    document.body.appendChild(modal);
+    
+    // Add animations if not already present
+    if (!document.getElementById('paymentModalAnimations')) {
+        const style = document.createElement('style');
+        style.id = 'paymentModalAnimations';
+        style.textContent = `
+            @keyframes fadeIn {
+                from { opacity: 0; }
+                to { opacity: 1; }
+            }
+            @keyframes slideUp {
+                from { 
+                    transform: translateY(30px) scale(0.95); 
+                    opacity: 0; 
+                }
+                to { 
+                    transform: translateY(0) scale(1); 
+                    opacity: 1; 
+                }
+            }
+            @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+            @keyframes pulse {
+                0%, 100% { 
+                    transform: scale(1); 
+                    opacity: 0.3; 
+                }
+                50% { 
+                    transform: scale(1.1); 
+                    opacity: 0.6; 
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+}
+
 // Enhanced poll payment status for M-Pesa payments with real-time feedback
 async function pollPaymentStatusWithFeedback(saleId, totalAmount, checkoutRequestId) {
     let attempts = 0;
-    const maxAttempts = 30; // Poll for 5 minutes (30 attempts * 10 seconds)
+    const maxAttempts = 120; // Poll for 10 minutes (120 attempts with variable intervals)
+    let cancelled = false;
     
-    // Show processing modal
-    showPaymentProcessingModal('Processing M-Pesa Payment');
+    console.log('🔄 Starting M-Pesa payment polling for Sale ID:', saleId);
     
-    // Status messages for different stages
-    const statusMessages = {
-        'STK_SENT': 'STK Push sent to your phone',
-        'WAITING_PIN': 'Waiting for you to enter your M-Pesa PIN...',
-        'PROCESSING': 'Processing your payment...',
-        'Pending': 'Payment in progress...',
-        'Completed': 'Payment successful!',
-        'Failed': 'Payment failed'
-    };
+    // Show enhanced processing modal with visual feedback
+    showEnhancedPaymentModal('STK_SENT', {
+        title: '📱 M-Pesa Payment',
+        message: 'STK Push sent to your phone',
+        detail: 'Please check your phone and enter your M-Pesa PIN',
+        saleId: saleId,
+        checkoutRequestId: checkoutRequestId
+    });
+    
+    // Add cancel button
+    const modalContent = document.querySelector('#paymentProcessingModal .modal-content');
+    if (modalContent && !document.getElementById('cancelPaymentBtn')) {
+        const cancelBtn = document.createElement('button');
+        cancelBtn.id = 'cancelPaymentBtn';
+        cancelBtn.className = 'btn btn-secondary';
+        cancelBtn.style.cssText = 'margin-top: 1rem; width: 100%;';
+        cancelBtn.innerHTML = '<i class="fas fa-times"></i> Cancel Waiting';
+        cancelBtn.onclick = () => {
+            cancelled = true;
+            closePaymentProcessingModal();
+            showToast('⚠️ Stopped waiting for payment. Check M-Pesa messages to verify.', 'info');
+        };
+        modalContent.appendChild(cancelBtn);
+    }
     
     let lastStatus = 'STK_SENT';
     let pinReminderShown = false;
+    let processingShown = false;
     
     const checkStatus = async () => {
+        // Check if cancelled
+        if (cancelled) {
+            return;
+        }
+        
         try {
-            // Determine the correct endpoint based on current page
-            const currentPath = window.location.pathname;
-            const endpoint = currentPath.includes('/Admin/') ? '/Sales/CheckPaymentStatus' : '/Employee/CheckPaymentStatus';
+            // Determine the correct endpoint based on current page (case-insensitive)
+            const currentPath = window.location.pathname.toLowerCase();
+            const endpoint = currentPath.includes('/admin/') ? '/Sales/CheckPaymentStatus' : '/Employee/CheckPaymentStatus';
             
             const response = await fetch(`${endpoint}?saleId=${saleId}`);
             const result = await response.json();
@@ -1074,13 +1257,26 @@ async function pollPaymentStatusWithFeedback(saleId, totalAmount, checkoutReques
             console.log('💳 Payment status check:', result);
             
             if (result.success) {
+                console.log(`💳 Payment status: ${result.status} (Attempt ${attempts}/${maxAttempts})`);
+                
                 // Handle status transitions with appropriate messages
-                if (result.status !== lastStatus) {
+                const statusChanged = result.status !== lastStatus;
+                if (statusChanged) {
                     lastStatus = result.status;
-                    
-                    switch (result.status) {
+                    console.log(`🔄 Status changed to: ${result.status}`);
+                }
+                
+                // Process status (check on every poll, not just on change)
+                switch (result.status) {
                         case 'Completed':
-                            updatePaymentProcessingMessage('Payment successful! ✅');
+                            showEnhancedPaymentModal('SUCCESS', {
+                                title: '✅ Payment Successful!',
+                                message: 'Your M-Pesa payment has been confirmed',
+                                detail: result.mpesaReceiptNumber ? `Receipt: ${result.mpesaReceiptNumber}` : 'Generating receipt...',
+                                icon: 'fa-check-circle',
+                                color: '#10b981'
+                            });
+                            
                             setTimeout(() => {
                                 closePaymentProcessingModal();
                                 showToast('🎉 Payment confirmed! Generating receipt...', 'success');
@@ -1093,27 +1289,70 @@ async function pollPaymentStatusWithFeedback(saleId, totalAmount, checkoutReques
                                 };
                                 generateReceipt(saleId, saleData);
                                 updateTodayStats();
-                            }, 1000);
+                            }, 2000);
                             return;
                             
                         case 'Failed':
-                            updatePaymentProcessingMessage('Payment failed ❌');
+                            // Check if it's actually failed or still processing
+                            const errorMsg = result.message || '';
+                            if (errorMsg.includes('still under processing') || errorMsg.includes('still processing')) {
+                                // Not actually failed, still processing
+                                console.log('⏳ Transaction still processing, continuing to poll...');
+                                if (!processingShown) {
+                                    showEnhancedPaymentModal('PROCESSING', {
+                                        title: '⏳ Processing Payment',
+                                        message: 'Your payment is being processed',
+                                        detail: 'Please wait while we confirm your payment...',
+                                        icon: 'fa-spinner fa-spin',
+                                        color: '#f59e0b'
+                                    });
+                                    processingShown = true;
+                                }
+                                break; // Continue polling
+                            }
+                            
+                            // Actually failed
+                            showEnhancedPaymentModal('FAILED', {
+                                title: '❌ Payment Failed',
+                                message: result.message || 'Payment could not be completed',
+                                detail: 'Please try again or use a different payment method',
+                                icon: 'fa-times-circle',
+                                color: '#ef4444'
+                            });
+                            
                             setTimeout(() => {
                                 closePaymentProcessingModal();
                                 showToast(`❌ Payment failed: ${result.message}`, 'error');
-                                showToast('Please try again or use a different payment method.', 'info');
-                            }, 1000);
+                            }, 2000);
                             return;
                             
                         case 'Pending':
-                            if (!pinReminderShown) {
-                                updatePaymentProcessingMessage('Please enter your M-Pesa PIN on your phone 📱');
+                        case 'STK_SENT':
+                            // Show "Waiting for PIN" after first check
+                            if (attempts >= 1 && !pinReminderShown) {
+                                showEnhancedPaymentModal('WAITING_PIN', {
+                                    title: '📱 Waiting for PIN',
+                                    message: 'Please enter your M-Pesa PIN',
+                                    detail: 'Check your phone for the STK push notification',
+                                    icon: 'fa-mobile-alt',
+                                    color: '#3b82f6'
+                                });
                                 pinReminderShown = true;
+                            } else if (!processingShown && attempts > 5) {
+                                // After 15 seconds (5 attempts * 3s), show processing
+                                showEnhancedPaymentModal('PROCESSING', {
+                                    title: '⏳ Processing Payment',
+                                    message: 'Your payment is being processed',
+                                    detail: 'This may take a few moments...',
+                                    icon: 'fa-spinner fa-spin',
+                                    color: '#f59e0b'
+                                });
+                                processingShown = true;
                             }
                             break;
-                    }
                 }
             } else {
+                console.error('❌ Payment status check failed:', result.message);
                 closePaymentProcessingModal();
                 showToast(`Error checking payment: ${result.message}`, 'error');
                 return;
@@ -1122,34 +1361,84 @@ async function pollPaymentStatusWithFeedback(saleId, totalAmount, checkoutReques
             // Continue polling if status is still pending
             attempts++;
             if (attempts < maxAttempts) {
-                // Show progress updates in modal
-                if (attempts === 5) {
-                    updatePaymentProcessingMessage('Still waiting for payment confirmation... ⏳');
-                } else if (attempts === 15) {
-                    updatePaymentProcessingMessage('Please complete the payment on your phone (2 min elapsed) ⏰');
-                } else if (attempts === 25) {
-                    updatePaymentProcessingMessage('Payment taking longer than expected (4 min elapsed) ⚠️');
+                // Dynamic polling interval - faster at start, slower later
+                let pollInterval;
+                if (attempts < 10) {
+                    pollInterval = 3000; // First 30 seconds: check every 3 seconds
+                } else if (attempts < 30) {
+                    pollInterval = 5000; // Next 1.5 minutes: check every 5 seconds
+                } else {
+                    pollInterval = 10000; // After that: check every 10 seconds
                 }
                 
-                setTimeout(checkStatus, 10000); // Check every 10 seconds
+                // Calculate actual time elapsed based on variable intervals
+                let timeElapsed = 0;
+                if (attempts <= 10) {
+                    timeElapsed = Math.floor((attempts * 3) / 60);
+                } else if (attempts <= 30) {
+                    timeElapsed = Math.floor((30 + (attempts - 10) * 5) / 60);
+                } else {
+                    timeElapsed = Math.floor((30 + 100 + (attempts - 30) * 10) / 60);
+                }
+                
+                // Show progress updates in modal
+                if (attempts === 10) {
+                    showEnhancedPaymentModal('WAITING', {
+                        title: '⏳ Still Waiting',
+                        message: 'Waiting for payment confirmation',
+                        detail: `Time elapsed: ${timeElapsed} minute(s)`,
+                        icon: 'fa-clock',
+                        color: '#6b7280'
+                    });
+                } else if (attempts === 30) {
+                    showEnhancedPaymentModal('WAITING_LONG', {
+                        title: '⏰ Please Complete Payment',
+                        message: 'Still waiting for confirmation',
+                        detail: `Time elapsed: ${timeElapsed} minutes. Please check your phone.`,
+                        icon: 'fa-exclamation-triangle',
+                        color: '#f59e0b'
+                    });
+                } else if (attempts === 60) {
+                    showEnhancedPaymentModal('TIMEOUT_WARNING', {
+                        title: '⚠️ Taking Longer Than Expected',
+                        message: 'Payment confirmation delayed',
+                        detail: `Time elapsed: ${timeElapsed} minutes. Verify your M-Pesa messages.`,
+                        icon: 'fa-exclamation-circle',
+                        color: '#f97316'
+                    });
+                }
+                
+                setTimeout(checkStatus, pollInterval);
             } else {
-                closePaymentProcessingModal();
-                showToast('⏰ Payment confirmation timeout. Please check your M-Pesa messages or try again.', 'error');
-                showToast('If payment was successful, the receipt will be available in transaction history.', 'info');
+                showEnhancedPaymentModal('TIMEOUT', {
+                    title: '⏰ Timeout',
+                    message: 'Payment confirmation timeout',
+                    detail: 'Please check your M-Pesa messages to verify the transaction',
+                    icon: 'fa-clock',
+                    color: '#ef4444'
+                });
+                
+                setTimeout(() => {
+                    closePaymentProcessingModal();
+                    showToast('⏰ Payment confirmation timeout. Check M-Pesa messages.', 'error');
+                    showToast('If payment succeeded, the receipt is in transaction history.', 'info');
+                }, 3000);
             }
         } catch (error) {
             console.error('Error checking payment status:', error);
             attempts++;
             if (attempts < maxAttempts) {
-                setTimeout(checkStatus, 10000);
+                const pollInterval = attempts < 10 ? 3000 : (attempts < 30 ? 5000 : 10000);
+                setTimeout(checkStatus, pollInterval);
             } else {
+                closePaymentProcessingModal();
                 showToast('❌ Unable to check payment status. Please verify transaction manually.', 'error');
             }
         }
     };
     
-    // Start checking after 3 seconds (give time for STK to reach phone)
-    setTimeout(checkStatus, 3000);
+    // Start checking immediately (M-Pesa can respond very fast)
+    setTimeout(checkStatus, 2000);
 }
 
 // Keep the original function for backward compatibility
@@ -1158,34 +1447,95 @@ async function pollPaymentStatus(saleId, totalAmount) {
 }
 
 // Generate receipt
-function generateReceipt(saleId, saleData) {
-const receiptContent = document.getElementById('receiptContent');
-const now = new Date();
-
-// Calculate totals from current cart and saleData
-const subtotal = saleData.totalAmount || currentTotal || 0;
-const tax = subtotal * 0.16;
-const netAmount = subtotal - tax;
+async function generateReceipt(saleId, saleData) {
+    const receiptContent = document.getElementById('receiptContent');
+    const now = new Date();
+    
+    // CRITICAL: Fetch complete sale data from backend - DON'T use cart as fallback
+    let saleItems = [];
+    let subtotal = saleData.totalAmount || currentTotal || 0;
+    let amountPaid = saleData.totalAmount || 0;
+    let changeGiven = 0;
+    let mpesaReceipt = saleData.mpesaReceiptNumber || '';
+    let paymentMethod = saleData.paymentMethod || 'Cash';
+    
+    try {
+        // Determine the correct endpoint
+        const currentPath = window.location.pathname.toLowerCase();
+        const endpoint = currentPath.includes('/admin/') ? '/Sales/GetReceiptData' : '/Employee/GetReceiptData';
+        
+        console.log('📊 Fetching receipt data from:', endpoint, 'for sale ID:', saleId);
+        
+        const response = await fetch(`${endpoint}?saleId=${saleId}`);
+        console.log('📊 Response status:', response.status);
+        
+        if (response.ok) {
+            const data = await response.json();
+            console.log('📊 Receipt data received:', data);
+            
+            if (data.success && data.items && data.items.length > 0) {
+                saleItems = data.items;
+                subtotal = data.totalAmount || subtotal;
+                amountPaid = data.amountPaid || subtotal;
+                changeGiven = data.changeGiven || 0;
+                mpesaReceipt = data.mpesaReceiptNumber || mpesaReceipt;
+                paymentMethod = data.paymentMethod || paymentMethod;
+                console.log('✅ Using backend data - Items:', saleItems.length, 'Total:', subtotal, 'Paid:', amountPaid, 'Change:', changeGiven);
+                console.log('📦 First item:', saleItems[0]);
+            } else {
+                console.warn('⚠️ Backend data invalid or empty');
+                // Last resort: use cart if still available
+                if (cart && cart.length > 0) {
+                    console.log('📦 Using cart as emergency fallback');
+                    saleItems = cart;
+                }
+            }
+        } else {
+            console.error('❌ Failed to fetch receipt data:', response.status, response.statusText);
+        }
+    } catch (error) {
+        console.error('❌ Error fetching receipt data:', error);
+    }
+    
+    // If we still have no items, show error
+    if (saleItems.length === 0) {
+        console.error('❌ No sale items available for receipt generation');
+        showToast('⚠️ Receipt data incomplete. Please check sale details.', 'warning');
+    }
+    
+    const tax = subtotal * 0.16;
+    const netAmount = subtotal - tax;
 
 const receiptHtml = `
-<div class="receipt-header" style="text-align: center; padding: 1.5rem 1rem; background: #f8fafc; border-bottom: 2px solid #e5e7eb;">
-<h3 style="margin: 0; font-size: 1.25rem; font-weight: bold; color: #1f2937;">PIXEL SOLUTION COMPANY LTD</h3>
-<p style="margin: 0.5rem 0 0.25rem; font-size: 0.9rem; color: #6b7280;">Sales Receipt</p>
+<div class="receipt-header" style="text-align: center; padding: 1.5rem 1rem; background: white; border-bottom: 1px solid #e5e7eb;">
+<h3 style="margin: 0; font-size: 1.1rem; font-weight: bold; color: #1f2937;">PIXEL SOLUTION COMPANY LTD</h3>
+<p style="margin: 0.5rem 0 0.25rem; font-size: 0.85rem; color: #6b7280;">Sales Receipt</p>
 <p style="margin: 0.25rem 0; font-size: 0.85rem; color: #374151;">Receipt #: ${saleId}</p>
-<p style="margin: 0.25rem 0; font-size: 0.85rem; color: #374151;">${now.toLocaleString('en-KE')}</p>
+<p style="margin: 0.25rem 0; font-size: 0.85rem; color: #374151;">${now.toLocaleDateString('en-KE')}, ${now.toLocaleTimeString('en-KE')}</p>
 </div>
 
 <div style="padding: 1.5rem 1rem;">
 <div style="margin-bottom: 1.5rem;">
-${cart.map(item => `
+${saleItems.map(item => {
+    // CRITICAL FIX: Calculate totalPrice if it's 0 but unitPrice exists
+    const unitPrice = item.unitPrice || item.price || 0;
+    let itemTotal = item.totalPrice || item.total || 0;
+    
+    // If totalPrice is 0 but we have unitPrice, calculate it
+    if (itemTotal === 0 && unitPrice > 0 && item.quantity > 0) {
+        itemTotal = unitPrice * item.quantity;
+    }
+    
+    return `
 <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid #f1f5f9;">
 <div>
-<div style="font-weight: 600; color: #1f2937; font-size: 0.9rem;">${item.name}</div>
-<div style="font-size: 0.8rem; color: #6b7280;">${item.quantity} x KSh ${(item.price || 0).toFixed(2)}</div>
+<div style="font-weight: 600; color: #1f2937; font-size: 0.9rem;">${item.productName || item.name}</div>
+<div style="font-size: 0.8rem; color: #6b7280;">${item.quantity} x KSh ${unitPrice.toFixed(2)}</div>
 </div>
-<div style="font-weight: 600; color: #1f2937;">KSh ${(item.total || 0).toFixed(2)}</div>
+<div style="font-weight: 600; color: #1f2937;">KSh ${itemTotal.toFixed(2)}</div>
 </div>
-`).join('')}
+`;
+}).join('')}
 </div>
 
 <div style="border-top: 2px solid #e5e7eb; padding-top: 1rem; margin-bottom: 1rem;">
@@ -1206,16 +1556,31 @@ ${cart.map(item => `
 <div style="border-top: 1px solid #e5e7eb; padding-top: 1rem; margin-bottom: 1rem;">
 <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
 <span style="color: #6b7280;">Payment Method:</span>
-<span style="color: #1f2937; font-weight: 600;">${selectedPaymentMethod === 'cash' ? 'Cash' : 'M-Pesa'}</span>
+<span style="color: #1f2937; font-weight: 600;">${paymentMethod}</span>
 </div>
-${selectedPaymentMethod === 'cash' ? `
+${(paymentMethod.toLowerCase().includes('pesa') || mpesaReceipt) ? `
 <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-<span style="color: #6b7280;">Cash Received:</span>
-<span style="color: #1f2937; font-weight: 600;">KSh ${parseFloat(document.getElementById('cashReceived').value || 0).toFixed(2)}</span>
+<span style="color: #6b7280;">Amount Paid:</span>
+<span style="color: #1f2937; font-weight: 600;">KSh ${subtotal.toFixed(2)}</span>
 </div>
-<div style="display: flex; justify-content: space-between;">
-<span style="color: #6b7280;">Change:</span>
-<span style="color: #1f2937; font-weight: 600;">KSh ${(parseFloat(document.getElementById('cashReceived').value || 0) - subtotal).toFixed(2)}</span>
+<div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+<span style="color: #6b7280;">Change Given:</span>
+<span style="color: #1f2937; font-weight: 600;">KSh 0.00</span>
+</div>
+` : `
+<div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+<span style="color: #6b7280;">Amount Given:</span>
+<span style="color: #1f2937; font-weight: 600;">KSh ${amountPaid.toFixed(2)}</span>
+</div>
+<div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+<span style="color: #6b7280;">Change Given:</span>
+<span style="color: #1f2937; font-weight: 600;">KSh ${changeGiven.toFixed(2)}</span>
+</div>
+`}
+${mpesaReceipt ? `
+<div style="display: flex; justify-content: space-between; margin-top: 0.5rem; padding: 0.75rem; background: #f0fdf4; border-radius: 0.375rem; border: 1px solid #86efac;">
+<span style="color: #166534; font-weight: 600;">M-Pesa Code:</span>
+<span style="color: #15803d; font-weight: 700; font-size: 1.1rem;">${mpesaReceipt}</span>
 </div>
 ` : ''}
 </div>
@@ -1227,30 +1592,57 @@ ${selectedPaymentMethod === 'cash' ? `
 </div>
 `;
 
-receiptContent.innerHTML = receiptHtml;
+    console.log('📦 Final receipt data - Items:', saleItems.length, 'Subtotal:', subtotal, 'Paid:', amountPaid, 'Change:', changeGiven);
+    
+    receiptContent.innerHTML = receiptHtml;
 
     // Show receipt modal - prevent duplicate modals
     const receiptModal = document.getElementById('receiptModal');
     if (receiptModal && receiptModal.style.display !== 'flex') {
         receiptModal.style.display = 'flex';
     }
+    
+    // Auto-print receipt if thermal printer is connected
+    setTimeout(() => {
+        printReceipt();
+    }, 500);
 }
 
 // Print receipt
 function printReceipt() {
     const receiptContent = document.getElementById('receiptContent').innerHTML;
-    const printWindow = window.open('', '_blank');
     
-    printWindow.document.write(`
+    // Create a hidden iframe for printing
+    let printFrame = document.getElementById('printFrame');
+    if (!printFrame) {
+        printFrame = document.createElement('iframe');
+        printFrame.id = 'printFrame';
+        printFrame.style.display = 'none';
+        document.body.appendChild(printFrame);
+    }
+    
+    const printDocument = printFrame.contentWindow.document;
+    printDocument.open();
+    printDocument.write(`
         <!DOCTYPE html>
         <html>
         <head>
             <title>Receipt</title>
             <style>
-                body { font-family: 'Courier New', monospace; font-size: 12px; margin: 20px; }
-                .receipt-header { text-align: center; margin-bottom: 20px; }
-                .receipt-item { display: flex; justify-content: space-between; margin-bottom: 5px; }
-                .receipt-total { margin-top: 20px; }
+                @media print {
+                    @page { size: 80mm auto; margin: 0; }
+                    body { margin: 0; padding: 0; width: 80mm; }
+                }
+                body { 
+                    font-family: 'Courier New', monospace; 
+                    font-size: 11px; 
+                    margin: 0; 
+                    padding: 10px;
+                    width: 80mm;
+                }
+                .receipt-header { text-align: center; margin-bottom: 15px; }
+                h3 { margin: 0; font-size: 14px; }
+                p { margin: 3px 0; font-size: 11px; }
             </style>
         </head>
         <body>
@@ -1259,8 +1651,18 @@ function printReceipt() {
         </html>
     `);
     
-    printWindow.document.close();
-    printWindow.print();
+    printDocument.close();
+    
+    // Wait for content to load then print
+    setTimeout(() => {
+        try {
+            printFrame.contentWindow.focus();
+            printFrame.contentWindow.print();
+        } catch (error) {
+            console.error('Print error:', error);
+            showToast('Please connect a thermal printer', 'error');
+        }
+    }, 250);
 }
 
 // Download receipt as PDF
@@ -1271,9 +1673,9 @@ async function downloadReceiptPDF() {
         // Get CSRF token
         const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
         
-        // Determine the correct endpoint based on current page
-        const currentPath = window.location.pathname;
-        const endpoint = currentPath.includes('/Admin/') ? '/Sales/GenerateReceiptPDF' : '/Employee/GenerateReceiptPDF';
+        // Determine the correct endpoint based on current page (case-insensitive)
+        const currentPath = window.location.pathname.toLowerCase();
+        const endpoint = currentPath.includes('/admin/') ? '/Sales/GenerateReceiptPDF' : '/Employee/GenerateReceiptPDF';
         
         const response = await fetch(endpoint, {
             method: 'POST',
@@ -1449,4 +1851,161 @@ function validatePhoneNumber(phoneNumber) {
     
     // Valid Kenyan mobile numbers should be 12 digits starting with 254
     return formatted && formatted.length === 12 && formatted.startsWith('254');
+}
+
+// Auto-generate QR code when 9 digits entered
+async function autoGenerateQR(input) {
+    const phoneNumber = input.value.trim();
+    
+    // Only allow digits
+    input.value = phoneNumber.replace(/\D/g, '');
+    
+    if (input.value.length === 9) {
+        const qrDisplay = document.getElementById('qrCodeDisplay');
+        const qrStatus = document.getElementById('qrPaymentStatus');
+        
+        // Show loading
+        qrDisplay.innerHTML = '<i class="fas fa-spinner fa-spin" style="font-size: 3rem; color: #3b82f6; margin-bottom: 1rem;"></i><p style="color: #6b7280;">Generating QR code...</p>';
+        
+        try {
+            const formattedPhone = formatPhoneNumberForAPI(input.value);
+            
+            // Generate QR code - NO SALE CREATED
+            const qrResponse = await fetch('/api/MpesaTest/generate-qr', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    phoneNumber: formattedPhone,
+                    amount: currentTotal
+                })
+            });
+            
+            const qrResult = await qrResponse.json();
+            
+            if (qrResult.success && qrResult.data && qrResult.data.QRCode) {
+                qrDisplay.innerHTML = `<img src="data:image/png;base64,${qrResult.data.QRCode}" alt="M-Pesa QR Code" style="width: 100%; max-width: 300px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">`;
+                qrStatus.style.display = 'block';
+                document.getElementById('qrStatusText').textContent = 'Waiting for customer to scan and pay...';
+                
+                // Enable complete button to finalize after payment
+                document.getElementById('completePaymentBtn').disabled = false;
+                document.getElementById('completePaymentBtn').innerHTML = 'Waiting for Payment...';
+            } else {
+                qrDisplay.innerHTML = '<i class="fas fa-exclamation-triangle" style="font-size: 3rem; color: #ef4444; margin-bottom: 1rem;"></i><p style="color: #ef4444;">Failed to generate QR code</p>';
+                showToast('Failed to generate QR code', 'error');
+            }
+        } catch (error) {
+            console.error('Error generating QR code:', error);
+            qrDisplay.innerHTML = '<i class="fas fa-exclamation-triangle" style="font-size: 3rem; color: #ef4444; margin-bottom: 1rem;"></i><p style="color: #ef4444;">Error generating QR code</p>';
+            showToast('Error generating QR code', 'error');
+        }
+    }
+}
+
+// Close QR Code Modal
+function closeQRCodeModal() {
+    document.getElementById('qrCodeModal').style.display = 'none';
+    document.getElementById('qrCodeDisplay').innerHTML = '<i class="fas fa-spinner fa-spin" style="font-size: 3rem; color: #0ea5e9;"></i><p style="margin-top: 1rem; color: #6b7280;">Generating QR Code...</p>';
+}
+
+// Manual M-Pesa Code Verification
+async function verifyManualMpesaCode() {
+    const codeInput = document.getElementById('manualMpesaCode');
+    const code = codeInput.value.trim().toUpperCase();
+    
+    if (code.length < 5) {
+        showToast('Please enter at least 5 characters of the M-Pesa code', 'error');
+        return;
+    }
+    
+    if (cart.length === 0) {
+        showToast('Cart is empty. Please add items first.', 'error');
+        return;
+    }
+    
+    const completeBtn = document.getElementById('completePaymentBtn');
+    completeBtn.disabled = true;
+    completeBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifying...';
+    
+    try {
+        // STEP 1: VERIFY the M-Pesa code FIRST (don't create sale yet)
+        const endpoint = window.location.pathname.includes('/Admin/') ? '/Sales/VerifyManualMpesaCode' : '/Employee/VerifyManualMpesaCode';
+        
+        const verifyResponse = await fetch(endpoint, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                mpesaCode: code,
+                saleAmount: currentTotal,
+                saleId: 0 // No sale created yet
+            })
+        });
+        
+        const result = await verifyResponse.json();
+        
+        if (result.success) {
+            showToast('✅ Payment verified! Creating sale...', 'success');
+            
+            // STEP 2: NOW create the sale with verified payment
+            const saleData = {
+                items: cart.map(item => ({
+                    productId: item.id,
+                    quantity: item.quantity,
+                    unitPrice: item.price,
+                    total: item.total
+                })),
+                paymentMethod: 'M-Pesa',
+                totalAmount: currentTotal,
+                customerPhone: null,
+                cashReceived: null,
+                mpesaReceiptNumber: result.mpesaReceiptNumber
+            };
+            
+            const saleEndpoint = window.location.pathname.includes('/Admin/') ? '/Sales/ProcessSale' : '/Employee/ProcessSale';
+            const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+            
+            const saleResponse = await fetch(saleEndpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': token
+                },
+                body: JSON.stringify(saleData)
+            });
+            
+            const saleResult = await saleResponse.json();
+            
+            if (saleResult.success) {
+                showToast('✅ Sale completed successfully!', 'success');
+                
+                // Generate receipt
+                generateReceipt(saleResult.saleId, saleData);
+                
+                // Clear cart and close modal
+                cart = [];
+                currentSaleId = null;
+                updateCartDisplay();
+                closePaymentModal();
+                await updateTodayStats();
+                
+                // Clear input
+                codeInput.value = '';
+            } else {
+                showToast(`❌ ${saleResult.message}`, 'error');
+                completeBtn.disabled = false;
+                completeBtn.innerHTML = 'Verify & Complete';
+            }
+        } else {
+            showToast(`❌ ${result.message}`, 'error');
+            completeBtn.disabled = false;
+            completeBtn.innerHTML = 'Verify & Complete';
+        }
+    } catch (error) {
+        console.error('Error verifying M-Pesa code:', error);
+        showToast('Error verifying code. Please try again.', 'error');
+        completeBtn.disabled = false;
+        completeBtn.innerHTML = 'Verify & Complete';
+    }
 }

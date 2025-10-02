@@ -495,6 +495,47 @@ namespace PixelSolution.Controllers
         }
 
         /// <summary>
+        /// Generate QR Code for POS payment
+        /// </summary>
+        [HttpPost("generate-qr")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GenerateQRCode([FromBody] GenerateQRRequest request)
+        {
+            try
+            {
+                _logger.LogInformation("🔲 Generating QR Code for amount: {Amount}", request.Amount);
+
+                var refNo = "POS-" + DateTime.Now.ToString("yyyyMMddHHmmss");
+                
+                // Generate QR for Till Number 6509715
+                var result = await _mpesaService.GenerateQRCodeAsync(
+                    "PIXEL SOLUTION",
+                    refNo,
+                    request.Amount,
+                    "BG", // Buy Goods (Till Number)
+                    "300"
+                );
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "QR Code generated successfully",
+                    data = result,
+                    timestamp = DateTime.UtcNow
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ QR Code generation failed");
+                return Ok(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+        }
+
+        /// <summary>
         /// Test C2B URL registration
         /// </summary>
         [HttpPost("register-c2b")]
@@ -548,5 +589,11 @@ namespace PixelSolution.Controllers
         public decimal Amount { get; set; }
         public string? TrxCode { get; set; }
         public string? Size { get; set; }
+    }
+
+    public class GenerateQRRequest
+    {
+        public string PhoneNumber { get; set; } = string.Empty;
+        public decimal Amount { get; set; }
     }
 }

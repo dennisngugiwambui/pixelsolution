@@ -1,0 +1,1577 @@
+@{
+    ViewData["Title"] = "M-Pesa Transactions - PixelSolution";
+    Layout = "_AdminLayout";
+}
+
+@section Styles {
+    <link href="~/css/dashboard.css" rel="stylesheet">
+    <style>
+        .mpesa-container {
+            padding: 1rem;
+        }
+
+        .transaction-card {
+            background: white;
+            border-radius: 16px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            border-left: 4px solid #3b82f6;
+            position: relative;
+            overflow: hidden;
+        }
+
+            .transaction-card:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            }
+
+            .transaction-card.completed {
+                border-left-color: #10b981;
+            }
+
+            .transaction-card.pending {
+                border-left-color: #f59e0b;
+            }
+
+            .transaction-card.failed {
+                border-left-color: #ef4444;
+            }
+
+            .transaction-card.stk_sent {
+                border-left-color: #3b82f6;
+            }
+
+        .stats-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border-left: 4px solid;
+            transition: all 0.3s ease;
+        }
+
+            .stat-card:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            }
+
+        .stat-card.success { border-left-color: #10b981; }
+        .stat-card.pending { border-left-color: #f59e0b; }
+        .stat-card.failed { border-left-color: #ef4444; }
+        .stat-card.unused { border-left-color: #3b82f6; }
+
+        .stat-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+
+        .stat-card-title {
+            font-size: 0.875rem;
+            color: #6b7280;
+            font-weight: 500;
+        }
+
+        .stat-card-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+        }
+
+        .stat-card-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #1f2937;
+        }
+
+        .tabs-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .tabs-header {
+            display: flex;
+            border-bottom: 2px solid #e5e7eb;
+            padding: 0 1.5rem;
+        }
+
+        .tab-btn {
+            padding: 1rem 1.5rem;
+            background: none;
+            border: none;
+            border-bottom: 3px solid transparent;
+            color: #6b7280;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: -2px;
+        }
+
+            .tab-btn:hover {
+                color: #3b82f6;
+            }
+
+            .tab-btn.active {
+                color: #3b82f6;
+                border-bottom-color: #3b82f6;
+            }
+
+        .tab-content {
+            display: none;
+            padding: 1.5rem;
+        }
+
+            .tab-content.active {
+                display: block;
+            }
+
+        .transactions-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .transactions-table th {
+            background: #f9fafb;
+            padding: 0.75rem 1rem;
+            text-align: left;
+            font-weight: 600;
+            color: #374151;
+            font-size: 0.875rem;
+            border-bottom: 2px solid #e5e7eb;
+        }
+
+        .transactions-table td {
+            padding: 1rem;
+            border-bottom: 1px solid #e5e7eb;
+            color: #1f2937;
+        }
+
+        .transactions-table tr:hover {
+            background: #f9fafb;
+            cursor: pointer;
+        }
+
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status-completed {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .status-pending {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .status-failed {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .status-stksent {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: white;
+        }
+
+            .btn-primary:hover {
+                transform: translateY(-1px);
+                box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+            }
+
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+        }
+
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-warning {
+            background: #f59e0b;
+            color: white;
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-sm {
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: #6b7280;
+        }
+
+            .empty-state i {
+                font-size: 3rem;
+                margin-bottom: 1rem;
+                opacity: 0.5;
+            }
+
+        .filters-bar {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .search-filter-bar {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            padding: 1rem;
+            background: #f9fafb;
+            border-radius: 8px;
+        }
+
+        .search-box {
+            flex: 1;
+            padding: 0.75rem 1rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            transition: all 0.3s ease;
+        }
+
+            .search-box:focus {
+                outline: none;
+                border-color: #3b82f6;
+                box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+            }
+
+        .filter-select {
+            padding: 0.75rem 1rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            background: white;
+            transition: all 0.3s ease;
+        }
+
+            .filter-select:focus {
+                outline: none;
+                border-color: #3b82f6;
+                box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+            }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 99999;
+            left: 0;
+            top: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: rgba(0,0,0,0.7);
+            backdrop-filter: blur(8px);
+        }
+
+            .modal.show {
+                display: flex !important;
+                align-items: center;
+                justify-content: center;
+                padding: 1rem;
+            }
+
+        .modal-content {
+            background-color: white;
+            margin: 1rem;
+            padding: 0;
+            border: none;
+            border-radius: 16px;
+            width: 100%;
+            max-width: 800px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 16px 16px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-body {
+            padding: 2rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.75rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            transition: all 0.3s ease;
+        }
+
+            .form-control:focus {
+                outline: none;
+                border-color: #3b82f6;
+                box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+            }
+
+            .form-control:read-only {
+                background-color: #f9fafb;
+                cursor: not-allowed;
+            }
+
+        .transaction-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .detail-item {
+            background: #f8fafc;
+            padding: 1rem;
+            border-radius: 8px;
+            border-left: 4px solid #3b82f6;
+        }
+
+        .detail-label {
+            font-size: 0.75rem;
+            color: #6b7280;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-bottom: 0.5rem;
+        }
+
+        .detail-value {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #1f2937;
+        }
+
+        /* Mobile Responsive */
+        @@media (max-width: 768px) {
+            .mpesa-container {
+                padding: 0.5rem;
+            }
+
+            .stats-cards {
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            }
+
+            .tabs-header {
+                overflow-x: auto;
+                white-space: nowrap;
+            }
+
+            .tab-btn {
+                flex-shrink: 0;
+            }
+
+            .search-filter-bar {
+                flex-direction: column;
+            }
+
+            .modal-content {
+                margin: 0.5rem;
+                width: calc(100% - 1rem);
+            }
+
+            .modal-body {
+                padding: 1rem;
+            }
+
+            .transaction-details {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @@keyframes slideInRight {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @@keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .modal.show .modal-content {
+            animation: fadeIn 0.3s ease-out;
+        }
+    </style>
+}
+
+<!-- Sidebar -->
+<div class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+        <div class="logo-container">
+            <div class="logo-icon">
+                <i class="fas fa-bolt"></i>
+            </div>
+            <div class="logo-text">PixelSolution</div>
+        </div>
+        <div class="user-info">
+            <div class="user-avatar">@User.Identity.Name?.Substring(0, 2).ToUpper()</div>
+            <div class="user-details">
+                <h4>@User.Identity.Name</h4>
+                <p>System Administrator</p>
+            </div>
+        </div>
+    </div>
+
+    <nav class="nav-menu">
+        <div class="nav-section">
+            <div class="nav-section-title">Main</div>
+            <div class="nav-item">
+                <a href="@Url.Action("Dashboard", "Admin")" class="nav-link">
+                    <i class="fas fa-chart-pie"></i>
+                    Dashboard
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Sales", "Admin")" class="nav-link">
+                    <i class="fas fa-shopping-cart"></i>
+                    Sales
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Inventory", "Admin")" class="nav-link">
+                    <i class="fas fa-box"></i>
+                    Inventory
+                </a>
+            </div>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-section-title">Management</div>
+            <div class="nav-item">
+                <a href="@Url.Action("Users", "Admin")" class="nav-link">
+                    <i class="fas fa-users"></i>
+                    Employees
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Departments", "Admin")" class="nav-link">
+                    <i class="fas fa-building"></i>
+                    Departments
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Suppliers", "Admin")" class="nav-link">
+                    <i class="fas fa-truck"></i>
+                    Suppliers
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Categories", "Admin")" class="nav-link">
+                    <i class="fas fa-tags"></i>
+                    Categories
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Products", "Admin")" class="nav-link">
+                    <i class="fas fa-cube"></i>
+                    Products
+                </a>
+            </div>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-section-title">Operations</div>
+            <div class="nav-item">
+                <a href="@Url.Action("PurchaseRequests", "Admin")" class="nav-link">
+                    <i class="fas fa-file-invoice"></i>
+                    Purchase Requests
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("CartManagement", "Admin")" class="nav-link">
+                    <i class="fas fa-shopping-basket"></i>
+                    Cart Management
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("WishlistManagement", "Admin")" class="nav-link">
+                    <i class="fas fa-heart"></i>
+                    Wishlist Management
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Messages", "Admin")" class="nav-link">
+                    <i class="fas fa-envelope"></i>
+                    Messages
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("MpesaTransactions", "Admin")" class="nav-link active">
+                    <i class="fas fa-mobile-alt"></i>
+                    M-Pesa Transactions
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("Reports", "Admin")" class="nav-link">
+                    <i class="fas fa-chart-bar"></i>
+                    Reports
+                </a>
+            </div>
+        </div>
+
+        <div class="nav-section">
+            <div class="nav-section-title">System</div>
+            <div class="nav-item">
+                <a href="@Url.Action("Settings", "Admin")" class="nav-link">
+                    <i class="fas fa-cog"></i>
+                    Settings
+                </a>
+            </div>
+            <div class="nav-item">
+                <a href="@Url.Action("LogoutGet", "Auth")" class="nav-link">
+                    <i class="fas fa-sign-out-alt"></i>
+                    Logout
+                </a>
+            </div>
+        </div>
+    </nav>
+</div>
+
+<!-- Main Content -->
+<div class="main-content" id="mainContent">
+    <!-- Header -->
+    <header class="header">
+        <div class="header-left">
+            <button class="sidebar-toggle" id="sidebarToggle">
+                <i class="fas fa-bars"></i>
+            </button>
+            <h1 class="page-title">M-Pesa Transactions</h1>
+        </div>
+        <div class="header-right">
+            <div class="search-container">
+                <input type="text" class="search-input" placeholder="Search transactions..." id="searchInput">
+                <i class="fas fa-search search-icon"></i>
+            </div>
+            <div class="header-actions">
+                <button class="action-btn" title="Notifications">
+                    <i class="fas fa-bell"></i>
+                    <span class="notification-badge">3</span>
+                </button>
+                <button class="action-btn" title="Messages">
+                    <i class="fas fa-envelope"></i>
+                    <span class="notification-badge">8</span>
+                </button>
+                <button class="action-btn" title="Profile">
+                    <i class="fas fa-user-circle"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Page Content -->
+    <div class="mpesa-container">
+        <!-- Filters and Actions Bar -->
+        <div class="filters-bar">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+                    <div style="position: relative;">
+                        <select id="statusFilter" class="form-control" style="width: 150px;">
+                            <option value="">All Status</option>
+                            <option value="Completed">Completed</option>
+                            <option value="Pending">Pending</option>
+                            <option value="STK_SENT">STK Sent</option>
+                            <option value="Failed">Failed</option>
+                        </select>
+                    </div>
+                    <div style="position: relative;">
+                        <select id="sortBy" class="form-control" style="width: 150px;">
+                            <option value="date">Sort by Date</option>
+                            <option value="amount">Sort by Amount</option>
+                            <option value="status">Sort by Status</option>
+                            <option value="phone">Sort by Phone</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 1rem;">
+                    <button class="btn btn-secondary btn-sm" onclick="clearFilters()">
+                        <i class="fas fa-times"></i>
+                        Clear Filters
+                    </button>
+                    <button class="btn btn-warning btn-sm" onclick="exportTransactionsPDF()">
+                        <i class="fas fa-file-pdf"></i>
+                        Export PDF
+                    </button>
+                    <button class="btn btn-primary btn-sm" onclick="refreshTransactions()">
+                        <i class="fas fa-sync-alt"></i>
+                        Refresh
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    <!-- Stats Cards -->
+    <div class="stats-cards">
+        <div class="stat-card success">
+            <div class="stat-card-header">
+                <span class="stat-card-title">Completed Transactions</span>
+                <div class="stat-card-icon" style="background: #d1fae5; color: #065f46;">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+            </div>
+            <div class="stat-card-value" id="completedCount">0</div>
+            <div style="font-size: 0.875rem; color: #6b7280; margin-top: 0.5rem;">
+                Total: <span id="completedAmount">KSh 0.00</span>
+            </div>
+        </div>
+
+        <div class="stat-card pending">
+            <div class="stat-card-header">
+                <span class="stat-card-title">Pending Transactions</span>
+                <div class="stat-card-icon" style="background: #fef3c7; color: #92400e;">
+                    <i class="fas fa-clock"></i>
+                </div>
+            </div>
+            <div class="stat-card-value" id="pendingCount">0</div>
+            <div style="font-size: 0.875rem; color: #6b7280; margin-top: 0.5rem;">
+                Total: <span id="pendingAmount">KSh 0.00</span>
+            </div>
+        </div>
+
+        <div class="stat-card failed">
+            <div class="stat-card-header">
+                <span class="stat-card-title">Failed Transactions</span>
+                <div class="stat-card-icon" style="background: #fee2e2; color: #991b1b;">
+                    <i class="fas fa-times-circle"></i>
+                </div>
+            </div>
+            <div class="stat-card-value" id="failedCount">0</div>
+        </div>
+
+        <div class="stat-card unused">
+            <div class="stat-card-header">
+                <span class="stat-card-title">Unused C2B Payments</span>
+                <div class="stat-card-icon" style="background: #dbeafe; color: #1e40af;">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+            </div>
+            <div class="stat-card-value" id="unusedCount">0</div>
+            <div style="font-size: 0.875rem; color: #6b7280; margin-top: 0.5rem;">
+                Total: <span id="unusedAmount">KSh 0.00</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs-container">
+        <div class="tabs-header">
+            <button class="tab-btn active" onclick="switchTab('all')">
+                <i class="fas fa-list"></i> All Transactions
+            </button>
+            <button class="tab-btn" onclick="switchTab('stk')">
+                <i class="fas fa-mobile-alt"></i> STK Push
+            </button>
+            <button class="tab-btn" onclick="switchTab('unused')">
+                <i class="fas fa-unlink"></i> Unused C2B
+            </button>
+        </div>
+
+        <!-- All Transactions Tab -->
+        <div class="tab-content active" id="tab-all">
+            <div class="search-filter-bar">
+                <input type="text" class="search-box" id="searchAll" placeholder="Search by phone, receipt number, or checkout ID..." onkeyup="filterTable('allTable', 'searchAll')">
+                <select class="filter-select" id="filterStatus" onchange="filterByStatus()">
+                    <option value="">All Status</option>
+                    <option value="Completed">Completed</option>
+                    <option value="Pending">Pending</option>
+                    <option value="STK_SENT">STK Sent</option>
+                    <option value="Failed">Failed</option>
+                </select>
+            </div>
+            <div style="overflow-x: auto;">
+                <table class="transactions-table" id="allTable">
+                    <thead>
+                        <tr>
+                            <th>Transaction ID</th>
+                            <th>Phone Number</th>
+                            <th>Amount</th>
+                            <th>M-Pesa Receipt</th>
+                            <th>Status</th>
+                            <th>Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="allTransactionsBody">
+                        <tr>
+                            <td colspan="7" class="empty-state">
+                                <i class="fas fa-spinner fa-spin"></i>
+                                <p>Loading transactions...</p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <!-- Pagination Controls -->
+                <div class="pagination-container" style="display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; padding: 1rem; background: #f9fafb; border-radius: 8px;">
+                    <div class="pagination-info">
+                        <span id="paginationInfo">Showing 1-10 of 0 transactions</span>
+                    </div>
+                    <div class="pagination-controls" style="display: flex; gap: 0.5rem; align-items: center;">
+                        <select id="recordsPerPage" class="form-control" style="width: auto; padding: 0.5rem;">
+                            <option value="10">10 per page</option>
+                            <option value="15">15 per page</option>
+                            <option value="25">25 per page</option>
+                            <option value="50">50 per page</option>
+                        </select>
+                        <button class="btn btn-secondary btn-sm" id="prevPage" onclick="changePage(-1)">
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+                        <span id="pageNumbers" style="display: flex; gap: 0.25rem;"></span>
+                        <button class="btn btn-secondary btn-sm" id="nextPage" onclick="changePage(1)">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- STK Push Tab -->
+        <div class="tab-content" id="tab-stk">
+            <div class="search-filter-bar">
+                <input type="text" class="search-box" id="searchStk" placeholder="Search STK transactions..." onkeyup="filterTable('stkTable', 'searchStk')">
+            </div>
+            <div style="overflow-x: auto;">
+                <table class="transactions-table" id="stkTable">
+                    <thead>
+                        <tr>
+                            <th>Checkout Request ID</th>
+                            <th>Phone Number</th>
+                            <th>Amount</th>
+                            <th>M-Pesa Receipt</th>
+                            <th>Status</th>
+                            <th>Date</th>
+                            <th>Sale ID</th>
+                        </tr>
+                    </thead>
+                    <tbody id="stkTransactionsBody">
+                        <tr>
+                            <td colspan="7" class="empty-state">
+                                <i class="fas fa-spinner fa-spin"></i>
+                                <p>Loading STK transactions...</p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <!-- STK Pagination Controls -->
+                <div class="pagination-container" style="display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; padding: 1rem; background: #f9fafb; border-radius: 8px;">
+                    <div class="pagination-info">
+                        <span id="stkPaginationInfo">Showing 1-10 of 0 transactions</span>
+                    </div>
+                    <div class="pagination-controls" style="display: flex; gap: 0.5rem; align-items: center;">
+                        <button class="btn btn-secondary btn-sm" id="stkPrevPage" onclick="changeStkPage(-1)">
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+                        <span id="stkPageNumbers" style="display: flex; gap: 0.25rem;"></span>
+                        <button class="btn btn-secondary btn-sm" id="stkNextPage" onclick="changeStkPage(1)">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Unused C2B Tab -->
+        <div class="tab-content" id="tab-unused">
+            <div class="search-filter-bar">
+                <input type="text" class="search-box" id="searchUnused" placeholder="Search unused transactions..." onkeyup="filterTable('unusedTable', 'searchUnused')">
+            </div>
+            <div style="overflow-x: auto;">
+                <table class="transactions-table" id="unusedTable">
+                    <thead>
+                        <tr>
+                            <th>Transaction Code</th>
+                            <th>Till Number</th>
+                            <th>Phone Number</th>
+                            <th>Customer Name</th>
+                            <th>Amount</th>
+                            <th>Received At</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="unusedTransactionsBody">
+                        <tr>
+                            <td colspan="7" class="empty-state">
+                                <i class="fas fa-spinner fa-spin"></i>
+                                <p>Loading unused transactions...</p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <!-- Unused Pagination Controls -->
+                <div class="pagination-container" style="display: flex; justify-content: space-between; align-items: center; margin-top: 1rem; padding: 1rem; background: #f9fafb; border-radius: 8px;">
+                    <div class="pagination-info">
+                        <span id="unusedPaginationInfo">Showing 1-10 of 0 transactions</span>
+                    </div>
+                    <div class="pagination-controls" style="display: flex; gap: 0.5rem; align-items: center;">
+                        <button class="btn btn-secondary btn-sm" id="unusedPrevPage" onclick="changeUnusedPage(-1)">
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+                        <span id="unusedPageNumbers" style="display: flex; gap: 0.25rem;"></span>
+                        <button class="btn btn-secondary btn-sm" id="unusedNextPage" onclick="changeUnusedPage(1)">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+
+<!-- Transaction Details Modal -->
+<div id="transactionModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 id="modalTitle">Transaction Details</h2>
+            <button style="background: none; border: none; color: white; font-size: 1.5rem; cursor: pointer;" onclick="closeTransactionModal()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="transaction-details" id="transactionDetails">
+                <!-- Transaction details will be populated here -->
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">Transaction Timeline</label>
+                <div id="transactionTimeline" style="background: #f8fafc; padding: 1rem; border-radius: 8px; border-left: 4px solid #3b82f6;">
+                    <!-- Timeline will be populated here -->
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 2rem;">
+                <button type="button" class="btn btn-secondary" onclick="closeTransactionModal()">Close</button>
+                <button type="button" class="btn btn-primary" id="queryStatusBtn" onclick="queryTransactionStatus()">
+                    <i class="fas fa-search"></i>
+                    Query Status
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/dashboard.js"></script>
+    <script>
+        let allTransactions = [];
+        let stkTransactions = [];
+        let unusedTransactions = [];
+        let filteredTransactions = [];
+        let currentPage = 1;
+        let recordsPerPage = 10;
+        let currentTab = 'all';
+        let stkCurrentPage = 1;
+        let unusedCurrentPage = 1;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            loadAllData();
+            
+            // Auto-refresh every 30 seconds
+            setInterval(loadAllData, 30000);
+            
+            // Setup event listeners
+            document.getElementById('statusFilter').addEventListener('change', filterByStatus);
+            document.getElementById('sortBy').addEventListener('change', filterByStatus);
+            document.getElementById('searchInput').addEventListener('input', filterByStatus);
+            document.getElementById('recordsPerPage').addEventListener('change', function() {
+                recordsPerPage = parseInt(this.value);
+                currentPage = 1;
+                filterByStatus();
+            });
+            
+            // Close modal when clicking outside
+            document.getElementById('transactionModal').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    closeTransactionModal();
+                }
+            });
+        });
+
+        async function loadAllData() {
+            await Promise.all([
+                loadMpesaTransactions(),
+                loadUnusedTransactions()
+            ]);
+            updateStats();
+            // Initialize filtered transactions
+            filteredTransactions = [...allTransactions];
+            displayAllTransactions();
+        }
+
+        async function loadMpesaTransactions() {
+            try {
+                const response = await fetch('/Admin/GetMpesaTransactions');
+                const data = await response.json();
+                allTransactions = data;
+                stkTransactions = data.filter(t => t.checkoutRequestId);
+                filteredTransactions = [...allTransactions];
+                
+                displayAllTransactions();
+                displayStkTransactions();
+            } catch (error) {
+                console.error('Error loading M-Pesa transactions:', error);
+            }
+        }
+
+        async function loadUnusedTransactions() {
+            try {
+                const response = await fetch('/Admin/GetUnusedMpesaTransactions');
+                const data = await response.json();
+                unusedTransactions = data;
+                
+                displayUnusedTransactions();
+            } catch (error) {
+                console.error('Error loading unused transactions:', error);
+            }
+        }
+
+        function displayAllTransactions() {
+            const tbody = document.getElementById('allTransactionsBody');
+            
+            if (allTransactions.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="empty-state">
+                            <i class="fas fa-inbox"></i>
+                            <p>No transactions found</p>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = allTransactions.map(t => `
+                <tr>
+                    <td><code style="font-size: 0.75rem;">${t.transactionId || 'N/A'}</code></td>
+                    <td>${t.phoneNumber || 'N/A'}</td>
+                    <td><strong>KSh ${(t.amount || 0).toLocaleString('en-KE', {minimumFractionDigits: 2})}</strong></td>
+                    <td>${t.mpesaReceiptNumber ? `<span style="color: #10b981; font-weight: 600;">${t.mpesaReceiptNumber}</span>` : '-'}</td>
+                    <td><span class="status-badge status-${(t.status || 'pending').toLowerCase().replace('_', '')}">${t.status || 'Pending'}</span></td>
+                    <td>${new Date(t.createdAt).toLocaleString('en-KE')}</td>
+                    <td>
+                        ${t.checkoutRequestId ? `<button class="btn btn-primary btn-sm" onclick="viewTransactionDetails('${t.checkoutRequestId}', '${t.transactionId || ''}')"><i class="fas fa-eye"></i></button>` : '-'}
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function displayStkTransactions() {
+            const tbody = document.getElementById('stkTransactionsBody');
+            
+            if (stkTransactions.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="empty-state">
+                            <i class="fas fa-inbox"></i>
+                            <p>No STK push transactions found</p>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = stkTransactions.map(t => `
+                <tr>
+                    <td><code style="font-size: 0.75rem;">${t.checkoutRequestId}</code></td>
+                    <td>${t.phoneNumber || 'N/A'}</td>
+                    <td><strong>KSh ${(t.amount || 0).toLocaleString('en-KE', {minimumFractionDigits: 2})}</strong></td>
+                    <td>${t.mpesaReceiptNumber ? `<span style="color: #10b981; font-weight: 600;">${t.mpesaReceiptNumber}</span>` : '-'}</td>
+                    <td><span class="status-badge status-${(t.status || 'pending').toLowerCase().replace('_', '')}">${t.status || 'Pending'}</span></td>
+                    <td>${new Date(t.createdAt).toLocaleString('en-KE')}</td>
+                    <td>${t.saleId || '-'}</td>
+                </tr>
+            `).join('');
+        }
+
+        function displayUnusedTransactions() {
+            const tbody = document.getElementById('unusedTransactionsBody');
+            
+            if (unusedTransactions.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="empty-state">
+                            <i class="fas fa-check-circle" style="color: #10b981;"></i>
+                            <p>No unused transactions - All payments are linked!</p>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = unusedTransactions.map(t => `
+                <tr>
+                    <td><code style="font-size: 0.75rem; color: #3b82f6;">${t.transactionCode}</code></td>
+                    <td>${t.tillNumber}</td>
+                    <td>${t.phoneNumber}</td>
+                    <td>${t.customerName || 'N/A'}</td>
+                    <td><strong>KSh ${(t.amount || 0).toLocaleString('en-KE', {minimumFractionDigits: 2})}</strong></td>
+                    <td>${new Date(t.receivedAt).toLocaleString('en-KE')}</td>
+                    <td>
+                        <button class="btn btn-primary btn-sm" onclick="linkToSale(${t.id})">
+                            <i class="fas fa-link"></i> Link to Sale
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function updateStats() {
+            // M-Pesa transactions stats
+            const completed = allTransactions.filter(t => t.status === 'Completed');
+            const pending = allTransactions.filter(t => t.status === 'Pending' || t.status === 'STK_SENT');
+            const failed = allTransactions.filter(t => t.status === 'Failed');
+
+            document.getElementById('completedCount').textContent = completed.length;
+            document.getElementById('completedAmount').textContent = `KSh ${completed.reduce((sum, t) => sum + (t.amount || 0), 0).toLocaleString('en-KE', {minimumFractionDigits: 2})}`;
+            
+            document.getElementById('pendingCount').textContent = pending.length;
+            document.getElementById('pendingAmount').textContent = `KSh ${pending.reduce((sum, t) => sum + (t.amount || 0), 0).toLocaleString('en-KE', {minimumFractionDigits: 2})}`;
+            
+            document.getElementById('failedCount').textContent = failed.length;
+
+            // Unused transactions stats
+            document.getElementById('unusedCount').textContent = unusedTransactions.length;
+            document.getElementById('unusedAmount').textContent = `KSh ${unusedTransactions.reduce((sum, t) => sum + (t.amount || 0), 0).toLocaleString('en-KE', {minimumFractionDigits: 2})}`;
+        }
+
+        function switchTab(tabName) {
+            // Update tab buttons
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.closest('.tab-btn').classList.add('active');
+
+            // Update tab content
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            document.getElementById(`tab-${tabName}`).classList.add('active');
+        }
+
+        function filterTable(tableId, searchId) {
+            const searchValue = document.getElementById(searchId).value.toLowerCase();
+            const table = document.getElementById(tableId);
+            const rows = table.getElementsByTagName('tr');
+
+            for (let i = 1; i < rows.length; i++) {
+                const row = rows[i];
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(searchValue) ? '' : 'none';
+            }
+        }
+
+        function filterByStatus() {
+            const status = document.getElementById('statusFilter').value;
+            const sortBy = document.getElementById('sortBy').value;
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            
+            filteredTransactions = allTransactions.filter(t => {
+                const matchesStatus = !status || t.status === status;
+                const matchesSearch = !searchTerm || 
+                    (t.phoneNumber && t.phoneNumber.toLowerCase().includes(searchTerm)) ||
+                    (t.transactionId && t.transactionId.toLowerCase().includes(searchTerm)) ||
+                    (t.checkoutRequestId && t.checkoutRequestId.toLowerCase().includes(searchTerm)) ||
+                    (t.mpesaReceiptNumber && t.mpesaReceiptNumber.toLowerCase().includes(searchTerm));
+                
+                return matchesStatus && matchesSearch;
+            });
+
+            // Sort filtered results
+            filteredTransactions.sort((a, b) => {
+                switch (sortBy) {
+                    case 'amount': return (b.amount || 0) - (a.amount || 0);
+                    case 'status': return (a.status || '').localeCompare(b.status || '');
+                    case 'phone': return (a.phoneNumber || '').localeCompare(b.phoneNumber || '');
+                    case 'date':
+                    default: return new Date(b.createdAt) - new Date(a.createdAt);
+                }
+            });
+            
+            // Reset to first page when filtering
+            currentPage = 1;
+            displayAllTransactions();
+        }
+
+        function refreshTransactions() {
+            loadAllData();
+            showToast('Transactions refreshed', 'success');
+        }
+
+        async function viewTransactionDetails(checkoutRequestId, transactionId) {
+            try {
+                console.log('Opening transaction modal for:', checkoutRequestId, transactionId);
+                
+                // Find the transaction in our loaded data
+                const transaction = allTransactions.find(t => 
+                    t.checkoutRequestId === checkoutRequestId || 
+                    t.transactionId === transactionId
+                );
+
+                if (!transaction) {
+                    showToast('Transaction not found', 'error');
+                    return;
+                }
+
+                // Populate modal with transaction details
+                document.getElementById('modalTitle').textContent = `Transaction: ${transaction.checkoutRequestId || transaction.transactionId}`;
+                
+                const detailsContainer = document.getElementById('transactionDetails');
+                detailsContainer.innerHTML = `
+                    <div class="detail-item">
+                        <div class="detail-label">Transaction ID</div>
+                        <div class="detail-value">${transaction.transactionId || 'N/A'}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Checkout Request ID</div>
+                        <div class="detail-value">${transaction.checkoutRequestId || 'N/A'}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Merchant Request ID</div>
+                        <div class="detail-value">${transaction.merchantRequestId || 'N/A'}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Phone Number</div>
+                        <div class="detail-value">${transaction.phoneNumber || 'N/A'}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Amount</div>
+                        <div class="detail-value">KSh ${(transaction.amount || 0).toLocaleString('en-KE', {minimumFractionDigits: 2})}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Status</div>
+                        <div class="detail-value">
+                            <span class="status-badge status-${(transaction.status || 'pending').toLowerCase().replace('_', '')}">
+                                ${transaction.status || 'Pending'}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">M-Pesa Receipt</div>
+                        <div class="detail-value">${transaction.mpesaReceiptNumber || 'Not Available'}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Created At</div>
+                        <div class="detail-value">${new Date(transaction.createdAt).toLocaleString('en-KE')}</div>
+                    </div>
+                    ${transaction.updatedAt ? `
+                    <div class="detail-item">
+                        <div class="detail-label">Updated At</div>
+                        <div class="detail-value">${new Date(transaction.updatedAt).toLocaleString('en-KE')}</div>
+                    </div>
+                    ` : ''}
+                    ${transaction.errorMessage ? `
+                    <div class="detail-item" style="border-left-color: #ef4444;">
+                        <div class="detail-label">Error Message</div>
+                        <div class="detail-value" style="color: #ef4444;">${transaction.errorMessage}</div>
+                    </div>
+                    ` : ''}
+                `;
+
+                // Update timeline
+                const timelineContainer = document.getElementById('transactionTimeline');
+                timelineContainer.innerHTML = `
+                    <div style="margin-bottom: 0.5rem;">
+                        <strong>📱 STK Push Initiated:</strong> ${new Date(transaction.createdAt).toLocaleString('en-KE')}
+                    </div>
+                    ${transaction.status === 'Completed' ? `
+                    <div style="margin-bottom: 0.5rem; color: #10b981;">
+                        <strong>✅ Payment Completed:</strong> ${transaction.updatedAt ? new Date(transaction.updatedAt).toLocaleString('en-KE') : 'Unknown'}
+                    </div>
+                    ` : ''}
+                    ${transaction.status === 'Failed' ? `
+                    <div style="margin-bottom: 0.5rem; color: #ef4444;">
+                        <strong>❌ Payment Failed:</strong> ${transaction.updatedAt ? new Date(transaction.updatedAt).toLocaleString('en-KE') : 'Unknown'}
+                    </div>
+                    ` : ''}
+                    ${transaction.status === 'Pending' || transaction.status === 'STK_SENT' ? `
+                    <div style="margin-bottom: 0.5rem; color: #f59e0b;">
+                        <strong>⏳ Awaiting Payment:</strong> Customer needs to complete payment on phone
+                    </div>
+                    ` : ''}
+                `;
+
+                // Store current transaction for status query
+                window.currentTransaction = transaction;
+
+                // Show modal with proper z-index and display
+                const modal = document.getElementById('transactionModal');
+                modal.style.display = 'flex';
+                modal.classList.add('show');
+                
+                console.log('Modal should now be visible');
+                
+            } catch (error) {
+                console.error('Error viewing transaction details:', error);
+                showToast('Error loading transaction details', 'error');
+            }
+        }
+
+        function closeTransactionModal() {
+            const modal = document.getElementById('transactionModal');
+            modal.classList.remove('show');
+            modal.style.display = 'none';
+            window.currentTransaction = null;
+            console.log('Modal closed');
+        }
+
+        async function queryTransactionStatus() {
+            if (!window.currentTransaction || !window.currentTransaction.checkoutRequestId) {
+                showToast('No checkout request ID available for status query', 'error');
+                return;
+            }
+
+            const btn = document.getElementById('queryStatusBtn');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Querying...';
+            btn.disabled = true;
+
+            try {
+                const response = await fetch('/api/MpesaTest/query-stk', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        checkoutRequestId: window.currentTransaction.checkoutRequestId
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    showToast('Status query completed - check console for details', 'success');
+                    console.log('M-Pesa Status Query Result:', result.data);
+                    
+                    // Refresh transaction data
+                    await loadAllData();
+                    
+                    // Update modal with fresh data
+                    const updatedTransaction = allTransactions.find(t => 
+                        t.checkoutRequestId === window.currentTransaction.checkoutRequestId
+                    );
+                    
+                    if (updatedTransaction) {
+                        viewTransactionDetails(updatedTransaction.checkoutRequestId, updatedTransaction.transactionId);
+                    }
+                } else {
+                    showToast(result.message || 'Status query failed', 'error');
+                }
+            } catch (error) {
+                console.error('Error querying transaction status:', error);
+                showToast('Error querying transaction status', 'error');
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        }
+
+        async function linkToSale(transactionId) {
+            const saleNumber = prompt('Enter the Sale Number to link this transaction to:');
+            
+            if (!saleNumber) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/Admin/LinkUnusedTransaction', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        transactionId: transactionId,
+                        saleNumber: saleNumber
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    showToast('Transaction linked successfully', 'success');
+                    await loadAllData(); // Refresh data
+                } else {
+                    showToast(result.message || 'Failed to link transaction', 'error');
+                }
+            } catch (error) {
+                console.error('Error linking transaction:', error);
+                showToast('Error linking transaction to sale', 'error');
+            }
+        }
+
+        // Pagination Functions
+        function updatePaginationInfo(start, end, total, infoElementId) {
+            const infoElement = document.getElementById(infoElementId);
+            if (infoElement) {
+                infoElement.textContent = `Showing ${start}-${end} of ${total} transactions`;
+            }
+        }
+
+        function updatePaginationControls(totalRecords, currentPageNum, recordsPerPageNum, pageNumbersId, prevBtnId, nextBtnId) {
+            const totalPages = Math.ceil(totalRecords / recordsPerPageNum);
+            const pageNumbersContainer = document.getElementById(pageNumbersId);
+            const prevBtn = document.getElementById(prevBtnId);
+            const nextBtn = document.getElementById(nextBtnId);
+
+            if (pageNumbersContainer) {
+                pageNumbersContainer.innerHTML = '';
+                
+                // Show page numbers (max 5 visible)
+                const startPage = Math.max(1, currentPageNum - 2);
+                const endPage = Math.min(totalPages, startPage + 4);
+                
+                for (let i = startPage; i <= endPage; i++) {
+                    const pageBtn = document.createElement('button');
+                    pageBtn.className = `btn btn-sm ${i === currentPageNum ? 'btn-primary' : 'btn-secondary'}`;
+                    pageBtn.textContent = i;
+                    pageBtn.onclick = () => goToPage(i);
+                    pageNumbersContainer.appendChild(pageBtn);
+                }
+            }
+
+            if (prevBtn) prevBtn.disabled = currentPageNum <= 1;
+            if (nextBtn) nextBtn.disabled = currentPageNum >= totalPages;
+        }
+
+        function changePage(direction) {
+            const newPage = currentPage + direction;
+            const totalPages = Math.ceil(filteredTransactions.length / recordsPerPage);
+            
+            if (newPage >= 1 && newPage <= totalPages) {
+                currentPage = newPage;
+                displayAllTransactions();
+            }
+        }
+
+        function changeStkPage(direction) {
+            const newPage = stkCurrentPage + direction;
+            const totalPages = Math.ceil(stkTransactions.length / recordsPerPage);
+            
+            if (newPage >= 1 && newPage <= totalPages) {
+                stkCurrentPage = newPage;
+                displayStkTransactions();
+            }
+        }
+
+        function changeUnusedPage(direction) {
+            const newPage = unusedCurrentPage + direction;
+            const totalPages = Math.ceil(unusedTransactions.length / recordsPerPage);
+            
+            if (newPage >= 1 && newPage <= totalPages) {
+                unusedCurrentPage = newPage;
+                displayUnusedTransactions();
+            }
+        }
+
+        function goToPage(pageNum) {
+            if (currentTab === 'all') {
+                currentPage = pageNum;
+                displayAllTransactions();
+            } else if (currentTab === 'stk') {
+                stkCurrentPage = pageNum;
+                displayStkTransactions();
+            } else if (currentTab === 'unused') {
+                unusedCurrentPage = pageNum;
+                displayUnusedTransactions();
+            }
+        }
+
+        function clearFilters() {
+            document.getElementById('statusFilter').value = '';
+            document.getElementById('sortBy').value = 'date';
+            document.getElementById('searchInput').value = '';
+            currentPage = 1;
+            filterByStatus();
+            showToast('Filters cleared', 'info');
+        }
+
+        async function exportTransactionsPDF() {
+            try {
+                const dataToExport = getCurrentTabData();
+                
+                if (dataToExport.length === 0) {
+                    showToast('No transactions to export', 'warning');
+                    return;
+                }
+
+                // Open new window for PDF generation
+                const pdfWindow = window.open('', '_blank');
+                pdfWindow.document.write(`
+                    <html>
+                        <head>
+                            <title>Generating M-Pesa Transactions Report...</title>
+                            <style>
+                                body { font-family: Arial, sans-serif; padding: 20px; text-align: center; }
+                                .spinner { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 40px; height: 40px; animation: spin 2s linear infinite; margin: 20px auto; }
+                                @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+                            </style>
+                        </head>
+                        <body>
+                            <h2>Generating M-Pesa Transactions Report</h2>
+                            <div class="spinner"></div>
+                            <p>Please wait while we generate your PDF report...</p>
+                        </body>
+                    </html>
+                `);
+
+                // Prepare data for PDF generation
+                const reportData = {
+                    title: 'M-Pesa Transactions Report',
+                    subtitle: `Generated on ${new Date().toLocaleDateString('en-KE')}`,
+                    transactions: dataToExport,
+                    totalAmount: dataToExport.reduce((sum, t) => sum + (t.amount || 0), 0),
+                    completedCount: dataToExport.filter(t => t.status === 'Completed').length,
+                    pendingCount: dataToExport.filter(t => t.status === 'Pending' || t.status === 'STK_SENT').length,
+                    failedCount: dataToExport.filter(t => t.status === 'Failed').length
+                };
+
+                const response = await fetch('/Admin/GenerateMpesaTransactionsPDF', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value
+                    },
+                    body: JSON.stringify(reportData)
+                });
+
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    
+                    // Create download link in the new window
+                    pdfWindow.document.body.innerHTML = `
+                        <h2>Report Generated Successfully!</h2>
+                        <p>Your M-Pesa transactions report is ready for download.</p>
+                        <a href="${url}" download="mpesa-transactions-${new Date().toISOString().split('T')[0]}.pdf" 
+                           style="background: #3b82f6; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;"
+                           onclick="setTimeout(() => window.close(), 1000)">Download PDF Report</a>
+                        <br><br>
+                        <button onclick="window.close()" style="background: #6b7280; color: white; padding: 8px 16px; border: none; border-radius: 5px; cursor: pointer;">Close Window</button>
+                    `;
+                    
+                    // Auto-trigger download
+                    const downloadLink = pdfWindow.document.querySelector('a[download]');
+                    downloadLink.click();
+                    
+                    showToast('PDF report generated successfully', 'success');
+                } else {
+                    pdfWindow.close();
+                    showToast('Failed to generate PDF report', 'error');
+                }
+            } catch (error) {
+                console.error('Error generating PDF:', error);
+                showToast('Error generating PDF report', 'error');
+            }
+        }
+
+        function getCurrentTabData() {
+            const activeTab = document.querySelector('.tab-btn.active');
+            if (!activeTab) return filteredTransactions;
+            
+            const tabText = activeTab.textContent.trim();
+            if (tabText.includes('STK Push')) {
+                return stkTransactions;
+            } else if (tabText.includes('Unused')) {
+                return unusedTransactions;
+            } else {
+                return filteredTransactions;
+            }
+        }
+
+        function showToast(message, type) {
+            // Simple toast notification
+            const toast = document.createElement('div');
+            toast.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: ${type === 'success' ? '#10b981' : '#ef4444'};
+                color: white;
+                padding: 1rem 1.5rem;
+                border-radius: 8px;
+                box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+                z-index: 10000;
+                animation: slideIn 0.3s ease-out;
+            `;
+            toast.textContent = message;
+            document.body.appendChild(toast);
+
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+        }
+    </script>
+}

@@ -1125,17 +1125,36 @@
             </div>
         </div>
 
-        <!-- Payment Method Selection -->
+        <!-- Payment Method Selection - Professional 4 Options -->
         <div id="paymentMethodSelection">
-            <h3 style="margin-bottom: 1rem; font-size: 1.1rem; color: #374151;">Select Payment Method:</h3>
-            <div class="payment-options">
-                <div class="payment-option" onclick="selectPaymentMethod('cash')">
-                    <i class="fas fa-money-bill-wave"></i>
-                    <div style="font-weight: 600;">Cash Payment</div>
+            <h3 style="margin-bottom: 1.5rem; font-size: 1.15rem; color: #1f2937; font-weight: 600;">Choose Payment Method</h3>
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-bottom: 1.5rem;">
+                <!-- STK Push -->
+                <div class="payment-option" onclick="selectPaymentMethod('stk')" style="cursor: pointer; padding: 1.5rem; border: 2px solid #e5e7eb; border-radius: 12px; text-align: center; transition: all 0.3s; background: white;">
+                    <i class="fas fa-mobile-alt" style="font-size: 2.5rem; color: #10b981; margin-bottom: 0.75rem; display: block;"></i>
+                    <div style="font-weight: 600; font-size: 1rem; color: #1f2937; margin-bottom: 0.25rem;">STK Push</div>
+                    <small style="color: #6b7280; font-size: 0.8rem; display: block;">Send to customer phone</small>
                 </div>
-                <div class="payment-option" onclick="selectPaymentMethod('mpesa')">
-                    <i class="fas fa-mobile-alt"></i>
-                    <div style="font-weight: 600;">M-Pesa Payment</div>
+                
+                <!-- QR Code -->
+                <div class="payment-option" onclick="selectPaymentMethod('qr')" style="cursor: pointer; padding: 1.5rem; border: 2px solid #e5e7eb; border-radius: 12px; text-align: center; transition: all 0.3s; background: white;">
+                    <i class="fas fa-qrcode" style="font-size: 2.5rem; color: #3b82f6; margin-bottom: 0.75rem; display: block;"></i>
+                    <div style="font-weight: 600; font-size: 1rem; color: #1f2937; margin-bottom: 0.25rem;">QR Code</div>
+                    <small style="color: #6b7280; font-size: 0.8rem; display: block;">Customer scans to pay</small>
+                </div>
+                
+                <!-- Manual Verify -->
+                <div class="payment-option" onclick="selectPaymentMethod('manual')" style="cursor: pointer; padding: 1.5rem; border: 2px solid #e5e7eb; border-radius: 12px; text-align: center; transition: all 0.3s; background: white;">
+                    <i class="fas fa-receipt" style="font-size: 2.5rem; color: #f59e0b; margin-bottom: 0.75rem; display: block;"></i>
+                    <div style="font-weight: 600; font-size: 1rem; color: #1f2937; margin-bottom: 0.25rem;">Manual Verify</div>
+                    <small style="color: #6b7280; font-size: 0.8rem; display: block;">Already paid manually</small>
+                </div>
+                
+                <!-- Cash -->
+                <div class="payment-option" onclick="selectPaymentMethod('cash')" style="cursor: pointer; padding: 1.5rem; border: 2px solid #e5e7eb; border-radius: 12px; text-align: center; transition: all 0.3s; background: white;">
+                    <i class="fas fa-money-bill-wave" style="font-size: 2.5rem; color: #059669; margin-bottom: 0.75rem; display: block;"></i>
+                    <div style="font-weight: 600; font-size: 1rem; color: #1f2937; margin-bottom: 0.25rem;">Cash</div>
+                    <small style="color: #6b7280; font-size: 0.8rem; display: block;">Physical money</small>
                 </div>
             </div>
         </div>
@@ -1162,44 +1181,65 @@
             </div>
         </div>
 
-        <!-- M-Pesa Payment Form -->
-        <div id="mpesaPaymentForm" style="display: none;">
-            <h3 style="margin-bottom: 1rem; font-size: 1.1rem; color: #374151;">M-Pesa Payment</h3>
+        <!-- STK Push Form -->
+        <div id="stkPaymentForm" style="display: none;">
+            <h3 style="margin-bottom: 1rem; font-size: 1.1rem; color: #374151;">STK Push Payment</h3>
             <div class="form-group">
                 <label class="form-label">Customer Phone Number:</label>
                 <div style="display: flex; align-items: center;">
                     <span style="padding: 0.75rem; background: #f3f4f6; border: 2px solid #e5e7eb; border-right: none; border-radius: 8px 0 0 8px; font-weight: 600;">+254</span>
-                    <input type="text" id="customerPhone" class="form-input" style="border-radius: 0 8px 8px 0;" placeholder="758024400" maxlength="9">
+                    <input type="text" id="customerPhone" class="form-input" style="border-radius: 0 8px 8px 0;" placeholder="7XXXXXXXX or 10XXXXXXXX or 11XXXXXXXX" maxlength="9" inputmode="numeric">
                 </div>
-                <small style="color: #6b7280; font-size: 0.75rem; margin-top: 0.25rem; display: block;">Enter 7 digits (7XXXXXXX) or 9 digits (7XXXXXXXXX). 254 prefix will be added automatically.</small>
+                <small style="color: #6b7280; font-size: 0.75rem; margin-top: 0.25rem; display: block;">Enter 9 digits starting with 7, 10, or 11. Examples: 712345678, 101234567, 110123456</small>
             </div>
 
-            <!-- QR Code Section -->
-            <div id="qrCodeSection" style="margin-top: 1rem; text-align: center; display: none;">
-                <div style="padding: 1rem; background: #f9fafb; border-radius: 8px; border: 2px dashed #d1d5db;">
-                    <p style="margin: 0 0 0.5rem 0; font-size: 0.875rem; color: #374151; font-weight: 600;">
-                        <i class="fas fa-qrcode" style="margin-right: 0.5rem;"></i>
-                        Scan QR Code to Pay
-                    </p>
-                    <div id="qrCodeImage" style="margin: 1rem auto; max-width: 250px;">
-                        <!-- QR code will be displayed here -->
-                    </div>
-                    <p style="margin: 0.5rem 0 0 0; font-size: 0.75rem; color: #6b7280;">
-                        Customer can scan this QR code with M-Pesa app
-                    </p>
+        </div>
+
+        <!-- QR Code Form -->
+        <div id="qrPaymentForm" style="display: none;">
+            <h3 style="margin-bottom: 1rem; font-size: 1.1rem; color: #374151;">QR Code Payment</h3>
+            <div class="form-group">
+                <label class="form-label">Customer Phone Number:</label>
+                <div style="display: flex; align-items: center;">
+                    <span style="padding: 0.75rem; background: #f3f4f6; border: 2px solid #e5e7eb; border-right: none; border-radius: 8px 0 0 8px; font-weight: 600;">+254</span>
+                    <input type="text" id="qrCustomerPhone" class="form-input" style="border-radius: 0 8px 8px 0;" placeholder="7XXXXXXXX or 10XXXXXXXX or 11XXXXXXXX" maxlength="9" inputmode="numeric" oninput="autoGenerateQR(this)">
                 </div>
             </div>
-
-            <div style="padding: 1rem; background: #f0f9ff; border-radius: 8px; border: 2px solid #0ea5e9; margin-top: 1rem;">
-                <p style="margin: 0; font-size: 0.875rem; color: #0369a1;">
-                    <i class="fas fa-info-circle" style="margin-right: 0.5rem;"></i>
-                    Customer will receive an STK push to complete payment.
+            <div id="qrCodeDisplay" style="margin-top: 1rem; text-align: center; padding: 2rem; background: #f9fafb; border-radius: 8px; border: 2px dashed #d1d5db;">
+                <i class="fas fa-qrcode" style="font-size: 3rem; color: #3b82f6; margin-bottom: 1rem;"></i>
+                <p style="color: #6b7280;">Enter phone number to generate QR code</p>
+            </div>
+            <div id="qrPaymentStatus" style="margin-top: 1rem; padding: 1rem; background: #f0f9ff; border-radius: 8px; border: 2px solid #0ea5e9; display: none;">
+                <p style="margin: 0; font-size: 0.875rem; color: #0369a1; text-align: center;">
+                    <i class="fas fa-mobile-alt" style="margin-right: 0.5rem;"></i>
+                    <span id="qrStatusText">Waiting for customer to scan and pay...</span>
                 </p>
+            </div>
+        </div>
+
+        <!-- Manual Verify Form -->
+        <div id="manualPaymentForm" style="display: none;">
+            <h3 style="margin-bottom: 1rem; font-size: 1.1rem; color: #374151;">Manual M-Pesa Verification</h3>
+            <div style="padding: 1rem; background: #fef3c7; border-radius: 8px; border: 2px solid #fbbf24; margin-bottom: 1rem;">
+                <p style="margin: 0; font-size: 0.875rem; color: #92400e;">
+                    <i class="fas fa-info-circle" style="margin-right: 0.5rem;"></i>
+                    Customer has already paid manually via M-Pesa
+                </p>
+            </div>
+            <div class="form-group">
+                <label class="form-label">M-Pesa Transaction Code:</label>
+                <input type="text" id="manualMpesaCode" class="form-input" placeholder="Enter last 5 digits or full code (e.g., 68ZST)" maxlength="20" style="text-transform: uppercase;">
+                <small style="color: #6b7280; font-size: 0.75rem; margin-top: 0.25rem; display: block;">
+                    Enter at least the last 5 characters of the M-Pesa confirmation code
+                </small>
             </div>
         </div>
 
         <!-- Action Buttons -->
         <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+            <button id="backToOptionsBtn" class="btn btn-secondary" onclick="backToPaymentOptions()" style="flex: 1; display: none;">
+                <i class="fas fa-arrow-left"></i> Back
+            </button>
             <button class="btn btn-secondary" onclick="closePaymentModal()" style="flex: 1;">Cancel</button>
             <button id="completePaymentBtn" class="btn" onclick="completePayment()" style="flex: 2; background: linear-gradient(135deg, #10b981, #059669); color: white;" disabled>
                 Complete Payment
@@ -1222,14 +1262,40 @@
             <!-- Receipt content will be populated here -->
         </div>
 
+        <div style="display: flex; gap: 0.75rem; margin-top: 1.5rem; justify-content: center;">
+            <button class="btn btn-secondary" onclick="closeReceiptModal()" style="padding: 0.75rem 3rem;">Close</button>
+        </div>
+    </div>
+</div>
+
+<!-- QR Code Modal -->
+<div id="qrCodeModal" class="modal">
+    <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-header">
+            <h2 class="modal-title">Scan QR Code to Pay</h2>
+            <button class="close-btn" onclick="closeQRCodeModal()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <div id="qrCodeModalContent" style="padding: 2rem; text-align: center;">
+            <div id="qrCodeDisplay" style="margin: 2rem auto;">
+                <i class="fas fa-spinner fa-spin" style="font-size: 3rem; color: #0ea5e9;"></i>
+                <p style="margin-top: 1rem; color: #6b7280;">Generating QR Code...</p>
+            </div>
+            <div style="margin-top: 1.5rem; padding: 1rem; background: #f0fdf4; border-radius: 8px; border: 2px solid #86efac;">
+                <p style="margin: 0; font-size: 0.9rem; color: #166534; font-weight: 600;">
+                    <i class="fas fa-mobile-alt" style="margin-right: 0.5rem;"></i>
+                    Waiting for payment...
+                </p>
+                <p id="qrPaymentStatus" style="margin: 0.5rem 0 0 0; font-size: 0.85rem; color: #15803d;">
+                    Customer should scan this QR code with M-Pesa app
+                </p>
+            </div>
+        </div>
+
         <div style="display: flex; gap: 0.75rem; margin-top: 1.5rem;">
-            <button class="btn btn-secondary" onclick="closeReceiptModal()" style="flex: 1; padding: 0.75rem;">Close</button>
-            <button class="btn" onclick="printReceipt()" style="flex: 1; background: #3b82f6; color: white; padding: 0.75rem;">
-                <i class="fas fa-print"></i> Print
-            </button>
-            <button class="btn" onclick="downloadReceiptPDF()" style="flex: 1; background: #10b981; color: white; padding: 0.75rem;">
-                <i class="fas fa-download"></i> Save PDF
-            </button>
+            <button class="btn btn-secondary" onclick="closeQRCodeModal()" style="flex: 1;">Cancel</button>
         </div>
     </div>
 </div>

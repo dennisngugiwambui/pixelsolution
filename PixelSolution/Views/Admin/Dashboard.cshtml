@@ -338,6 +338,10 @@
                         <i class="fas fa-plus"></i>
                         New Sale
                     </button>
+                    <button class="btn-secondary" onclick="viewMpesaTransactions()" style="margin-left: 0.5rem;">
+                        <i class="fas fa-mobile-alt"></i>
+                        M-Pesa Transactions
+                    </button>
                     <button class="btn-secondary" onclick="viewSalesHistory()" style="margin-left: 0.5rem;">
                         <i class="fas fa-history"></i>
                         View Sales History
@@ -380,6 +384,10 @@
 
         function viewSalesHistory() {
             window.location.href = '@Url.Action("SalesHistory", "Admin")';
+        }
+
+        function viewMpesaTransactions() {
+            window.location.href = '@Url.Action("MpesaTransactions", "Admin")';
         }
 
         function printSale(saleId) {
@@ -761,7 +769,7 @@
                     <td>${sale.saleNumber || '#' + sale.saleId}</td>
                     <td>${sale.customerName || 'Walk-in Customer'}</td>
                     <td>${sale.productName}</td>
-                    <td>KSh ${sale.totalAmount.toLocaleString()}</td>
+                    <td>KSh ${(sale.totalAmount > 0 ? sale.totalAmount : (sale.amountPaid || 0)).toLocaleString()}</td>
                     <td><span class="status-badge ${statusClass}">${sale.status}</span></td>
                     <td>${formattedDate}</td>
                     <td>

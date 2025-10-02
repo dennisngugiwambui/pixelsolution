@@ -2770,6 +2770,42 @@ namespace PixelSolution.Controllers
         {
             return View();
         }
+
+        public IActionResult MpesaTransactions()
+        {
+            return View();
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetUnusedMpesaTransactions()
+        {
+            try
+            {
+                var unusedTransactions = await _context.UnusedMpesaTransactions
+                    .Where(t => !t.IsUsed)
+                    .OrderByDescending(t => t.ReceivedAt)
+                    .Select(t => new
+                    {
+                        t.Id,
+                        t.TransactionCode,
+                        t.TillNumber,
+                        t.PhoneNumber,
+                        t.CustomerName,
+                        t.Amount,
+                        t.ReceivedAt,
+                        t.IsUsed,
+                        t.SaleId
+                    })
+                    .ToListAsync();
+
+                return Json(unusedTransactions);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching unused M-Pesa transactions");
+                return Json(new List<object>());
+            }
+        }
         public IActionResult Settings()
         {
             try
@@ -4851,16 +4887,16 @@ namespace PixelSolution.Controllers
                 var tomorrow = today.AddDays(1);
                 var todaysSales = await _context.Sales
                     .AsNoTracking()
-                    .Where(s => s.SaleDate >= today && s.SaleDate < tomorrow)
+                    .Where(s => s.SaleDate >= today && s.SaleDate < tomorrow && s.Status == "Completed")
                     .ToListAsync();
 
-                _logger.LogInformation($"GetTodaysSalesStats API - TODAY'S SALES: {todaysSales.Count()} totaling KSh {todaysSales.Sum(s => s.AmountPaid):N2}");
+                _logger.LogInformation($"GetTodaysSalesStats API - TODAY'S SALES: {todaysSales.Count()} totaling KSh {todaysSales.Sum(s => s.TotalAmount):N2}");
 
                 var stats = new
                 {
-                    totalSales = todaysSales.Sum(s => s.AmountPaid),
+                    totalSales = todaysSales.Sum(s => s.TotalAmount),
                     transactionCount = todaysSales.Count(),
-                    averageTransaction = todaysSales.Any() ? todaysSales.Average(s => s.AmountPaid) : 0
+                    averageTransaction = todaysSales.Any() ? todaysSales.Average(s => s.TotalAmount) : 0
                 };
 
                 return Json(new { success = true, stats = stats });
@@ -4875,18 +4911,24 @@ namespace PixelSolution.Controllers
 
         // API Endpoints for data loading
         [HttpGet]
-        [Route("/api/categories")]
         public async Task<IActionResult> GetCategories()
         {
             try
             {
                 var categories = await _categoryService.GetActiveCategoriesAsync();
-                return Json(categories.Select(c => new { categoryId = c.CategoryId, name = c.Name }));
+                return Json(new { 
+                    success = true, 
+                    categories = categories.Select(c => new { categoryId = c.CategoryId, name = c.Name })
+                });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting categories");
-                return Json(new List<object>());
+                return Json(new { 
+                    success = false, 
+                    categories = new List<object>(),
+                    message = "Failed to load categories: " + ex.Message
+                });
             }
         }
 
@@ -10806,6 +10848,28 @@ namespace PixelSolution.Controllers
             }
         }
 
+        [HttpPost]
+        [Authorize(Roles = "Admin,Manager")]
+        public async Task<IActionResult> GenerateMpesaTransactionsPDF([FromBody] MpesaTransactionsReportRequest request)
+        {
+            try
+            {
+                _logger.LogInformation("Generating M-Pesa transactions PDF report");
+
+                // Generate PDF using ReportService
+                var pdfBytes = await _reportService.GenerateMpesaTransactionsPDFAsync(request);
+
+                var fileName = $"MpesaTransactions_{DateTime.Now:yyyyMMdd_HHmmss}.pdf";
+
+                return File(pdfBytes, "application/pdf", fileName);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error generating M-Pesa transactions PDF");
+                return StatusCode(500, "Error generating PDF report");
+            }
+        }
+
         #endregion
 
         #endregion
@@ -10866,5 +10930,30 @@ namespace PixelSolution.Controllers
     public class ClearCartRequest
     {
         public int CustomerId { get; set; }
+    }
+
+    public class MpesaTransactionsReportRequest
+    {
+        public string Title { get; set; } = string.Empty;
+        public string Subtitle { get; set; } = string.Empty;
+        public List<MpesaTransactionReportItem> Transactions { get; set; } = new List<MpesaTransactionReportItem>();
+        public decimal TotalAmount { get; set; }
+        public int CompletedCount { get; set; }
+        public int PendingCount { get; set; }
+        public int FailedCount { get; set; }
+    }
+
+    public class MpesaTransactionReportItem
+    {
+        public int? TransactionId { get; set; }
+        public string CheckoutRequestId { get; set; } = string.Empty;
+        public string MerchantRequestId { get; set; } = string.Empty;
+        public string Status { get; set; } = string.Empty;
+        public decimal Amount { get; set; }
+        public string PhoneNumber { get; set; } = string.Empty;
+        public string MpesaReceiptNumber { get; set; } = string.Empty;
+        public DateTime CreatedAt { get; set; }
+        public DateTime? UpdatedAt { get; set; }
+        public string ErrorMessage { get; set; } = string.Empty;
     }
 }
